@@ -15,17 +15,6 @@ Automatically fetches repository-specific coding rules from the Qodo platform AP
 
 [View skill details](./get-rules/SKILL.md)
 
-### 🔍 qodo-fix
-Review code with Qodo and fix AI-powered code review issues interactively across GitHub, GitLab, and Bitbucket.
-
-**Features:**
-- Multi-provider support (GitHub, GitLab, Bitbucket)
-- Interactive issue review and fixing
-- Auto-fix mode for batch fixes
-- Automatic PR/MR comment summaries
-
-[View skill details](./qodo-fix.md)
-
 ## Installation
 
 ### Using npx skills (Recommended)
@@ -33,9 +22,8 @@ Review code with Qodo and fix AI-powered code review issues interactively across
 Install skills directly from this repository using the [skills.sh](https://skills.sh) ecosystem:
 
 ```bash
-# Install a specific skill
+# Install the get-rules skill
 npx skills add Codium-ai/qodo-skills/get-rules
-npx skills add Codium-ai/qodo-skills/qodo-fix
 
 # Install all skills from this repository
 npx skills add Codium-ai/qodo-skills
@@ -88,26 +76,15 @@ Or set environment variable:
 export QODO_CLI_API_KEY="sk-xxxxxxxxxxxxx"
 ```
 
-### qodo-fix Skill
-
-Requires CLI tools for your git provider:
-
-- **GitHub**: `gh` CLI ([install guide](https://cli.github.com/))
-- **GitLab**: `glab` CLI ([install guide](https://glab.readthedocs.io/))
-- **Bitbucket**: `bb` CLI
-
 ## Usage
 
 ### In Claude Code
 
-Skills can be invoked automatically (get-rules) or manually:
+The get-rules skill auto-invokes at conversation start. You can also invoke it manually if needed:
 
 ```bash
-# Invoke get-rules manually if needed
+# Invoke get-rules manually
 /get-rules
-
-# Invoke qodo-fix
-/qodo-fix
 ```
 
 ### Finding Skills
