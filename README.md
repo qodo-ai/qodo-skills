@@ -1,6 +1,6 @@
 # Qodo Skills
 
-A collection of skills for AI coding assistants (Claude Code, Cursor, Windsurf, etc.) that integrate with the Qodo platform.
+A Claude Code plugin that provides Qodo coding standards and best practices with automatic rule fetching.
 
 ## Available Skills
 
@@ -8,12 +8,14 @@ A collection of skills for AI coding assistants (Claude Code, Cursor, Windsurf, 
 Automatically fetches repository-specific coding rules from the Qodo platform API at conversation start. Applies security requirements, coding standards, and team conventions during code generation.
 
 **Features:**
-- Auto-invokes at conversation start in git repositories
-- Repository-aware rule fetching
-- Hierarchical rule matching (universal, org, repo, path-level)
-- Severity-based enforcement (ERROR, WARNING, RECOMMENDATION)
+- ✨ Auto-invokes at conversation start (via plugin hooks)
+- 🎯 Repository-aware rule fetching
+- 📚 Hierarchical rule matching (universal, org, repo, path-level)
+- ⚖️ Severity-based enforcement (ERROR, WARNING, RECOMMENDATION)
+- 🔄 Module-specific scope detection (`modules/` directories)
+- 📄 Pagination support for large rule sets
 
-[View skill details](./get-rules/SKILL.md)
+[View skill details](./skills/get-rules/SKILL.md)
 
 ### 🔍 qodo-fix
 Review code with Qodo and fix AI-powered code review issues interactively across GitHub, GitLab, and Bitbucket.
@@ -28,45 +30,68 @@ Review code with Qodo and fix AI-powered code review issues interactively across
 
 ## Installation
 
-### Using npx skills (Recommended)
+### As a Claude Code Plugin (Recommended)
 
-Install skills directly from this repository using the [skills.sh](https://skills.sh) ecosystem:
-
-```bash
-# Install a specific skill
-npx skills add qodo-ai/qodo-skills/get-rules
-npx skills add qodo-ai/qodo-skills/qodo-fix
-
-# Install all skills from this repository
-npx skills add qodo-ai/qodo-skills
-```
-
-### Manual Installation
-
-#### For Claude Code
-
-Copy skill directories to your project or global skills directory:
+Install as a plugin for automatic rule loading across all your projects:
 
 ```bash
-# Project-specific (recommended)
-cp -r get-rules /path/to/your/project/.claude/skills/
+# Install the plugin (works for all projects)
+/plugin install https://github.com/qodo-ai/qodo-skills
 
-# Global installation
-cp -r get-rules ~/.claude/skills/
+# Or if using a plugin marketplace
+/plugin marketplace add qodo-ai/plugin-marketplace
+/plugin install qodo-skills
 ```
 
-#### For Other Agents
+**What you get:**
+- ✅ Auto-fetches rules at every session start
+- ✅ Works across all projects automatically
+- ✅ Zero per-project configuration
+- ✅ Version management with `/plugin update`
 
-Different agents have different skill directories:
-
-- **Cursor**: `.cursor/skills/`
-- **Windsurf**: `.windsurf/skills/`
-- **Gemini CLI**: `.gemini/skills/`
-
-Example:
+**Installation scopes:**
 ```bash
-cp -r get-rules /path/to/your/project/.cursor/skills/
+# User scope (default) - available in all your projects
+/plugin install qodo-skills
+
+# Project scope - shared with team via git
+/plugin install qodo-skills --scope project
+
+# Local scope - personal, not shared
+/plugin install qodo-skills --scope local
 ```
+
+### Manual Installation (Alternative)
+
+For individual skills or other AI assistants:
+
+```bash
+# Copy skills directory to your project
+cp -r skills/get-rules /path/to/your/project/.claude/skills/
+
+# For other AI assistants (Cursor, Windsurf, etc.)
+cp -r skills/get-rules /path/to/your/project/.cursor/skills/
+```
+
+**Note:** Manual installation requires configuring hooks separately in `.claude/settings.json` for auto-invocation.
+
+## Prerequisites
+
+### System Requirements
+
+- **Git** - For repository detection
+- **jq** - For JSON parsing
+  ```bash
+  # macOS
+  brew install jq
+
+  # Ubuntu/Debian
+  apt-get install jq
+
+  # Check installation
+  jq --version
+  ```
+- **curl** - For API requests (usually pre-installed)
 
 ## Configuration
 
@@ -88,6 +113,8 @@ Or set environment variable:
 export QODO_CLI_API_KEY="sk-xxxxxxxxxxxxx"
 ```
 
+**Note:** API URL is optional and defaults to `https://api.qodo.ai`
+
 ### qodo-fix Skill
 
 Requires CLI tools for your git provider:
@@ -98,119 +125,147 @@ Requires CLI tools for your git provider:
 
 ## Usage
 
-### In Claude Code
+### Automatic (Plugin Installation)
 
-Skills can be invoked automatically (get-rules) or manually:
+When installed as a plugin, `get-rules` automatically fetches coding rules at every session start. You'll see:
+
+```
+📋 Loading Qodo rules from API...
+
+# 📋 Qodo Rules Loaded
+
+Repository: `/your-org/your-repo/`
+Rules loaded: 12 (universal, org level, repo level, and path level rules)
+```
+
+### Manual Invocation
+
+You can also manually refresh rules mid-session:
 
 ```bash
-# Invoke get-rules manually if needed
+# If installed as plugin
+/qodo-skills:get-rules
+
+# If installed manually (without plugin)
 /get-rules
 
 # Invoke qodo-fix
 /qodo-fix
 ```
 
-### Finding Skills
-
-Use the interactive skill browser:
+### Managing the Plugin
 
 ```bash
-npx skills find
+# Check installed plugins
+/plugin
+
+# Update to latest version
+/plugin update qodo-skills
+
+# Disable temporarily
+/plugin disable qodo-skills
+
+# Enable again
+/plugin enable qodo-skills
+
+# Uninstall
+/plugin uninstall qodo-skills
 ```
 
-Or search for Qodo skills:
+## Plugin Structure
+
+This repository is a Claude Code plugin with the following structure:
+
+```
+qodo-skills/
+├── .claude-plugin/
+│   └── plugin.json           # Plugin manifest
+├── skills/
+│   ├── get-rules/           # Auto-fetch coding rules skill
+│   │   ├── SKILL.md
+│   │   └── scripts/
+│   │       └── fetch-qodo-rules.sh
+│   └── qodo-fix/           # Fix code review issues skill
+│       └── SKILL.md
+├── hooks/
+│   └── hooks.json           # SessionStart hook for auto-invocation
+├── README.md
+├── CONTRIBUTING.md
+└── LICENSE
+```
+
+### How It Works
+
+1. **Plugin Installation**: Users run `/plugin install qodo-skills`
+2. **SessionStart Hook**: Automatically runs `fetch-qodo-rules.sh` at every session start
+3. **Rule Fetching**: Script queries Qodo API based on git repository and working directory
+4. **Context Injection**: Rules are loaded into Claude's context for the entire session
+5. **Manual Refresh**: Users can run `/qodo-skills:get-rules` to refresh mid-session
+
+### Testing Locally
 
 ```bash
-npx skills find qodo
+# Test the plugin from local directory
+cd /path/to/qodo-skills
+claude --plugin-dir .
+
+# Enable debug mode to see hook execution
+/debug
+
+# Check that rules loaded at session start
+# Look for: "📋 Loading Qodo rules from API..."
 ```
 
-## Publishing to skills.sh
+## Troubleshooting
 
-This repository is designed to be compatible with the [skills.sh](https://skills.sh) ecosystem. To publish your own fork or contribute new skills:
+### Rules not loading?
 
-### 1. Fork this repository
+**Check you're in a git repository:**
+```bash
+git status
+```
+
+**Verify API key is configured:**
+```bash
+cat ~/.qodo/config.json
+```
+
+**Check jq is installed:**
+```bash
+jq --version
+```
+
+**Enable debug mode to see hook execution:**
+```bash
+/debug
+# Look for hook execution logs
+```
+
+**Manually test the fetch script:**
+```bash
+~/.claude/plugins/cache/qodo-skills/qodo-skills-1.0.0/skills/get-rules/scripts/fetch-qodo-rules.sh
+```
+
+### No rules found?
+
+- Rules must be configured in the Qodo platform for your repository
+- Visit https://app.qodo.ai to set up rules
+- Check that your repository remote URL matches the configured scope
+
+### Want to disable auto-fetch?
 
 ```bash
-gh repo fork qodo-ai/qodo-skills
-```
-
-### 2. Add your skill
-
-Create a new directory with a `SKILL.md` file:
-
-```markdown
----
-name: my-skill
-description: What this skill does
-allowed-tools: ["Bash", "Read", "Edit"]
----
-
-# My Skill
-
-Instructions for the agent...
-```
-
-### 3. Test locally
-
-```bash
-# Install from your local directory
-npx skills add /path/to/qodo-skills/my-skill
-
-# Or from your GitHub fork
-npx skills add yourusername/qodo-skills/my-skill
-```
-
-### 4. Submit a Pull Request
-
-If you've created a useful skill, consider contributing it back:
-
-```bash
-git checkout -b add-my-skill
-git add my-skill/
-git commit -m "Add my-skill: brief description"
-git push origin add-my-skill
-gh pr create --title "Add my-skill" --body "Description of the skill"
-```
-
-## Skill Format
-
-Skills follow the standard skills.sh format:
-
-```
-skill-name/
-├── SKILL.md          # Main skill file with YAML frontmatter
-├── scripts/          # Optional: shell scripts or executables
-│   └── helper.sh
-└── docs/            # Optional: additional documentation
-    └── examples.md
-```
-
-### SKILL.md Format
-
-```markdown
----
-name: skill-name
-description: Brief description for discovery
-version: 1.0.0           # Optional
-allowed-tools: ["Bash"]  # Optional: restrict tools
-triggers:                # Optional: auto-invoke patterns
-  - pattern1
-  - pattern2
----
-
-# Skill Name
-
-Detailed instructions for the AI agent...
+/plugin disable qodo-skills
 ```
 
 ## Contributing
 
-We welcome contributions! Please see our contributing guidelines:
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines:
 
 1. Fork the repository
-2. Create a feature branch
-3. Add your skill following the format above
-4. Test thoroughly with your AI assistant
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Make your changes
+4. Test thoroughly with Claude Code
 5. Submit a pull request
 
 ## Resources

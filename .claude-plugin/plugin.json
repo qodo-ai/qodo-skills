@@ -1,0 +1,13 @@
+{
+  "name": "qodo-skills",
+  "version": "1.0.0",
+  "description": "Qodo coding standards and best practices with auto-fetching from Qodo API",
+  "author": {
+    "name": "Qodo Team",
+    "email": "support@qodo.ai"
+  },
+  "homepage": "https://github.com/qodo-ai/qodo-skills",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT",
+  "keywords": ["qodo", "rules", "coding-standards", "best-practices"]
+}
