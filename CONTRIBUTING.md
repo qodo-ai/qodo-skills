@@ -307,8 +307,8 @@ Looking for inspiration? Here are some skill ideas:
 
 ## Questions?
 
-- **General questions**: Open a [Discussion](https://github.com/Codium-ai/qodo-skills/discussions)
-- **Bug reports**: Open an [Issue](https://github.com/Codium-ai/qodo-skills/issues)
+- **General questions**: Open a [Discussion](https://github.com/qodo-ai/qodo-skills/discussions)
+- **Bug reports**: Open an [Issue](https://github.com/qodo-ai/qodo-skills/issues)
 - **Quick questions**: Comment on an existing issue or PR
 
 ## Code of Conduct

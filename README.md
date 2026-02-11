@@ -34,11 +34,11 @@ Install skills directly from this repository using the [skills.sh](https://skill
 
 ```bash
 # Install a specific skill
-npx skills add Codium-ai/qodo-skills/get-rules
-npx skills add Codium-ai/qodo-skills/qodo-fix
+npx skills add qodo-ai/qodo-skills/get-rules
+npx skills add qodo-ai/qodo-skills/qodo-fix
 
 # Install all skills from this repository
-npx skills add Codium-ai/qodo-skills
+npx skills add qodo-ai/qodo-skills
 ```
 
 ### Manual Installation
@@ -131,7 +131,7 @@ This repository is designed to be compatible with the [skills.sh](https://skills
 ### 1. Fork this repository
 
 ```bash
-gh repo fork Codium-ai/qodo-skills
+gh repo fork qodo-ai/qodo-skills
 ```
 
 ### 2. Add your skill

@@ -51,7 +51,7 @@ bb --version                                     # For Bitbucket
 Qodo (formerly Codium AI) is an AI-powered code review tool that analyzes PRs/MRs with compliance checks, bug detection, and code quality suggestions.
 
 ### Bot Identifiers
-Look for comments from: **`pr-agent-pro`**, **`pr-agent-pro-staging`**, **`qodo-merge[bot]`**, **`Codium-ai[bot]`**
+Look for comments from: **`pr-agent-pro`**, **`pr-agent-pro-staging`**, **`qodo-merge[bot]`**, **`qodo-ai[bot]`**
 
 ### Review Comment Types
 1. **PR Compliance Guide** 🔍 - Security/ticket/custom compliance with 🟢/🟡/🔴/⚪ indicators
@@ -334,7 +334,7 @@ Special cases:
    **GitHub:**
    ```bash
    # Get the Qodo comment ID
-   COMMENT_ID=$(gh pr view <pr-number> --json comments --jq '.comments[] | select(.author.login | test("pr-agent-pro|qodo-merge|Codium-ai"; "i")) | select(.body | contains("Code Review by Qodo")) | .id' | head -1)
+   COMMENT_ID=$(gh pr view <pr-number> --json comments --jq '.comments[] | select(.author.login | test("pr-agent-pro|qodo-merge|qodo-ai"; "i")) | select(.body | contains("Code Review by Qodo")) | .id' | head -1)
 
    # Resolve the comment (mark as resolved)
    # Note: GitHub doesn't have a direct "resolve comment" API for PR comments
