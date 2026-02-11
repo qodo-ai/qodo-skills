@@ -1,7 +1,7 @@
 ---
 name: qodo-fix
 description: Review code with Qodo - get AI-powered code review issues and fix them interactively (GitHub, GitLab, Bitbucket)
-version: 2.2.0
+version: 0.1.0
 triggers:
   - qodo.?fix
   - fix.?qodo
