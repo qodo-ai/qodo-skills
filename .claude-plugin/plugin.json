@@ -1,13 +1,13 @@
 {
   "name": "qodo-skills",
   "version": "1.0.0",
-  "description": "Qodo coding standards and best practices with auto-fetching from Qodo API",
+  "description": "Shift-left code review skills that bring Qodo's quality standards and code review capabilities into your local development workflow. Catch issues before commit, enforce organizational standards, and resolve PR feedback directly in your agent.",
   "author": {
-    "name": "Qodo Team",
+    "name": "Qodo.ai",
     "email": "support@qodo.ai"
   },
   "homepage": "https://github.com/qodo-ai/qodo-skills",
   "repository": "https://github.com/qodo-ai/qodo-skills",
   "license": "MIT",
-  "keywords": ["qodo", "rules", "coding-standards", "best-practices"]
+  "keywords": ["qodo", "code-review", "shift-left", "rules", "quality", "standards", "pr-review"]
 }

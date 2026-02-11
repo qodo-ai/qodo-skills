@@ -9,26 +9,30 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 0  # Not in a git repo, exit silently
 fi
 
-# Check for API key and URL from config file or environment
+# Check for API key and environment from config file or environment variables
 if [ -f "$HOME/.qodo/config.json" ]; then
-    API_KEY=$(jq -r '.QODO_CLI_API_KEY // .api_key // empty' "$HOME/.qodo/config.json" 2>/dev/null || echo "")
-    API_URL=$(jq -r '.QODO_RULES_API_URL // empty' "$HOME/.qodo/config.json" 2>/dev/null || echo "")
+    API_KEY=$(jq -r '.API_KEY // empty' "$HOME/.qodo/config.json" 2>/dev/null || echo "")
+    ENVIRONMENT_NAME=$(jq -r '.ENVIRONMENT_NAME // empty' "$HOME/.qodo/config.json" 2>/dev/null || echo "")
 fi
 
 # Environment variables take precedence
-API_KEY="${QODO_CLI_API_KEY:-$API_KEY}"
-API_URL="${QODO_RULES_API_URL:-$API_URL}"
+API_KEY="${QODO_API_KEY:-$API_KEY}"
+ENVIRONMENT_NAME="${QODO_ENVIRONMENT_NAME:-$ENVIRONMENT_NAME}"
 
-# Default API URL if not set
-if [ -z "$API_URL" ]; then
-    API_URL="https://api.qodo.ai"
+# Build API URL based on environment name
+# Default: https://qodo-platform.qodo.ai/rules/v1/
+# With environment: https://qodo-platform.<env>.qodo.ai/rules/v1/
+if [ -z "$ENVIRONMENT_NAME" ]; then
+    API_URL="https://qodo-platform.qodo.ai/rules/v1"
+else
+    API_URL="https://qodo-platform.${ENVIRONMENT_NAME}.qodo.ai/rules/v1"
 fi
 
-# Remove trailing slash from API_URL if present
-API_URL="${API_URL%/}"
-
 if [ -z "$API_KEY" ]; then
-    echo "ℹ️  No Qodo API key configured. To enable repository-specific coding rules, set the QODO_CLI_API_KEY environment variable or create ~/.qodo/config.json"
+    echo "ℹ️  No Qodo API key configured. To enable repository-specific coding rules:"
+    echo "   - Set QODO_API_KEY environment variable, or"
+    echo "   - Create ~/.qodo/config.json with your API key"
+    echo ""
     echo "Get your API key at: https://app.qodo.ai/settings/api-keys"
     exit 0
 fi
@@ -84,7 +88,7 @@ PAGE_SIZE=50
 while true; do
     RESPONSE=$(curl -s -w "\n%{http_code}" \
         -H "Authorization: Bearer $API_KEY" \
-        "${API_URL}/rules/v1/rules?scopes=${QUERY_SCOPE}&state=active&page=${PAGE}&page_size=${PAGE_SIZE}" 2>&1)
+        "${API_URL}/rules?scopes=${QUERY_SCOPE}&state=active&page=${PAGE}&page_size=${PAGE_SIZE}" 2>&1)
 
     HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
     BODY=$(echo "$RESPONSE" | sed '$d')

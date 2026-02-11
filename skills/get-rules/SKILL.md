@@ -128,21 +128,27 @@ The script automatically reads configuration from:
 **Config file**: `~/.qodo/config.json`
 ```json
 {
-  "QODO_CLI_API_KEY": "sk-xxxxxxxxxxxxx",
-  "QODO_RULES_API_URL": "https://api.qodo.ai"
+  "API_KEY": "sk-xxxxxxxxxxxxx",
+  "ENVIRONMENT_NAME": "staging"
 }
 ```
 
-**Environment variables** (takes precedence over config file):
+**Configuration fields:**
+- `API_KEY` (required): Your Qodo API key
+- `ENVIRONMENT_NAME` (optional): Environment name for API URL
+  - If empty/omitted: Uses production (`https://qodo-platform.qodo.ai/rules/v1/`)
+  - If specified: Uses `https://qodo-platform.<ENVIRONMENT_NAME>.qodo.ai/rules/v1/`
+
+**Environment variables** (take precedence over config file):
 ```bash
-export QODO_CLI_API_KEY="sk-xxxxxxxxxxxxx"
-export QODO_RULES_API_URL="https://api.qodo.ai"
+export QODO_API_KEY="sk-xxxxxxxxxxxxx"
+export QODO_ENVIRONMENT_NAME="staging"  # optional
 ```
 
-**Minimal config** (only API key required):
+**Minimal config** (production environment):
 ```json
 {
-  "QODO_CLI_API_KEY": "sk-xxxxxxxxxxxxx"
+  "API_KEY": "sk-xxxxxxxxxxxxx"
 }
 ```
 

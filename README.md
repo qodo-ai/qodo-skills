@@ -101,19 +101,31 @@ Create `~/.qodo/config.json`:
 
 ```json
 {
-  "QODO_CLI_API_KEY": "sk-xxxxxxxxxxxxx",
-  "QODO_RULES_API_URL": "https://api.qodo.ai"
+  "API_KEY": "sk-xxxxxxxxxxxxx",
+  "ENVIRONMENT_NAME": "staging"
 }
 ```
 
+**Configuration fields:**
+- `API_KEY` (required): Your Qodo API key
+- `ENVIRONMENT_NAME` (optional): Environment name for API URL
+  - If empty/omitted: Uses `https://qodo-platform.qodo.ai/rules/v1/`
+  - If specified: Uses `https://qodo-platform.<ENVIRONMENT_NAME>.qodo.ai/rules/v1/`
+
 Get your API key at: https://app.qodo.ai/settings/api-keys
 
-Or set environment variable:
-```bash
-export QODO_CLI_API_KEY="sk-xxxxxxxxxxxxx"
+**Minimal configuration (production):**
+```json
+{
+  "API_KEY": "sk-xxxxxxxxxxxxx"
+}
 ```
 
-**Note:** API URL is optional and defaults to `https://api.qodo.ai`
+**Environment variables (take precedence over config file):**
+```bash
+export QODO_API_KEY="sk-xxxxxxxxxxxxx"
+export QODO_ENVIRONMENT_NAME="staging"  # optional
+```
 
 ### qodo-fix Skill
 
