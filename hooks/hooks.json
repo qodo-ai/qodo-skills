@@ -1,5 +1,5 @@
 {
-  "description": "Auto-fetch Qodo coding rules at session start",
+  "description": "Auto-fetch Qodo coding rules at session start to ensure rules are loaded before any coding tasks",
   "hooks": {
     "SessionStart": [
       {

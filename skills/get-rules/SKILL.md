@@ -1,6 +1,6 @@
 ---
 name: get-rules
-description: "Automatically fetch and apply repository-specific coding rules from Qodo API. Auto-invoked on every conversation start."
+description: "Fetch and load repository coding rules from Qodo API. MUST be invoked at conversation start before any code generation or modification task, if rules are not already loaded in context."
 allowed-tools: ["Bash", "Read"]
 ---
 
@@ -8,9 +8,9 @@ allowed-tools: ["Bash", "Read"]
 
 ## Description
 
-Automatically fetches repository-specific coding rules from the Qodo platform API at the start of each conversation. Rules include security requirements, coding standards, quality guidelines, and team conventions that must be applied during code generation.
+Fetches repository-specific coding rules from the Qodo platform API before code generation or modification tasks. Rules include security requirements, coding standards, quality guidelines, and team conventions that must be applied during code generation.
 
-**Auto-invokes**: At conversation start when in a git repository with API key configured.
+**When to invoke**: At conversation start before any coding task, if rules not already loaded in context.
 
 ## Key Features
 
@@ -47,10 +47,12 @@ The skill automatically determines the most specific scope based on your current
 
 ### Step 1: Check if Rules Already Loaded
 
-**Before executing the script**, check if rules are already in the current conversation context:
-- Look for "📋 Qodo Rules Loaded" in recent messages
-- If found: Skip execution and proceed with code generation
-- If not found: Continue to Step 2
+**CRITICAL - Before ANY code generation, modification, or review task**, check if rules are already in context:
+- Look for "📋 Qodo Rules Loaded" in conversation history
+- If found: Skip execution, rules are active - proceed with coding task
+- If NOT found: Execute this skill immediately before proceeding
+
+**This check is mandatory for all coding tasks.** Rules must be loaded to ensure code complies with organizational standards.
 
 ### Step 2: Execute the Fetch Script
 
