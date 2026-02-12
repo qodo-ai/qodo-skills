@@ -1,7 +1,7 @@
 ---
 name: qodo-fix
-description: Review code with Qodo - get AI-powered code review issues and fix them interactively (GitHub, GitLab, Bitbucket)
-version: 0.1.0
+description: Review code with Qodo - get AI-powered code review issues and fix them interactively (GitHub, GitLab, Bitbucket, Azure DevOps)
+version: 0.3.0
 triggers:
   - qodo.?fix
   - fix.?qodo
@@ -14,7 +14,7 @@ triggers:
 
 # Qodo Fix
 
-A skill to show Qodo review issues for your current branch's PR/MR across multiple git providers.
+Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision. Supports GitHub, GitLab, Bitbucket, and Azure DevOps.
 
 ## Prerequisites
 
@@ -29,10 +29,14 @@ A skill to show Qodo review issues for your current branch's PR/MR across multip
     - Authenticate: `glab auth login`
   - **Bitbucket**: `bb` CLI or API access
     - See [bitbucket.org/product/cli](https://bitbucket.org/product/cli)
+  - **Azure DevOps**: `az` CLI with DevOps extension
+    - Install: `brew install azure-cli` or [docs.microsoft.com/cli/azure](https://docs.microsoft.com/cli/azure)
+    - Install extension: `az extension add --name azure-devops`
+    - Authenticate: `az login` then `az devops configure --defaults organization=https://dev.azure.com/yourorg project=yourproject`
 
 ### Required Context:
 - Must be in a git repository
-- Repository must be hosted on a supported git provider (GitHub, GitLab, or Bitbucket)
+- Repository must be hosted on a supported git provider (GitHub, GitLab, Bitbucket, or Azure DevOps)
 - Current branch must have an open PR/MR
 - PR/MR must have been reviewed by Qodo (pr-agent-pro bot, qodo-merge[bot], etc.)
 
@@ -44,6 +48,7 @@ git remote get-url origin                        # Identify git provider
 gh --version && gh auth status                   # For GitHub
 glab --version && glab auth status               # For GitLab
 bb --version                                     # For Bitbucket
+az --version && az devops                        # For Azure DevOps
 ```
 
 ## Understanding Qodo Reviews
@@ -58,42 +63,21 @@ Look for comments from: **`pr-agent-pro`**, **`pr-agent-pro-staging`**, **`qodo-
 2. **PR Code Suggestions** ✨ - Categorized improvements with importance ratings
 3. **Code Review by Qodo** - Structured issues with 🐞/📘/📎 sections and agent prompts (most detailed)
 
-### Identifying Qodo Comments
-Headers: `## PR Compliance Guide`, `## PR Code Suggestions`, `## Code Review by Qodo`
-Footer: Link to `https://www.qodo.ai` with Qodo logo
-Format: Collapsible `<details>` sections, file locations as `[file.py[L123-L456]](...)`, severity indicators
-
-### In-Progress Reviews
-Messages like "Come back again in a few minutes" or "An AI review agent is analysing" mean the review is still running - wait before parsing.
-
 ## Instructions
 
 When the user asks for a code review, to see Qodo issues, or fix Qodo comments:
 
 **Step 0: Check code push status**
 
-First, check if code is pushed and if PR exists:
+Check for uncommitted changes, unpushed commits, and get the current branch.
 
-```bash
-# Check for uncommitted changes
-UNCOMMITTED=$(git status --porcelain)
-
-# Check for unpushed commits
-UNPUSHED=$(git log @{u}.. --oneline 2>/dev/null)
-
-# Get current branch
-BRANCH=$(git branch --show-current)
-```
-
-**Handle three scenarios:**
-
-**Scenario A: Uncommitted changes exist** (`$UNCOMMITTED` not empty)
+**Scenario A: Uncommitted changes exist**
 - Inform: "⚠️ You have uncommitted changes. These won't be included in the Qodo review."
 - Ask: "Would you like to commit and push them first?"
 - If yes: Wait for user action, then proceed to Step 1
 - If no: Warn "Proceeding with review of pushed code only" and continue to Step 1
 
-**Scenario B: Unpushed commits exist** (`$UNPUSHED` not empty, `$UNCOMMITTED` empty)
+**Scenario B: Unpushed commits exist** (no uncommitted changes)
 - Inform: "⚠️ You have N unpushed commits. Qodo hasn't reviewed them yet."
 - Ask: "Would you like to push them now?"
 - If yes: Execute `git push`, inform "Pushed! Qodo will review shortly. Please wait ~5 minutes then run this skill again."
@@ -103,20 +87,7 @@ BRANCH=$(git branch --show-current)
 **Scenario C: Everything pushed** (both empty)
 - Proceed to Step 1
 
-1. Detect git provider and get current branch:
-   ```bash
-   BRANCH=$(git branch --show-current)
-   REMOTE_URL=$(git remote get-url origin)
-
-   # Detect provider
-   if [[ "$REMOTE_URL" =~ github\.com ]]; then
-     PROVIDER="github"
-   elif [[ "$REMOTE_URL" =~ gitlab\.com ]]; then
-     PROVIDER="gitlab"
-   elif [[ "$REMOTE_URL" =~ bitbucket\.org ]]; then
-     PROVIDER="bitbucket"
-   fi
-   ```
+1. Detect git provider from the remote URL (`git remote get-url origin`) — match against `github.com`, `gitlab.com`, `bitbucket.org`, or `dev.azure.com`.
 
 2. Find the open PR/MR for this branch:
 
@@ -136,21 +107,44 @@ BRANCH=$(git branch --show-current)
    bb pr list --source-branch <branch-name> --state OPEN
    ```
 
+   **Azure DevOps:**
+   ```bash
+   az repos pr list --source-branch <branch-name> --status active --output json
+   ```
+
 3. Get the Qodo review comments:
+
+   Qodo typically posts both a **summary comment** (PR-level, containing all issues) and **inline review comments** (one per issue, attached to specific lines of code). You must fetch both.
 
    **GitHub:**
    ```bash
+   # PR-level comments (includes the summary comment with all issues)
    gh pr view <pr-number> --json comments
+
+   # Inline review comments (per-line comments on specific code)
+   gh api repos/{owner}/{repo}/pulls/<pr-number>/comments
    ```
 
    **GitLab:**
    ```bash
+   # All MR notes including inline comments
    glab mr view <mr-iid> --comments
    ```
 
    **Bitbucket:**
    ```bash
+   # All PR comments including inline comments
    bb pr view <pr-id> --comments
+   ```
+
+   **Azure DevOps:**
+   ```bash
+   # PR-level threads (includes summary comments)
+   az repos pr show --id <pr-id> --output json
+
+   # All PR threads including inline comments
+   az repos pr policy list --id <pr-id> --output json
+   az repos pr thread list --id <pr-id> --output json
    ```
 
    Look for comments where the author is "qodo-merge[bot]", "pr-agent-pro", "pr-agent-pro-staging" or similar Qodo bot name.
@@ -160,42 +154,43 @@ BRANCH=$(git branch --show-current)
    - In this case, inform the user: "⏳ Qodo review is still in progress. Please wait a few minutes and try again."
    - Exit early - don't try to parse incomplete reviews
 
-3b. Deduplicate issues across multiple comments:
-   - Qodo may post multiple comments (Compliance Guide, Code Suggestions, Code Review, etc.)
-   - Issues may appear in multiple comments with slightly different wording
-   - Deduplicate by:
-     - Location (file path + line numbers)
-     - Issue title/summary
-   - Keep the most detailed version (prefer "Code Review" comment over "Code Suggestions")
+3b. Deduplicate issues across summary and inline comments:
+   - Qodo posts each issue in two places: once in the **summary comment** (PR-level) and once as an **inline review comment** (attached to the specific code line). These will share the same issue title.
+   - Qodo may also post multiple summary comments (Compliance Guide, Code Suggestions, Code Review, etc.) where issues can overlap with slightly different wording.
+   - Deduplicate by matching on **issue title** (primary key - the same title means the same issue):
+     - If an issue appears in both the summary comment and as an inline comment, merge them into a single issue
+     - Prefer the **inline comment** for file location (it has the exact line context)
+     - Prefer the **summary comment** for severity, type, and agent prompt (it is more detailed)
+     - **IMPORTANT:** Preserve each issue's **inline review comment ID** — you will need it later (step 8) to reply directly to that comment with the decision
+   - Also deduplicate across multiple summary comments by location (file path + line numbers) as a secondary key
    - If the same issue appears in multiple places, combine the agent prompts
 
 4. Parse and display the issues:
    - Extract the review body/comments from Qodo's review
    - Parse out individual issues/suggestions
-   - Identify severity (CRITICAL, HIGH, MEDIUM, LOW) and add corresponding emojis
-   - Identify type (Compliance, Bug, Rule Violation, Security, Performance, etc.)
+   - **IMPORTANT: Preserve Qodo's exact issue titles verbatim** — do not rename, paraphrase, or summarize them. Use the title exactly as Qodo wrote it.
+   - **IMPORTANT: Preserve Qodo's original ordering** — display issues in the same order Qodo listed them. Qodo already orders by severity.
    - Extract location, issue description, and suggested fix
    - Extract the agent prompt from Qodo's suggestion (the description of what needs to be fixed)
-   - Determine if each issue should be fixed or deferred based on severity and context
 
-Severity levels:
-- 🔴 CRITICAL - Must be fixed before merge
-- 🟠 HIGH - Should be fixed, can be deferred if justified
-- 🟡 MEDIUM - Should address, can be deferred to follow-up
-- ⚪ LOW - Nice to have, can be deferred
+   **Severity mapping** — derive from Qodo's action level and ordering:
+   - **"Action required"** issues → 🔴 CRITICAL / 🟠 HIGH
+   - **"Review recommended"** issues → 🟡 MEDIUM / ⚪ LOW
+   - Qodo's ordering within each action level implies relative severity — earlier items are more severe. Use position to distinguish: first items in "Action required" are 🔴 CRITICAL, later ones 🟠 HIGH. First items in "Review recommended" are 🟡 MEDIUM, later ones ⚪ LOW.
 
-Output format - Display as a markdown table:
+   Action guidelines:
+   - 🔴 CRITICAL / 🟠 HIGH: Always "Fix"
+   - 🟡 MEDIUM: Usually "Fix", can "Defer" if low impact
+   - ⚪ LOW: Can be "Defer" unless quick to fix
+
+Output format - Display as a markdown table ordered by severity (CRITICAL → HIGH → MEDIUM → LOW), preserving Qodo's relative ordering within each severity level:
 
 Qodo Issues for PR #123: [PR Title]
 
-| Severity | Issue Title | Issue Details | Type | Action |
-|----------|-------------|---------------|------|--------|
-| 🔴 CRITICAL | Test expects wrong behavior | • **Location:** tests/unittest/test_pr_questions.py:154<br><br>• **Issue:** Test assertion expects plain markdown when GFM is supported | Bug | Fix |
-| 🟠 HIGH | Missing error handling | • **Location:** src/api/handler.py:42<br><br>• **Issue:** No exception handling for API calls | Rule Violation | Fix |
-| 🟡 MEDIUM | Improve code readability | • **Location:** src/utils/parser.py:28<br><br>• **Issue:** Complex nested conditions hard to follow | Maintainability | Defer |
-| ⚪ LOW | Add docstring | • **Location:** src/utils/helper.py:15<br><br>• **Issue:** Function missing docstring | Documentation | Defer |
-
-Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
+| # | Severity | Issue Title | Issue Details | Type | Action |
+|---|----------|-------------|---------------|------|--------|
+| 1 | 🟠 HIGH | `get_active_installations_by_app_id` leaks orm | • **Location:** modules/git_integration/src/repositories/repo.py:114-131<br><br>• **Issue:** Returns ORM entities directly, no logging | 📘 Rule violation ⛯ Reliability | Fix |
+| 2 | 🔴 CRITICAL | Inverted ownership check | • **Location:** modules/auth/src/api/v1/api_keys/services/api_keys_service.py:191<br><br>• **Issue:** == instead of !=, authorization bypass | 🐞 Bug ⛨ Security | Fix |
 
 5. **Ask user for fix preference:**
    After displaying the table, ask the user how they want to proceed using AskUserQuestion:
@@ -213,13 +208,13 @@ Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
 6. **Review and fix issues** (if "Review each issue" was selected):
    - For each issue marked as "Fix" (starting with CRITICAL):
      - Read the relevant file(s) to understand the current code
-     - **IMPORTANT:** Use Qodo's agent prompt as the PRIMARY guidance for the fix. The agent prompt contains specific instructions about what to fix and how.
-     - Calculate the proposed fix in memory based on Qodo's agent prompt (DO NOT use Edit or Write tool yet)
+     - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+     - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
      - **Present the fix and ask for approval in a SINGLE step:**
        1. Show a brief header with issue title and location
-       2. **Show Qodo's agent prompt in full** (this is the authoritative guidance from the review)
+       2. **Show Qodo's agent prompt in full** so the user can verify the fix matches it
        3. Display current code snippet
-       4. Display proposed change as markdown diff (based on the agent prompt instructions)
+       4. Display proposed change as markdown diff
        5. Immediately use AskUserQuestion with these options:
           - ✅ "Apply fix" - Apply the proposed change
           - ⏭️ "Defer" - Skip this issue (will prompt for reason)
@@ -227,10 +222,13 @@ Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
      - **WAIT for user's choice via AskUserQuestion**
      - **If "Apply fix" selected:**
        - Apply change using Edit tool (or Write if creating new file)
-       - Confirm: "✅ Fix applied successfully!"
+       - Reply to the Qodo inline comment with the decision (see inline reply commands below)
+       - Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+       - Confirm: "✅ Fix applied, commented, and committed!"
        - Mark issue as completed
      - **If "Defer" selected:**
        - Ask for deferral reason using AskUserQuestion
+       - Reply to the Qodo inline comment with the deferral (see inline reply commands below)
        - Record reason and move to next issue
      - **If "Modify" selected:**
        - Inform user they can make changes manually
@@ -240,9 +238,13 @@ Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
 7. **Auto-fix mode** (if "Auto-fix all" was selected):
    - For each issue marked as "Fix" (starting with CRITICAL):
      - Read the relevant file(s) to understand the current code
-     - **CRITICAL:** Use Qodo's agent prompt as the PRIMARY and ONLY guidance for implementing the fix
-     - Calculate and apply the fix directly using Edit tool based on the agent prompt
-     - Report: "✅ Fixed: [Issue Title] at [Location]"
+     - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+     - Apply the fix using Edit tool
+     - Reply to the Qodo inline comment with the decision (see inline reply commands below)
+     - Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+     - Report each fix with the agent prompt that was followed:
+       > ✅ **Fixed: [Issue Title]** at `[Location]`
+       > **Agent prompt:** [the Qodo agent prompt used]
      - Mark issue as completed
    - After all auto-fixes are applied, display summary:
      - List of all issues that were fixed
@@ -257,19 +259,12 @@ Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
 
 Example: Show location, Qodo's guidance, current code, proposed diff, then AskUserQuestion with options (✅ Apply fix / ⏭️ Defer / 🔧 Modify). Wait for user choice, apply via Edit tool if approved.
 
-Action guidelines:
-- 🔴 CRITICAL issues: Always "Fix" (must be resolved before merge)
-- 🟠 HIGH issues: Usually "Fix", occasionally "Defer" if there's strong justification
-- 🟡 MEDIUM issues: Can be "Defer" if they don't impact functionality significantly
-- ⚪ LOW issues: Can be "Defer" unless quick to fix
-- Security issues: Always "Fix" regardless of severity
-
 Special cases:
-- **Unsupported git provider:** If the remote URL doesn't match GitHub, GitLab, or Bitbucket, inform the user and exit
+- **Unsupported git provider:** If the remote URL doesn't match GitHub, GitLab, Bitbucket, or Azure DevOps, inform the user and exit
 - **No PR/MR exists:**
   - Inform: "No PR/MR found for branch `<branch-name>`"
   - Ask: "Would you like me to create a PR/MR?"
-  - If yes: Use appropriate CLI to create PR/MR (`gh pr create` / `glab mr create` / `bb pr create`), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
+  - If yes: Use appropriate CLI to create PR/MR (`gh pr create` / `glab mr create` / `bb pr create` / `az repos pr create`), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
   - If no: Exit skill
   - **IMPORTANT:** Do NOT proceed without a PR/MR
 - **No Qodo review yet:**
@@ -278,15 +273,44 @@ Special cases:
   - Exit skill (do NOT attempt manual review)
   - **IMPORTANT:** This skill only works with Qodo reviews, not manual reviews
 - **Review in progress:** If "Come back again in a few minutes" message is found, inform user to wait and try again, then exit
-- **Multiple comments:** Deduplicate issues by location and title, keeping the most detailed version
 - **Missing CLI tool:** If the detected provider's CLI is not installed, provide installation instructions and exit
+
+   **Inline reply commands** (used per-issue in steps 6 and 7):
+
+   Use the inline comment ID preserved during deduplication (step 3b).
+
+   **GitHub:**
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/<pr-number>/comments/<inline-comment-id>/replies -X POST -f body='<reply-body>'
+   ```
+
+   **GitLab:**
+   ```bash
+   glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>/notes" -X POST -f body='<reply-body>'
+   ```
+
+   **Bitbucket:**
+   ```bash
+   bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments" -X POST -f 'content.raw=<reply-body>' -f 'parent.id=<inline-comment-id>'
+   ```
+
+   **Azure DevOps:**
+   ```bash
+   az repos pr thread comment add --id <pr-id> --thread-id <thread-id> --content '<reply-body>'
+   ```
+
+   Reply format:
+   - **Fixed:** `✅ **Fixed** — <brief description of what was changed>`
+   - **Deferred:** `⏭️ **Deferred** — <reason for deferring>`
+
+   Keep replies short (one line). If a reply fails, log it and continue.
 
 8. Post summary to PR/MR (ALWAYS):
    **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred:
 
-   **GitHub:**
-   ```bash
-   gh pr comment <pr-number> --body "$(cat <<'EOF'
+   Post a comment using the provider's CLI (`gh pr comment` / `glab mr comment` / `bb pr comment` / `az repos pr thread create`) with this format:
+
+   ```markdown
    ## Qodo Fix Summary
 
    Reviewed and addressed Qodo review issues:
@@ -299,85 +323,21 @@ Special cases:
 
    ---
    *Generated by Qodo Fix skill*
-   EOF
-   )"
    ```
-
-   **GitLab:**
-   ```bash
-   glab mr comment <mr-iid> --message "$(cat <<'EOF'
-   ## Qodo Fix Summary
-   [same format as above]
-   EOF
-   )"
-   ```
-
-   **Bitbucket:**
-   ```bash
-   bb pr comment <pr-id> --message "$(cat <<'EOF'
-   ## Qodo Fix Summary
-   [same format as above]
-   EOF
-   )"
-   ```
-
-   The summary should include:
-   - Count of issues fixed vs deferred
-   - List of fixed issues with their titles and severity
-   - List of deferred issues with their titles, severity, and deferral reasons
-   - Clear, concise formatting using markdown
 
    **After posting the summary, resolve the Qodo review comment:**
 
-   Find the Qodo "Code Review by Qodo" comment ID and mark it as resolved to indicate the issues have been addressed.
+   Find the Qodo "Code Review by Qodo" comment by fetching all PR/MR comments, matching a Qodo bot author whose body contains "Code Review by Qodo".
 
-   **GitHub:**
-   ```bash
-   # Get the Qodo comment ID
-   COMMENT_ID=$(gh pr view <pr-number> --json comments --jq '.comments[] | select(.author.login | test("pr-agent-pro|qodo-merge|qodo-ai"; "i")) | select(.body | contains("Code Review by Qodo")) | .id' | head -1)
+   - **GitHub:** Fetch comments via `gh pr view <pr-number> --json comments`, find the comment ID, then react with: `gh api "repos/{owner}/{repo}/issues/comments/<comment-id>/reactions" -X POST -f content='+1'`
+   - **GitLab:** Fetch discussions via `glab api "/projects/:id/merge_requests/<mr-iid>/discussions"`, find the discussion ID, then resolve: `glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>" -X PUT -f resolved=true`
+   - **Bitbucket:** Fetch comments via `bb api`, find the comment ID, then update to resolved status.
 
-   # Resolve the comment (mark as resolved)
-   # Note: GitHub doesn't have a direct "resolve comment" API for PR comments
-   # The comment resolution happens at the review thread level
-   # Add a thumbs-up reaction to indicate acknowledgment
-   gh api "repos/{owner}/{repo}/issues/comments/$COMMENT_ID/reactions" -X POST -f content='+1'
-   ```
+   If resolve fails (comment not found, API error), continue — the summary comment is the important part.
 
-   **GitLab:**
-   ```bash
-   # Get the Qodo comment/discussion ID
-   DISCUSSION_ID=$(glab api "/projects/:id/merge_requests/<mr-iid>/discussions" --jq '.[] | select(.notes[].body | contains("Code Review by Qodo")) | .id' | head -1)
-
-   # Resolve the discussion thread
-   glab api "/projects/:id/merge_requests/<mr-iid>/discussions/$DISCUSSION_ID" -X PUT -f resolved=true
-   ```
-
-   **Bitbucket:**
-   ```bash
-   # Bitbucket Cloud API to resolve comment thread
-   # Get comment ID, then mark as resolved
-   bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments" --jq '.values[] | select(.content.raw | contains("Code Review by Qodo")) | .id'
-   # Then update to resolved status
-   ```
-
-   If the resolve operation succeeds, inform: "✅ Marked Qodo review as resolved"
-   If it fails (comment not found, API error), continue anyway - the summary comment is the important part
-
-9. Commit changes to git:
-   If any fixes were applied, commit the changes:
-
-   ```bash
-   git add <files-that-were-modified>
-   git commit -m "fix: address Qodo review issues
-
-   - Fixed: [list of fixed issues]
-   - Deferred: [list of deferred issues with reasons]
-
-   Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-   ```
-
-   Then ask the user if they want to push to remote:
+9. Push to remote:
+   If any fixes were applied (commits were created in steps 6/7), ask the user if they want to push:
    - If yes: `git push`
    - If no: Inform them they can push later with `git push`
 
-   **Important:** Only commit if at least one fix was applied. If all issues were deferred, skip the commit step.
+   **Important:** If all issues were deferred, there are no commits to push — skip this step.
