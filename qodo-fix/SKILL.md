@@ -1,7 +1,7 @@
 ---
 name: qodo-fix
 description: Review code with Qodo - get AI-powered code review issues and fix them interactively (GitHub, GitLab, Bitbucket)
-version: 0.1.0
+version: 0.2.0
 triggers:
   - qodo.?fix
   - fix.?qodo
@@ -14,7 +14,7 @@ triggers:
 
 # Qodo Fix
 
-A skill to show Qodo review issues for your current branch's PR/MR across multiple git providers.
+Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision.
 
 ## Prerequisites
 

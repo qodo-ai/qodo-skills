@@ -16,13 +16,14 @@ Automatically fetches repository-specific coding rules from the Qodo platform AP
 [View skill details](./get-rules/SKILL.md)
 
 ### 🔍 qodo-fix
-Review code with Qodo and fix AI-powered code review issues interactively across GitHub, GitLab, and Bitbucket.
+Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision.
 
 **Features:**
 - Multi-provider support (GitHub, GitLab, Bitbucket)
-- Interactive issue review and fixing
-- Auto-fix mode for batch fixes
-- Automatic PR/MR comment summaries
+- Interactive issue review and auto-fix modes
+- Per-issue inline comment replies and git commits
+- Severity mapping from Qodo's action levels
+- Automatic PR/MR summary comments
 
 [View skill details](./qodo-fix/SKILL.md)
 
