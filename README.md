@@ -24,7 +24,7 @@ Review code with Qodo and fix AI-powered code review issues interactively across
 - Auto-fix mode for batch fixes
 - Automatic PR/MR comment summaries
 
-[View skill details](./qodo-fix.md)
+[View skill details](./qodo-fix/SKILL.md)
 
 ## Installation
 

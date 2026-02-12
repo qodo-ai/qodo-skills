@@ -333,32 +333,32 @@ Special cases:
 
    **GitHub:**
    ```bash
-   # Get the Qodo comment ID
-   COMMENT_ID=$(gh pr view <pr-number> --json comments --jq '.comments[] | select(.author.login | test("pr-agent-pro|qodo-merge|qodo-ai"; "i")) | select(.body | contains("Code Review by Qodo")) | .id' | head -1)
-
-   # Resolve the comment (mark as resolved)
-   # Note: GitHub doesn't have a direct "resolve comment" API for PR comments
-   # The comment resolution happens at the review thread level
+   # Get all PR comments as JSON
+   gh pr view <pr-number> --json comments
+   ```
+   Parse the JSON output to find the first comment where `author.login` matches a Qodo bot identifier (`pr-agent-pro`, `qodo-merge`, `qodo-ai`, case-insensitive) and the `body` contains "Code Review by Qodo". Extract its `id`, then:
+   ```bash
    # Add a thumbs-up reaction to indicate acknowledgment
-   gh api "repos/{owner}/{repo}/issues/comments/$COMMENT_ID/reactions" -X POST -f content='+1'
+   gh api "repos/{owner}/{repo}/issues/comments/<comment-id>/reactions" -X POST -f content='+1'
    ```
 
    **GitLab:**
    ```bash
-   # Get the Qodo comment/discussion ID
-   DISCUSSION_ID=$(glab api "/projects/:id/merge_requests/<mr-iid>/discussions" --jq '.[] | select(.notes[].body | contains("Code Review by Qodo")) | .id' | head -1)
-
+   # Get all MR discussions as JSON
+   glab api "/projects/:id/merge_requests/<mr-iid>/discussions"
+   ```
+   Parse the JSON output to find the first discussion where any note's `body` contains "Code Review by Qodo". Extract its `id`, then:
+   ```bash
    # Resolve the discussion thread
-   glab api "/projects/:id/merge_requests/<mr-iid>/discussions/$DISCUSSION_ID" -X PUT -f resolved=true
+   glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>" -X PUT -f resolved=true
    ```
 
    **Bitbucket:**
    ```bash
-   # Bitbucket Cloud API to resolve comment thread
-   # Get comment ID, then mark as resolved
-   bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments" --jq '.values[] | select(.content.raw | contains("Code Review by Qodo")) | .id'
-   # Then update to resolved status
+   # Get all PR comments as JSON
+   bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments"
    ```
+   Parse the JSON output to find comments where `content.raw` contains "Code Review by Qodo". Extract the comment `id`, then update to resolved status.
 
    If the resolve operation succeeds, inform: "✅ Marked Qodo review as resolved"
    If it fails (comment not found, API error), continue anyway - the summary comment is the important part
