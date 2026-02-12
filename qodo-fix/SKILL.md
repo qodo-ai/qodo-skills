@@ -138,18 +138,26 @@ BRANCH=$(git branch --show-current)
 
 3. Get the Qodo review comments:
 
+   Qodo typically posts both a **summary comment** (PR-level, containing all issues) and **inline review comments** (one per issue, attached to specific lines of code). You must fetch both.
+
    **GitHub:**
    ```bash
+   # PR-level comments (includes the summary comment with all issues)
    gh pr view <pr-number> --json comments
+
+   # Inline review comments (per-line comments on specific code)
+   gh api repos/{owner}/{repo}/pulls/<pr-number>/comments
    ```
 
    **GitLab:**
    ```bash
+   # All MR notes including inline comments
    glab mr view <mr-iid> --comments
    ```
 
    **Bitbucket:**
    ```bash
+   # All PR comments including inline comments
    bb pr view <pr-id> --comments
    ```
 
@@ -160,42 +168,43 @@ BRANCH=$(git branch --show-current)
    - In this case, inform the user: "⏳ Qodo review is still in progress. Please wait a few minutes and try again."
    - Exit early - don't try to parse incomplete reviews
 
-3b. Deduplicate issues across multiple comments:
-   - Qodo may post multiple comments (Compliance Guide, Code Suggestions, Code Review, etc.)
-   - Issues may appear in multiple comments with slightly different wording
-   - Deduplicate by:
-     - Location (file path + line numbers)
-     - Issue title/summary
-   - Keep the most detailed version (prefer "Code Review" comment over "Code Suggestions")
+3b. Deduplicate issues across summary and inline comments:
+   - Qodo posts each issue in two places: once in the **summary comment** (PR-level) and once as an **inline review comment** (attached to the specific code line). These will share the same issue title.
+   - Qodo may also post multiple summary comments (Compliance Guide, Code Suggestions, Code Review, etc.) where issues can overlap with slightly different wording.
+   - Deduplicate by matching on **issue title** (primary key - the same title means the same issue):
+     - If an issue appears in both the summary comment and as an inline comment, merge them into a single issue
+     - Prefer the **inline comment** for file location (it has the exact line context)
+     - Prefer the **summary comment** for severity, type, and agent prompt (it is more detailed)
+     - **IMPORTANT:** Preserve each issue's **inline review comment ID** — you will need it later (step 8) to reply directly to that comment with the decision
+   - Also deduplicate across multiple summary comments by location (file path + line numbers) as a secondary key
    - If the same issue appears in multiple places, combine the agent prompts
 
 4. Parse and display the issues:
    - Extract the review body/comments from Qodo's review
    - Parse out individual issues/suggestions
-   - Identify severity (CRITICAL, HIGH, MEDIUM, LOW) and add corresponding emojis
-   - Identify type (Compliance, Bug, Rule Violation, Security, Performance, etc.)
+   - **IMPORTANT: Preserve Qodo's exact issue titles verbatim** — do not rename, paraphrase, or summarize them. Use the title exactly as Qodo wrote it.
+   - **IMPORTANT: Preserve Qodo's original ordering** — display issues in the same order Qodo listed them. Qodo already orders by severity.
    - Extract location, issue description, and suggested fix
    - Extract the agent prompt from Qodo's suggestion (the description of what needs to be fixed)
-   - Determine if each issue should be fixed or deferred based on severity and context
 
-Severity levels:
-- 🔴 CRITICAL - Must be fixed before merge
-- 🟠 HIGH - Should be fixed, can be deferred if justified
-- 🟡 MEDIUM - Should address, can be deferred to follow-up
-- ⚪ LOW - Nice to have, can be deferred
+   **Severity mapping** — derive from Qodo's action level and ordering:
+   - **"Action required"** issues → 🔴 CRITICAL / 🟠 HIGH
+   - **"Review recommended"** issues → 🟡 MEDIUM / ⚪ LOW
+   - Qodo's ordering within each action level implies relative severity — earlier items are more severe. Use position to distinguish: first items in "Action required" are 🔴 CRITICAL, later ones 🟠 HIGH. First items in "Review recommended" are 🟡 MEDIUM, later ones ⚪ LOW.
 
-Output format - Display as a markdown table:
+   Action guidelines:
+   - 🔴 CRITICAL / 🟠 HIGH: Always "Fix"
+   - 🟡 MEDIUM: Usually "Fix", can "Defer" if low impact
+   - ⚪ LOW: Can be "Defer" unless quick to fix
+
+Output format - Display as a markdown table ordered by severity (CRITICAL → HIGH → MEDIUM → LOW), preserving Qodo's relative ordering within each severity level:
 
 Qodo Issues for PR #123: [PR Title]
 
-| Severity | Issue Title | Issue Details | Type | Action |
-|----------|-------------|---------------|------|--------|
-| 🔴 CRITICAL | Test expects wrong behavior | • **Location:** tests/unittest/test_pr_questions.py:154<br><br>• **Issue:** Test assertion expects plain markdown when GFM is supported | Bug | Fix |
-| 🟠 HIGH | Missing error handling | • **Location:** src/api/handler.py:42<br><br>• **Issue:** No exception handling for API calls | Rule Violation | Fix |
-| 🟡 MEDIUM | Improve code readability | • **Location:** src/utils/parser.py:28<br><br>• **Issue:** Complex nested conditions hard to follow | Maintainability | Defer |
-| ⚪ LOW | Add docstring | • **Location:** src/utils/helper.py:15<br><br>• **Issue:** Function missing docstring | Documentation | Defer |
-
-Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
+| # | Severity | Issue Title | Issue Details | Type | Action |
+|---|----------|-------------|---------------|------|--------|
+| 1 | 🟠 HIGH | `get_active_installations_by_app_id` leaks orm | • **Location:** modules/git_integration/src/repositories/repo.py:114-131<br><br>• **Issue:** Returns ORM entities directly, no logging | 📘 Rule violation ⛯ Reliability | Fix |
+| 2 | 🔴 CRITICAL | Inverted ownership check | • **Location:** modules/auth/src/api/v1/api_keys/services/api_keys_service.py:191<br><br>• **Issue:** == instead of !=, authorization bypass | 🐞 Bug ⛨ Security | Fix |
 
 5. **Ask user for fix preference:**
    After displaying the table, ask the user how they want to proceed using AskUserQuestion:
@@ -213,13 +222,13 @@ Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
 6. **Review and fix issues** (if "Review each issue" was selected):
    - For each issue marked as "Fix" (starting with CRITICAL):
      - Read the relevant file(s) to understand the current code
-     - **IMPORTANT:** Use Qodo's agent prompt as the PRIMARY guidance for the fix. The agent prompt contains specific instructions about what to fix and how.
-     - Calculate the proposed fix in memory based on Qodo's agent prompt (DO NOT use Edit or Write tool yet)
+     - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+     - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
      - **Present the fix and ask for approval in a SINGLE step:**
        1. Show a brief header with issue title and location
-       2. **Show Qodo's agent prompt in full** (this is the authoritative guidance from the review)
+       2. **Show Qodo's agent prompt in full** so the user can verify the fix matches it
        3. Display current code snippet
-       4. Display proposed change as markdown diff (based on the agent prompt instructions)
+       4. Display proposed change as markdown diff
        5. Immediately use AskUserQuestion with these options:
           - ✅ "Apply fix" - Apply the proposed change
           - ⏭️ "Defer" - Skip this issue (will prompt for reason)
@@ -227,10 +236,13 @@ Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
      - **WAIT for user's choice via AskUserQuestion**
      - **If "Apply fix" selected:**
        - Apply change using Edit tool (or Write if creating new file)
-       - Confirm: "✅ Fix applied successfully!"
+       - Reply to the Qodo inline comment with the decision (see inline reply commands below)
+       - Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+       - Confirm: "✅ Fix applied, commented, and committed!"
        - Mark issue as completed
      - **If "Defer" selected:**
        - Ask for deferral reason using AskUserQuestion
+       - Reply to the Qodo inline comment with the deferral (see inline reply commands below)
        - Record reason and move to next issue
      - **If "Modify" selected:**
        - Inform user they can make changes manually
@@ -240,9 +252,13 @@ Sort the table by severity (CRITICAL → HIGH → MEDIUM → LOW).
 7. **Auto-fix mode** (if "Auto-fix all" was selected):
    - For each issue marked as "Fix" (starting with CRITICAL):
      - Read the relevant file(s) to understand the current code
-     - **CRITICAL:** Use Qodo's agent prompt as the PRIMARY and ONLY guidance for implementing the fix
-     - Calculate and apply the fix directly using Edit tool based on the agent prompt
-     - Report: "✅ Fixed: [Issue Title] at [Location]"
+     - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+     - Apply the fix using Edit tool
+     - Reply to the Qodo inline comment with the decision (see inline reply commands below)
+     - Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+     - Report each fix with the agent prompt that was followed:
+       > ✅ **Fixed: [Issue Title]** at `[Location]`
+       > **Agent prompt:** [the Qodo agent prompt used]
      - Mark issue as completed
    - After all auto-fixes are applied, display summary:
      - List of all issues that were fixed
@@ -280,6 +296,31 @@ Special cases:
 - **Review in progress:** If "Come back again in a few minutes" message is found, inform user to wait and try again, then exit
 - **Multiple comments:** Deduplicate issues by location and title, keeping the most detailed version
 - **Missing CLI tool:** If the detected provider's CLI is not installed, provide installation instructions and exit
+
+   **Inline reply commands** (used per-issue in steps 6 and 7):
+
+   Use the inline comment ID preserved during deduplication (step 3b).
+
+   **GitHub:**
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/<pr-number>/comments/<inline-comment-id>/replies -X POST -f body='<reply-body>'
+   ```
+
+   **GitLab:**
+   ```bash
+   glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>/notes" -X POST -f body='<reply-body>'
+   ```
+
+   **Bitbucket:**
+   ```bash
+   bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments" -X POST -f 'content.raw=<reply-body>' -f 'parent.id=<inline-comment-id>'
+   ```
+
+   Reply format:
+   - **Fixed:** `✅ **Fixed** — <brief description of what was changed>`
+   - **Deferred:** `⏭️ **Deferred** — <reason for deferring>`
+
+   Keep replies short (one line). If a reply fails, log it and continue.
 
 8. Post summary to PR/MR (ALWAYS):
    **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred:
@@ -363,21 +404,9 @@ Special cases:
    If the resolve operation succeeds, inform: "✅ Marked Qodo review as resolved"
    If it fails (comment not found, API error), continue anyway - the summary comment is the important part
 
-9. Commit changes to git:
-   If any fixes were applied, commit the changes:
-
-   ```bash
-   git add <files-that-were-modified>
-   git commit -m "fix: address Qodo review issues
-
-   - Fixed: [list of fixed issues]
-   - Deferred: [list of deferred issues with reasons]
-
-   Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
-   ```
-
-   Then ask the user if they want to push to remote:
+9. Push to remote:
+   If any fixes were applied (commits were created in steps 6/7), ask the user if they want to push:
    - If yes: `git push`
    - If no: Inform them they can push later with `git push`
 
-   **Important:** Only commit if at least one fix was applied. If all issues were deferred, skip the commit step.
+   **Important:** If all issues were deferred, there are no commits to push — skip this step.
