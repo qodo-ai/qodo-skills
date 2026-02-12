@@ -1,7 +1,7 @@
 ---
 name: qodo-fix
-description: Review code with Qodo - get AI-powered code review issues and fix them interactively (GitHub, GitLab, Bitbucket)
-version: 0.2.0
+description: Review code with Qodo - get AI-powered code review issues and fix them interactively (GitHub, GitLab, Bitbucket, Azure DevOps)
+version: 0.3.0
 triggers:
   - qodo.?fix
   - fix.?qodo
@@ -14,7 +14,7 @@ triggers:
 
 # Qodo Fix
 
-Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision.
+Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision. Supports GitHub, GitLab, Bitbucket, and Azure DevOps.
 
 ## Prerequisites
 
@@ -29,10 +29,14 @@ Fetch Qodo review issues for your current branch's PR/MR, fix them interactively
     - Authenticate: `glab auth login`
   - **Bitbucket**: `bb` CLI or API access
     - See [bitbucket.org/product/cli](https://bitbucket.org/product/cli)
+  - **Azure DevOps**: `az` CLI with DevOps extension
+    - Install: `brew install azure-cli` or [docs.microsoft.com/cli/azure](https://docs.microsoft.com/cli/azure)
+    - Install extension: `az extension add --name azure-devops`
+    - Authenticate: `az login` then `az devops configure --defaults organization=https://dev.azure.com/yourorg project=yourproject`
 
 ### Required Context:
 - Must be in a git repository
-- Repository must be hosted on a supported git provider (GitHub, GitLab, or Bitbucket)
+- Repository must be hosted on a supported git provider (GitHub, GitLab, Bitbucket, or Azure DevOps)
 - Current branch must have an open PR/MR
 - PR/MR must have been reviewed by Qodo (pr-agent-pro bot, qodo-merge[bot], etc.)
 
@@ -44,6 +48,7 @@ git remote get-url origin                        # Identify git provider
 gh --version && gh auth status                   # For GitHub
 glab --version && glab auth status               # For GitLab
 bb --version                                     # For Bitbucket
+az --version && az devops                        # For Azure DevOps
 ```
 
 ## Understanding Qodo Reviews
@@ -82,7 +87,7 @@ Check for uncommitted changes, unpushed commits, and get the current branch.
 **Scenario C: Everything pushed** (both empty)
 - Proceed to Step 1
 
-1. Detect git provider from the remote URL (`git remote get-url origin`) — match against `github.com`, `gitlab.com`, or `bitbucket.org`.
+1. Detect git provider from the remote URL (`git remote get-url origin`) — match against `github.com`, `gitlab.com`, `bitbucket.org`, or `dev.azure.com`.
 
 2. Find the open PR/MR for this branch:
 
@@ -100,6 +105,11 @@ Check for uncommitted changes, unpushed commits, and get the current branch.
    ```bash
    # Use API or bb CLI
    bb pr list --source-branch <branch-name> --state OPEN
+   ```
+
+   **Azure DevOps:**
+   ```bash
+   az repos pr list --source-branch <branch-name> --status active --output json
    ```
 
 3. Get the Qodo review comments:
@@ -125,6 +135,16 @@ Check for uncommitted changes, unpushed commits, and get the current branch.
    ```bash
    # All PR comments including inline comments
    bb pr view <pr-id> --comments
+   ```
+
+   **Azure DevOps:**
+   ```bash
+   # PR-level threads (includes summary comments)
+   az repos pr show --id <pr-id> --output json
+
+   # All PR threads including inline comments
+   az repos pr policy list --id <pr-id> --output json
+   az repos pr thread list --id <pr-id> --output json
    ```
 
    Look for comments where the author is "qodo-merge[bot]", "pr-agent-pro", "pr-agent-pro-staging" or similar Qodo bot name.
@@ -240,11 +260,11 @@ Qodo Issues for PR #123: [PR Title]
 Example: Show location, Qodo's guidance, current code, proposed diff, then AskUserQuestion with options (✅ Apply fix / ⏭️ Defer / 🔧 Modify). Wait for user choice, apply via Edit tool if approved.
 
 Special cases:
-- **Unsupported git provider:** If the remote URL doesn't match GitHub, GitLab, or Bitbucket, inform the user and exit
+- **Unsupported git provider:** If the remote URL doesn't match GitHub, GitLab, Bitbucket, or Azure DevOps, inform the user and exit
 - **No PR/MR exists:**
   - Inform: "No PR/MR found for branch `<branch-name>`"
   - Ask: "Would you like me to create a PR/MR?"
-  - If yes: Use appropriate CLI to create PR/MR (`gh pr create` / `glab mr create` / `bb pr create`), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
+  - If yes: Use appropriate CLI to create PR/MR (`gh pr create` / `glab mr create` / `bb pr create` / `az repos pr create`), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
   - If no: Exit skill
   - **IMPORTANT:** Do NOT proceed without a PR/MR
 - **No Qodo review yet:**
@@ -274,6 +294,11 @@ Special cases:
    bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments" -X POST -f 'content.raw=<reply-body>' -f 'parent.id=<inline-comment-id>'
    ```
 
+   **Azure DevOps:**
+   ```bash
+   az repos pr thread comment add --id <pr-id> --thread-id <thread-id> --content '<reply-body>'
+   ```
+
    Reply format:
    - **Fixed:** `✅ **Fixed** — <brief description of what was changed>`
    - **Deferred:** `⏭️ **Deferred** — <reason for deferring>`
@@ -283,7 +308,7 @@ Special cases:
 8. Post summary to PR/MR (ALWAYS):
    **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred:
 
-   Post a comment using the provider's CLI (`gh pr comment` / `glab mr comment` / `bb pr comment`) with this format:
+   Post a comment using the provider's CLI (`gh pr comment` / `glab mr comment` / `bb pr comment` / `az repos pr thread create`) with this format:
 
    ```markdown
    ## Qodo Fix Summary

@@ -19,7 +19,7 @@ Automatically fetches repository-specific coding rules from the Qodo platform AP
 Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision.
 
 **Features:**
-- Multi-provider support (GitHub, GitLab, Bitbucket)
+- Multi-provider support (GitHub, GitLab, Bitbucket, Azure DevOps)
 - Interactive issue review and auto-fix modes
 - Per-issue inline comment replies and git commits
 - Severity mapping from Qodo's action levels
@@ -96,6 +96,7 @@ Requires CLI tools for your git provider:
 - **GitHub**: `gh` CLI ([install guide](https://cli.github.com/))
 - **GitLab**: `glab` CLI ([install guide](https://glab.readthedocs.io/))
 - **Bitbucket**: `bb` CLI
+- **Azure DevOps**: `az` CLI with DevOps extension ([install guide](https://docs.microsoft.com/cli/azure/))
 
 ## Usage
 
