@@ -1,7 +1,26 @@
 ---
 name: get-rules
 description: "Fetch and load repository coding rules from Qodo API. MUST be invoked at conversation start before any code generation or modification task, if rules are not already loaded in context."
+version: 1.0.0
 allowed-tools: ["Bash", "Read"]
+triggers:
+  - "get.?rules"
+  - "load.?rules"
+  - "fetch.?rules"
+  - "qodo.?rules"
+  - "coding.?rules"
+  - "code.?rules"
+  - "before.?cod"
+  - "start.?coding"
+  - "write.?code"
+  - "implement"
+  - "create.*code"
+  - "build.*feature"
+  - "add.*feature"
+  - "fix.*bug"
+  - "refactor"
+  - "modify.*code"
+  - "update.*code"
 ---
 
 # Get Rules Skill
@@ -71,7 +90,7 @@ scripts/fetch-qodo-rules.sh
 scripts/fetch-qodo-rules.cmd
 ```
 
-**Note**: Execute from the repository root directory (where `.git` exists). The path is relative to the skill installation directory.
+**Note**: The script should be executed from the repository root directory (where `.git` exists). The path `scripts/fetch-qodo-rules.py` is relative to the skill installation directory (e.g., `~/.claude/skills/get-rules/`). If you're working in a subdirectory of your project, the script will still work as it uses `git rev-parse --show-toplevel` to find the repository root.
 
 The script automatically:
 - ✅ Checks if git is installed and available
@@ -135,6 +154,51 @@ The script's stdout automatically becomes part of the conversation context. It i
 
 ---
 
+## Examples
+
+### Typical Session Flow
+
+```bash
+# Session starts - Claude checks for rules
+[Checking conversation history for "📋 Qodo Rules Loaded"...]
+[Not found - invoking /get-rules]
+
+# Rules load successfully
+📋 Qodo Rules Loaded
+
+Repository: `/my-org/my-repo/`
+Rules loaded: 15 (universal, org level, repo level)
+
+# Now coding can proceed with rules applied
+```
+
+### When Working in a Module
+
+```bash
+# Working in modules/api/ directory
+cd modules/api
+
+# Running get-rules detects module-specific scope
+/get-rules
+
+# Output includes path-level rules
+📋 Qodo Rules Loaded
+
+Repository: `/my-org/my-repo/`
+Module: `modules/api`
+Rules loaded: 18 (includes path-level rules for modules/api/)
+```
+
+### Natural Language Invocation
+
+The skill responds to various coding-related phrases:
+- "Let's implement a new feature" → Auto-invokes get-rules
+- "I need to write some code" → Auto-invokes get-rules
+- "Please fix this bug" → Auto-invokes get-rules
+- "Can you refactor this?" → Auto-invokes get-rules
+
+---
+
 ## Configuration
 
 The script automatically reads configuration from:
@@ -180,3 +244,20 @@ The script handles all errors gracefully and provides user-friendly messages:
 - ✅ No rules found → Informational message
 
 **All errors are non-fatal** - the script always exits cleanly so the session continues without rules.
+
+---
+
+## Troubleshooting
+
+**Rules not loading?**
+- Check: `cat ~/.qodo/config.json` (verify API key)
+- Test: `python3 ~/.claude/skills/get-rules/scripts/fetch-qodo-rules.py`
+- Verify: `git status` (must be in git repository)
+
+**Wrong scope?**
+- Module detection requires `modules/` directory structure
+- Check remote: `git config --get remote.origin.url`
+
+**API issues?**
+- Verify key at: https://app.qodo.ai/settings/api-keys
+- Test connectivity: `curl -I https://qodo-platform.qodo.ai/rules/v1/health`
