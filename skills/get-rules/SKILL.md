@@ -56,24 +56,35 @@ The skill automatically determines the most specific scope based on your current
 
 ### Step 2: Execute the Fetch Script
 
-**Run the script** using the Bash tool with an absolute path:
+**Run the script** using the Bash tool:
 ```bash
-.claude/skills/get-rules/scripts/fetch-qodo-rules.sh
+python scripts/fetch-qodo-rules.py
 ```
 
-**Note**: Use a relative path from the project root. The script must be executed from the repository root directory (where `.git` exists).
+**Or use the shell wrapper** (Unix/macOS/Linux):
+```bash
+scripts/fetch-qodo-rules.sh
+```
+
+**Or use the batch wrapper** (Windows):
+```bash
+scripts/fetch-qodo-rules.cmd
+```
+
+**Note**: Execute from the repository root directory (where `.git` exists). The path is relative to the skill installation directory.
 
 The script automatically:
-- ✅ Detects available Python interpreter (python3 or python)
+- ✅ Checks if git is installed and available
 - ✅ Checks if you're in a git repository
 - ✅ Reads API key from `QODO_API_KEY` env var or `~/.qodo/config.json`
 - ✅ Reads API URL from config file or uses default
-- ✅ Extracts repository scope from git remote URL
+- ✅ Extracts repository scope from git remote URL (supports both `.git` and non-.git URLs)
 - ✅ Detects current working directory and determines scope level (module-specific vs repository-wide)
 - ✅ Fetches rules from Qodo API with appropriate scope
 - ✅ Formats rules by severity (ERROR/WARNING/RECOMMENDATION)
 - ✅ Outputs formatted rules to stdout (becomes conversation context)
 - ✅ Handles all errors gracefully (exits cleanly with user-friendly messages)
+- ✅ Cross-platform compatible (Windows, macOS, Linux)
 
 **Script Output**:
 The script's stdout automatically becomes part of the conversation context. It includes:

@@ -16,6 +16,7 @@ Fetches repository-specific coding rules from the Qodo platform API. Provides yo
 - 🔄 Module-specific scope detection (`modules/` directories)
 - 📄 Pagination support for large rule sets
 - ⚡ Auto-executes via SessionStart hook (Claude Code plugin only)
+- 🪟 **Full Windows support** - Native compatibility without requiring Git Bash/WSL
 
 [View skill details](./skills/get-rules/SKILL.md)
 
@@ -84,8 +85,11 @@ For automatic rule fetching at session start in Claude Code, install as a plugin
 
 ### System Requirements
 
-- **Git** - For repository detection (usually pre-installed)
-- **Python 3** - For JSON parsing and API requests (usually pre-installed)
+- **Git** - For repository detection
+  - Usually pre-installed on macOS and most Linux distributions
+  - Windows: Download from https://git-scm.com/download/win
+- **Python 3.6+** - For API requests and cross-platform compatibility
+  - No external dependencies required (uses standard library only)
   ```bash
   # Check installation
   python3 --version
@@ -96,9 +100,12 @@ For automatic rule fetching at session start in Claude Code, install as a plugin
   # macOS: brew install python3
   # Ubuntu/Debian: apt-get install python3
   # Windows: https://www.python.org/downloads/
+  #   (Make sure to check "Add Python to PATH" during installation)
   ```
 
-**Note:** The script automatically detects whether `python3` or `python` is available on your system.
+**Note:** The script automatically detects Python using:
+- **Windows:** `py -3` → `python3` → `python`
+- **Unix/macOS/Linux:** `python3` → `python`
 
 ## Configuration
 
@@ -218,7 +225,9 @@ qodo-skills/
 │   ├── get-rules/           # Fetch coding rules skill
 │   │   ├── SKILL.md         # Agent Skills standard
 │   │   └── scripts/
-│   │       └── fetch-qodo-rules.sh
+│   │       ├── fetch-qodo-rules.py   # Main script (cross-platform)
+│   │       ├── fetch-qodo-rules.sh   # Unix/macOS/Linux wrapper
+│   │       └── fetch-qodo-rules.cmd  # Windows wrapper
 │   └── qodo-fix/           # Fix PR review issues skill
 │       └── SKILL.md
 ├── hooks/
@@ -237,7 +246,7 @@ qodo-skills/
 
 **Plugin Installation (Claude Code only):**
 1. Installed as a Claude Code plugin via `/plugin install`
-2. SessionStart hook automatically runs `fetch-qodo-rules.sh` at session start
+2. SessionStart hook automatically runs `fetch-qodo-rules.py` at session start (works on all platforms)
 3. Rules are loaded into context before you start working
 4. Can still invoke manually with `/get-rules`
 
@@ -293,12 +302,15 @@ python3 --version || python --version
 
 **Manually test the fetch script:**
 ```bash
-# Find your agent's skills directory
-# Claude Code: ~/.claude/skills/get-rules/scripts/fetch-qodo-rules.sh
-# Cursor: ~/.cursor/skills/get-rules/scripts/fetch-qodo-rules.sh
-# Windsurf: ~/.windsurf/skills/get-rules/scripts/fetch-qodo-rules.sh
+# Navigate to your agent's skills directory and run the Python script directly
+cd ~/.claude/skills/get-rules  # or ~/.cursor/skills/get-rules, etc.
+python3 scripts/fetch-qodo-rules.py
 
-~/.claude/skills/get-rules/scripts/fetch-qodo-rules.sh
+# Or use the shell wrapper (Unix/macOS/Linux):
+scripts/fetch-qodo-rules.sh
+
+# Or use the batch wrapper (Windows):
+scripts\fetch-qodo-rules.cmd
 ```
 
 ### No rules found?
@@ -320,6 +332,21 @@ python3 --version || python --version
 /plugin disable qodo-skills
 /plugin enable qodo-skills
 ```
+
+### Windows-specific issues?
+
+**Python not found:**
+- Ensure Python 3.6+ is installed and in PATH
+- Test: `python --version` or `py -3 --version` in PowerShell/cmd
+- Reinstall Python with "Add Python to PATH" option checked
+
+**Git not found:**
+- Install Git for Windows: https://git-scm.com/download/win
+- Test: `git --version` in PowerShell/cmd
+
+**Path separators:**
+- The script automatically handles Windows backslashes (`\`) vs Unix forward slashes (`/`)
+- API URLs always use forward slashes regardless of platform
 
 ## Contributing
 

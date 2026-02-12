@@ -7,11 +7,13 @@ This script's stdout becomes part of Claude's context automatically.
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import urllib.parse
 import urllib.request
 import urllib.error
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Optional, Tuple, List, Dict
 
 
@@ -67,8 +69,9 @@ def parse_repo_scope(remote_url: str) -> Optional[str]:
     Examples:
       git@github.com:org/repo.git -> /org/repo/
       https://github.com/org/repo.git -> /org/repo/
+      https://github.com/org/repo -> /org/repo/
     """
-    pattern = r'^.*[:/]([^/]+/[^/]+)\.git$'
+    pattern = r'^.*[:/]([^/]+/[^/]+?)(?:\.git)?$'
     match = re.match(pattern, remote_url)
     if match:
         return f"/{match.group(1)}/"
@@ -104,15 +107,20 @@ def detect_scope() -> Tuple[str, str]:
         # Different drives on Windows
         return repo_scope, "Scope: Repository-wide"
 
+    # Convert to Path for cross-platform handling
+    rel_path_obj = Path(rel_path)
+
     # Check if we're in a module directory (modules/*)
-    if rel_path.startswith("modules/") and rel_path != ".":
+    # Use path parts to avoid separator issues across platforms
+    if len(rel_path_obj.parts) >= 2 and rel_path_obj.parts[0] == "modules" and rel_path != ".":
         # Extract module path: modules/rules/src/service.py → modules/rules
-        parts = rel_path.split(os.sep)
-        if len(parts) >= 2:
-            module_path = os.path.join(parts[0], parts[1])
-            query_scope = f"{repo_scope}{module_path}/"
-            scope_context = f"Module: `{module_path}`"
-            return query_scope, scope_context
+        # Convert to POSIX format for API (always use / in URLs)
+        module_path_posix = str(PurePosixPath(*rel_path_obj.parts[:2]))
+        query_scope = f"{repo_scope}{module_path_posix}/"
+        # Use native path format for display
+        module_path_display = str(Path(*rel_path_obj.parts[:2]))
+        scope_context = f"Module: `{module_path_display}`"
+        return query_scope, scope_context
 
     return repo_scope, "Scope: Repository-wide"
 
@@ -124,7 +132,9 @@ def fetch_rules(api_url: str, api_key: str, query_scope: str) -> List[Dict]:
     page_size = 50
 
     while True:
-        url = f"{api_url}/rules?scopes={query_scope}&state=active&page={page}&page_size={page_size}"
+        # URL-encode the query_scope parameter to handle spaces and special characters
+        encoded_scope = urllib.parse.quote(query_scope, safe='')
+        url = f"{api_url}/rules?scopes={encoded_scope}&state=active&page={page}&page_size={page_size}"
 
         try:
             request = urllib.request.Request(
@@ -132,7 +142,7 @@ def fetch_rules(api_url: str, api_key: str, query_scope: str) -> List[Dict]:
                 headers={"Authorization": f"Bearer {api_key}"}
             )
 
-            with urllib.request.urlopen(request) as response:
+            with urllib.request.urlopen(request, timeout=30) as response:
                 body = response.read().decode('utf-8')
                 data = json.loads(body)
 
@@ -204,6 +214,14 @@ def format_rules_by_severity(rules: List[Dict]) -> None:
 
 def main():
     """Main entry point."""
+    # Check if git is available
+    if not shutil.which("git"):
+        print("⚠️  Git is not installed or not in PATH. Please install Git:")
+        print("   - macOS: brew install git or download from https://git-scm.com")
+        print("   - Ubuntu/Debian: apt-get install git")
+        print("   - Windows: Download from https://git-scm.com/download/win")
+        sys.exit(0)
+
     # Check if we're in a git repository
     if not run_git_command(["rev-parse", "--git-dir"]):
         sys.exit(0)  # Not in a git repo, exit silently

@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/skills/get-rules/scripts/fetch-qodo-rules.sh",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/skills/get-rules/scripts/fetch-qodo-rules.py",
             "timeout": 30,
             "statusMessage": "📋 Loading Qodo rules from API..."
           }
