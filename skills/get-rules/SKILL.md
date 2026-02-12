@@ -64,8 +64,9 @@ The skill automatically determines the most specific scope based on your current
 **Note**: Use a relative path from the project root. The script must be executed from the repository root directory (where `.git` exists).
 
 The script automatically:
+- ✅ Detects available Python interpreter (python3 or python)
 - ✅ Checks if you're in a git repository
-- ✅ Reads API key from `QODO_CLI_API_KEY` env var or `~/.qodo/config.json`
+- ✅ Reads API key from `QODO_API_KEY` env var or `~/.qodo/config.json`
 - ✅ Reads API URL from config file or uses default
 - ✅ Extracts repository scope from git remote URL
 - ✅ Detects current working directory and determines scope level (module-specific vs repository-wide)

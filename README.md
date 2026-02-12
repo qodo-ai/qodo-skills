@@ -84,19 +84,21 @@ For automatic rule fetching at session start in Claude Code, install as a plugin
 
 ### System Requirements
 
-- **Git** - For repository detection
-- **jq** - For JSON parsing
+- **Git** - For repository detection (usually pre-installed)
+- **Python 3** - For JSON parsing and API requests (usually pre-installed)
   ```bash
-  # macOS
-  brew install jq
-
-  # Ubuntu/Debian
-  apt-get install jq
-
   # Check installation
-  jq --version
+  python3 --version
+  # or
+  python --version
+
+  # Install if needed:
+  # macOS: brew install python3
+  # Ubuntu/Debian: apt-get install python3
+  # Windows: https://www.python.org/downloads/
   ```
-- **curl** - For API requests (usually pre-installed)
+
+**Note:** The script automatically detects whether `python3` or `python` is available on your system.
 
 ## Configuration
 
@@ -284,9 +286,9 @@ git status
 cat ~/.qodo/config.json
 ```
 
-**Check jq is installed:**
+**Check Python is installed:**
 ```bash
-jq --version
+python3 --version || python --version
 ```
 
 **Manually test the fetch script:**

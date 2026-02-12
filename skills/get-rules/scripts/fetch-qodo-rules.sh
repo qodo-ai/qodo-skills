@@ -1,175 +1,35 @@
 #!/bin/bash
-# Fetch Qodo rules and output them as context for Claude
-# This script's stdout becomes part of Claude's context automatically
+# Wrapper script that detects available Python interpreter and runs the fetch script
+# This ensures compatibility across systems that have either python3 or python
 
 set -euo pipefail
 
-# Check if we're in a git repository
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    exit 0  # Not in a git repo, exit silently
-fi
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_SCRIPT="$SCRIPT_DIR/fetch-qodo-rules.py"
 
-# Check for API key and environment from config file or environment variables
-if [ -f "$HOME/.qodo/config.json" ]; then
-    API_KEY=$(jq -r '.API_KEY // empty' "$HOME/.qodo/config.json" 2>/dev/null || echo "")
-    ENVIRONMENT_NAME=$(jq -r '.ENVIRONMENT_NAME // empty' "$HOME/.qodo/config.json" 2>/dev/null || echo "")
-fi
-
-# Environment variables take precedence
-API_KEY="${QODO_API_KEY:-$API_KEY}"
-ENVIRONMENT_NAME="${QODO_ENVIRONMENT_NAME:-$ENVIRONMENT_NAME}"
-
-# Build API URL based on environment name
-# Default: https://qodo-platform.qodo.ai/rules/v1/
-# With environment: https://qodo-platform.<env>.qodo.ai/rules/v1/
-if [ -z "$ENVIRONMENT_NAME" ]; then
-    API_URL="https://qodo-platform.qodo.ai/rules/v1"
-else
-    API_URL="https://qodo-platform.${ENVIRONMENT_NAME}.qodo.ai/rules/v1"
-fi
-
-if [ -z "$API_KEY" ]; then
-    echo "ℹ️  No Qodo API key configured. To enable repository-specific coding rules:"
-    echo "   - Set QODO_API_KEY environment variable, or"
-    echo "   - Create ~/.qodo/config.json with your API key"
-    echo ""
-    echo "Get your API key at: https://app.qodo.ai/settings/api-keys"
-    exit 0
-fi
-
-# Extract repository from git remote
-REMOTE_URL=$(git config --get remote.origin.url 2>/dev/null || echo "")
-if [ -z "$REMOTE_URL" ]; then
-    exit 0  # No git remote, exit silently
-fi
-
-# Parse repository scope from remote URL
-# Examples:
-#   git@github.com:org/repo.git -> /org/repo/
-#   https://github.com/org/repo.git -> /org/repo/
-REPO_SCOPE=$(echo "$REMOTE_URL" | sed -E 's|^.*[:/]([^/]+/[^/]+)\.git$|/\1/|')
-
-if [ -z "$REPO_SCOPE" ] || [ "$REPO_SCOPE" = "$REMOTE_URL" ]; then
-    echo "⚠️  Could not parse repository from git remote: $REMOTE_URL"
-    exit 0
-fi
-
-# Detect module-specific scope based on current working directory
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-if [ -n "$REPO_ROOT" ]; then
-    CWD=$(pwd)
-    REL_PATH="${CWD#$REPO_ROOT/}"
-
-    # Check if we're in a module directory (modules/*)
-    if [[ "$REL_PATH" == modules/* ]] && [ "$REL_PATH" != "$CWD" ]; then
-        # Extract module path: modules/rules/src/service.py → modules/rules
-        MODULE_PATH=$(echo "$REL_PATH" | sed -E 's|(modules/[^/]+).*|\1|')
-
-        # Build module-specific scope
-        QUERY_SCOPE="${REPO_SCOPE}${MODULE_PATH}/"
-        SCOPE_CONTEXT="Module: \`$MODULE_PATH\`"
+# Detect available Python interpreter
+if command -v python3 &>/dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &>/dev/null; then
+    # Check if it's Python 3
+    PYTHON_VERSION=$(python -c 'import sys; print(sys.version_info[0])' 2>/dev/null || echo "2")
+    if [ "$PYTHON_VERSION" = "3" ]; then
+        PYTHON_CMD="python"
     else
-        # Use repository-level scope
-        QUERY_SCOPE="$REPO_SCOPE"
-        SCOPE_CONTEXT="Scope: Repository-wide"
-    fi
-else
-    # Fallback to repository scope if we can't determine repo root
-    QUERY_SCOPE="$REPO_SCOPE"
-    SCOPE_CONTEXT="Scope: Repository-wide"
-fi
-
-# Fetch all rules from API with pagination
-# API enforces max 50 rules per page, so we need to loop through pages
-ALL_RULES="[]"
-PAGE=1
-PAGE_SIZE=50
-
-while true; do
-    RESPONSE=$(curl -s -w "\n%{http_code}" \
-        -H "Authorization: Bearer $API_KEY" \
-        "${API_URL}/rules?scopes=${QUERY_SCOPE}&state=active&page=${PAGE}&page_size=${PAGE_SIZE}" 2>&1)
-
-    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-    BODY=$(echo "$RESPONSE" | sed '$d')
-
-    # Handle API errors
-    if [ "$HTTP_CODE" != "200" ]; then
-        if [ "$HTTP_CODE" = "401" ]; then
-            echo "⚠️  Invalid or expired Qodo API key. Please check your API key at https://app.qodo.ai/settings/api-keys"
-        elif [ "$HTTP_CODE" = "000" ]; then
-            echo "⚠️  Could not connect to Qodo API at ${API_URL}"
-        else
-            echo "⚠️  Failed to fetch Qodo rules (HTTP $HTTP_CODE)"
-        fi
+        echo "⚠️  Python 3 is required but not found. Please install Python 3:"
+        echo "   - macOS: brew install python3"
+        echo "   - Ubuntu/Debian: apt-get install python3"
+        echo "   - Windows: Download from https://www.python.org/downloads/"
         exit 0
     fi
-
-    # Extract rules from this page
-    PAGE_RULES=$(echo "$BODY" | jq -r '.rules' 2>/dev/null || echo "[]")
-    PAGE_COUNT=$(echo "$PAGE_RULES" | jq 'length')
-
-    # Append this page's rules to all rules
-    ALL_RULES=$(echo "$ALL_RULES" | jq --argjson page_rules "$PAGE_RULES" '. + $page_rules')
-
-    # If we got fewer than PAGE_SIZE rules, we've reached the last page
-    if [ "$PAGE_COUNT" -lt "$PAGE_SIZE" ]; then
-        break
-    fi
-
-    # Move to next page
-    PAGE=$((PAGE + 1))
-done
-
-# Count total rules fetched
-RULE_COUNT=$(echo "$ALL_RULES" | jq 'length')
-
-if [ "$RULE_COUNT" = "0" ]; then
-    echo "ℹ️  No Qodo rules configured for repository: $REPO_SCOPE"
+else
+    echo "⚠️  Python is not installed. Please install Python 3:"
+    echo "   - macOS: brew install python3"
+    echo "   - Ubuntu/Debian: apt-get install python3"
+    echo "   - Windows: Download from https://www.python.org/downloads/"
     exit 0
 fi
 
-# Output formatted rules as context for Claude
-echo "# 📋 Qodo Rules Loaded"
-echo ""
-echo "Repository: \`$REPO_SCOPE\`"
-echo "$SCOPE_CONTEXT"
-echo "Rules loaded: **$RULE_COUNT** (universal, org level, repo level, and path level rules)"
-echo ""
-echo "These rules must be applied during code generation based on severity:"
-echo ""
-
-# Format ERROR rules (must comply)
-ERROR_RULES=$(echo "$ALL_RULES" | jq -r '.[] | select(.severity == "error")' 2>/dev/null)
-if [ -n "$ERROR_RULES" ]; then
-    ERROR_COUNT=$(echo "$ERROR_RULES" | jq -s 'length')
-    echo "## ❌ ERROR Rules (Must Comply) - $ERROR_COUNT"
-    echo ""
-    echo "$ERROR_RULES" | jq -r '"- **\(.name)** (\(.category)): \(.description)"'
-    echo ""
-fi
-
-# Format WARNING rules (should comply)
-WARNING_RULES=$(echo "$ALL_RULES" | jq -r '.[] | select(.severity == "warning")' 2>/dev/null)
-if [ -n "$WARNING_RULES" ]; then
-    WARNING_COUNT=$(echo "$WARNING_RULES" | jq -s 'length')
-    echo "## ⚠️  WARNING Rules (Should Comply) - $WARNING_COUNT"
-    echo ""
-    echo "$WARNING_RULES" | jq -r '"- **\(.name)** (\(.category)): \(.description)"'
-    echo ""
-fi
-
-# Format RECOMMENDATION rules (consider)
-REC_RULES=$(echo "$ALL_RULES" | jq -r '.[] | select(.severity == "recommendation")' 2>/dev/null)
-if [ -n "$REC_RULES" ]; then
-    REC_COUNT=$(echo "$REC_RULES" | jq -s 'length')
-    echo "## 💡 RECOMMENDATION Rules (Consider) - $REC_COUNT"
-    echo ""
-    echo "$REC_RULES" | jq -r '"- **\(.name)** (\(.category)): \(.description)"'
-    echo ""
-fi
-
-echo "---"
-echo ""
-
-exit 0
+# Execute the Python script
+exec "$PYTHON_CMD" "$PYTHON_SCRIPT" "$@"
