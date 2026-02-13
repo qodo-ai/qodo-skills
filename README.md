@@ -1,19 +1,24 @@
 # Qodo Skills
 
-A collection of skills for AI coding assistants (Claude Code, Cursor, Windsurf, etc.) that integrate with the Qodo platform.
+Shift-left code review skills for AI coding agents. Bring Qodo's quality standards and code review capabilities into your local development workflow.
+
+**Compatible with:** Claude Code, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
 
 ## Available Skills
 
 ### 🔧 get-rules
-Automatically fetches repository-specific coding rules from the Qodo platform API at conversation start. Applies security requirements, coding standards, and team conventions during code generation.
+Fetches repository-specific coding rules from the Qodo platform API. Provides your agent with security requirements, coding standards, and team conventions before generating code.
 
 **Features:**
-- Auto-invokes at conversation start in git repositories
-- Repository-aware rule fetching
-- Hierarchical rule matching (universal, org, repo, path-level)
-- Severity-based enforcement (ERROR, WARNING, RECOMMENDATION)
+- 🎯 **Must load before coding**: Agent invokes before any code generation/modification task (if not already loaded)
+- 📚 Hierarchical rule matching (universal, org, repo, path-level)
+- ⚖️ Severity-based enforcement (ERROR, WARNING, RECOMMENDATION)
+- 🔄 Module-specific scope detection (`modules/` directories)
+- 📄 Pagination support for large rule sets
+- ⚡ Auto-executes via SessionStart hook (Claude Code plugin only)
+- 🪟 **Full Windows support** - Native compatibility without requiring Git Bash/WSL
 
-[View skill details](./get-rules/SKILL.md)
+[View skill details](./skills/get-rules/SKILL.md)
 
 ### 🔍 qodo-fix
 Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision.
@@ -31,43 +36,77 @@ Fetch Qodo review issues for your current branch's PR/MR, fix them interactively
 
 ### Using npx skills (Recommended)
 
-Install skills directly from this repository using the [skills.sh](https://skills.sh) ecosystem:
+Install skills using the standard Agent Skills CLI:
 
 ```bash
-# Install a specific skill
+# Install all Qodo skills
+npx skills add qodo-ai/qodo-skills
+
+# Or install individual skills
 npx skills add qodo-ai/qodo-skills/get-rules
 npx skills add qodo-ai/qodo-skills/qodo-fix
-
-# Install all skills from this repository
-npx skills add qodo-ai/qodo-skills
 ```
 
-### Manual Installation
+**Works with:**
+- **Claude Code** - Skills available as `/get-rules`, `/qodo-fix`
+- **Cursor** - Skills available in command palette
+- **Windsurf** - Skills available in flow menu
+- **Cline** - Skills available via skill invocation
+- **Any agent** supporting [agentskills.io](https://agentskills.io)
 
-#### For Claude Code
+### Agent-Specific Directories
 
-Copy skill directories to your project or global skills directory:
+Skills are automatically installed to the correct location for your agent:
+
+| Agent | Installation Directory |
+|-------|----------------------|
+| Claude Code | `~/.claude/skills/` or `.claude/skills/` |
+| Cursor | `~/.cursor/skills/` or `.cursor/skills/` |
+| Windsurf | `~/.windsurf/skills/` or `.windsurf/skills/` |
+| Cline | `~/.cline/skills/` or `.cline/skills/` |
+
+### Auto-Invocation (Claude Code Only)
+
+For automatic rule fetching at session start in Claude Code, install as a plugin:
 
 ```bash
-# Project-specific (recommended)
-cp -r get-rules /path/to/your/project/.claude/skills/
-
-# Global installation
-cp -r get-rules ~/.claude/skills/
+# Claude Code plugin installation
+/plugin install https://github.com/qodo-ai/qodo-skills
 ```
 
-#### For Other Agents
+**Plugin features:**
+- ✅ Auto-fetches rules at every session start
+- ✅ Works across all projects automatically
+- ✅ Zero per-project configuration
+- ✅ Version management with `/plugin update`
 
-Different agents have different skill directories:
+**Note:** Other agents can use the skills but require manual invocation (e.g., `/get-rules`).
 
-- **Cursor**: `.cursor/skills/`
-- **Windsurf**: `.windsurf/skills/`
-- **Gemini CLI**: `.gemini/skills/`
+## Prerequisites
 
-Example:
-```bash
-cp -r get-rules /path/to/your/project/.cursor/skills/
-```
+### System Requirements
+
+- **Git** - For repository detection
+  - Usually pre-installed on macOS and most Linux distributions
+  - Windows: Download from https://git-scm.com/download/win
+- **Python 3.6+** - For API requests and cross-platform compatibility
+  - No external dependencies required (uses standard library only)
+  ```bash
+  # Check installation
+  python3 --version
+  # or
+  python --version
+
+  # Install if needed:
+  # macOS: brew install python3
+  # Ubuntu/Debian: apt-get install python3
+  # Windows: https://www.python.org/downloads/
+  #   (Make sure to check "Add Python to PATH" during installation)
+  ```
+
+**Note:** The script automatically detects Python using:
+- **Windows:** `py -3` → `python3` → `python`
+- **Unix/macOS/Linux:** `python3` → `python`
 
 ## Configuration
 
@@ -77,16 +116,30 @@ Create `~/.qodo/config.json`:
 
 ```json
 {
-  "QODO_CLI_API_KEY": "sk-xxxxxxxxxxxxx",
-  "QODO_RULES_API_URL": "https://api.qodo.ai"
+  "API_KEY": "sk-xxxxxxxxxxxxx",
+  "ENVIRONMENT_NAME": "staging"
 }
 ```
 
+**Configuration fields:**
+- `API_KEY` (required): Your Qodo API key
+- `ENVIRONMENT_NAME` (optional): Environment name for API URL
+  - If empty/omitted: Uses `https://qodo-platform.qodo.ai/rules/v1/`
+  - If specified: Uses `https://qodo-platform.<ENVIRONMENT_NAME>.qodo.ai/rules/v1/`
+
 Get your API key at: https://app.qodo.ai/settings/api-keys
 
-Or set environment variable:
+**Minimal configuration (production):**
+```json
+{
+  "API_KEY": "sk-xxxxxxxxxxxxx"
+}
+```
+
+**Environment variables (take precedence over config file):**
 ```bash
-export QODO_CLI_API_KEY="sk-xxxxxxxxxxxxx"
+export QODO_API_KEY="sk-xxxxxxxxxxxxx"
+export QODO_ENVIRONMENT_NAME="staging"  # optional
 ```
 
 ### qodo-fix Skill
@@ -100,135 +153,228 @@ Requires CLI tools for your git provider:
 
 ## Usage
 
-### In Claude Code
+### In Your Agent
 
-Skills can be invoked automatically (get-rules) or manually:
+After installation, invoke skills directly in your agent:
 
+**Claude Code:**
 ```bash
-# Invoke get-rules manually if needed
+/get-rules      # Fetch coding rules
+/qodo-fix       # Fix PR review issues
+```
+
+**Cursor / Windsurf / Cline:**
+- Open command palette
+- Search for "get-rules" or "qodo-fix"
+- Or invoke via agent command input
+
+### Automatic Rule Loading (Claude Code)
+
+If installed as a Claude Code plugin, `get-rules` automatically fetches rules at session start:
+
+```
+📋 Loading Qodo rules from API...
+
+# 📋 Qodo Rules Loaded
+
+Repository: `/your-org/your-repo/`
+Rules loaded: 12 (universal, org level, repo level, and path level rules)
+```
+
+You can manually refresh mid-session:
+```bash
 /get-rules
-
-# Invoke qodo-fix
-/qodo-fix
 ```
 
-### Finding Skills
+### Managing Skills
 
-Use the interactive skill browser:
+**Update skills:**
+```bash
+npx skills update qodo-ai/qodo-skills
+```
+
+**List installed skills:**
+```bash
+npx skills list
+```
+
+**Remove skills:**
+```bash
+npx skills remove get-rules
+```
+
+### Claude Code Plugin Management
+
+If installed as a Claude Code plugin:
 
 ```bash
-npx skills find
+/plugin                        # List installed plugins
+/plugin update qodo-skills     # Update to latest version
+/plugin disable qodo-skills    # Disable temporarily
+/plugin enable qodo-skills     # Re-enable
+/plugin uninstall qodo-skills  # Uninstall
 ```
 
-Or search for Qodo skills:
+## Repository Structure
 
+This repository follows the [Agent Skills](https://agentskills.io) standard with Claude Code plugin extensions:
+
+```
+qodo-skills/
+├── .claude-plugin/
+│   └── plugin.json           # Plugin manifest (Claude Code)
+├── skills/
+│   ├── get-rules/           # Fetch coding rules skill
+│   │   ├── SKILL.md         # Agent Skills standard
+│   │   └── scripts/
+│   │       ├── fetch-qodo-rules.py   # Main script (cross-platform)
+│   │       ├── fetch-qodo-rules.sh   # Unix/macOS/Linux wrapper
+│   │       └── fetch-qodo-rules.cmd  # Windows wrapper
+│   └── qodo-fix/           # Fix PR review issues skill
+│       └── SKILL.md
+├── hooks/
+│   └── hooks.json           # Auto-invocation hooks (Claude Code)
+├── README.md
+├── CONTRIBUTING.md
+└── LICENSE
+```
+
+### How It Works
+
+**Standard Installation (npx skills):**
+1. Skills are installed to agent-specific directories
+2. Available for manual invocation in any compatible agent
+3. Skills execute via their SKILL.md instructions
+
+**Plugin Installation (Claude Code only):**
+1. Installed as a Claude Code plugin via `/plugin install`
+2. SessionStart hook automatically runs `fetch-qodo-rules.py` at session start (works on all platforms)
+3. Rules are loaded into context before you start working
+4. Can still invoke manually with `/get-rules`
+
+### Testing Locally
+
+**Test with any agent:**
 ```bash
-npx skills find qodo
+npx skills add /path/to/qodo-skills/skills/get-rules
 ```
 
-## Publishing to skills.sh
-
-This repository is designed to be compatible with the [skills.sh](https://skills.sh) ecosystem. To publish your own fork or contribute new skills:
-
-### 1. Fork this repository
-
+**Test as Claude Code plugin:**
 ```bash
-gh repo fork qodo-ai/qodo-skills
+cd /path/to/qodo-skills
+claude --plugin-dir .
+
+# Enable debug mode to see hook execution
+/debug
+
+# Check that rules loaded at session start
+# Look for: "📋 Loading Qodo rules from API..."
 ```
 
-### 2. Add your skill
+## Troubleshooting
 
-Create a new directory with a `SKILL.md` file:
+### Skill not found?
 
-```markdown
----
-name: my-skill
-description: What this skill does
-allowed-tools: ["Bash", "Read", "Edit"]
----
-
-# My Skill
-
-Instructions for the agent...
-```
-
-### 3. Test locally
-
+**Verify installation:**
 ```bash
-# Install from your local directory
-npx skills add /path/to/qodo-skills/my-skill
-
-# Or from your GitHub fork
-npx skills add yourusername/qodo-skills/my-skill
+npx skills list | grep qodo
 ```
 
-### 4. Submit a Pull Request
-
-If you've created a useful skill, consider contributing it back:
-
+**Reinstall if needed:**
 ```bash
-git checkout -b add-my-skill
-git add my-skill/
-git commit -m "Add my-skill: brief description"
-git push origin add-my-skill
-gh pr create --title "Add my-skill" --body "Description of the skill"
+npx skills add qodo-ai/qodo-skills
 ```
 
-## Skill Format
+### Rules not loading?
 
-Skills follow the standard skills.sh format:
-
-```
-skill-name/
-├── SKILL.md          # Main skill file with YAML frontmatter
-├── scripts/          # Optional: shell scripts or executables
-│   └── helper.sh
-└── docs/            # Optional: additional documentation
-    └── examples.md
+**Check you're in a git repository:**
+```bash
+git status
 ```
 
-### SKILL.md Format
-
-```markdown
----
-name: skill-name
-description: Brief description for discovery
-version: 1.0.0           # Optional
-allowed-tools: ["Bash"]  # Optional: restrict tools
-triggers:                # Optional: auto-invoke patterns
-  - pattern1
-  - pattern2
----
-
-# Skill Name
-
-Detailed instructions for the AI agent...
+**Verify API key is configured:**
+```bash
+cat ~/.qodo/config.json
 ```
+
+**Check Python is installed:**
+```bash
+python3 --version || python --version
+```
+
+**Manually test the fetch script:**
+```bash
+# Navigate to your agent's skills directory and run the Python script directly
+cd ~/.claude/skills/get-rules  # or ~/.cursor/skills/get-rules, etc.
+python3 scripts/fetch-qodo-rules.py
+
+# Or use the shell wrapper (Unix/macOS/Linux):
+scripts/fetch-qodo-rules.sh
+
+# Or use the batch wrapper (Windows):
+scripts\fetch-qodo-rules.cmd
+```
+
+### No rules found?
+
+- Rules must be configured in the Qodo platform for your repository
+- Visit https://app.qodo.ai to set up rules
+- Check that your repository remote URL matches the configured scope
+
+### Auto-fetch not working (Claude Code)?
+
+**Enable debug mode:**
+```bash
+/debug
+# Look for hook execution logs
+```
+
+**Disable/re-enable plugin:**
+```bash
+/plugin disable qodo-skills
+/plugin enable qodo-skills
+```
+
+### Windows-specific issues?
+
+**Python not found:**
+- Ensure Python 3.6+ is installed and in PATH
+- Test: `python --version` or `py -3 --version` in PowerShell/cmd
+- Reinstall Python with "Add Python to PATH" option checked
+
+**Git not found:**
+- Install Git for Windows: https://git-scm.com/download/win
+- Test: `git --version` in PowerShell/cmd
+
+**Path separators:**
+- The script automatically handles Windows backslashes (`\`) vs Unix forward slashes (`/`)
+- API URLs always use forward slashes regardless of platform
 
 ## Contributing
 
-We welcome contributions! Please see our contributing guidelines:
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines:
 
 1. Fork the repository
-2. Create a feature branch
-3. Add your skill following the format above
-4. Test thoroughly with your AI assistant
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Make your changes
+4. Test thoroughly with your preferred agent (Claude Code, Cursor, etc.)
 5. Submit a pull request
 
 ## Resources
 
-- [skills.sh Documentation](https://skills.sh)
-- [Vercel skills GitHub](https://github.com/vercel-labs/skills)
-- [Qodo Platform](https://qodo.ai)
-- [Claude Code Documentation](https://code.claude.com/docs)
+- [Agent Skills Standard](https://agentskills.io) - Universal skill format
+- [npx skills CLI](https://github.com/vercel-labs/skills) - Install and manage skills
+- [Qodo Platform](https://qodo.ai) - Set up coding rules and review
+- [Claude Code Documentation](https://code.claude.com/docs) - Claude Code specific features
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License - see [LICENSE](./LICENSE) file for details
 
 ## Support
 
 For issues with:
-- **Skills themselves**: Open an issue in this repository
+- **Skills themselves**: [Open an issue](https://github.com/qodo-ai/qodo-skills/issues) in this repository
 - **Qodo Platform**: Contact [Qodo Support](https://qodo.ai/support)
-- **skills.sh tool**: See [vercel-labs/skills](https://github.com/vercel-labs/skills)
+- **npx skills tool**: See [vercel-labs/skills](https://github.com/vercel-labs/skills)
+- **Your agent**: Refer to your agent's documentation (Claude Code, Cursor, Windsurf, etc.)

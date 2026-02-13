@@ -1,16 +1,35 @@
 ---
 name: get-rules
-description: "Automatically fetch and apply repository-specific coding rules from Qodo API. Auto-invoked on every conversation start."
+description: "Fetch and load repository coding rules from Qodo API. MUST be invoked at conversation start before any code generation or modification task, if rules are not already loaded in context."
+version: 1.0.0
 allowed-tools: ["Bash", "Read"]
+triggers:
+  - "get.?rules"
+  - "load.?rules"
+  - "fetch.?rules"
+  - "qodo.?rules"
+  - "coding.?rules"
+  - "code.?rules"
+  - "before.?cod"
+  - "start.?coding"
+  - "write.?code"
+  - "implement"
+  - "create.*code"
+  - "build.*feature"
+  - "add.*feature"
+  - "fix.*bug"
+  - "refactor"
+  - "modify.*code"
+  - "update.*code"
 ---
 
 # Get Rules Skill
 
 ## Description
 
-Automatically fetches repository-specific coding rules from the Qodo platform API at the start of each conversation. Rules include security requirements, coding standards, quality guidelines, and team conventions that must be applied during code generation.
+Fetches repository-specific coding rules from the Qodo platform API before code generation or modification tasks. Rules include security requirements, coding standards, quality guidelines, and team conventions that must be applied during code generation.
 
-**Auto-invokes**: At conversation start when in a git repository with API key configured.
+**When to invoke**: At conversation start before any coding task, if rules not already loaded in context.
 
 ## Key Features
 
@@ -47,30 +66,44 @@ The skill automatically determines the most specific scope based on your current
 
 ### Step 1: Check if Rules Already Loaded
 
-**Before executing the script**, check if rules are already in the current conversation context:
-- Look for "📋 Qodo Rules Loaded" in recent messages
-- If found: Skip execution and proceed with code generation
-- If not found: Continue to Step 2
+**CRITICAL - Before ANY code generation, modification, or review task**, check if rules are already in context:
+- Look for "📋 Qodo Rules Loaded" in conversation history
+- If found: Skip execution, rules are active - proceed with coding task
+- If NOT found: Execute this skill immediately before proceeding
+
+**This check is mandatory for all coding tasks.** Rules must be loaded to ensure code complies with organizational standards.
 
 ### Step 2: Execute the Fetch Script
 
-**Run the script** using the Bash tool with an absolute path:
+**Run the script** using the Bash tool:
 ```bash
-.claude/skills/get-rules/scripts/fetch-qodo-rules.sh
+python scripts/fetch-qodo-rules.py
 ```
 
-**Note**: Use a relative path from the project root. The script must be executed from the repository root directory (where `.git` exists).
+**Or use the shell wrapper** (Unix/macOS/Linux):
+```bash
+scripts/fetch-qodo-rules.sh
+```
+
+**Or use the batch wrapper** (Windows):
+```bash
+scripts/fetch-qodo-rules.cmd
+```
+
+**Note**: The script should be executed from the repository root directory (where `.git` exists). The path `scripts/fetch-qodo-rules.py` is relative to the skill installation directory (e.g., `~/.claude/skills/get-rules/`). If you're working in a subdirectory of your project, the script will still work as it uses `git rev-parse --show-toplevel` to find the repository root.
 
 The script automatically:
+- ✅ Checks if git is installed and available
 - ✅ Checks if you're in a git repository
-- ✅ Reads API key from `QODO_CLI_API_KEY` env var or `~/.qodo/config.json`
+- ✅ Reads API key from `QODO_API_KEY` env var or `~/.qodo/config.json`
 - ✅ Reads API URL from config file or uses default
-- ✅ Extracts repository scope from git remote URL
+- ✅ Extracts repository scope from git remote URL (supports both `.git` and non-.git URLs)
 - ✅ Detects current working directory and determines scope level (module-specific vs repository-wide)
 - ✅ Fetches rules from Qodo API with appropriate scope
 - ✅ Formats rules by severity (ERROR/WARNING/RECOMMENDATION)
 - ✅ Outputs formatted rules to stdout (becomes conversation context)
 - ✅ Handles all errors gracefully (exits cleanly with user-friendly messages)
+- ✅ Cross-platform compatible (Windows, macOS, Linux)
 
 **Script Output**:
 The script's stdout automatically becomes part of the conversation context. It includes:
@@ -121,6 +154,51 @@ The script's stdout automatically becomes part of the conversation context. It i
 
 ---
 
+## Examples
+
+### Typical Session Flow
+
+```bash
+# Session starts - Claude checks for rules
+[Checking conversation history for "📋 Qodo Rules Loaded"...]
+[Not found - invoking /get-rules]
+
+# Rules load successfully
+📋 Qodo Rules Loaded
+
+Repository: `/my-org/my-repo/`
+Rules loaded: 15 (universal, org level, repo level)
+
+# Now coding can proceed with rules applied
+```
+
+### When Working in a Module
+
+```bash
+# Working in modules/api/ directory
+cd modules/api
+
+# Running get-rules detects module-specific scope
+/get-rules
+
+# Output includes path-level rules
+📋 Qodo Rules Loaded
+
+Repository: `/my-org/my-repo/`
+Module: `modules/api`
+Rules loaded: 18 (includes path-level rules for modules/api/)
+```
+
+### Natural Language Invocation
+
+The skill responds to various coding-related phrases:
+- "Let's implement a new feature" → Auto-invokes get-rules
+- "I need to write some code" → Auto-invokes get-rules
+- "Please fix this bug" → Auto-invokes get-rules
+- "Can you refactor this?" → Auto-invokes get-rules
+
+---
+
 ## Configuration
 
 The script automatically reads configuration from:
@@ -128,21 +206,27 @@ The script automatically reads configuration from:
 **Config file**: `~/.qodo/config.json`
 ```json
 {
-  "QODO_CLI_API_KEY": "sk-xxxxxxxxxxxxx",
-  "QODO_RULES_API_URL": "https://api.qodo.ai"
+  "API_KEY": "sk-xxxxxxxxxxxxx",
+  "ENVIRONMENT_NAME": "staging"
 }
 ```
 
-**Environment variables** (takes precedence over config file):
+**Configuration fields:**
+- `API_KEY` (required): Your Qodo API key
+- `ENVIRONMENT_NAME` (optional): Environment name for API URL
+  - If empty/omitted: Uses production (`https://qodo-platform.qodo.ai/rules/v1/`)
+  - If specified: Uses `https://qodo-platform.<ENVIRONMENT_NAME>.qodo.ai/rules/v1/`
+
+**Environment variables** (take precedence over config file):
 ```bash
-export QODO_CLI_API_KEY="sk-xxxxxxxxxxxxx"
-export QODO_RULES_API_URL="https://api.qodo.ai"
+export QODO_API_KEY="sk-xxxxxxxxxxxxx"
+export QODO_ENVIRONMENT_NAME="staging"  # optional
 ```
 
-**Minimal config** (only API key required):
+**Minimal config** (production environment):
 ```json
 {
-  "QODO_CLI_API_KEY": "sk-xxxxxxxxxxxxx"
+  "API_KEY": "sk-xxxxxxxxxxxxx"
 }
 ```
 
@@ -160,3 +244,20 @@ The script handles all errors gracefully and provides user-friendly messages:
 - ✅ No rules found → Informational message
 
 **All errors are non-fatal** - the script always exits cleanly so the session continues without rules.
+
+---
+
+## Troubleshooting
+
+**Rules not loading?**
+- Check: `cat ~/.qodo/config.json` (verify API key)
+- Test: `python3 ~/.claude/skills/get-rules/scripts/fetch-qodo-rules.py`
+- Verify: `git status` (must be in git repository)
+
+**Wrong scope?**
+- Module detection requires `modules/` directory structure
+- Check remote: `git config --get remote.origin.url`
+
+**API issues?**
+- Verify key at: https://app.qodo.ai/settings/api-keys
+- Test connectivity: `curl -I https://qodo-platform.qodo.ai/rules/v1/health`
