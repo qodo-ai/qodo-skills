@@ -48,7 +48,7 @@ This is a **Claude Code plugin** with auto-invocation via hooks:
 
 **Skill invocation:**
 - `/get-rules` - Fetch and load coding rules
-- `/qodo-fix` - Review and fix PR issues
+- `/pr-resolver` - Review and fix PR issues
 
 ## CRITICAL: get-rules Must Execute First
 
@@ -96,11 +96,11 @@ Step 4: Proceed with coding task applying loaded rules
 - WARNING rules skipped: Explain why
 - No applicable rules: Explicitly state this
 
-### qodo-fix Skill
+### pr-resolver Skill
 
 **Purpose**: Review code with Qodo and fix issues interactively
 
-**Invocation**: `/qodo-fix` (manual only, requires user initiation)
+**Invocation**: `/pr-resolver` or trigger words ("qodo fix", "review qodo", "resolve pr", etc.)
 
 **Workflow (Multi-step with approval gates):**
 
