@@ -31,6 +31,8 @@ Fetches repository-specific coding rules from the Qodo platform API before code 
 
 **When to invoke**: At conversation start before any coding task, if rules not already loaded in context.
 
+**Repository Support**: GitHub repositories (Qodo Rules is currently in beta with GitHub support)
+
 ## Key Features
 
 - **Automatic loading**: Runs at conversation start without user prompt
@@ -122,6 +124,8 @@ The script's stdout automatically becomes part of the conversation context. It i
 - Apply strictly and non-negotiably
 - Add comment documenting compliance:
   ```python
+  import os
+
   # Following Qodo rule: No Hardcoded Credentials
   api_key = os.environ.get("API_KEY")
   ```
