@@ -39,7 +39,7 @@ This is a **Claude Code plugin** with auto-invocation via hooks:
 
 **Installation:**
 - Plugin: `/plugin install github.com/qodo-ai/qodo-skills`
-- Individual skills: `npx skills add qodo-ai/qodo-skills/get-rules`
+- Individual skills: `npx skills add qodo-ai/qodo-skills/skills/get-rules`
 
 **Auto-invocation:**
 - `hooks/hooks.json` defines SessionStart hook

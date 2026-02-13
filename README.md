@@ -43,8 +43,8 @@ Install skills using the standard Agent Skills CLI:
 npx skills add qodo-ai/qodo-skills
 
 # Or install individual skills
-npx skills add qodo-ai/qodo-skills/get-rules
-npx skills add qodo-ai/qodo-skills/pr-resolver
+npx skills add qodo-ai/qodo-skills/skills/get-rules
+npx skills add qodo-ai/qodo-skills/skills/pr-resolver
 ```
 
 **Works with:**
@@ -193,7 +193,9 @@ You can manually refresh mid-session:
 
 **Update skills:**
 ```bash
-npx skills update qodo-ai/qodo-skills
+# Update individual skills
+npx skills update qodo-ai/qodo-skills/skills/get-rules
+npx skills update qodo-ai/qodo-skills/skills/pr-resolver
 ```
 
 **List installed skills:**
