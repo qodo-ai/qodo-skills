@@ -177,24 +177,42 @@ Check for uncommitted changes, unpushed commits, and get the current branch.
    - Extract location, issue description, and suggested fix
    - Extract the agent prompt from Qodo's suggestion (the description of what needs to be fixed)
 
-   **Severity mapping** — derive from Qodo's action level and ordering:
-   - **"Action required"** issues → 🔴 CRITICAL / 🟠 HIGH
-   - **"Review recommended"** issues → 🟡 MEDIUM / ⚪ LOW
-   - Qodo's ordering within each action level implies relative severity — earlier items are more severe. Use position to distinguish: first items in "Action required" are 🔴 CRITICAL, later ones 🟠 HIGH. First items in "Review recommended" are 🟡 MEDIUM, later ones ⚪ LOW.
+   **Severity mapping** — derive from Qodo's action level and position:
+
+   1. **Action level determines severity range:**
+      - **"Action required"** issues → Can only be 🔴 CRITICAL or 🟠 HIGH
+      - **"Review recommended"** issues → Can only be 🟡 MEDIUM or ⚪ LOW
+
+   2. **Qodo's position within each action level determines the specific severity:**
+      - Group issues by action level ("Action required" vs "Review recommended")
+      - Within each group, earlier positions → higher severity, later positions → lower severity
+      - Split point: roughly first half of each group gets the higher severity, second half gets the lower
+
+   **Example:** 7 "Action required" issues would be split as:
+      - Issues 1-3: 🔴 CRITICAL
+      - Issues 4-7: 🟠 HIGH
+      - Result: No MEDIUM or LOW issues (because there are no "Review recommended" issues)
+
+   **Example:** 5 "Action required" + 3 "Review recommended" issues would be split as:
+      - Issues 1-2 or 1-3: 🔴 CRITICAL (first ~half of "Action required")
+      - Issues 3-5 or 4-5: 🟠 HIGH (second ~half of "Action required")
+      - Issues 6-7: 🟡 MEDIUM (first ~half of "Review recommended")
+      - Issue 8: ⚪ LOW (second ~half of "Review recommended")
 
    Action guidelines:
    - 🔴 CRITICAL / 🟠 HIGH: Always "Fix"
    - 🟡 MEDIUM: Usually "Fix", can "Defer" if low impact
    - ⚪ LOW: Can be "Defer" unless quick to fix
 
-Output format - Display as a markdown table ordered by severity (CRITICAL → HIGH → MEDIUM → LOW), preserving Qodo's relative ordering within each severity level:
+Output format - Display as a markdown table in Qodo's exact original ordering (do NOT reorder by severity - Qodo's order IS the severity ranking):
 
 Qodo Issues for PR #123: [PR Title]
 
 | # | Severity | Issue Title | Issue Details | Type | Action |
 |---|----------|-------------|---------------|------|--------|
-| 1 | 🟠 HIGH | `get_active_installations_by_app_id` leaks orm | • **Location:** modules/git_integration/src/repositories/repo.py:114-131<br><br>• **Issue:** Returns ORM entities directly, no logging | 📘 Rule violation ⛯ Reliability | Fix |
-| 2 | 🔴 CRITICAL | Inverted ownership check | • **Location:** modules/auth/src/api/v1/api_keys/services/api_keys_service.py:191<br><br>• **Issue:** == instead of !=, authorization bypass | 🐞 Bug ⛨ Security | Fix |
+| 1 | 🔴 CRITICAL | Insecure authentication check | • **Location:** src/auth/service.py:42<br><br>• **Issue:** Authorization logic is inverted | 🐞 Bug ⛨ Security | Fix |
+| 2 | 🔴 CRITICAL | Missing input validation | • **Location:** src/api/handlers.py:156<br><br>• **Issue:** User input not sanitized before database query | 📘 Rule violation ⛯ Reliability | Fix |
+| 3 | 🟠 HIGH | Database query not awaited | • **Location:** src/db/repository.py:89<br><br>• **Issue:** Async call missing await keyword | 🐞 Bug ✓ Correctness | Fix |
 
 5. **Ask user for fix preference:**
    After displaying the table, ask the user how they want to proceed using AskUserQuestion:
