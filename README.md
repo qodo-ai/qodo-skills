@@ -20,7 +20,7 @@ Fetches repository-specific coding rules from the Qodo platform API. Provides yo
 
 [View skill details](./skills/get-rules/SKILL.md)
 
-### 🔍 qodo-fix
+### 🔍 pr-resolver
 Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision.
 
 **Features:**
@@ -30,7 +30,7 @@ Fetch Qodo review issues for your current branch's PR/MR, fix them interactively
 - Severity mapping from Qodo's action levels
 - Automatic PR/MR summary comments
 
-[View skill details](./qodo-fix/SKILL.md)
+[View skill details](./skills/pr-resolver/SKILL.md)
 
 ## Installation
 
@@ -44,11 +44,11 @@ npx skills add qodo-ai/qodo-skills
 
 # Or install individual skills
 npx skills add qodo-ai/qodo-skills/get-rules
-npx skills add qodo-ai/qodo-skills/qodo-fix
+npx skills add qodo-ai/qodo-skills/pr-resolver
 ```
 
 **Works with:**
-- **Claude Code** - Skills available as `/get-rules`, `/qodo-fix`
+- **Claude Code** - Skills available as `/get-rules`, `/pr-resolver`
 - **Cursor** - Skills available in command palette
 - **Windsurf** - Skills available in flow menu
 - **Cline** - Skills available via skill invocation
@@ -142,7 +142,7 @@ export QODO_API_KEY="sk-xxxxxxxxxxxxx"
 export QODO_ENVIRONMENT_NAME="staging"  # optional
 ```
 
-### qodo-fix Skill
+### pr-resolver Skill
 
 Requires CLI tools for your git provider:
 
@@ -160,12 +160,12 @@ After installation, invoke skills directly in your agent:
 **Claude Code:**
 ```bash
 /get-rules      # Fetch coding rules
-/qodo-fix       # Fix PR review issues
+/pr-resolver    # Fix PR review issues
 ```
 
 **Cursor / Windsurf / Cline:**
 - Open command palette
-- Search for "get-rules" or "qodo-fix"
+- Search for "get-rules" or "pr-resolver"
 - Or invoke via agent command input
 
 ### Automatic Rule Loading (Claude Code)
@@ -184,6 +184,9 @@ Rules loaded: 12 (universal, org level, repo level, and path level rules)
 You can manually refresh mid-session:
 ```bash
 /get-rules
+
+# Invoke pr-resolver
+/pr-resolver
 ```
 
 ### Managing Skills
@@ -230,7 +233,7 @@ qodo-skills/
 │   │       ├── fetch-qodo-rules.py   # Main script (cross-platform)
 │   │       ├── fetch-qodo-rules.sh   # Unix/macOS/Linux wrapper
 │   │       └── fetch-qodo-rules.cmd  # Windows wrapper
-│   └── qodo-fix/           # Fix PR review issues skill
+│   └── pr-resolver/        # Fix PR review issues skill
 │       └── SKILL.md
 ├── hooks/
 │   └── hooks.json           # Auto-invocation hooks (Claude Code)

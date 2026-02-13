@@ -23,7 +23,7 @@ qodo-skills/
 │   │   ├── SKILL.md            # Skill specification
 │   │   ├── AGENTS.md           # Skill-specific guidelines
 │   │   └── scripts/            # Helper scripts
-│   └── qodo-fix/               # Fix PR review issues
+│   └── pr-resolver/            # Fix PR review issues
 │       ├── SKILL.md
 │       └── AGENTS.md
 ├── .claude-plugin/             # Claude Code plugin manifest
@@ -63,7 +63,7 @@ project/
 │   ├── get-rules/
 │   │   ├── AGENTS.md           # Skill-specific context (~150 lines)
 │   │   └── SKILL.md            # Skill instructions (~250 lines)
-│   └── qodo-fix/
+│   └── pr-resolver/
 │       ├── AGENTS.md           # Skill-specific context (~150 lines)
 │       └── SKILL.md            # Skill instructions (~400 lines)
 ```
@@ -260,7 +260,7 @@ npx skills add /path/to/qodo-skills/skills/get-rules
 ```bash
 # Invoke skill manually
 /get-rules
-/qodo-fix
+/pr-resolver
 
 # Check git status
 git status
