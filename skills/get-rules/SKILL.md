@@ -75,44 +75,52 @@ The skill automatically determines the most specific scope based on your current
 
 ### Step 2: Execute the Fetch Script
 
-**Run the script** using the Bash tool:
+**When the skill is invoked, you'll see the base directory path for this skill's installation.**
+
+**Use the platform-appropriate wrapper for cross-platform reliability:**
+
+**For macOS/Linux** (platform: darwin, linux):
 ```bash
-python scripts/fetch-qodo-rules.py
+bash ${SKILL_BASE_DIR}/scripts/fetch-qodo-rules.sh
 ```
 
-**Or use the shell wrapper** (Unix/macOS/Linux):
-```bash
-scripts/fetch-qodo-rules.sh
+**For Windows** (platform: win32):
+```
+${SKILL_BASE_DIR}\scripts\fetch-qodo-rules.cmd
 ```
 
-**Or use the batch wrapper** (Windows):
+Replace `${SKILL_BASE_DIR}` with the actual skill installation directory path.
+
+**Platform detection**: Agents have access to platform information in their environment (e.g., "Platform: darwin"). Use this to select the correct wrapper automatically.
+
+**If wrappers fail, fallback to Python directly:**
 ```bash
-scripts/fetch-qodo-rules.cmd
+# Try python3 first (most systems)
+python3 ${SKILL_BASE_DIR}/scripts/fetch-qodo-rules.py
+
+# If python3 not found (exit code 127), try python
+python ${SKILL_BASE_DIR}/scripts/fetch-qodo-rules.py
 ```
 
-**Note**: The script should be executed from the repository root directory (where `.git` exists). The path `scripts/fetch-qodo-rules.py` is relative to the skill installation directory (e.g., `~/.claude/skills/get-rules/`). If you're working in a subdirectory of your project, the script will still work as it uses `git rev-parse --show-toplevel` to find the repository root.
+**The wrapper/script automatically handles:**
+- ✅ Python version detection (python3 vs python)
+- ✅ Git repository detection
+- ✅ API key from QODO_API_KEY env var or ~/.qodo/config.json
+- ✅ Repository scope extraction from git remote URL
+- ✅ Working directory scope detection (module-specific vs repository-wide)
+- ✅ Rules fetching from Qodo API
+- ✅ Formatting by severity (ERROR/WARNING/RECOMMENDATION)
+- ✅ Graceful error handling with user-friendly messages
+- ✅ Cross-platform compatibility
 
-The script automatically:
-- ✅ Checks if git is installed and available
-- ✅ Checks if you're in a git repository
-- ✅ Reads API key from `QODO_API_KEY` env var or `~/.qodo/config.json`
-- ✅ Reads API URL from config file or uses default
-- ✅ Extracts repository scope from git remote URL (supports both `.git` and non-.git URLs)
-- ✅ Detects current working directory and determines scope level (module-specific vs repository-wide)
-- ✅ Fetches rules from Qodo API with appropriate scope
-- ✅ Formats rules by severity (ERROR/WARNING/RECOMMENDATION)
-- ✅ Outputs formatted rules to stdout (becomes conversation context)
-- ✅ Handles all errors gracefully (exits cleanly with user-friendly messages)
-- ✅ Cross-platform compatible (Windows, macOS, Linux)
-
-**Script Output**:
-The script's stdout automatically becomes part of the conversation context. It includes:
+**Script Output:**
+The output automatically becomes conversation context:
 - Repository scope
 - Total rule count
 - Rules grouped by severity with descriptions
-- User-friendly error messages if API is unavailable
+- User-friendly error messages if API unavailable
 
-**No additional processing needed** - just run the script and its output will be added to context.
+**No additional processing needed** - the output is ready to use.
 
 ### Step 3: Apply Rules During Code Generation
 
