@@ -9,6 +9,8 @@ Shift-left code review skills for AI coding agents. Bring Qodo's quality standar
 ### 🔧 get-rules
 Fetches repository-specific coding rules from the Qodo platform API. Provides your agent with security requirements, coding standards, and team conventions before generating code.
 
+**Repository Support:** GitHub repositories (Qodo Rules is currently in beta with GitHub support)
+
 **Features:**
 - 🎯 **Must load before coding**: Agent invokes before any code generation/modification task (if not already loaded)
 - 📚 Hierarchical rule matching (universal, org, repo, path-level)
@@ -325,6 +327,7 @@ scripts\fetch-qodo-rules.cmd
 - Rules must be configured in the Qodo platform for your repository
 - Visit https://app.qodo.ai to set up rules
 - Check that your repository remote URL matches the configured scope
+- **Note:** Qodo Rules currently supports GitHub repositories (beta)
 
 ### Auto-fetch not working (Claude Code)?
 
