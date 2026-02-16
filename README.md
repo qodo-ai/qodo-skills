@@ -70,8 +70,11 @@ Skills are automatically installed to the correct location for your agent:
 For automatic rule fetching at session start in Claude Code, install as a plugin:
 
 ```bash
-# Claude Code plugin installation
-/plugin install https://github.com/qodo-ai/qodo-skills
+# Add the Qodo marketplace (one-time setup)
+/plugin marketplace add qodo-ai/qodo-skills
+
+# Install the plugin
+/plugin install qodo-skills@qodo
 ```
 
 **Plugin features:**
@@ -213,11 +216,13 @@ npx skills remove get-rules
 If installed as a Claude Code plugin:
 
 ```bash
-/plugin                        # List installed plugins
-/plugin update qodo-skills     # Update to latest version
-/plugin disable qodo-skills    # Disable temporarily
-/plugin enable qodo-skills     # Re-enable
-/plugin uninstall qodo-skills  # Uninstall
+/plugin                              # List installed plugins
+/plugin update qodo-skills           # Update to latest version
+/plugin disable qodo-skills          # Disable temporarily
+/plugin enable qodo-skills           # Re-enable
+/plugin uninstall qodo-skills        # Uninstall
+/plugin marketplace list             # List available marketplaces
+/plugin marketplace update           # Update marketplace catalog
 ```
 
 ## Repository Structure
@@ -227,7 +232,8 @@ This repository follows the [Agent Skills](https://agentskills.io) standard with
 ```
 qodo-skills/
 ├── .claude-plugin/
-│   └── plugin.json           # Plugin manifest (Claude Code)
+│   ├── marketplace.json     # Marketplace catalog (Claude Code)
+│   └── plugin.json          # Plugin manifest (Claude Code)
 ├── skills/
 │   ├── get-rules/           # Fetch coding rules skill
 │   │   ├── SKILL.md         # Agent Skills standard

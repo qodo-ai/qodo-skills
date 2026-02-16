@@ -1,0 +1,19 @@
+{
+  "name": "qodo",
+  "owner": {
+    "name": "Qodo.ai",
+    "email": "support@qodo.ai"
+  },
+  "metadata": {
+    "description": "Shift-left code review and quality enforcement skills for AI coding agents"
+  },
+  "plugins": [
+    {
+      "name": "qodo-skills",
+      "source": ".",
+      "description": "Shift-left code review skills that bring Qodo's quality standards into your local development workflow",
+      "category": "code-quality",
+      "tags": ["code-review", "quality", "standards", "rules", "shift-left", "pr-review"]
+    }
+  ]
+}
