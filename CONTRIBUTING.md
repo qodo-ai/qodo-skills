@@ -211,6 +211,7 @@ main "$@"
 
 ### Test Checklist
 
+**Core functionality:**
 - [ ] Skill invokes without errors
 - [ ] Instructions are clear and unambiguous
 - [ ] Helper scripts work independently
@@ -218,6 +219,11 @@ main "$@"
 - [ ] Edge cases are handled gracefully
 - [ ] Works with different project structures
 - [ ] Documentation is complete
+
+**Cross-compatibility** (see AGENTS.md for detailed testing procedures):
+- [ ] Tested on macOS, Linux (Ubuntu/Debian), and Windows
+- [ ] Tested with multiple coding agents (Claude Code, Cursor, etc.)
+- [ ] If applicable: Tested with multiple git providers (GitHub, GitLab, Bitbucket, Azure DevOps)
 
 ## Submitting Your Contribution
 
@@ -262,8 +268,22 @@ Detailed description of what the skill does and why it's useful.
 
 ## Testing
 
+**Agents:**
 - [ ] Tested with Claude Code
 - [ ] Tested with Cursor
+- [ ] Tested with Windsurf/Cline (if applicable)
+
+**Platforms:**
+- [ ] Tested on macOS
+- [ ] Tested on Linux (Ubuntu/Debian)
+- [ ] Tested on Windows
+
+**Git Providers** (if applicable):
+- [ ] Tested with GitHub
+- [ ] Tested with GitLab
+- [ ] Tested with Bitbucket/Azure DevOps (if applicable)
+
+**Functionality:**
 - [ ] Tested helper scripts independently
 - [ ] Verified error handling
 
