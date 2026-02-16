@@ -4,13 +4,9 @@
 
 ## Project Overview
 
-**Purpose**: Claude Code plugin providing shift-left code review skills that bring Qodo's quality standards into local development workflow.
+**Purpose**: Shift-left code review skills that bring Qodo's quality standards into local development workflow.
 
 **Compatible Agents**: Claude Code, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
-
-**Architecture**: Dual-layer design
-- **Agent-agnostic layer**: Skills following Agent Skills standard (works everywhere)
-- **Claude Code plugin layer**: Auto-invocation via hooks (Claude Code only)
 
 ## Repository Structure
 
@@ -19,17 +15,13 @@ qodo-skills/
 ├── AGENTS.md                    # This file - universal guidelines
 ├── CLAUDE.md                    # Claude Code-specific directives
 ├── skills/                      # Agent Skills catalog
-│   ├── get-rules/              # Fetch Qodo coding rules
+│   ├── get-qodo-rules/         # Fetch Qodo coding rules
 │   │   ├── SKILL.md            # Skill specification
 │   │   ├── AGENTS.md           # Skill-specific guidelines
 │   │   └── scripts/            # Helper scripts
-│   └── pr-resolver/            # Fix PR review issues
+│   └── qodo-pr-resolver/       # Fix PR review issues
 │       ├── SKILL.md
 │       └── AGENTS.md
-├── .claude-plugin/             # Claude Code plugin manifest
-│   └── plugin.json
-└── hooks/                      # Auto-invocation hooks
-    └── hooks.json
 ```
 
 ## Technology Stack
@@ -60,10 +52,10 @@ qodo-skills/
 project/
 ├── AGENTS.md                    # Root guidelines (~200 lines)
 ├── skills/
-│   ├── get-rules/
+│   ├── get-qodo-rules/
 │   │   ├── AGENTS.md           # Skill-specific context (~150 lines)
 │   │   └── SKILL.md            # Skill instructions (~250 lines)
-│   └── pr-resolver/
+│   └── qodo-pr-resolver/
 │       ├── AGENTS.md           # Skill-specific context (~150 lines)
 │       └── SKILL.md            # Skill instructions (~400 lines)
 ```
@@ -110,7 +102,7 @@ triggers:
 - `description`: Brief description for discovery (1-2 sentences)
 
 **Optional but STRONGLY RECOMMENDED:**
-- `triggers`: Array of patterns for auto-invocation (use regex-like patterns)
+- `triggers`: Array of patterns for skill invocation (use regex-like patterns)
   - Example: `"qodo.?fix"` matches "qodo-fix", "qodo fix", "qodofix"
   - **Why**: Improves usability by allowing natural language invocation
   - **Best practice**: Include 2-3 common variations of skill name
@@ -250,17 +242,16 @@ python3 -m pytest tests/
 **Installation:**
 ```bash
 # Install skill locally
-npx skills add /path/to/qodo-skills/skills/get-rules
+npx skills add /path/to/qodo-skills/skills/get-qodo-rules
 
-# Install as Claude Code plugin
-/plugin install github.com/qodo-ai/qodo-skills
+# Claude Code marketplace: Coming soon
 ```
 
 **Testing:**
 ```bash
 # Invoke skill manually
-/get-rules
-/pr-resolver
+/get-qodo-rules
+/qodo-pr-resolver
 
 # Check git status
 git status
@@ -285,4 +276,4 @@ git log --oneline -10
 
 ---
 
-**Note**: For Claude Code-specific directives (hooks, auto-invocation, tool preferences), see CLAUDE.md.
+**Note**: For Claude Code-specific directives (tool preferences, commit conventions), see CLAUDE.md.

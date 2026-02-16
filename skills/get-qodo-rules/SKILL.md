@@ -1,11 +1,14 @@
 ---
-name: get-rules
+name: get-qodo-rules
 description: "Fetch and load repository coding rules from Qodo API. MUST be invoked at conversation start before any code generation or modification task, if rules are not already loaded in context."
 version: 1.0.0
 allowed-tools: ["Bash", "Read"]
 triggers:
+  - "get.?qodo.?rules"
   - "get.?rules"
+  - "load.?qodo.?rules"
   - "load.?rules"
+  - "fetch.?qodo.?rules"
   - "fetch.?rules"
   - "qodo.?rules"
   - "coding.?rules"
@@ -169,7 +172,7 @@ The output automatically becomes conversation context:
 ```bash
 # Session starts - Claude checks for rules
 [Checking conversation history for "📋 Qodo Rules Loaded"...]
-[Not found - invoking /get-rules]
+[Not found - invoking /get-qodo-rules]
 
 # Rules load successfully
 📋 Qodo Rules Loaded
@@ -186,8 +189,8 @@ Rules loaded: 15 (universal, org level, repo level)
 # Working in modules/api/ directory
 cd modules/api
 
-# Running get-rules detects module-specific scope
-/get-rules
+# Running get-qodo-rules detects module-specific scope
+/get-qodo-rules
 
 # Output includes path-level rules
 📋 Qodo Rules Loaded
@@ -200,10 +203,10 @@ Rules loaded: 18 (includes path-level rules for modules/api/)
 ### Natural Language Invocation
 
 The skill responds to various coding-related phrases:
-- "Let's implement a new feature" → Auto-invokes get-rules
-- "I need to write some code" → Auto-invokes get-rules
-- "Please fix this bug" → Auto-invokes get-rules
-- "Can you refactor this?" → Auto-invokes get-rules
+- "Let's implement a new feature" → Auto-invokes get-qodo-rules
+- "I need to write some code" → Auto-invokes get-qodo-rules
+- "Please fix this bug" → Auto-invokes get-qodo-rules
+- "Can you refactor this?" → Auto-invokes get-qodo-rules
 
 ---
 
@@ -259,7 +262,7 @@ The script handles all errors gracefully and provides user-friendly messages:
 
 **Rules not loading?**
 - Check: `cat ~/.qodo/config.json` (verify API key)
-- Test: `python3 ~/.claude/skills/get-rules/scripts/fetch-qodo-rules.py`
+- Test: `python3 ~/.claude/skills/get-qodo-rules/scripts/fetch-qodo-rules.py`
 - Verify: `git status` (must be in git repository)
 
 **Wrong scope?**

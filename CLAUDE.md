@@ -1,8 +1,8 @@
 # Qodo Skills - Claude Code Directives
 
-> Claude Code-specific guidelines and directives for working on this plugin project.
+> Claude Code-specific guidelines and directives for working on this project.
 
-**Important**: Read AGENTS.md first for universal guidelines. This file contains Claude Code-specific features and workflows.
+**Important**: Read AGENTS.md first for universal guidelines. This file contains Claude Code-specific workflows and preferences.
 
 ## File Size Discipline (CRITICAL)
 
@@ -22,7 +22,7 @@
 
 **Example of hierarchical approach:**
 ```
-skills/get-rules/
+skills/get-qodo-rules/
 ├── AGENTS.md              # Skill-specific agent guidelines (~150 lines)
 ├── CLAUDE.md              # Claude Code-specific notes (~100 lines)
 └── SKILL.md               # Skill instructions (~250 lines)
@@ -33,37 +33,31 @@ skills/get-rules/
 find . -name "*.md" -exec wc -l {} + | sort -rn | head -10
 ```
 
-## Plugin Architecture
+## Skill Collection
 
-This is a **Claude Code plugin** with auto-invocation via hooks:
+This is a **skill collection** compatible with Claude Code and other agents:
 
 **Installation:**
-- Plugin: `/plugin install github.com/qodo-ai/qodo-skills`
-- Individual skills: `npx skills add qodo-ai/qodo-skills/skills/get-rules`
-
-**Auto-invocation:**
-- `hooks/hooks.json` defines SessionStart hook
-- Automatically runs `fetch-qodo-rules.py` at conversation start
-- No user action required - rules load before coding begins
+- Individual skills: `npx skills add qodo-ai/qodo-skills/skills/get-qodo-rules`
+- Claude Code Marketplace: Coming soon
 
 **Skill invocation:**
-- `/get-rules` - Fetch and load coding rules
-- `/pr-resolver` - Review and fix PR issues
+- `/get-qodo-rules` - Fetch and load coding rules
+- `/qodo-pr-resolver` - Review and fix PR issues
 
-## CRITICAL: get-rules Must Execute First
+## CRITICAL: get-qodo-rules Must Execute First
 
 **NON-NEGOTIABLE RULE:**
 
 **Before ANY code generation or modification task:**
 1. Check conversation history for "📋 Qodo Rules Loaded"
-2. If NOT found: Execute `/get-rules` immediately
+2. If NOT found: Execute `/get-qodo-rules` immediately
 3. Wait for rules to load
 4. Then proceed with coding task
 
 **Why this is critical:**
 - Rules contain ERROR-level security and quality requirements
 - Compliance is mandatory - code without rules violates organizational standards
-- Auto-invocation may fail (API key missing, network issues)
 - Manual check ensures rules are always loaded
 
 **Implementation:**
@@ -71,20 +65,18 @@ This is a **Claude Code plugin** with auto-invocation via hooks:
 [User asks to modify code]
 
 Step 1: Check for "📋 Qodo Rules Loaded" in history
-Step 2: If not found → /get-rules
+Step 2: If not found → /get-qodo-rules
 Step 3: Wait for output
 Step 4: Proceed with coding task applying loaded rules
 ```
 
 ## Skills Workflow
 
-### get-rules Skill
+### get-qodo-rules Skill
 
 **Purpose**: Fetch repository-specific coding rules from Qodo API
 
-**Auto-invoked**: SessionStart hook (Claude Code plugin only)
-
-**Manual invocation**: `/get-rules` (if auto-invocation failed)
+**Manual invocation**: `/get-qodo-rules`
 
 **Output**: Formatted rules by severity
 - **ERROR rules**: Must comply non-negotiably
@@ -96,11 +88,11 @@ Step 4: Proceed with coding task applying loaded rules
 - WARNING rules skipped: Explain why
 - No applicable rules: Explicitly state this
 
-### pr-resolver Skill
+### qodo-pr-resolver Skill
 
 **Purpose**: Review code with Qodo and fix issues interactively
 
-**Invocation**: `/pr-resolver` or trigger words ("qodo fix", "review qodo", "resolve pr", etc.)
+**Invocation**: `/qodo-pr-resolver` or trigger words ("qodo fix", "review qodo", "resolve pr", etc.)
 
 **Workflow (Multi-step with approval gates):**
 
@@ -177,9 +169,9 @@ EOF
 
 **Use hierarchical context files for skills:**
 
-Example for get-rules skill:
+Example for get-qodo-rules skill:
 ```
-skills/get-rules/
+skills/get-qodo-rules/
 ├── AGENTS.md         # Universal agent guidelines for this skill
 │   - API key configuration
 │   - Repository scope detection
@@ -187,8 +179,6 @@ skills/get-rules/
 │   - Testing procedures
 │
 ├── CLAUDE.md         # Claude Code-specific notes
-│   - Auto-invocation via hooks
-│   - Integration with SessionStart
 │   - Tool usage patterns
 │   - Commit conventions
 │
@@ -213,7 +203,7 @@ skills/get-rules/
 - Root AGENTS.md approaching 400 lines
 
 **When to create skill-specific CLAUDE.md:**
-- Skill uses Claude-specific features (hooks, tool patterns)
+- Skill uses Claude-specific features (tool patterns)
 - Skill requires specific commit conventions
 - Skill has unique workflow in Claude Code
 - Root CLAUDE.md approaching 400 lines
@@ -246,9 +236,10 @@ See root AGENTS.md for universal guidelines.
 
 ```yaml
 ---
-name: get-rules
+name: get-qodo-rules
 description: "Fetch coding rules from Qodo API"
 triggers:
+  - "get.?qodo.?rules"
   - "get.?rules"
   - "load.?rules"
   - "fetch.?rules"
@@ -259,7 +250,7 @@ triggers:
 - Users can invoke with natural language: "get rules", "load rules", "fetch rules"
 - Reduces friction - no need to remember exact skill name
 - Enables conversational invocation patterns
-- Better agent discovery and auto-invocation
+- Better skill discovery
 
 **Best practices:**
 - Include 2-3 common variations of skill name
@@ -275,15 +266,6 @@ triggers:
 **For skill instructions:** See skills/*/SKILL.md
 
 ## Claude Code-Specific Features
-
-**Hooks:**
-- `hooks/hooks.json` defines auto-invocation rules
-- SessionStart, SessionEnd, ToolUse, etc.
-- See Claude Code docs: https://code.claude.com/docs/en/hooks
-
-**Plugin manifest:**
-- `.claude-plugin/plugin.json` defines plugin metadata
-- name, version, description, author, repository
 
 **Settings:**
 - `.claude/settings.local.json` for local development overrides

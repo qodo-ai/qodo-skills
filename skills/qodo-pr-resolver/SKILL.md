@@ -1,8 +1,11 @@
 ---
-name: pr-resolver
+name: qodo-pr-resolver
 description: Review and resolve PR issues with Qodo - get AI-powered code review issues and fix them interactively (GitHub, GitLab, Bitbucket, Azure DevOps)
 version: 0.3.0
 triggers:
+  - qodo.?pr.?resolver
+  - pr.?resolver
+  - resolve.?pr
   - qodo.?fix
   - fix.?qodo
   - qodo.?review
@@ -10,9 +13,6 @@ triggers:
   - qodo.?issues?
   - show.?qodo
   - get.?qodo
-  - qodo.?pr.?resolver
-  - pr.?resolver
-  - resolve.?pr
   - qodo.?resolve
 ---
 
