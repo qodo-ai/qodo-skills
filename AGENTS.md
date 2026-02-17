@@ -178,7 +178,15 @@ main "$@"
 
 ## Testing Requirements
 
-**Before submitting:**
+**Test Matrix - Must verify across:**
+
+| Dimension | Required Coverage | Priority |
+|-----------|------------------|----------|
+| **Git Providers** | GitHub, GitLab, Bitbucket, Azure DevOps | P0 for provider-dependent skills |
+| **Coding Agents** | Claude Code, Cursor, Windsurf, Cline | P0 for Claude Code, P1 for others |
+| **Operating Systems** | macOS, Ubuntu/Debian, Windows | P0 for all three |
+
+**Checklist before submitting:**
 
 - [ ] Skill invokes without errors
 - [ ] Instructions are clear and unambiguous
@@ -186,9 +194,29 @@ main "$@"
 - [ ] Error messages are helpful
 - [ ] Edge cases handled gracefully
 - [ ] Works with different project structures
-- [ ] Cross-platform compatible (Windows, macOS, Linux)
-- [ ] Documentation is complete
 - [ ] File size under 500 lines (ideally ~300)
+
+**Cross-platform verification:**
+- [ ] **macOS**: Tested with zsh/bash and `python3`
+- [ ] **Ubuntu/Debian**: Tested with bash and `python3`
+- [ ] **Windows**: Tested with cmd and `py -3`
+- [ ] Scripts handle path separators (`/` vs `\`)
+- [ ] Scripts handle spaces in paths
+
+**Git provider verification** (if skill interacts with git providers):
+- [ ] **GitHub**: Tested with `gh` CLI
+- [ ] **GitLab**: Tested with `glab` CLI
+- [ ] **Bitbucket**: Tested with `bb` CLI or API
+- [ ] **Azure DevOps**: Tested with `az devops` CLI
+- [ ] URL parsing works for all providers
+- [ ] PR/MR detection works for all providers
+
+**Coding agent verification:**
+- [ ] **Claude Code**: Tested with `/plugin install` or `npx skills add`
+- [ ] **Cursor**: Tested with `npx skills add`
+- [ ] **Windsurf/Cline**: Tested with `npx skills add`
+- [ ] Trigger patterns work across agents
+- [ ] Error messages display correctly
 
 **Testing commands:**
 ```bash
@@ -199,7 +227,7 @@ python3 -m py_compile scripts/my-script.py
 python3 scripts/my-script.py --test-arg
 
 # Install skill locally
-npx skills add /path/to/qodo-skills/my-skill
+npx skills add /path/to/qodo-skills/skills/my-skill
 
 # Test in agent
 /my-skill
