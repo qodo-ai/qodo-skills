@@ -1,0 +1,275 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# This file is a partial example and may not include every valid configuration option.
+# See the schema (above) for the complete list of supported keys and tools.
+
+# General settings
+language: "en-US"
+tone_instructions: "Serious, clear, precise language only. When giving suggestions, indicate if the code is in the path that would cause a production outage or not."
+early_access: false
+enable_free_tier: true
+
+reviews:
+  # Review profile and behavior
+  # profile: "chill"
+  profile: "assertive"
+
+  # Make CodeRabbit block merges until all issues are resolved
+  request_changes_workflow: true
+
+  pre_merge_checks:
+    custom_checks:
+      - mode: error
+        name: Linked JIRA ticket meets criteria
+        instructions: >-
+          Make sure there is a Jira ticket linked in the PR/MR AND that it satisfies the text of
+          that JIRA ticket
+
+      - mode: error
+        name: Ensure no "exec" type commands run
+        instructions: >-
+          Make sure no tools wrap external shell scripts and bash commands, e.g., a Python script cannot invoke
+          a bash command, nor can a Terraform file run the "exec" command. Scan all the code to ensure that
+          external commands are not hidden.
+
+      - mode: error
+        name: GDPR and PII Data Protection Compliance
+        instructions: >-
+          Carefully scan all code for GDPR violations and improper handling of Personally Identifiable Information (PII).
+          This is a BLOCKING check - any violation must prevent merge. Check for:
+
+          1. PII Data Transmission: Ensure no PII fields (mothers_maiden_name, billing_address, phone_number,
+             date_of_birth, annual_income, email, address, full_name) are being transmitted via WebSocket broadcasts,
+             public APIs, logs, or any mechanism that exposes them to unauthorized parties (other users, analytics systems,
+             third-party services).
+
+          2. Logging Violations: Verify that PII is NEVER logged in plaintext. Check all log statements (log.Printf,
+             console.log, etc.) to ensure they do not include sensitive fields. Structured logging of user IDs is acceptable,
+             but never log actual PII values.
+
+          3. Data Minimization: Confirm that database queries only SELECT the minimum fields necessary for the operation.
+             If a function needs username and games_played, it should NOT query annual_income or other unnecessary PII fields.
+
+          4. Consent and Purpose Limitation: Flag any code that collects or processes PII without a clear, legitimate purpose
+             directly related to core functionality. Income data collection for a card game is highly suspicious unless
+             explicitly required for payment processing.
+
+          5. Cross-User Data Exposure: Ensure User A's PII is never visible to User B. Check all broadcast/multicast
+             mechanisms (WebSocket rooms, pub/sub, cache entries) to verify they don't leak PII across user boundaries.
+
+          6. API Response Sanitization: Verify that API responses and WebSocket messages properly filter out PII fields
+             before sending to clients. Use allowlists (explicit safe fields) rather than denylists.
+
+          7. Frontend Storage: Check that frontend code doesn't store PII in localStorage, sessionStorage, or cookies
+             (except for properly secured httpOnly authentication cookies).
+
+          If ANY of these violations are found, mark this check as FAILED and describe the specific violation with
+          file path and line numbers. The PR cannot be merged until all violations are resolved.
+
+      # - mode: error
+      #   name: ensure Linear ticket
+      #   instructions: >-
+      #     Make sure there is a Linear ticket linked in the PR/MR AND that it satisfies the text of
+      #     that Linear ticket
+      # - mode: error
+      #   name: ensure GitHub ticket
+      #   instructions: >-
+      #     Make sure there is a GitHub ticket linked in the PR/MR AND that it satisfies the text of
+      #     that GitHub ticket
+      # - mode: error
+      #   name: ensure GitLab ticket
+      #   instructions: >-
+      #     Make sure there is a GitLab ticket linked in the PR/MR AND that it satisfies the text of
+      #     that GitLab ticket
+
+  # High-level summary settings
+  high_level_summary: true
+  high_level_summary_instructions: "In the high level summary, give a description of the langauges used, the frameworks and code patterns used, and then a brief description in 50 words or less."
+  high_level_summary_placeholder: "@coderabbitai summary"
+  high_level_summary_in_walkthrough: false
+
+  # Auto title settings
+  # auto_title_placeholder: "@coderabbitai"
+  auto_title_placeholder: "[cr]"
+  auto_title_instructions: "Follow conventional commits https://www.conventionalcommits.org/en/v1.0.0/"
+
+  # Review status and commit status
+  review_status: true
+  commit_status: true
+  # Do not fail PR if CodeRabbit cannot execute a review for some reason
+  fail_commit_status: false
+
+  # Walkthrough settings
+  collapse_walkthrough: true
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+
+  # Issue and PR related settings
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+
+  # Labeling settings
+  suggested_labels: true
+  labeling_instructions: []
+  auto_apply_labels: false
+
+  # Path filtering and instructions
+  path_filters: []
+  path_instructions:
+    # Wildcard path instructions
+    - path: "**/*"
+      instructions: |
+        Ensure all code meets the following standards:
+        - All code should only be related to serving the Cribbage game
+        - All code in production must either be Go or Typescript, admin code like Dockerfiles and Makefiles is fine
+        - Ensure all code is not committing n+1 queries, O(n^2), and other recursive/iterative traps (see ch. 1 of SICP)
+        - No overly clever abstractions
+        - Ensure functions are focused and not doing too much UNLESS detailed comments are added
+        - Ensure no business logic is tightly coupled to any particular framework
+        - Ensure no errors are swallowed, and no silents failures take place
+        - No fire-and-forget async processes
+
+    # Go-specific instructions
+    - path: "**/*.go"
+      instructions: |
+        Review Go code following these standards:
+        - Use proper error handling with error wrapping using fmt.Errorf with %w verb
+        - Ensure all public functions have godoc comments
+        - Follow Go naming conventions (exported names start with capital letter)
+        - Use context.Context for cancellation and timeouts in long-running operations
+        - Prefer explicit error returns over panic
+        - Use defer for cleanup operations
+        - Validate input parameters and return descriptive errors
+        - Consider concurrency safety for shared state
+
+  # Auto review settings
+  auto_review:
+    enabled: true
+    ignore_title_keywords: []
+    drafts: false
+    base_branches: []
+
+  # Static analysis tools
+  tools:
+    # JavaScript/TypeScript
+    eslint:
+      enabled: true
+    biome:
+      enabled: true
+
+    # Go
+    golangci-lint:
+      enabled: true
+
+    # Python
+    ruff:
+      enabled: true
+    pylint:
+      enabled: true
+
+    # Ruby
+    rubocop:
+      enabled: true
+
+    # PHP
+    phpstan:
+      enabled: true
+      level: default
+
+    # Java/Kotlin
+    pmd:
+      enabled: true
+    detekt:
+      enabled: true
+
+    # C/C++
+    cppcheck:
+      enabled: true
+
+    # Rust
+    clippy:
+      enabled: true
+
+    # Infrastructure
+    hadolint:
+      enabled: true
+    yamllint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    actionlint:
+      enabled: true
+
+    # Security
+    gitleaks:
+      enabled: true
+    checkov:
+      enabled: true
+    semgrep:
+      enabled: true
+    osvScanner:
+      enabled: true
+
+    # Documentation
+    markdownlint:
+      enabled: true
+    languagetool:
+      enabled: true
+      level: default
+      disabled_categories: []
+
+    # Protocol Buffers
+    buf:
+      enabled: true
+
+    # GitHub specific
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+
+issue_enrichment:
+  auto_enrich:
+    enabled: true
+  labeling:
+    auto_apply_labels: true
+
+chat:
+  art: true
+  auto_reply: true
+  integrations:
+    jira:
+      usage: "enabled"
+    linear:
+      usage: "enabled"
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns: []
+  learnings:
+    scope: "global"
+  issues:
+    scope: "global"
+  jira:
+    usage: "enabled"
+    project_keys: []
+  linear:
+    usage: "enabled"
+    team_keys: []
+  pull_requests:
+    scope: "global"
+  mcp:
+    usage: "enabled"
+    disabled_servers: []
+
+code_generation:
+  docstrings:
+    language: "en-US"
+    path_instructions: []
+  unit_tests:
+    path_instructions: []
