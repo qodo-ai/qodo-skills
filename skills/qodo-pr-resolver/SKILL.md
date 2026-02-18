@@ -122,28 +122,31 @@ Check for uncommitted changes, unpushed commits, and get the current branch.
 
    1. **Action level determines severity range:**
       - **"Action required"** issues → Can only be 🔴 CRITICAL or 🟠 HIGH
-      - **"Review recommended"** issues → Can only be 🟡 MEDIUM or ⚪ LOW
+      - **"Review recommended"** / **"Remediation recommended"** issues → Can only be 🟡 MEDIUM or ⚪ LOW
+      - **"Other"** / **"Advisory comments"** issues → Always ⚪ LOW (lowest priority)
 
    2. **Qodo's position within each action level determines the specific severity:**
-      - Group issues by action level ("Action required" vs "Review recommended")
-      - Within each group, earlier positions → higher severity, later positions → lower severity
+      - Group issues by action level ("Action required" vs "Review recommended" vs "Other")
+      - Within "Action required" and "Review recommended" groups: earlier positions → higher severity, later positions → lower severity
       - Split point: roughly first half of each group gets the higher severity, second half gets the lower
+      - All "Other" issues are treated as ⚪ LOW regardless of position
 
    **Example:** 7 "Action required" issues would be split as:
       - Issues 1-3: 🔴 CRITICAL
       - Issues 4-7: 🟠 HIGH
-      - Result: No MEDIUM or LOW issues (because there are no "Review recommended" issues)
+      - Result: No MEDIUM or LOW issues (because there are no "Review recommended" or "Other" issues)
 
-   **Example:** 5 "Action required" + 3 "Review recommended" issues would be split as:
+   **Example:** 5 "Action required" + 3 "Review recommended" + 2 "Other" issues would be split as:
       - Issues 1-2 or 1-3: 🔴 CRITICAL (first ~half of "Action required")
       - Issues 3-5 or 4-5: 🟠 HIGH (second ~half of "Action required")
       - Issues 6-7: 🟡 MEDIUM (first ~half of "Review recommended")
       - Issue 8: ⚪ LOW (second ~half of "Review recommended")
+      - Issues 9-10: ⚪ LOW (all "Other" issues)
 
    Action guidelines:
-   - 🔴 CRITICAL / 🟠 HIGH: Always "Fix"
-   - 🟡 MEDIUM: Usually "Fix", can "Defer" if low impact
-   - ⚪ LOW: Can be "Defer" unless quick to fix
+   - 🔴 CRITICAL / 🟠 HIGH ("Action required"): Always "Fix"
+   - 🟡 MEDIUM ("Review recommended"): Usually "Fix", can "Defer" if low impact
+   - ⚪ LOW ("Review recommended" or "Other"): Can be "Defer" unless quick to fix; "Other" issues are lowest priority
 
 Output format - Display as a markdown table in Qodo's exact original ordering (do NOT reorder by severity - Qodo's order IS the severity ranking):
 
