@@ -1,8 +1,8 @@
 ---
 name: get-qodo-rules
-description: "Fetch and load repository coding rules from Qodo API. MUST be invoked at conversation start before any code generation or modification task, if rules are not already loaded in context."
-version: 1.0.0
-allowed-tools: ["Bash", "Read"]
+description: "Loads org- and repo-level coding rules from Qodo before code tasks begin, ensuring all generation and modification follows team standards. Use before any code generation or modification task when rules are not already loaded. Invoke when user asks to write, edit, refactor, or review code, or when starting implementation planning."
+version: 2.0.0
+allowed-tools: ["Bash"]
 triggers:
   - "get.?qodo.?rules"
   - "get.?rules"
@@ -26,249 +26,97 @@ triggers:
   - "update.*code"
 ---
 
-# Get Rules Skill
+# Get Qodo Rules Skill
 
 ## Description
 
 Fetches repository-specific coding rules from the Qodo platform API before code generation or modification tasks. Rules include security requirements, coding standards, quality guidelines, and team conventions that must be applied during code generation.
+**Use** before any code generation or modification task when rules are not already loaded. Invoke when user asks to write, edit, refactor, or review code, or when starting implementation planning.
+**Skip** if "Qodo Rules Loaded" already appears in conversation context
 
-**When to invoke**: At conversation start before any coding task, if rules not already loaded in context.
-
-## Key Features
-
-- **Automatic loading**: Runs at conversation start without user prompt
-- **Repository-aware**: Infers repository from git remote URL
-- **Context-aware scopes**: Automatically detects module-level rules based on working directory
-- **Hierarchical rule matching**: Returns universal, repository-level, and path-level rules
-- **Severity-based enforcement**: ERROR (must comply), WARNING (should comply), RECOMMENDATION (consider)
-- **Transparent feedback**: Always informs user about rule loading status and application
-- **Graceful degradation**: Continues without rules if API unavailable or not configured
-
-## How Scope Levels Work
-
-The skill automatically determines the most specific scope based on your current working directory and fetches matching rules at all hierarchy levels.
-
-**Scope Hierarchy** (as defined in codebase):
-- **Universal** (`/`) - applies everywhere
-- **Org Level** (`/org/`) - applies to organization
-- **Repo Level** (`/org/repo/`) - applies to repository
-- **Path Level** (`/org/repo/path/`) - applies to specific paths
-
-**Automatic Detection**:
-- Working in module directory (e.g., `modules/rules/`) → queries with path-level scope
-- Working at repository root → queries with repo-level scope
-- API automatically returns all matching parent scopes via prefix matching
-
-**Example**: Query `/codium-ai/qodo-platform/modules/rules/` returns:
-- Universal rules (`/`)
-- Org level rules (`/codium-ai/`)
-- Repo level rules (`/codium-ai/qodo-platform/`)
-- Path level rules (`/codium-ai/qodo-platform/modules/rules/`)
+---
 
 ## Workflow
 
 ### Step 1: Check if Rules Already Loaded
 
-**CRITICAL - Before ANY code generation, modification, or review task**, check if rules are already in context:
-- Look for "📋 Qodo Rules Loaded" in conversation history
-- If found: Skip execution, rules are active - proceed with coding task
-- If NOT found: Execute this skill immediately before proceeding
+If rules are already loaded (look for "Qodo Rules Loaded" in recent messages), skip to step 6.
 
-**This check is mandatory for all coding tasks.** Rules must be loaded to ensure code complies with organizational standards.
+### Step 2: Verify working in a git repository
 
-### Step 2: Execute the Fetch Script
+- Check that the current directory is inside a git repository. If not, inform the user that a git repository is required and exit gracefully.
+- Extract the repository scope from the git `origin` remote URL. If no remote is found, exit silently. If the URL cannot be parsed, inform the user and exit gracefully.
+- Detect module-level scope: if inside a `modules/*` subdirectory, use it as the query scope; otherwise use repository-wide scope.
 
-**When the skill is invoked, you'll see the base directory path for this skill's installation.**
+See [repository scope detection](references/repository-scope.md) for details.
 
-**Use the platform-appropriate wrapper for cross-platform reliability:**
+### Step 3: Verify Qodo Configuration
 
-**For macOS/Linux** (platform: darwin, linux):
-```bash
-bash ${SKILL_BASE_DIR}/scripts/fetch-qodo-rules.sh
-```
+Check that the required Qodo configuration is present. The default location is `~/.qodo/config.json`.
 
-**For Windows** (platform: win32):
-```
-${SKILL_BASE_DIR}\scripts\fetch-qodo-rules.cmd
-```
+- **API key**: Read from `~/.qodo/config.json` (`API_KEY` field). If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.
+- **Environment name**: Read from `~/.qodo/config.json` (`ENVIRONMENT_NAME` field), with `QODO_ENVIRONMENT_NAME` environment variable taking precedence. If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.
 
-Replace `${SKILL_BASE_DIR}` with the actual skill installation directory path.
+### Step 4: Fetch Rules with Pagination
 
-**Platform detection**: Agents have access to platform information in their environment (e.g., "Platform: darwin"). Use this to select the correct wrapper automatically.
+- Fetch all pages from the API (50 rules per page) until no more results are returned.
+- On each page, handle HTTP errors and exit gracefully with a user-friendly message.
+- Accumulate all rules across pages into a single list.
+- Stop after 100 pages maximum (safety limit).
+- If no rules are found after all pages, inform the user and exit gracefully.
 
-**If wrappers fail, fallback to Python directly:**
-```bash
-# Try python3 first (most systems)
-python3 ${SKILL_BASE_DIR}/scripts/fetch-qodo-rules.py
+See [pagination details](references/pagination.md) for the full algorithm and error handling.
 
-# If python3 not found (exit code 127), try python
-python ${SKILL_BASE_DIR}/scripts/fetch-qodo-rules.py
-```
+### Step 5: Format and Output Rules
 
-**The wrapper/script automatically handles:**
-- ✅ Python version detection (python3 vs python)
-- ✅ Git repository detection
-- ✅ API key from QODO_API_KEY env var or ~/.qodo/config.json
-- ✅ Repository scope extraction from git remote URL
-- ✅ Working directory scope detection (module-specific vs repository-wide)
-- ✅ Rules fetching from Qodo API
-- ✅ Formatting by severity (ERROR/WARNING/RECOMMENDATION)
-- ✅ Graceful error handling with user-friendly messages
-- ✅ Cross-platform compatibility
+- Print the "📋 Qodo Rules Loaded" header with repository scope, scope context, and total rule count.
+- Group rules by severity and print each non-empty group: ERROR, WARNING, RECOMMENDATION.
+- Each rule is formatted as: `- **{name}** ({category}): {description}`
+- End output with `---`.
 
-**Script Output:**
-The output automatically becomes conversation context:
-- Repository scope
-- Total rule count
-- Rules grouped by severity with descriptions
-- User-friendly error messages if API unavailable
+See [output format details](references/output-format.md) for the exact format.
 
-**No additional processing needed** - the output is ready to use.
+### Step 6: Apply Rules by Severity
 
-### Step 3: Apply Rules During Code Generation
+| Severity | Enforcement | When Skipped |
+|---|---|---|
+| **ERROR** | Must comply, non-negotiable. Add comment documenting compliance (e.g., `# Following Qodo rule: No Hardcoded Credentials`) | Explain to user and ask for guidance |
+| **WARNING** | Should comply by default | Briefly explain why in response |
+| **RECOMMENDATION** | Consider when appropriate | No action needed |
 
-**When generating or modifying code**, enforce rules based on severity:
+### Step 7: Report
 
-#### ERROR Rules (Must Comply)
-- Apply strictly and non-negotiably
-- Add comment documenting compliance:
-  ```python
-  # Following Qodo rule: No Hardcoded Credentials
-  api_key = os.environ.get("API_KEY")
-  ```
-- If cannot satisfy: Explain to user and ask for guidance
-
-#### WARNING Rules (Should Comply)
-- Apply preferentially unless strong reason not to
-- No documentation needed (apply silently)
-- If skipping: Briefly explain why in response
-
-#### RECOMMENDATION Rules (Consider)
-- Consider as helpful suggestions
-- Apply when appropriate, ignore when not
-- No documentation needed
-
-### Step 4: Provide Feedback on Rule Application
-
-**After code generation**, inform the user about rule application:
-
-**If ERROR rules were applied**:
-- List which ERROR rules were followed: `"I followed these Qodo rules: [rule names]"`
-
-**If WARNING rules were skipped**:
-- Explain: `"I didn't apply the '{rule_name}' rule because {reason}"`
-
-**If no rules were applicable**:
-- Inform: `"No Qodo rules were applicable to this code change"`
-
-**RECOMMENDATION rules**: Mention only if specifically relevant or if they influenced a design decision
+After code generation, inform the user about rule application:
+- **ERROR rules applied**: List which rules were followed
+- **WARNING rules skipped**: Explain why
+- **No rules applicable**: Inform: "No Qodo rules were applicable to this code change"
+- **RECOMMENDATION rules**: Mention only if they influenced a design decision
 
 ---
 
-## Examples
+## How Scope Levels Work
 
-### Typical Session Flow
+Determines scope from git remote and working directory (see [Step 2](#step-2-verify-working-in-a-git-repository)):
 
-```bash
-# Session starts - Claude checks for rules
-[Checking conversation history for "📋 Qodo Rules Loaded"...]
-[Not found - invoking /get-qodo-rules]
-
-# Rules load successfully
-📋 Qodo Rules Loaded
-
-Repository: `/my-org/my-repo/`
-Rules loaded: 15 (universal, org level, repo level)
-
-# Now coding can proceed with rules applied
-```
-
-### When Working in a Module
-
-```bash
-# Working in modules/api/ directory
-cd modules/api
-
-# Running get-qodo-rules detects module-specific scope
-/get-qodo-rules
-
-# Output includes path-level rules
-📋 Qodo Rules Loaded
-
-Repository: `/my-org/my-repo/`
-Module: `modules/api`
-Rules loaded: 18 (includes path-level rules for modules/api/)
-```
-
-### Natural Language Invocation
-
-The skill responds to various coding-related phrases:
-- "Let's implement a new feature" → Auto-invokes get-qodo-rules
-- "I need to write some code" → Auto-invokes get-qodo-rules
-- "Please fix this bug" → Auto-invokes get-qodo-rules
-- "Can you refactor this?" → Auto-invokes get-qodo-rules
+**Scope Hierarchy**:
+- **Universal** (`/`) - applies everywhere
+- **Org Level** (`/org/`) - applies to organization
+- **Repo Level** (`/org/repo/`) - applies to repository
+- **Path Level** (`/org/repo/path/`) - applies to specific paths
 
 ---
 
 ## Configuration
 
-The script automatically reads configuration from:
-
-**Config file**: `~/.qodo/config.json`
-```json
-{
-  "API_KEY": "sk-xxxxxxxxxxxxx",
-  "ENVIRONMENT_NAME": "staging"
-}
-```
-
-**Configuration fields:**
-- `API_KEY` (required): Your Qodo API key
-- `ENVIRONMENT_NAME` (optional): Environment name for API URL
-  - If empty/omitted: Uses production (`https://qodo-platform.qodo.ai/rules/v1/`)
-  - If specified: Uses `https://qodo-platform.<ENVIRONMENT_NAME>.qodo.ai/rules/v1/`
-
-**Environment variables** (take precedence over config file):
-```bash
-export QODO_API_KEY="sk-xxxxxxxxxxxxx"
-export QODO_ENVIRONMENT_NAME="staging"  # optional
-```
-
-**Minimal config** (production environment):
-```json
-{
-  "API_KEY": "sk-xxxxxxxxxxxxx"
-}
-```
-
-Get your API key at: https://app.qodo.ai/settings/api-keys
+See [README.md](../../README.md#configuration) for full configuration instructions, including API key setup and environment variable options.
 
 ---
 
-## Error Handling
+## Common Mistakes
 
-The script handles all errors gracefully and provides user-friendly messages:
-- ✅ Not in git repo → Silent exit (no error)
-- ✅ No API key → Helpful message with setup instructions
-- ✅ Invalid API key → Message with link to API key settings
-- ✅ API unavailable → Generic error message
-- ✅ No rules found → Informational message
-
-**All errors are non-fatal** - the script always exits cleanly so the session continues without rules.
-
----
-
-## Troubleshooting
-
-**Rules not loading?**
-- Check: `cat ~/.qodo/config.json` (verify API key)
-- Test: `python3 ~/.claude/skills/get-qodo-rules/scripts/fetch-qodo-rules.py`
-- Verify: `git status` (must be in git repository)
-
-**Wrong scope?**
-- Module detection requires `modules/` directory structure
-- Check remote: `git config --get remote.origin.url`
-
-**API issues?**
-- Verify key at: https://app.qodo.ai/settings/api-keys
-- Test connectivity: `curl -I https://qodo-platform.qodo.ai/rules/v1/health`
+- **Re-running when rules are loaded** - Check for "Qodo Rules Loaded" in context first
+- **Missing compliance comments on ERROR rules** - ERROR rules require a comment documenting compliance
+- **Forgetting to report when no rules apply** - Always inform the user when no rules were applicable, so they know the rules system is active
+- **Not in git repo** - Inform the user that a git repository is required and exit gracefully; do not attempt code generation
+- **No API key** - Inform the user with setup instructions; set `QODO_API_KEY` or create `~/.qodo/config.json`
+- **No rules found** - Inform the user; set up rules at app.qodo.ai
