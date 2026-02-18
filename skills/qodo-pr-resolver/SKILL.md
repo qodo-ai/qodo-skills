@@ -26,7 +26,7 @@ Fetch Qodo review issues for your current branch's PR/MR, fix them interactively
 - **Git** - For branch operations
 - **Git Provider CLI** - One of: `gh` (GitHub), `glab` (GitLab), `bb` (Bitbucket), or `az` (Azure DevOps)
 
-**Installation and authentication details:** See [providers.md](./providers.md) for provider-specific setup instructions.
+**Installation and authentication details:** See [providers.md](./resources/providers.md) for provider-specific setup instructions.
 
 ### Required Context:
 - Must be in a git repository
@@ -40,7 +40,7 @@ git --version                                    # Check git installed
 git remote get-url origin                        # Identify git provider
 ```
 
-See [providers.md](./providers.md) for provider-specific verification commands.
+See [providers.md](./resources/providers.md) for provider-specific verification commands.
 
 ## Understanding Qodo Reviews
 
@@ -89,13 +89,13 @@ Check for uncommitted changes, unpushed commits, and get the current branch.
 
 Detect git provider from the remote URL (`git remote get-url origin`).
 
-See [providers.md](./providers.md) for provider detection patterns.
+See [providers.md](./resources/providers.md) for provider detection patterns.
 
 ### Step 2: Find the open PR/MR
 
 Find the open PR/MR for this branch using the provider's CLI.
 
-See [providers.md § Find Open PR/MR](./providers.md#find-open-prmr) for provider-specific commands.
+See [providers.md § Find Open PR/MR](./resources/providers.md#find-open-prmr) for provider-specific commands.
 
 ### Step 3: Get Qodo review comments
 
@@ -103,7 +103,7 @@ Get the Qodo review comments using the provider's CLI.
 
 Qodo typically posts both a **summary comment** (PR-level, containing all issues) and **inline review comments** (one per issue, attached to specific lines of code). You must fetch both.
 
-See [providers.md § Fetch Review Comments](./providers.md#fetch-review-comments) for provider-specific commands.
+See [providers.md § Fetch Review Comments](./resources/providers.md#fetch-review-comments) for provider-specific commands.
 
 Look for comments where the author is "qodo-merge[bot]", "pr-agent-pro", "pr-agent-pro-staging" or similar Qodo bot name.
 
@@ -262,13 +262,13 @@ If "Auto-fix all" was selected:
 
 **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred.
 
-See [providers.md § Post Summary Comment](./providers.md#post-summary-comment) for provider-specific commands and summary format.
+See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
 
 **After posting the summary, resolve the Qodo review comment:**
 
 Find the Qodo "Code Review by Qodo" comment and mark it as resolved or react to acknowledge it.
 
-See [providers.md § Resolve Qodo Review Comment](./providers.md#resolve-qodo-review-comment) for provider-specific commands.
+See [providers.md § Resolve Qodo Review Comment](./resources/providers.md#resolve-qodo-review-comment) for provider-specific commands.
 
 If resolve fails (comment not found, API error), continue — the summary comment is the important part.
 
@@ -286,13 +286,13 @@ If any fixes were applied (commits were created in Steps 6/7), ask the user if t
 
 If the remote URL doesn't match GitHub, GitLab, Bitbucket, or Azure DevOps, inform the user and exit.
 
-See [providers.md § Error Handling](./providers.md#error-handling) for details.
+See [providers.md § Error Handling](./resources/providers.md#error-handling) for details.
 
 #### No PR/MR exists
 
 - Inform: "No PR/MR found for branch `<branch-name>`"
 - Ask: "Would you like me to create a PR/MR?"
-- If yes: Use appropriate CLI to create PR/MR (see [providers.md § Create PR/MR](./providers.md#create-prmr-special-case)), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
+- If yes: Use appropriate CLI to create PR/MR (see [providers.md § Create PR/MR](./resources/providers.md#create-prmr-special-case)), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
 - If no: Exit skill
 
 **IMPORTANT:** Do NOT proceed without a PR/MR
@@ -313,7 +313,7 @@ If "Come back again in a few minutes" message is found, inform user to wait and 
 
 If the detected provider's CLI is not installed, provide installation instructions and exit.
 
-See [providers.md § Error Handling](./providers.md#error-handling) for provider-specific installation commands.
+See [providers.md § Error Handling](./resources/providers.md#error-handling) for provider-specific installation commands.
 
 #### Inline reply commands
 
@@ -321,6 +321,6 @@ Used per-issue in Steps 6 and 7 to reply to Qodo's inline comments:
 
 Use the inline comment ID preserved during deduplication (Step 3b) to reply directly to Qodo's comment.
 
-See [providers.md § Reply to Inline Comments](./providers.md#reply-to-inline-comments) for provider-specific commands and reply format.
+See [providers.md § Reply to Inline Comments](./resources/providers.md#reply-to-inline-comments) for provider-specific commands and reply format.
 
 Keep replies short (one line). If a reply fails, log it and continue.
