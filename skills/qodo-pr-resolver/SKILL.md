@@ -24,19 +24,9 @@ Fetch Qodo review issues for your current branch's PR/MR, fix them interactively
 
 ### Required Tools:
 - **Git** - For branch operations
-- **Git Provider CLI** (one of):
-  - **GitHub**: `gh` CLI
-    - Install: `brew install gh` or [cli.github.com](https://cli.github.com/)
-    - Authenticate: `gh auth login`
-  - **GitLab**: `glab` CLI
-    - Install: `brew install glab` or [glab.readthedocs.io](https://glab.readthedocs.io/)
-    - Authenticate: `glab auth login`
-  - **Bitbucket**: `bb` CLI or API access
-    - See [bitbucket.org/product/cli](https://bitbucket.org/product/cli)
-  - **Azure DevOps**: `az` CLI with DevOps extension
-    - Install: `brew install azure-cli` or [docs.microsoft.com/cli/azure](https://docs.microsoft.com/cli/azure)
-    - Install extension: `az extension add --name azure-devops`
-    - Authenticate: `az login` then `az devops configure --defaults organization=https://dev.azure.com/yourorg project=yourproject`
+- **Git Provider CLI** - One of: `gh` (GitHub), `glab` (GitLab), `bb` (Bitbucket), or `az` (Azure DevOps)
+
+**Installation and authentication details:** See [providers.md](./providers.md) for provider-specific setup instructions.
 
 ### Required Context:
 - Must be in a git repository
@@ -48,12 +38,9 @@ Fetch Qodo review issues for your current branch's PR/MR, fix them interactively
 ```bash
 git --version                                    # Check git installed
 git remote get-url origin                        # Identify git provider
-# Then check appropriate CLI:
-gh --version && gh auth status                   # For GitHub
-glab --version && glab auth status               # For GitLab
-bb --version                                     # For Bitbucket
-az --version && az devops                        # For Azure DevOps
 ```
+
+See [providers.md](./providers.md) for provider-specific verification commands.
 
 ## Understanding Qodo Reviews
 
@@ -91,65 +78,19 @@ Check for uncommitted changes, unpushed commits, and get the current branch.
 **Scenario C: Everything pushed** (both empty)
 - Proceed to Step 1
 
-1. Detect git provider from the remote URL (`git remote get-url origin`) — match against `github.com`, `gitlab.com`, `bitbucket.org`, or `dev.azure.com`.
+1. Detect git provider from the remote URL (`git remote get-url origin`).
 
-2. Find the open PR/MR for this branch:
+   See [providers.md](./providers.md) for provider detection patterns.
 
-   **GitHub:**
-   ```bash
-   gh pr list --head <branch-name> --state open --json number,title
-   ```
+2. Find the open PR/MR for this branch using the provider's CLI.
 
-   **GitLab:**
-   ```bash
-   glab mr list --source-branch <branch-name> --state opened
-   ```
+   See [providers.md § Find Open PR/MR](./providers.md#find-open-prmr) for provider-specific commands.
 
-   **Bitbucket:**
-   ```bash
-   # Use API or bb CLI
-   bb pr list --source-branch <branch-name> --state OPEN
-   ```
-
-   **Azure DevOps:**
-   ```bash
-   az repos pr list --source-branch <branch-name> --status active --output json
-   ```
-
-3. Get the Qodo review comments:
+3. Get the Qodo review comments using the provider's CLI.
 
    Qodo typically posts both a **summary comment** (PR-level, containing all issues) and **inline review comments** (one per issue, attached to specific lines of code). You must fetch both.
 
-   **GitHub:**
-   ```bash
-   # PR-level comments (includes the summary comment with all issues)
-   gh pr view <pr-number> --json comments
-
-   # Inline review comments (per-line comments on specific code)
-   gh api repos/{owner}/{repo}/pulls/<pr-number>/comments
-   ```
-
-   **GitLab:**
-   ```bash
-   # All MR notes including inline comments
-   glab mr view <mr-iid> --comments
-   ```
-
-   **Bitbucket:**
-   ```bash
-   # All PR comments including inline comments
-   bb pr view <pr-id> --comments
-   ```
-
-   **Azure DevOps:**
-   ```bash
-   # PR-level threads (includes summary comments)
-   az repos pr show --id <pr-id> --output json
-
-   # All PR threads including inline comments
-   az repos pr policy list --id <pr-id> --output json
-   az repos pr thread list --id <pr-id> --output json
-   ```
+   See [providers.md § Fetch Review Comments](./providers.md#fetch-review-comments) for provider-specific commands.
 
    Look for comments where the author is "qodo-merge[bot]", "pr-agent-pro", "pr-agent-pro-staging" or similar Qodo bot name.
 
@@ -282,11 +223,11 @@ Qodo Issues for PR #123: [PR Title]
 Example: Show location, Qodo's guidance, current code, proposed diff, then AskUserQuestion with options (✅ Apply fix / ⏭️ Defer / 🔧 Modify). Wait for user choice, apply via Edit tool if approved.
 
 Special cases:
-- **Unsupported git provider:** If the remote URL doesn't match GitHub, GitLab, Bitbucket, or Azure DevOps, inform the user and exit
+- **Unsupported git provider:** If the remote URL doesn't match GitHub, GitLab, Bitbucket, or Azure DevOps, inform the user and exit (see [providers.md § Error Handling](./providers.md#error-handling))
 - **No PR/MR exists:**
   - Inform: "No PR/MR found for branch `<branch-name>`"
   - Ask: "Would you like me to create a PR/MR?"
-  - If yes: Use appropriate CLI to create PR/MR (`gh pr create` / `glab mr create` / `bb pr create` / `az repos pr create`), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
+  - If yes: Use appropriate CLI to create PR/MR (see [providers.md § Create PR/MR](./providers.md#create-prmr-special-case)), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
   - If no: Exit skill
   - **IMPORTANT:** Do NOT proceed without a PR/MR
 - **No Qodo review yet:**
@@ -295,65 +236,26 @@ Special cases:
   - Exit skill (do NOT attempt manual review)
   - **IMPORTANT:** This skill only works with Qodo reviews, not manual reviews
 - **Review in progress:** If "Come back again in a few minutes" message is found, inform user to wait and try again, then exit
-- **Missing CLI tool:** If the detected provider's CLI is not installed, provide installation instructions and exit
+- **Missing CLI tool:** If the detected provider's CLI is not installed, provide installation instructions (see [providers.md § Error Handling](./providers.md#error-handling)) and exit
 
    **Inline reply commands** (used per-issue in steps 6 and 7):
 
-   Use the inline comment ID preserved during deduplication (step 3b).
+   Use the inline comment ID preserved during deduplication (step 3b) to reply directly to Qodo's comment.
 
-   **GitHub:**
-   ```bash
-   gh api repos/{owner}/{repo}/pulls/<pr-number>/comments/<inline-comment-id>/replies -X POST -f body='<reply-body>'
-   ```
-
-   **GitLab:**
-   ```bash
-   glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>/notes" -X POST -f body='<reply-body>'
-   ```
-
-   **Bitbucket:**
-   ```bash
-   bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments" -X POST -f 'content.raw=<reply-body>' -f 'parent.id=<inline-comment-id>'
-   ```
-
-   **Azure DevOps:**
-   ```bash
-   az repos pr thread comment add --id <pr-id> --thread-id <thread-id> --content '<reply-body>'
-   ```
-
-   Reply format:
-   - **Fixed:** `✅ **Fixed** — <brief description of what was changed>`
-   - **Deferred:** `⏭️ **Deferred** — <reason for deferring>`
+   See [providers.md § Reply to Inline Comments](./providers.md#reply-to-inline-comments) for provider-specific commands and reply format.
 
    Keep replies short (one line). If a reply fails, log it and continue.
 
 8. Post summary to PR/MR (ALWAYS):
-   **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred:
+   **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred.
 
-   Post a comment using the provider's CLI (`gh pr comment` / `glab mr comment` / `bb pr comment` / `az repos pr thread create`) with this format:
-
-   ```markdown
-   ## Qodo Fix Summary
-
-   Reviewed and addressed Qodo review issues:
-
-   ### ✅ Fixed Issues
-   - **Issue Title** (Severity) - Brief description of what was fixed
-
-   ### ⏭️ Deferred Issues
-   - **Issue Title** (Severity) - Reason for deferring
-
-   ---
-   *Generated by Qodo PR Resolver skill*
-   ```
+   See [providers.md § Post Summary Comment](./providers.md#post-summary-comment) for provider-specific commands and summary format.
 
    **After posting the summary, resolve the Qodo review comment:**
 
-   Find the Qodo "Code Review by Qodo" comment by fetching all PR/MR comments, matching a Qodo bot author whose body contains "Code Review by Qodo".
+   Find the Qodo "Code Review by Qodo" comment and mark it as resolved or react to acknowledge it.
 
-   - **GitHub:** Fetch comments via `gh pr view <pr-number> --json comments`, find the comment ID, then react with: `gh api "repos/{owner}/{repo}/issues/comments/<comment-id>/reactions" -X POST -f content='+1'`
-   - **GitLab:** Fetch discussions via `glab api "/projects/:id/merge_requests/<mr-iid>/discussions"`, find the discussion ID, then resolve: `glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>" -X PUT -f resolved=true`
-   - **Bitbucket:** Fetch comments via `bb api`, find the comment ID, then update to resolved status.
+   See [providers.md § Resolve Qodo Review Comment](./providers.md#resolve-qodo-review-comment) for provider-specific commands.
 
    If resolve fails (comment not found, API error), continue — the summary comment is the important part.
 
