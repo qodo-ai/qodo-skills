@@ -8,7 +8,7 @@ The API returns rules in pages of 50. All pages must be fetched to ensure no rul
 2. Request: `GET {API_URL}/rules?scopes={ENCODED_SCOPE}&state=active&page={PAGE}&page_size=50`
    - Header: `Authorization: Bearer {API_KEY}`
    - Header: `request-id: {REQUEST_ID}` — UUID generated once in Step 3; same value on every page fetch
-   - Header: `qodo-client-type: get-qodo-rules` — identifies this skill as the caller
+   - Header: `qodo-client-type: skill-get-qodo-rules` — identifies this skill as the caller
    - Header: `trace_id: {TRACE_ID}` — only include if `TRACE_ID` is set in the shell environment; skip silently otherwise
 3. On non-200 response, handle the error and exit gracefully:
    - `401` — invalid/expired API key
