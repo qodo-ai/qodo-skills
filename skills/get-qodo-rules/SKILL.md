@@ -56,6 +56,7 @@ Check that the required Qodo configuration is present. The default location is `
 
 - **API key**: Read from `~/.qodo/config.json` (`API_KEY` field). If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.
 - **Environment name**: Read from `~/.qodo/config.json` (`ENVIRONMENT_NAME` field), with `QODO_ENVIRONMENT_NAME` environment variable taking precedence. If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.
+- **Request ID**: Generate a UUID (e.g. via `uuidgen` or `python3 -c "import uuid; print(uuid.uuid4())"`) to use as `request-id` for all API calls in this invocation. This correlates all page fetches for a single rules load on the platform side.
 
 ### Step 4: Fetch Rules with Pagination
 

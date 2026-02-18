@@ -7,6 +7,9 @@ The API returns rules in pages of 50. All pages must be fetched to ensure no rul
 1. Start with `page=1`, `page_size=50`, accumulate results in an empty list
 2. Request: `GET {API_URL}/rules?scopes={ENCODED_SCOPE}&state=active&page={PAGE}&page_size=50`
    - Header: `Authorization: Bearer {API_KEY}`
+   - Header: `request-id: {REQUEST_ID}` — UUID generated once in Step 3; same value on every page fetch
+   - Header: `qodo-client-type: get-qodo-rules` — identifies this skill as the caller
+   - Header: `trace_id: {TRACE_ID}` — only include if `TRACE_ID` is set in the shell environment; skip silently otherwise
 3. On non-200 response, handle the error and exit gracefully:
    - `401` — invalid/expired API key
    - `403` — access forbidden
@@ -26,7 +29,11 @@ Construct `{API_URL}` from `ENVIRONMENT_NAME` (read from `~/.qodo/config.json`):
 
 | `ENVIRONMENT_NAME` | `{API_URL}` |
 |---|---|
-| set (e.g. `staging`) | `https://qodo-platform.staging.qodo.ai/rules/v1` |
+| not set / empty | `https://qodo-platform.qodo.ai/rules/v1` |
+| `staging` | `https://qodo-platform.staging.qodo.ai/rules/v1` |
+| `qodost.st` | `https://qodo-platform.qodost.st.qodo.ai/rules/v1` |
+
+The `ENVIRONMENT_NAME` value is substituted verbatim as a subdomain segment — dots in the value become dots in the hostname.
 
 ## After Fetching
 

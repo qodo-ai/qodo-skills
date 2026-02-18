@@ -71,24 +71,23 @@ Skills are automatically installed to the correct location for your agent:
 - **Git** - For repository detection
   - Usually pre-installed on macOS and most Linux distributions
   - Windows: Download from https://git-scm.com/download/win
-- **Python 3.6+** - For API requests and cross-platform compatibility
-  - No external dependencies required (uses standard library only)
+- **curl** - For HTTPS API requests (works with system SSL certificates)
+  - Pre-installed on macOS, most Linux distributions, and Windows 10+
+  - If needed, install via package manager or download from https://curl.se
   ```bash
   # Check installation
-  python3 --version
-  # or
-  python --version
+  curl --version
 
   # Install if needed:
-  # macOS: brew install python3
-  # Ubuntu/Debian: apt-get install python3
-  # Windows: https://www.python.org/downloads/
-  #   (Make sure to check "Add Python to PATH" during installation)
+  # macOS: brew install curl (or use system curl)
+  # Ubuntu/Debian: apt-get install curl
+  # Windows 10+: Included by default
   ```
+- **Python 3.6+** - For JSON parsing and path manipulation only (no API calls)
+  - Pre-installed on macOS and most Linux distributions
+  - Windows: Download from https://www.python.org/downloads/
 
-**Note:** The script automatically detects Python using:
-- **Windows:** `py -3` → `python3` → `python`
-- **Unix/macOS/Linux:** `python3` → `python`
+**Note:** All prerequisites use standard system tools with no external dependencies.
 
 ## Configuration
 
