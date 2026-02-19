@@ -31,6 +31,17 @@ Fetch Qodo review issues for your current branch's PR/MR, fix them interactively
 
 [View skill details](./skills/qodo-pr-resolver/SKILL.md)
 
+### 🛡️ check-rules
+Shift Qodo rule enforcement left -- check code against rules at planning time and before committing. Catches violations before they reach PR review.
+
+**Features:**
+- Fetches rules and factors ERROR rules into implementation plans
+- Pre-commit check: scans staged changes against rule `badExamples`
+- Structured violation report with fix suggestions from `goodExamples`
+- Severity-aware: blocks on ERROR, advises on WARNING, skips RECOMMENDATION
+
+[View skill details](./skills/check-rules/SKILL.md)
+
 ## Installation
 
 Install skills using the standard Agent Skills CLI:
@@ -42,6 +53,7 @@ npx skills add qodo-ai/qodo-skills
 # Or install individual skills
 npx skills add qodo-ai/qodo-skills/skills/get-qodo-rules
 npx skills add qodo-ai/qodo-skills/skills/qodo-pr-resolver
+npx skills add qodo-ai/qodo-skills/skills/check-rules
 ```
 
 **Claude Code Marketplace:** Coming soon - one-click installation
