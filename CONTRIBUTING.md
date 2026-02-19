@@ -155,6 +155,12 @@ git commit -m "Brief description of changes"
 - If `git commit` fails: Check for merge conflicts or pre-commit hooks
 ```
 
+## Qodo Endpoint Attribution
+
+If your skill calls Qodo API endpoints, all requests must include attribution headers to identify the caller and correlate requests.
+
+See [attribution guidelines](../skills/get-qodo-rules/references/attribution.md) for required headers (`Authorization`, `request-id`, `qodo-client-type`) and optional headers (`trace_id`), with implementation examples in bash and Python.
+
 ## Helper Scripts
 
 If your skill needs helper scripts:
@@ -220,7 +226,7 @@ main "$@"
 - [ ] Works with different project structures
 - [ ] Documentation is complete
 
-**Cross-compatibility** (see AGENTS.md for detailed testing procedures):
+**Cross-compatibility** (see [Testing Requirements in AGENTS.md](../AGENTS.md#testing-requirements) for full test matrix):
 - [ ] Tested on macOS, Linux (Ubuntu/Debian), and Windows
 - [ ] Tested with multiple coding agents (Claude Code, Cursor, etc.)
 - [ ] If applicable: Tested with multiple git providers (GitHub, GitLab, Bitbucket, Azure DevOps)
