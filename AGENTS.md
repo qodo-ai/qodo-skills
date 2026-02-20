@@ -271,8 +271,11 @@ python3 -m pytest tests/
 ```bash
 # Install skill locally
 npx skills add /path/to/qodo-skills/skills/get-qodo-rules
+```
 
-# Claude Code marketplace: Coming soon
+**Claude Code Marketplace:**
+```
+/plugin install qodo-skills@claude-plugins-official
 ```
 
 **Testing:**
