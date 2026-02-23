@@ -44,7 +44,10 @@ npx skills add qodo-ai/qodo-skills/skills/qodo-get-rules
 npx skills add qodo-ai/qodo-skills/skills/qodo-pr-resolver
 ```
 
-**Claude Code Marketplace:** Coming soon - one-click installation
+**Claude Code Marketplace:**
+```
+/plugin install qodo-skills@claude-plugins-official
+```
 
 **Works with:**
 - **Claude Code** - Skills available as `/qodo-get-rules`, `/qodo-pr-resolver`
@@ -108,7 +111,7 @@ Create `~/.qodo/config.json`:
   - If empty/omitted: Uses `https://qodo-platform.qodo.ai/rules/v1/`
   - If specified: Uses `https://qodo-platform.<ENVIRONMENT_NAME>.qodo.ai/rules/v1/`
 
-Get your API key at: https://app.qodo.ai/settings/api-keys
+Get your API key at: https://app.qodo.ai/account/api-keys
 
 **Minimal configuration (production):**
 ```json
