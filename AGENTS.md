@@ -121,8 +121,6 @@ This makes skills identifiable at a glance and prevents naming collisions with o
   - Common: `["Bash", "Read", "Edit", "Write", "Grep", "Glob"]`
   - Advanced: `["WebFetch", "WebSearch", "Task"]`
 
-- `version`: Semantic version — **omit this field** (versions are managed via git, not SKILL.md)
-
 ### Instruction Writing Standards
 
 **Do:**
