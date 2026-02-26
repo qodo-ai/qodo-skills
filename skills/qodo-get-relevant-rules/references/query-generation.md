@@ -28,7 +28,9 @@ To maximize semantic alignment between the query and the stored rule vectors, th
   - `Accessibility` — WCAG, ARIA, screen readers, keyboard navigation
   - `Observability` — logging, metrics, tracing, alerting, monitoring
   - `Architecture` — layering, coupling, module boundaries, API design
-- **Content**: 1-2 sentences describing what specifically should be checked or enforced for this coding assignment. When the coding assignment is in a known repository with established patterns (e.g., Python modulith, FastAPI service, SQLAlchemy ORM), mention the relevant tech stack in the Content field -- this helps the embedding model align with rules that reference specific technologies.
+
+  **Tie-breaking:** When an assignment spans multiple categories, prefer `Security` if security is one of the candidates (security rules have the highest impact if missed). Otherwise prefer the category that describes the primary *purpose* of the change, not a secondary effect. For example, "add rate limiting" is primarily `Reliability` (protecting availability), not `Security`, even though it has security benefits. The cross-cutting query will cover the other dimensions.
+- **Content**: 1-2 sentences (aim for at least 15 words) describing what specifically should be checked or enforced for this coding assignment. When the coding assignment is in a known repository with established patterns (e.g., Python modulith, FastAPI service, SQLAlchemy ORM), mention the relevant tech stack in the Content field -- this helps the embedding model align with rules that reference specific technologies. Even for ambiguous assignments, expand the Content with general concerns (e.g., error handling, input validation) to provide enough semantic signal.
 
 ## Query Format
 

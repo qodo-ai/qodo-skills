@@ -61,6 +61,10 @@ Content: {1-2 sentences describing what should be checked or enforced}
 
 This dual-query approach ensures retrieval of both topic-specific rules and cross-cutting quality rules that apply to nearly all code changes.
 
+**Do not** generate queries in these formats -- they perform poorly with the embedding model:
+- Keyword list: `authentication login JWT token Python FastAPI`
+- Flat sentence: `Adding a login authentication endpoint with JWT token credential validation`
+
 See [query generation guidelines](references/query-generation.md) for the full strategy, category descriptions, and examples.
 
 ### Step 5: Call POST /rules/search
