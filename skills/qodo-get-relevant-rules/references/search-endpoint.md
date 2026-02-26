@@ -18,7 +18,7 @@ qodo-client-type: skill-qodo-get-relevant-rules
 }
 ```
 
-**`top_k` default:** Use `20`. This is a reasonable default for a coding context window. A later optimization phase (Track D) will tune this value based on experimentation.
+**`top_k` default:** Use `20`. Experimentation (Track D) validated that `top_k=20` provides the best F1 balance -- decent recall (~45%) without excessive noise. Lower values (5, 10) miss too many relevant rules; higher values (50) return too much noise.
 
 ## Response
 

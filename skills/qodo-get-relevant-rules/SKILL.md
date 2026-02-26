@@ -32,9 +32,8 @@ If rules are already loaded (look for "Qodo Rules Loaded" in recent messages), s
 ### Step 2: Verify Working in a Git Repository
 
 - Check that the current directory is inside a git repository. If not, inform the user that a git repository is required and exit gracefully.
-- Extract the repository scope from the git `origin` remote URL. If no remote is found, exit silently. If the URL cannot be parsed, inform the user and exit gracefully.
 
-See [repository scope detection](references/repository-scope.md) for details.
+See [repository scope detection](references/repository-scope.md) for the git check command.
 
 ### Step 3: Verify Qodo Configuration
 
@@ -60,7 +59,7 @@ See [search endpoint](references/search-endpoint.md) for the full request/respon
 
 - Print the "📋 Qodo Rules Loaded" header with the search query used and total rule count.
 - List rules in the order returned (they are already ranked by relevance):
-  - Each rule: `- **{name}**: {content}`
+  - Each rule: `- **{name}** [{severity}]: {content}`
 - End output with `---`.
 
 **Header format:**
@@ -103,6 +102,7 @@ See [README.md](../../README.md#configuration) for full configuration instructio
 ## Common Mistakes
 
 - **Re-running when rules are loaded** - Check for "Qodo Rules Loaded" in context first
+- **Keyword-style query** - Write queries as natural language sentences, not keyword lists; embedding models perform better with natural language
 - **Vague query** - The search query must capture the nature of the task; a generic query returns irrelevant rules
 - **Crashing on empty results** - An empty rules list is valid; proceed without rule constraints
 - **Not in git repo** - Inform the user that a git repository is required and exit gracefully

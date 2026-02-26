@@ -27,13 +27,13 @@ Key difference from `qodo-get-rules`:
 
 ## Key Design Decisions
 
-**Query generation is critical**: The quality of the search query directly determines retrieval quality. Follow the guidelines in `references/query-generation.md` carefully.
+**Query generation is critical**: The quality of the search query directly determines retrieval quality. Queries must be **natural language sentences**, not keyword lists -- embedding models perform significantly better with natural language. Follow the guidelines in `references/query-generation.md` carefully.
 
-**top_k default is 20**: Subject to change when Track D experimentation completes. The value is documented in `references/search-endpoint.md`.
+**top_k default is 20**: Validated by Track D experimentation (best F1 across precision/recall trade-off). The value is documented in `references/search-endpoint.md`.
 
 **Graceful failure on empty results**: An empty `rules` list from the endpoint is valid — proceed without rule constraints. Do not crash or error.
 
-**No scope filtering**: Unlike `qodo-get-rules`, the repository scope is not sent as a query parameter. The search endpoint handles relevance globally.
+**No scope filtering**: Unlike `qodo-get-rules`, the repository scope is not sent as a query parameter. Step 2 only verifies the user is in a git repo; no scope extraction is performed.
 
 ## Development Setup
 

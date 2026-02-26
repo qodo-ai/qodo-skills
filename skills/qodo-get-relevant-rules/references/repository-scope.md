@@ -1,26 +1,12 @@
 # Repository Scope Detection
 
-The repository scope is used to identify the caller's context for audit/logging purposes. For `qodo-get-relevant-rules`, the primary retrieval mechanism is semantic search — the scope is not used as a filter parameter in the `/rules/search` call.
+For `qodo-get-relevant-rules`, the only requirement is that the current directory is inside a git repository. The scope (org/repo path) is not used as a query parameter — the search endpoint handles relevance via semantic matching.
 
-## Extracting Scope from Git Remote URL
-
-Parse the `origin` remote URL to derive the scope path. Both URL formats are supported:
-
-- SSH: `git@github.com:org/repo.git` → `/org/repo/`
-- HTTPS: `https://github.com/org/repo.git` → `/org/repo/`
-
-**If no remote is found:** Exit silently — there is nothing to log.
-
-**If the URL cannot be parsed:** Inform the user and exit gracefully.
-
-## Commands
+## Git Repository Check
 
 ```bash
 # Check if inside a git repository
 git rev-parse --is-inside-work-tree
-
-# Get remote URL
-git remote get-url origin
 ```
 
-Exit code from `git rev-parse` will be non-zero (128) if not in a git repository.
+Exit code from `git rev-parse` will be non-zero (128) if not in a git repository. If not in a git repo, inform the user and exit gracefully.

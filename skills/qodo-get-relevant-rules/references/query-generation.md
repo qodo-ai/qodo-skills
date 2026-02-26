@@ -12,32 +12,34 @@ Generate a query that captures:
 
 ## Query Format
 
-Write the query as a short, natural-language phrase — typically one sentence or a comma-separated list of key concepts. Aim for 10–25 words.
+Write the query as a **natural language sentence** — not a keyword list. The search endpoint uses embedding-based semantic retrieval, which performs significantly better with natural language than with flat keyword lists.
 
-**Do not** include filler words like "please", "I need to", "implement a feature to", or other padding that dilutes the semantic signal.
+Aim for **one concise sentence** of 10-25 words that reads like a short description of the task.
+
+**Do not** write keyword-style queries (e.g., `authentication login JWT token Python`). Instead, write a sentence: `Adding a login authentication endpoint with JWT tokens that validates credentials in Python`.
+
+**Do not** include filler words like "please", "I need to", or other padding that dilutes the semantic signal.
 
 ## Examples
 
 | Coding Assignment | Generated Query |
 |---|---|
-| Add a login endpoint that accepts username and password, validates credentials against the database, and returns a JWT token | `authentication login endpoint JWT token credential validation Python` |
-| Refactor the user service to use async/await instead of callbacks | `async await refactoring Python service layer concurrency` |
-| Fix a SQL injection vulnerability in the search query builder | `SQL injection security input sanitization query builder database` |
-| Add unit tests for the payment processing module | `unit testing payment processing mock external services pytest` |
-| Implement a rate limiter middleware for the API | `rate limiting middleware API throttling HTTP requests` |
-| Add error handling to the file upload handler | `error handling file upload exception management HTTP API` |
+| Add a login endpoint that accepts username and password, validates credentials against the database, and returns a JWT token | `Adding a login authentication endpoint with JWT token credential validation against the database` |
+| Refactor the user service to use async/await instead of callbacks | `Refactoring a Python service layer from callbacks to async/await concurrency` |
+| Fix a SQL injection vulnerability in the search query builder | `Fixing SQL injection vulnerability by sanitizing input in the database query builder` |
+| Add unit tests for the payment processing module | `Adding unit tests for the payment processing module with mocked external services` |
+| Implement a rate limiter middleware for the API | `Adding rate limiting middleware to throttle HTTP API requests` |
+| Add error handling to the file upload handler | `Adding error handling and exception management to the HTTP file upload handler` |
 
-## Template
+## Approach: Start from the First Sentence
 
-Use this template to construct the query:
+Experimentation shows that the **first sentence or title** of the coding assignment already captures the core task effectively. Use it as the starting point:
 
-```
-{action} {domain/subsystem} {technologies} {core concern}
-```
+1. Take the first sentence or title of the coding assignment
+2. Rephrase it as a concise natural language sentence if needed (remove filler, add key technology terms)
+3. Keep the sentence self-contained — it should make sense without additional context
 
-Example:
-- Assignment: "Add pagination to the products API endpoint using cursor-based pagination"
-- Query: `pagination cursor-based REST API endpoint products database query`
+If the assignment is already a clear, concise sentence, use it directly or with minimal rephrasing.
 
 ## Fallback
 
