@@ -18,7 +18,7 @@ qodo-client-type: skill-qodo-get-relevant-rules
 }
 ```
 
-**`top_k` default:** Use `20`. Experimentation (Track D) validated that `top_k=20` provides the best F1 balance -- decent recall (~45%) without excessive noise. Lower values (5, 10) miss too many relevant rules; higher values (50) return too much noise.
+**`top_k` default:** Use `20` per query. The skill generates two queries (topic + cross-cutting) and calls this endpoint once per query, each with `top_k=20`. Results are merged and deduplicated by rule ID. This gives the LLM classification step more candidates while maintaining precision per query. Experimentation (Track D) validated that `top_k=20` per query provides a good balance.
 
 ## Response
 

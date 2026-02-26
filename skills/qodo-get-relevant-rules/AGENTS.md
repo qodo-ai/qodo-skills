@@ -29,7 +29,9 @@ Key difference from `qodo-get-rules`:
 
 **Structured query format mirrors rule embeddings**: Queries use a three-field format — `Name:`, `Category:`, `Content:` — that mirrors how rules are embedded in the vector database (`"Name: ...\nCategory: ...\nContent: ..."`). This ensures the embedding model can align on all three semantic dimensions rather than collapsing the signal into a single sentence. Follow the guidelines in `references/query-generation.md` carefully.
 
-**top_k default is 20**: Validated by Track D experimentation (best F1 across precision/recall trade-off). The value is documented in `references/search-endpoint.md`.
+**Dual-query strategy (topic + cross-cutting)**: Each invocation generates two queries: a topic query focused on the assignment's primary concern, and a cross-cutting query targeting architectural/quality patterns (module structure, type annotations, logging, repository pattern). Evaluation showed cross-cutting rules account for 60%+ of rules flagged in real reviews but are missed by topic-only queries.
+
+**top_k=20 per query**: Each of the two queries uses `top_k=20`, and results are merged/deduplicated. This provides more candidates for the LLM classification step while keeping per-query noise low. The value is documented in `references/search-endpoint.md`.
 
 **Graceful failure on empty results**: An empty `rules` list from the endpoint is valid — proceed without rule constraints. Do not crash or error.
 

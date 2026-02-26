@@ -43,11 +43,11 @@ Check that the required Qodo configuration is present. The default location is `
 - **Environment name**: Read from `~/.qodo/config.json` (`ENVIRONMENT_NAME` field), with `QODO_ENVIRONMENT_NAME` environment variable taking precedence. If not found or empty, use production.
 - **Request ID**: Generate a UUID (e.g. `python3 -c "import uuid; print(uuid.uuid4())"`) to use as `request-id` for the API call.
 
-### Step 4: Generate Structured Search Query from Coding Assignment
+### Step 4: Generate Structured Search Queries from Coding Assignment
 
-Generate a structured search query that mirrors the rule embedding format. The query quality directly determines retrieval quality.
+Generate **two structured search queries** that mirror the rule embedding format. The query quality directly determines retrieval quality.
 
-The query must use this exact three-line structure:
+Each query must use this exact three-line structure:
 
 ```
 Name: {concise 5-10 word title of the rule this task would trigger}
@@ -55,13 +55,17 @@ Category: {one of: Security, Correctness, Quality, Reliability, Performance, Tes
 Content: {1-2 sentences describing what should be checked or enforced}
 ```
 
-This structured format aligns the query with how rules are indexed in the vector database, improving retrieval accuracy across all three semantic dimensions (name, category, content).
+**Query 1 (Topic query):** Focused on the coding assignment's primary concern. Pick the most relevant Category and describe the specific check in Content. When the repository's tech stack is known, mention it in the Content field.
+
+**Query 2 (Cross-cutting query):** Targets common architectural and code quality patterns that apply to most code changes. Use Category `Architecture` and include concerns like module structure, type annotations, structured logging, and repository patterns. Adjust Content to reflect the repository's tech stack when known.
+
+This dual-query approach ensures retrieval of both topic-specific rules and cross-cutting quality rules that apply to nearly all code changes.
 
 See [query generation guidelines](references/query-generation.md) for the full strategy, category descriptions, and examples.
 
 ### Step 5: Call POST /rules/search
 
-Call the search endpoint with the generated query.
+Call the search endpoint **once per query** (topic query and cross-cutting query), each with `top_k=20`. Merge the results and deduplicate by rule ID, preserving the order from the topic query first.
 
 See [search endpoint](references/search-endpoint.md) for the full request/response contract, `top_k` defaults, error handling, and API URL construction.
 
@@ -113,6 +117,7 @@ See [README.md](../../README.md#configuration) for full configuration instructio
 
 - **Re-running when rules are loaded** - Check for "Qodo Rules Loaded" in context first
 - **Wrong query format** - Write queries using the structured Name/Category/Content format, not keyword lists or flat sentences; the embedding model aligns best when the query mirrors the indexed structure
+- **Single query only** - Always generate both a topic query and a cross-cutting query; a single topic-focused query misses cross-cutting rules (architecture, quality, observability) that apply to most code changes
 - **Vague query** - The search query must capture the nature of the task; a generic Name or Content field returns irrelevant rules
 - **Crashing on empty results** - An empty rules list is valid; proceed without rule constraints
 - **Not in git repo** - Inform the user that a git repository is required and exit gracefully
