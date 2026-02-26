@@ -69,7 +69,7 @@ See [query generation guidelines](references/query-generation.md) for the full s
 
 ### Step 5: Call POST /rules/search
 
-Call the search endpoint **once per query** (topic query and cross-cutting query), each with `top_k=20`. Merge the results and deduplicate by rule ID, preserving the order from the topic query first.
+Call the search endpoint **once per query** (topic query and cross-cutting query), each with `top_k=20`. Merge the results and deduplicate by rule ID, preserving the order from the topic query first. When your tooling supports parallel execution (e.g., Claude Code parallel tool calls), run both calls in parallel to avoid added latency.
 
 See [search endpoint](references/search-endpoint.md) for the full request/response contract, `top_k` defaults, error handling, and API URL construction.
 
