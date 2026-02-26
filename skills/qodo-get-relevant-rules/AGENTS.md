@@ -27,7 +27,7 @@ Key difference from `qodo-get-rules`:
 
 ## Key Design Decisions
 
-**Query generation is critical**: The quality of the search query directly determines retrieval quality. Queries must be **natural language sentences**, not keyword lists -- embedding models perform significantly better with natural language. Follow the guidelines in `references/query-generation.md` carefully.
+**Structured query format mirrors rule embeddings**: Queries use a three-field format — `Name:`, `Category:`, `Content:` — that mirrors how rules are embedded in the vector database (`"Name: ...\nCategory: ...\nContent: ..."`). This ensures the embedding model can align on all three semantic dimensions rather than collapsing the signal into a single sentence. Follow the guidelines in `references/query-generation.md` carefully.
 
 **top_k default is 20**: Validated by Track D experimentation (best F1 across precision/recall trade-off). The value is documented in `references/search-endpoint.md`.
 
