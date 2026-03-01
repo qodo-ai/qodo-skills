@@ -20,6 +20,13 @@ qodo-client-type: skill-qodo-get-relevant-rules
 
 **`top_k` default:** Use `20` per query. The skill generates two queries (topic + cross-cutting) and calls this endpoint once per query, each with `top_k=20`. Results are merged and deduplicated by rule ID. This gives the LLM classification step more candidates while maintaining precision per query. Experimentation (Track D) validated that `top_k=20` per query provides a good balance.
 
+**Merge strategy and result cap:** When merging topic and cross-cutting results, use the following approach to prevent rule fatigue:
+1. Start with topic query results (in order of relevance).
+2. Append cross-cutting results not already present, in order of relevance.
+3. **Cap the final merged list at 15-20 unique rules.** If the combined deduplicated set exceeds 20 rules, truncate at 20, keeping topic results ahead of cross-cutting fills.
+
+This prioritization ensures task-specific rules are never pushed out by cross-cutting results.
+
 ## Response
 
 ```json

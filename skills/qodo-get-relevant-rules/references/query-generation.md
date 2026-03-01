@@ -18,19 +18,38 @@ To maximize semantic alignment between the query and the stored rule vectors, th
 
 - **Name**: Think of it as "what rule would apply here?" Write a concise 5-10 word title describing the rule this coding assignment would trigger.
 - **Category**: Choose the single most relevant category from the available values:
-  - `Security` — authentication, authorization, injection, secrets, encryption
-  - `Correctness` — logic errors, null handling, off-by-one, type safety
-  - `Quality` — code style, naming, readability, maintainability, dead code
-  - `Reliability` — error handling, retries, graceful degradation, timeouts
-  - `Performance` — latency, caching, memory, query optimization, batching
-  - `Testability` — test coverage, mocking, test structure, assertions
-  - `Compliance` — licensing, regulatory, data retention, audit trails
-  - `Accessibility` — WCAG, ARIA, screen readers, keyboard navigation
-  - `Observability` — logging, metrics, tracing, alerting, monitoring
-  - `Architecture` — layering, coupling, module boundaries, API design
+  - `Security` — authentication, authorization, injection, secrets, encryption, token validation, access control, privilege escalation, CSRF, XSS
+  - `Correctness` — logic errors, null handling, off-by-one, type safety, incorrect computation, wrong conditional, missing guard, data corruption
+  - `Quality` — code style, naming, readability, maintainability, dead code, code duplication, comment quality, magic numbers, overly complex logic, formatting
+  - `Reliability` — error handling, retries, graceful degradation, timeouts, circuit breakers, fault tolerance, service availability, idempotency, recovery
+  - `Performance` — latency, caching, memory, query optimization, batching, N+1 queries, connection pooling, unnecessary computation, scalability
+  - `Testability` — test coverage, mocking, test structure, assertions, test isolation, test data, parameterized tests, fixture management
+  - `Compliance` — licensing, regulatory, data retention, audit trails, GDPR, PII handling, data classification, policy enforcement
+  - `Accessibility` — WCAG, ARIA, screen readers, keyboard navigation, color contrast, focus management, semantic HTML
+  - `Observability` — logging, metrics, tracing, alerting, monitoring, instrumentation, dashboards, distributed tracing, log levels, error reporting
+  - `Architecture` — layering, coupling, module boundaries, API design, dependency direction, separation of concerns, package structure, interface design, service decomposition, domain modeling
 
   **Tie-breaking:** When an assignment spans multiple categories, prefer `Security` if security is one of the candidates (security rules have the highest impact if missed). Otherwise prefer the category that describes the primary *purpose* of the change, not a secondary effect. For example, "add rate limiting" is primarily `Reliability` (protecting availability), not `Security`, even though it has security benefits. The cross-cutting query will cover the other dimensions.
+
+  **Avoiding over-use of Correctness:** The heuristic classifier defaults to `Correctness` for a disproportionate share of tasks. Before selecting `Correctness`, consider whether a more specific category better describes the primary purpose:
+  - Structural changes (new modules, refactors, layer reorganization) → prefer `Architecture`
+  - Code style, naming, or readability improvements → prefer `Quality`
+  - Availability, fault tolerance, or error recovery work → prefer `Reliability`
+  - Instrumentation, logging, or monitoring additions → prefer `Observability`
+  - Speed or resource efficiency improvements → prefer `Performance`
+
+  Use `Correctness` when the task is genuinely about fixing a logic error, ensuring type safety, or preventing incorrect computation — not as a generic catch-all. If LLM-based classification is available, prefer it over keyword heuristics for ambiguous cases.
 - **Content**: 1-2 sentences (aim for at least 15 words) describing what specifically should be checked or enforced for this coding assignment. When the coding assignment is in a known repository with established patterns (e.g., Python modulith, FastAPI service, SQLAlchemy ORM), mention the relevant tech stack in the Content field -- this helps the embedding model align with rules that reference specific technologies. Even for ambiguous assignments, expand the Content with general concerns (e.g., error handling, input validation) to provide enough semantic signal.
+
+  **Broadening Content for weak domains:** Certain domains have sparser rule coverage. When the assignment involves one of these areas, expand the Content field with the adjacent concepts listed below to improve retrieval:
+
+  | Domain | Include adjacent concepts |
+  |---|---|
+  | Auth / JWT | authorization headers, token storage, session management, credential handling |
+  | Async / await | event loop, coroutine, asyncio, concurrent execution, task management |
+  | Rate limiting | throttling, request quotas, API abuse prevention, middleware |
+
+  The goal is to give the embedding model a richer surface to align against — not to make the query generic, but to ensure that closely related rules are surfaced even when the exact terminology differs.
 
 ## Query Format
 
@@ -74,6 +93,12 @@ Content: Python modulith module directory structure, full type hints on function
 ```
 
 Call the search endpoint **once per query** (each with `top_k=20`) and merge the results, deduplicating by rule ID.
+
+**Low-return fallback:** If the topic query returns fewer than 3 rules, do not silently accept the sparse result. Re-generate the topic query with a broader Content field by including adjacent concepts for the domain (see the "Broadening Content for weak domains" table above). Then call the endpoint again with the broadened query before merging with cross-cutting results.
+
+**Cross-cutting false positives:** The cross-cutting query intentionally casts a wide net. A small number of rules (e.g., broad architecture rules) will surface in almost every cross-cutting query regardless of topic. This is expected behavior. When consuming results, focus on the topic query rules for task-specific guidance; use cross-cutting results as supplementary context rather than the primary signal.
+
+**JS/TypeScript cross-contamination (known platform issue):** Rules authored for JavaScript or TypeScript may appear in query results for Python or other language workloads. This is a known seeding concern in the platform's rule index and is not something the skill can correct at query time. If JS/TS rules surface in a non-JS context, treat them as non-applicable and skip them. The platform team is tracking the fix on the seeding side.
 
 ## Examples
 
