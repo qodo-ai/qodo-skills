@@ -36,4 +36,42 @@ jobs:
         if: steps.changed-skills.outputs.any_changed == 'false'
         run: echo "No skills/ changes in this PR — no notification needed"
 
-      # TODO(Phase 3): Add slackapi/slack-github-action step here
+      - name: Format skill names
+        id: format-skills
+        if: steps.changed-skills.outputs.any_changed == 'true'
+        run: |
+          skills=""
+          for dir in ${{ steps.changed-skills.outputs.all_changed_files }}; do
+            name="${dir#skills/}"
+            if [ -z "$skills" ]; then
+              skills="$name"
+            else
+              skills="$skills, $name"
+            fi
+          done
+          echo "names=$skills" >> "$GITHUB_OUTPUT"
+
+      - name: Send Slack notification
+        if: steps.changed-skills.outputs.any_changed == 'true'
+        uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a  # v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_SKILLS_RELEASES_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            text: "Skill update merged: ${{ github.event.pull_request.title }}"
+            blocks:
+              - type: "header"
+                text:
+                  type: "plain_text"
+                  text: "${{ github.event.pull_request.title }}"
+                  emoji: true
+              - type: "section"
+                fields:
+                  - type: "mrkdwn"
+                    text: "*Author:*\n${{ github.event.pull_request.user.login }}"
+                  - type: "mrkdwn"
+                    text: "*Skills changed:*\n${{ steps.format-skills.outputs.names }}"
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "<${{ github.event.pull_request.html_url }}|View pull request on GitHub>"
