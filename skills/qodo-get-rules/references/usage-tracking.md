@@ -1,6 +1,6 @@
-# Attribution Headers for Qodo Endpoints
+# Usage Tracking Headers for Qodo Endpoints
 
-All HTTP requests to Qodo API endpoints must include attribution headers so the platform can identify the caller, correlate requests, and support tracing.
+All HTTP requests to Qodo API endpoints must include usage tracking headers so the platform can identify the caller, correlate requests, and support tracing.
 
 ## Required Headers
 
