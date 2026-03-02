@@ -1,0 +1,39 @@
+name: Notify Skill Changes
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  detect-skill-changes:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Detect changed skills
+        id: changed-skills
+        uses: tj-actions/changed-files@7dee1b0c1557f278e5c7dc244927139d78c0e22a  # v47.0.4
+        with:
+          files: skills/**
+          dir_names: 'true'
+          dir_names_max_depth: '2'
+
+      - name: Log changed skills
+        if: steps.changed-skills.outputs.any_changed == 'true'
+        run: |
+          echo "Changed skills detected:"
+          for dir in ${{ steps.changed-skills.outputs.all_changed_files }}; do
+            skill_name="${dir#skills/}"
+            echo "  - $skill_name"
+          done
+
+      - name: No skill changes — skipping
+        if: steps.changed-skills.outputs.any_changed == 'false'
+        run: echo "No skills/ changes in this PR — no notification needed"
+
+      # TODO(Phase 3): Add slackapi/slack-github-action step here
