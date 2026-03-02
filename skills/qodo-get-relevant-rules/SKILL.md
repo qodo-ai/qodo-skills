@@ -57,7 +57,7 @@ Content: {1-2 sentences describing what should be checked or enforced}
 
 **Query 1 (Topic query):** Focused on the coding assignment's primary concern. Pick the most relevant Category and describe the specific check in Content. When the repository's tech stack is known, mention it in the Content field.
 
-**Query 2 (Cross-cutting query):** Targets common architectural and code quality patterns that apply to most code changes. Use Category `Architecture` and include concerns like module structure, type annotations, structured logging, and repository patterns. Adjust Content to reflect the repository's tech stack when known.
+**Query 2 (Cross-cutting query):** Targets recurring quality and standards patterns that apply to most code changes. Choose Category based on the org's rule emphasis (Security, Compliance, Observability, or Architecture as default) — see query-generation.md for the full selection rules. Include concerns like module structure, type annotations, structured logging, and repository patterns in Content. Adjust Content to reflect the repository's tech stack when known.
 
 This dual-query approach ensures retrieval of both topic-specific rules and cross-cutting quality rules that apply to nearly all code changes.
 
