@@ -49,7 +49,10 @@ Plans:
   3. The message lists the names of changed skills in a readable format (not full `skills/` paths)
   4. The message uses Slack Block Kit formatting (visible structure — header, sections — not plain text)
   5. Merging a non-skill PR produces no message in `#qodo-skills-releases`
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 03-01-PLAN.md — Add format-skills and Send Slack notification steps to workflow YAML and verify via live run (NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, NOTIF-06)
 
 ## Progress
 
@@ -60,4 +63,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. External Setup | 1/1 | Complete   | 2026-03-02 |
 | 2. Workflow Core | 1/1 | Complete | 2026-03-02 |
-| 3. Slack Notification | 0/? | Not started | - |
+| 3. Slack Notification | 0/1 | Not started | - |
