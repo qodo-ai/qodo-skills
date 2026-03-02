@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-02T13:27:31.729Z"
+status: in-progress
+last_updated: "2026-03-02T16:00:00.000Z"
 progress:
-  total_phases: 1
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** When a skill change lands, the right people know immediately — without anyone having to manually announce it.
-**Current focus:** Phase 1 — External Setup
+**Current focus:** Phase 3 — Slack Notification
 
 ## Current Position
 
-Phase: 2 of 3 (Workflow Core)
+Phase: 3 of 3 (Slack Notification)
 Plan: 0 of ? in current phase
-Status: Phase 1 complete — ready for Phase 2 planning
-Last activity: 2026-03-02 — Phase 1 (External Setup) complete
+Status: Phase 2 complete — ready for Phase 3 planning
+Last activity: 2026-03-02 — Phase 2 (Workflow Core) complete
 
-Progress: [██░░░░░░░░] 33%
+Progress: [████░░░░░░] 67%
 
 ## Performance Metrics
 
@@ -56,9 +56,11 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - Trigger strategy: Use `pull_request: types: [closed]` with `if: github.event.pull_request.merged == true` (not `push`) — PR metadata (title, author, URL) unavailable on push events
-- Changed-files action: Pin `tj-actions/changed-files` to commit SHA, not version tag — CVE-2025-30066 supply chain compromise (March 2025) makes SHA pinning mandatory
+- Changed-files action: Pin `tj-actions/changed-files` to commit SHA `7dee1b0c1557f278e5c7dc244927139d78c0e22a` (v47.0.4), not version tag — CVE-2025-30066 supply chain compromise (March 2025) makes SHA pinning mandatory
 - Slack delivery: Incoming webhook via `slackapi/slack-github-action@v2.1.1` — use v2 syntax; v1 `webhook-type` field does not exist
-- Secret name: `SLACK_WEBHOOK_SKILLS_RELEASES_URL` (not `SLACK_WEBHOOK_URL`) — channel-scoped name chosen by user; Phase 2 workflow YAML must reference `${{ secrets.SLACK_WEBHOOK_SKILLS_RELEASES_URL }}`
+- Secret name: `SLACK_WEBHOOK_SKILLS_RELEASES_URL` (not `SLACK_WEBHOOK_URL`) — channel-scoped name chosen by user; Phase 3 workflow step must reference `${{ secrets.SLACK_WEBHOOK_SKILLS_RELEASES_URL }}`
+- dir_names_max_depth:2 for skills/ detection — depth 1 gives only `skills/`, depth 2 gives `skills/<name>` (needed for skill name extraction)
+- No fetch-depth:0 in checkout — pull_request events auto-resolve base SHA; only needed for push events
 
 ### Pending Todos
 
@@ -66,10 +68,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- SHA for `tj-actions/changed-files@v47.0.4` must be resolved during Phase 2 planning (not yet known)
+None.
 
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 01-01-PLAN.md — Phase 1 (External Setup) complete; ready for Phase 2 (Workflow Core)
+Stopped at: Completed 02-01-PLAN.md — Phase 2 (Workflow Core) complete; ready for Phase 3 (Slack Notification)
 Resume file: None
