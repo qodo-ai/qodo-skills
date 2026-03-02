@@ -39,17 +39,24 @@ To maximize semantic alignment between the query and the stored rule vectors, th
   - Speed or resource efficiency improvements → prefer `Performance`
 
   Use `Correctness` when the task is genuinely about fixing a logic error, ensuring type safety, or preventing incorrect computation — not as a generic catch-all. If LLM-based classification is available, prefer it over keyword heuristics for ambiguous cases.
-- **Content**: 1-2 sentences (aim for at least 15 words) describing what specifically should be checked or enforced for this coding assignment. When the coding assignment is in a known repository with established patterns (e.g., Python modulith, FastAPI service, SQLAlchemy ORM), mention the relevant tech stack in the Content field -- this helps the embedding model align with rules that reference specific technologies. Even for ambiguous assignments, expand the Content with general concerns (e.g., error handling, input validation) to provide enough semantic signal.
+- **Content**: 1-2 sentences (aim for at least 15 words) describing what specifically should be checked or enforced for this coding assignment. When the coding assignment is in a known repository with established patterns, mention the relevant tech stack in the Content field — this helps the embedding model align with rules that reference specific technologies. Even for ambiguous assignments, expand the Content with general concerns (e.g., error handling, input validation) to provide enough semantic signal.
 
-  **Broadening Content for weak domains:** Certain domains have sparser rule coverage. When the assignment involves one of these areas, expand the Content field with the adjacent concepts listed below to improve retrieval:
+  **Broadening Content for weak domains:** Some domains have sparser rule coverage in a given organization's rule set. When a topic query returns fewer than 3 rules, or when the assignment involves a domain that the organization's rules may not address directly, expand the Content field with semantically adjacent concepts to improve retrieval.
 
-  | Domain | Include adjacent concepts |
+  To identify adjacent concepts, ask: *What broader category does this task touch? What common patterns or concerns appear in code that does this kind of work?*
+
+  **Examples by domain (for illustration — your org's sparse domains may differ):**
+
+  | Domain | Adjacent concepts to include in Content |
   |---|---|
-  | Auth / JWT | authorization headers, token storage, session management, credential handling |
-  | Async / await | event loop, coroutine, asyncio, concurrent execution, task management |
-  | Rate limiting | throttling, request quotas, API abuse prevention, middleware |
+  | Auth / JWT / OAuth | token validation, credential handling, session management, authorization headers, access control |
+  | Async / concurrency | event loop, task management, concurrent execution, thread safety, resource cleanup |
+  | Rate limiting / throttling | request quotas, backpressure, abuse prevention, middleware, circuit breaking |
+  | Data migration | schema changes, rollback safety, backward compatibility, data integrity |
+  | Frontend form validation | input sanitization, client-side validation, accessibility requirements, error state handling |
+  | Database access patterns | query optimization, connection management, transaction handling, ORM conventions |
 
-  The goal is to give the embedding model a richer surface to align against — not to make the query generic, but to ensure that closely related rules are surfaced even when the exact terminology differs.
+  The goal is to give the embedding model a richer surface to align against — not to make the query generic, but to ensure that closely related rules surface even when the exact terminology differs. Adjust based on your organization's actual rule coverage.
 
 ## Query Format
 
@@ -72,48 +79,63 @@ Content: {what specifically should be checked or enforced for this assignment}
 Generate **two queries** per coding assignment for best coverage:
 
 1. **Topic query** -- a structured query focused on the assignment's primary concern (the standard approach described above).
-2. **Cross-cutting query** -- a supplementary query targeting common architectural and code quality patterns that apply to most code changes regardless of topic.
+2. **Cross-cutting query** -- a supplementary query targeting recurring quality and standards rules that apply to most code changes regardless of topic.
 
 **Why two queries?** Evaluation data shows that cross-cutting rules (module structure, structured logging, type annotations, repository pattern) account for 60%+ of rules flagged in real code reviews. A single topic-focused query systematically misses these because they are semantically distant from the PR's specific subject.
 
-**Cross-cutting query template:**
+**Cross-cutting query — Category selection:**
+
+Choose the Category for the cross-cutting query based on the organization's rule set emphasis when that is known:
+- If the org's rules are primarily about code structure, layering, or module design → use `Architecture`
+- If the org's rules are primarily about security requirements applied everywhere → use `Security`
+- If the org's rules include mandatory compliance or audit requirements → use `Compliance`
+- If the org's rules focus on observability standards applied to all code → use `Observability`
+- If the org's rule emphasis is unknown → default to `Architecture` (a reasonable fallback for most backend codebases)
+
+The goal is to retrieve the category of rules that the org applies *broadly*, not just rules that are topically aligned with the PR.
+
+**Cross-cutting query — Content:**
+
+When the organization's rule set emphasis is known, tailor the cross-cutting Content to reflect the categories of rules the organization enforces broadly:
+- A security-focused org: include secure coding baseline (input validation, safe dependencies, secret handling)
+- A compliance-focused org: include audit trail, data classification, policy enforcement
+- A quality-focused org: include naming, dead code, test coverage, documentation
+- A performance-focused org: include query efficiency, caching, resource management
+
+If the org's emphasis is unknown, use the generic default template. The goal is for the cross-cutting query to retrieve the rules that apply to *all* of the org's code changes, regardless of PR topic.
+
+**Cross-cutting query default template:**
 
 ```
-Name: Code Quality and Architecture Compliance
+Name: Code Quality and Standards Compliance
 Category: Architecture
-Content: Module directory structure, type annotations, structured logging, repository pattern, dependency injection, and model standardization
+Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions
 ```
 
-Adjust the Content field to reflect the repository's tech stack when known. For example, in a Python FastAPI project:
-
-```
-Name: Code Quality and Architecture Compliance
-Category: Architecture
-Content: Python modulith module directory structure, full type hints on function signatures, structured logging with contextual extra arguments, SQLAlchemy repository pattern, and dependency injection
-```
+Adjust the Content field to reflect the repository's tech stack and the organization's rule emphasis when known.
 
 Call the search endpoint **once per query** (each with `top_k=20`) and merge the results, deduplicating by rule ID.
 
 **Low-return fallback:** If the topic query returns fewer than 3 rules, do not silently accept the sparse result. Re-generate the topic query with a broader Content field by including adjacent concepts for the domain (see the "Broadening Content for weak domains" table above). Then call the endpoint again with the broadened query before merging with cross-cutting results.
 
-**Cross-cutting false positives:** The cross-cutting query intentionally casts a wide net. A small number of rules (e.g., broad architecture rules) will surface in almost every cross-cutting query regardless of topic. This is expected behavior. When consuming results, focus on the topic query rules for task-specific guidance; use cross-cutting results as supplementary context rather than the primary signal.
-
-**JS/TypeScript cross-contamination (known platform issue):** Rules authored for JavaScript or TypeScript may appear in query results for Python or other language workloads. This is a known seeding concern in the platform's rule index and is not something the skill can correct at query time. If JS/TS rules surface in a non-JS context, treat them as non-applicable and skip them. The platform team is tracking the fix on the seeding side.
+**Cross-cutting false positives:** The cross-cutting query intentionally casts a wide net. Some rules will surface frequently across many different code changes — these are typically your organization's broadest quality or standards rules that the org considers universally applicable. This is expected. Use cross-cutting results as supplementary context; rely on the topic query for task-specific guidance. When the merged result set feels too noisy for a particular assignment, deprioritize cross-cutting results that are semantically distant from the coding task.
 
 ## Examples
 
 | Coding Assignment | Topic Query | Cross-Cutting Query |
 |---|---|---|
-| Add a login endpoint that accepts username and password, validates credentials, and returns a JWT token | `Name: JWT Authentication Endpoint Validation`<br>`Category: Security`<br>`Content: Implementing a login endpoint that validates user credentials against the database and issues JWT tokens securely` | `Name: Code Quality and Architecture Compliance`<br>`Category: Architecture`<br>`Content: Python modulith module directory structure, full type hints on function signatures, structured logging with contextual extra arguments, SQLAlchemy repository pattern, and dependency injection` |
-| Refactor the user service to use async/await instead of callbacks | `Name: Async Await Migration Pattern`<br>`Category: Quality`<br>`Content: Refactoring a service layer from callback-based concurrency to async/await, ensuring correct error propagation and resource cleanup` | _(use default template)_ |
-| Fix a SQL injection vulnerability in the search query builder | `Name: SQL Injection Prevention`<br>`Category: Security`<br>`Content: Sanitizing user input in the database query builder to prevent SQL injection attacks through parameterized queries` | _(use default template)_ |
-| Add unit tests for the payment processing module | `Name: Payment Processing Test Coverage`<br>`Category: Testability`<br>`Content: Adding unit tests for the payment processing module with mocked external payment gateway services` | _(use default template)_ |
-| Implement a rate limiter middleware for the API | `Name: Rate Limiting Enforcement`<br>`Category: Reliability`<br>`Content: Implementing rate limiting middleware to throttle HTTP API requests and protect against abuse` | _(use default template)_ |
-| Add error handling to the file upload handler | `Name: File Upload Error Handling`<br>`Category: Reliability`<br>`Content: Adding structured error handling and exception management to the file upload handler for graceful failure recovery` | _(use default template)_ |
-| Optimize the dashboard query that takes 5 seconds to load | `Name: Database Query Performance Optimization`<br>`Category: Performance`<br>`Content: Optimizing slow database queries for the dashboard view through indexing, query restructuring, or caching` | _(use default template)_ |
-| Add ARIA labels to the navigation menu _(TypeScript React)_ | `Name: Navigation Accessibility Labels`<br>`Category: Accessibility`<br>`Content: Adding ARIA attributes and roles to the navigation menu to ensure screen reader compatibility and keyboard navigation` | `Name: Code Quality and Architecture Compliance`<br>`Category: Architecture`<br>`Content: React component structure, TypeScript strict type checking, consistent naming conventions, proper prop typing, and component test coverage` |
-| Add a new user management module with CRUD endpoints | `Name: Module Structure and Layer Boundaries`<br>`Category: Architecture`<br>`Content: Creating a new module with proper directory structure, service layer, repository pattern, and dependency injection in a Python FastAPI modulith` | _(use default template)_ |
-| Add logging to the payment processing pipeline _(Go microservice)_ | `Name: Structured Logging Implementation`<br>`Category: Observability`<br>`Content: Adding structured logging with contextual fields and appropriate log levels to the payment processing pipeline` | `Name: Code Quality and Architecture Compliance`<br>`Category: Architecture`<br>`Content: Go package structure, interface-based dependency injection, structured logging with contextual fields, error wrapping conventions, and consistent handler patterns` |
+| Add a login endpoint that accepts username and password, validates credentials, and returns a JWT token | `Name: JWT Authentication Endpoint Validation`<br>`Category: Security`<br>`Content: Implementing a login endpoint that validates user credentials against the database and issues JWT tokens securely` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions` |
+| Refactor the user service to use async/await instead of callbacks | `Name: Async Await Migration Pattern`<br>`Category: Quality`<br>`Content: Refactoring a service layer from callback-based concurrency to async/await, ensuring correct error propagation and resource cleanup` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions` |
+| Fix a SQL injection vulnerability in the search query builder | `Name: SQL Injection Prevention`<br>`Category: Security`<br>`Content: Sanitizing user input in the database query builder to prevent SQL injection attacks through parameterized queries` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions` |
+| Add unit tests for the payment processing module | `Name: Payment Processing Test Coverage`<br>`Category: Testability`<br>`Content: Adding unit tests for the payment processing module with mocked external payment gateway services` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions` |
+| Implement a rate limiter middleware for the API | `Name: Rate Limiting Enforcement`<br>`Category: Reliability`<br>`Content: Implementing rate limiting middleware to throttle HTTP API requests and protect against abuse` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions` |
+| Add error handling to the file upload handler | `Name: File Upload Error Handling`<br>`Category: Reliability`<br>`Content: Adding structured error handling and exception management to the file upload handler for graceful failure recovery` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions` |
+| Optimize the dashboard query that takes 5 seconds to load | `Name: Database Query Performance Optimization`<br>`Category: Performance`<br>`Content: Optimizing slow database queries for the dashboard view through indexing, query restructuring, or caching` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions` |
+| Add ARIA labels to the navigation menu _(TypeScript React)_ | `Name: Navigation Accessibility Labels`<br>`Category: Accessibility`<br>`Content: Adding ARIA attributes and roles to the navigation menu to ensure screen reader compatibility and keyboard navigation` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: React component structure, TypeScript strict type checking, consistent naming conventions, proper prop typing, and component test coverage` |
+| Add a new user management module with CRUD endpoints | `Name: Module Structure and Layer Boundaries`<br>`Category: Architecture`<br>`Content: Creating a new module with proper directory structure, service layer, repository pattern, and dependency injection` | `Name: Code Quality and Standards Compliance`<br>`Category: Architecture`<br>`Content: Module directory structure, type annotations or type safety, structured logging, repository or service layer patterns, dependency injection, and naming conventions` |
+| Add logging to the payment processing pipeline _(Go microservice)_ | `Name: Structured Logging Implementation`<br>`Category: Observability`<br>`Content: Adding structured logging with contextual fields and appropriate log levels to the payment processing pipeline` | `Name: Code Quality and Architecture Standards`<br>`Category: Architecture`<br>`Content: Go package structure, interface-based dependency injection, structured logging with contextual fields, error wrapping conventions, and consistent handler patterns` |
+| Add a GDPR data deletion endpoint _(Java Spring)_ | `Name: GDPR Data Deletion Compliance`<br>`Category: Compliance`<br>`Content: Implementing a data deletion endpoint that enforces data retention policies, logs audit trails, and handles PII according to GDPR requirements` | `Name: Code Quality and Compliance Standards`<br>`Category: Compliance`<br>`Content: Data retention policy enforcement, audit trail logging, PII handling requirements, Spring service layer conventions, and exception handling standards` |
+| Add JWT authentication to the API _(Node.js Express)_ | `Name: JWT Authentication Middleware`<br>`Category: Security`<br>`Content: Implementing JWT token validation and authentication middleware in an Express API with secure credential handling` | `Name: Code Quality and Security Standards`<br>`Category: Security`<br>`Content: Token validation, credential handling, secure session management, Express middleware conventions, and input sanitization requirements` |
 
 ## Approach: Start from the Coding Assignment
 
@@ -122,7 +144,7 @@ Call the search endpoint **once per query** (each with `top_k=20`) and merge the
 3. Pick the single best **Category** from the list above
 4. Write 1-2 sentences for **Content** describing what should be checked or enforced; include tech stack details when the repository context is known
 5. Assemble the three-line structured topic query
-6. Generate the cross-cutting query using the template (adjust Content for the repository's tech stack)
+6. Generate the cross-cutting query: choose the Category based on the org's rule emphasis (or default to `Architecture`), and tailor the Content to reflect what the org enforces broadly
 7. Call the search endpoint with both queries (top_k=20 each), merge and deduplicate results
 
 ## Fallback
