@@ -10,7 +10,6 @@ Shift-left code review skills for AI coding agents. Bring Qodo's quality standar
 Fetches repository-specific coding rules from the Qodo platform API. Provides your agent with security requirements, coding standards, and team conventions before generating code.
 
 **Features:**
-- 🎯 **Must load before coding**: Agent invokes before any code generation/modification task (if not already loaded)
 - 📚 Hierarchical rule matching (universal, org, repo, path-level)
 - ⚖️ Severity-based enforcement (ERROR, WARNING, RECOMMENDATION)
 - 🔄 Module-specific scope detection (`modules/` directories)
