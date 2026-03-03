@@ -167,11 +167,11 @@ git commit -m "Brief description of changes"
 - If `git commit` fails: Check for merge conflicts or pre-commit hooks
 ```
 
-## Qodo Endpoint Attribution
+## Qodo Endpoint Usage Tracking
 
-If your skill calls Qodo API endpoints, all requests must include attribution headers to identify the caller and correlate requests.
+If your skill calls Qodo API endpoints, all requests must include usage tracking headers to identify the caller and correlate requests.
 
-See [attribution guidelines](skills/qodo-get-rules/references/attribution.md) for required headers (`Authorization`, `request-id`, `qodo-client-type`) and optional headers (`trace_id`), with implementation examples in bash and Python.
+See [usage tracking guidelines](skills/qodo-get-rules/references/usage-tracking.md) for required headers (`Authorization`, `request-id`, `qodo-client-type`) and optional headers (`trace_id`), with implementation examples in bash and Python.
 
 ## Helper Scripts
 
