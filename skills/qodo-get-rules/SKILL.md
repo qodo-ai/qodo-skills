@@ -1,7 +1,7 @@
 ---
 name: qodo-get-rules
-description: "Loads org- and repo-level coding rules from Qodo before code tasks begin, ensuring all generation and modification follows team standards. Use before any code generation or modification task when rules are not already loaded. Invoke when user asks to write, edit, refactor, or review code, or when starting implementation planning."
-allowed-tools: ["Bash"]
+description: "Loads org- and repo-level coding rules from Qodo (security requirements, naming conventions, architectural patterns, style guidelines) before code tasks begin, ensuring all generation and modification follows team standards. Use when Qodo is configured and the user asks to write, edit, refactor, or review code, or when starting implementation planning. Skip if rules are already loaded."
+allowed-tools: "Bash"
 triggers:
   - "get.?qodo.?rules"
   - "get.?rules"
@@ -29,9 +29,7 @@ triggers:
 
 ## Description
 
-Fetches repository-specific coding rules from the Qodo platform API before code generation or modification tasks. Rules include security requirements, coding standards, quality guidelines, and team conventions that must be applied during code generation.
-**Use** before any code generation or modification task when rules are not already loaded. Invoke when user asks to write, edit, refactor, or review code, or when starting implementation planning.
-**Skip** if "Qodo Rules Loaded" already appears in conversation context
+Fetches repository-specific coding rules from the Qodo platform API before code generation or modification tasks. Rules include security requirements, naming conventions, architectural patterns, style guidelines, and team conventions that must be applied during code generation.
 
 ---
 
@@ -57,6 +55,13 @@ Check that the required Qodo configuration is present. The default location is `
 - **Environment name**: Read from `~/.qodo/config.json` (`ENVIRONMENT_NAME` field), with `QODO_ENVIRONMENT_NAME` environment variable taking precedence. If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.
 - **Request ID**: Generate a UUID (e.g. via `uuidgen` or `python3 -c "import uuid; print(uuid.uuid4())"`) to use as `request-id` for all API calls in this invocation. This correlates all page fetches for a single rules load on the platform side.
 
+Example config parsing:
+```bash
+API_KEY=$(python3 -c "import json,os; c=json.load(open(os.path.expanduser('~/.qodo/config.json'))); print(c['API_KEY'])")
+ENV_NAME=$(python3 -c "import json,os; c=json.load(open(os.path.expanduser('~/.qodo/config.json'))); print(c.get('ENVIRONMENT_NAME',''))")
+REQUEST_ID=$(uuidgen || python3 -c "import uuid; print(uuid.uuid4())")
+```
+
 ### Step 4: Fetch Rules with Pagination
 
 - Fetch all pages from the API (50 rules per page) until no more results are returned.
@@ -65,7 +70,16 @@ Check that the required Qodo configuration is present. The default location is `
 - Stop after 100 pages maximum (safety limit).
 - If no rules are found after all pages, inform the user and exit gracefully.
 
-See [pagination details](references/pagination.md) for the full algorithm and error handling.
+Example API request (page 1):
+```bash
+curl -s \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "request-id: $REQUEST_ID" \
+  -H "qodo-client-type: skill-qodo-get-rules" \
+  "$API_URL/rules?scopes=$ENCODED_SCOPE&state=active&page=1&page_size=50"
+```
+
+See [pagination details](references/pagination.md) for the full algorithm, URL construction, and error handling.
 
 ### Step 5: Format and Output Rules
 
