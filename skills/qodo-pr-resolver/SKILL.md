@@ -1,6 +1,6 @@
 ---
 name: qodo-pr-resolver
-description: Review and resolve PR issues with Qodo - get AI-powered code review issues and fix them interactively (GitHub, GitLab, Bitbucket, Azure DevOps)
+description: "Use when the user wants to review Qodo PR feedback or fix code review comments. Capabilities: view issues by severity, apply fixes interactively or in batch, reply to inline comments, post fix summaries (GitHub, GitLab, Bitbucket, Azure DevOps)"
 triggers:
   - qodo.?pr.?resolver
   - pr.?resolver
