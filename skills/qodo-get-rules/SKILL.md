@@ -53,13 +53,23 @@ Check that the required Qodo configuration is present. The default location is `
 
 - **API key**: Read from `~/.qodo/config.json` (`API_KEY` field). If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.
 - **Environment name**: Read from `~/.qodo/config.json` (`ENVIRONMENT_NAME` field), with `QODO_ENVIRONMENT_NAME` environment variable taking precedence. If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.
+- **API URL override** (optional): Read from `~/.qodo/config.json` (`QODO_API_URL` field). If present, the skill will use `{QODO_API_URL}/rules/v1` as the API endpoint, ignoring `ENVIRONMENT_NAME`. If absent, the `ENVIRONMENT_NAME`-based URL is used.
 - **Request ID**: Generate a UUID (e.g. via `uuidgen` or `python3 -c "import uuid; print(uuid.uuid4())"`) to use as `request-id` for all API calls in this invocation. This correlates all page fetches for a single rules load on the platform side.
 
 Example config parsing:
 ```bash
 API_KEY=$(python3 -c "import json,os; c=json.load(open(os.path.expanduser('~/.qodo/config.json'))); print(c['API_KEY'])")
 ENV_NAME=$(python3 -c "import json,os; c=json.load(open(os.path.expanduser('~/.qodo/config.json'))); print(c.get('ENVIRONMENT_NAME',''))")
+QODO_API_URL=$(python3 -c "import json,os; c=json.load(open(os.path.expanduser('~/.qodo/config.json'))); print(c.get('QODO_API_URL',''))")
 REQUEST_ID=$(uuidgen || python3 -c "import uuid; print(uuid.uuid4())")
+# Determine API_URL: QODO_API_URL takes precedence over ENVIRONMENT_NAME
+if [ -n "$QODO_API_URL" ]; then
+  API_URL="${QODO_API_URL}/rules/v1"
+elif [ -z "$ENV_NAME" ]; then
+  API_URL="https://qodo-platform.qodo.ai/rules/v1"
+else
+  API_URL="https://qodo-platform.${ENV_NAME}.qodo.ai/rules/v1"
+fi
 ```
 
 ### Step 4: Fetch Rules with Pagination

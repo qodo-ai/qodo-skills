@@ -109,6 +109,12 @@ Create `~/.qodo/config.json`:
 - `ENVIRONMENT_NAME` (optional): Environment name for API URL
   - If empty/omitted: Uses `https://qodo-platform.qodo.ai/rules/v1/`
   - If specified: Uses `https://qodo-platform.<ENVIRONMENT_NAME>.qodo.ai/rules/v1/`
+- `QODO_API_URL` (optional): Direct API base URL — overrides `ENVIRONMENT_NAME`
+  - Use for self-hosted, on-prem, or custom deployments
+  - Example: `"QODO_API_URL": "https://qodo.my-company.com"`
+  - The skill appends `/rules/v1` internally; provide the base URL only
+
+**URL resolution priority:** `QODO_API_URL` → `ENVIRONMENT_NAME` → production default
 
 Get your API key at: https://app.qodo.ai/account/api-keys
 
@@ -116,6 +122,14 @@ Get your API key at: https://app.qodo.ai/account/api-keys
 ```json
 {
   "API_KEY": "sk-xxxxxxxxxxxxx"
+}
+```
+
+**Custom deployment:**
+```json
+{
+  "API_KEY": "sk-xxxxxxxxxxxxx",
+  "QODO_API_URL": "https://qodo.my-company.com"
 }
 ```
 
