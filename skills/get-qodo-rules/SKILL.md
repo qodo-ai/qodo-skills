@@ -52,6 +52,9 @@ See [repository scope detection](references/repository-scope.md) for details.
 
 ### Step 3: Verify Qodo Configuration
 
+> Note: This skill currently authenticates via **API key** (`~/.qodo/config.json` or `QODO_API_KEY`).
+> Other skills in this repo may use **OIDC login** via `/qodo-setup` and `~/.qodo/skill_auth.json`.
+
 Check that the required Qodo configuration is present. The default location is `~/.qodo/config.json`.
 
 - **API key**: Read from `~/.qodo/config.json` (`API_KEY` field). If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.

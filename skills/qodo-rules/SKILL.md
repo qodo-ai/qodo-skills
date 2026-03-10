@@ -24,6 +24,14 @@ Downloads all active rules and saves them as local IDE rule files:
 - **Cursor:** `.cursor/rules/qodo-<slug>.mdc` (with frontmatter: `description`, `alwaysApply: true`)
 - **Claude Code:** `.claude/rules/qodo-<slug>.md` (plain markdown)
 
+### Other agents (e.g., Codex) / fallback storage
+
+If the IDE/agent is not detected as Cursor or Claude Code, use a **repo-local fallback** directory:
+
+- `.qodo/rules/qodo-<slug>.md`
+
+After writing, print a short message telling the user where the files were saved and that they may need to copy/link them into their agent's expected rules directory.
+
 **Location:** saves to the project root if inside a git repo, otherwise falls back to `~/` (user home). Auto-detects the IDE from the workspace (`.cursor/` directory or `CURSOR_TRACE_ID` env var).
 
 All synced files are prefixed with `qodo-` so re-runs clean up old synced rules without affecting manually created ones.

@@ -92,7 +92,25 @@ Skills are automatically installed to the correct location for your agent:
 
 ## Configuration
 
-### get-qodo-rules Skill
+This repo currently supports **two authentication/configuration models**, depending on the skill you use:
+
+- **OIDC login (recommended for new skills)** via `/qodo-setup` → stores a short-lived `id_token` in `~/.qodo/skill_auth.json`
+- **API key configuration** (used by `get-qodo-rules`) → stores `API_KEY` in `~/.qodo/config.json` (or env vars)
+
+### OIDC Login (qodo-setup / qodo-rules)
+
+Some skills (e.g. `qodo-rules`) authenticate using an OIDC browser login flow. Run the setup skill once:
+
+```bash
+/qodo-setup --login
+```
+
+This writes:
+- `~/.qodo/skill_auth.json` (contains `id_token` + `platform_url`)
+
+If a token expires, these skills will attempt to refresh automatically (via `/qodo-setup --check`, then `--login` if needed).
+
+### API Key (get-qodo-rules Skill)
 
 Create `~/.qodo/config.json`:
 
