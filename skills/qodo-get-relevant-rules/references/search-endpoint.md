@@ -42,7 +42,11 @@ Rules are returned ranked by relevance (most relevant first). The list may be em
 
 ## API URL Construction
 
-Construct `{API_URL}` from `ENVIRONMENT_NAME` (read from `~/.qodo/config.json`, overridable via `QODO_ENVIRONMENT_NAME` env var):
+Construct `{API_URL}` using the following priority:
+
+1. **`QODO_API_URL` in config** (highest priority): If `QODO_API_URL` is present in `~/.qodo/config.json`, use `{QODO_API_URL}/rules/v1` as the full API URL. The `/rules/v1` path is always appended internally — do not include it in the config value.
+
+2. **`ENVIRONMENT_NAME`-based construction** (fallback): If `QODO_API_URL` is not set, construct from `ENVIRONMENT_NAME` (read from `~/.qodo/config.json`, overridable via `QODO_ENVIRONMENT_NAME` env var):
 
 | `ENVIRONMENT_NAME` | `{API_URL}` |
 |---|---|
@@ -51,6 +55,8 @@ Construct `{API_URL}` from `ENVIRONMENT_NAME` (read from `~/.qodo/config.json`, 
 | `qodost.st` | `https://qodo-platform.qodost.st.qodo.ai/rules/v1` |
 
 The `ENVIRONMENT_NAME` value is substituted verbatim as a subdomain segment.
+
+**URL resolution priority:** `QODO_API_URL` → `ENVIRONMENT_NAME` → production default
 
 ## Attribution Headers
 
