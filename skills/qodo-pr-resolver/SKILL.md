@@ -279,6 +279,12 @@ If any fixes were applied (commits were created in Steps 6/7), ask the user if t
 
 **Important:** If all issues were deferred, there are no commits to push — skip this step.
 
+### Step 10: Show PR URL
+
+After completing all steps, always echo the PR/MR URL to the user so they can easily navigate to it. Use the PR URL detected in Step 2.
+
+Example output: `🔗 PR: https://github.com/owner/repo/pull/123`
+
 ### Special cases
 
 #### Unsupported git provider
