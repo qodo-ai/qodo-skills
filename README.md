@@ -30,6 +30,17 @@ Fetch Qodo review issues for your current branch's PR/MR, fix them interactively
 
 [View skill details](./skills/qodo-pr-resolver/SKILL.md)
 
+### 🆕 create-rule
+Turn bug fixes and coding patterns into Qodo rules. Works proactively (suggests after fixing bugs) or on-demand when you say "this should be a rule."
+
+**Features:**
+- Natural language to rule via Qodo's prompt-to-rule API
+- Duplicate detection via rule similarity check
+- User approval with severity/scope overrides
+- Two modes: user-initiated and proactive after bug fixes
+
+[View skill details](./skills/create-rule/SKILL.md)
+
 ## Installation
 
 Install skills using the standard Agent Skills CLI:
@@ -41,6 +52,7 @@ npx skills add qodo-ai/qodo-skills
 # Or install individual skills
 npx skills add qodo-ai/qodo-skills/skills/qodo-get-rules
 npx skills add qodo-ai/qodo-skills/skills/qodo-pr-resolver
+npx skills add qodo-ai/qodo-skills/skills/create-rule
 ```
 
 **Claude Code Marketplace:**
