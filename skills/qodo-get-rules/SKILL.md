@@ -44,11 +44,53 @@ Fetches the most relevant Qodo coding rules for the current coding task. Generat
 
 If rules are already loaded (look for "Qodo Rules Loaded" in recent messages), skip to Step 6.
 
-### Step 2: Verify Working in a Git Repository
+### Step 2: Verify Working in a Git Repository and Detect Repository Scope
 
 Check that the current directory is inside a git repository. If not, inform the user that a git repository is required and exit gracefully.
 
-See [repository scope detection](references/repository-scope.md) for the check command.
+After confirming a git repository exists, extract the repository scope to pass to the search API. Scope narrows results to rules relevant to this specific repository.
+
+```bash
+# 1. Confirm inside a git repository
+git rev-parse --is-inside-work-tree
+
+# 2. Get the remote URL
+REMOTE_URL=$(git remote get-url origin 2>/dev/null)
+
+# 3. Parse the URL into a scope path
+if [ -n "$REMOTE_URL" ]; then
+  # Strip .git suffix if present
+  REMOTE_URL="${REMOTE_URL%.git}"
+
+  # Handle SSH format: git@github.com:org/repo
+  if echo "$REMOTE_URL" | grep -q "^git@"; then
+    REPO_PATH=$(echo "$REMOTE_URL" | sed 's/^git@[^:]*://')
+  # Handle HTTPS format: https://github.com/org/repo
+  elif echo "$REMOTE_URL" | grep -q "^https\?://"; then
+    REPO_PATH=$(echo "$REMOTE_URL" | sed 's|^https\?://[^/]*/||')
+  else
+    REPO_PATH=""
+  fi
+
+  if [ -n "$REPO_PATH" ]; then
+    # 4. Detect module-level scope: check if cwd is inside modules/<name>/
+    REPO_ROOT=$(git rev-parse --show-toplevel)
+    REL_PATH=$(realpath --relative-to="$REPO_ROOT" "$(pwd)" 2>/dev/null || python3 -c "import os; print(os.path.relpath('$(pwd)', '$REPO_ROOT'))")
+    MODULE=$(echo "$REL_PATH" | sed -n 's|^modules/\([^/]*\).*|\1|p')
+
+    if [ -n "$MODULE" ]; then
+      SCOPE="/${REPO_PATH}/modules/${MODULE}/"
+    else
+      SCOPE="/${REPO_PATH}/"
+    fi
+  fi
+fi
+# If SCOPE is empty (no remote, unparseable URL), proceed without scope — graceful degradation
+```
+
+Pass `SCOPE` in the search request body if set (see Step 5). If `SCOPE` is empty or unset, omit the `scopes` field entirely and proceed — org-wide search still returns relevant results.
+
+See [repository scope detection](references/repository-scope.md) for URL format details and degradation behavior.
 
 ### Step 3: Verify Qodo Configuration
 
@@ -99,7 +141,9 @@ See [query generation guidelines](references/query-generation.md) for the full s
 
 Call the search endpoint **once per query** (topic query and cross-cutting query), each with the configured `TOP_K` value (default: 20 — see [search endpoint](references/search-endpoint.md) for tuning guidance). When parallel execution is available, run both calls in parallel. Merge results, deduplicating by rule ID. Topic query results take priority.
 
-See [search endpoint](references/search-endpoint.md) for the full request/response contract, URL construction, and error handling.
+Include `scopes` in the request body if `SCOPE` was detected in Step 2. If `SCOPE` is empty, omit the field entirely — do not send `"scopes": null` or `"scopes": []`.
+
+See [search endpoint](references/search-endpoint.md) for the full request/response contract, URL construction, scopes field usage, and error handling.
 
 ### Step 6: Format and Output Rules
 

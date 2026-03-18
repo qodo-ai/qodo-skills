@@ -14,9 +14,12 @@ qodo-client-type: skill-qodo-get-rules
 ```json
 {
   "query": "<generated search query>",
-  "top_k": 20
+  "top_k": 20,
+  "scopes": ["/org/repo/"]
 }
 ```
+
+`scopes` is **optional**. It is omitted when the repository scope cannot be determined (no git remote, unparseable URL). When omitted, the search falls back to org-wide matching. Do not send `"scopes": null` or `"scopes": []` — omit the field entirely.
 
 **`TOP_K` (tunable constant):** The number of results to request per query. Default: `20`. The skill generates two queries (topic + cross-cutting) and calls this endpoint once per query, each with `top_k=TOP_K`. Results are merged and deduplicated by rule ID — the final count depends on overlap between the two result sets.
 
@@ -73,12 +76,19 @@ All requests must include attribution headers per the [usage tracking guidelines
 ## Example (curl)
 
 ```bash
+# Build body — include scopes only when SCOPE is set
+if [ -n "${SCOPE:-}" ]; then
+  BODY="{\"query\": \"${SEARCH_QUERY}\", \"top_k\": 20, \"scopes\": [\"${SCOPE}\"]}"
+else
+  BODY="{\"query\": \"${SEARCH_QUERY}\", \"top_k\": 20}"
+fi
+
 curl -s -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_KEY}" \
   -H "request-id: ${REQUEST_ID}" \
   -H "qodo-client-type: skill-qodo-get-rules" \
-  -d "{\"query\": \"${SEARCH_QUERY}\", \"top_k\": 20}" \
+  -d "${BODY}" \
   "${API_URL}/rules/search"
 ```
 
@@ -89,13 +99,19 @@ if [ -n "${TRACE_ID:-}" ]; then
   TRACE_HEADER="-H trace_id:${TRACE_ID}"
 fi
 
+if [ -n "${SCOPE:-}" ]; then
+  BODY="{\"query\": \"${SEARCH_QUERY}\", \"top_k\": 20, \"scopes\": [\"${SCOPE}\"]}"
+else
+  BODY="{\"query\": \"${SEARCH_QUERY}\", \"top_k\": 20}"
+fi
+
 curl -s -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_KEY}" \
   -H "request-id: ${REQUEST_ID}" \
   -H "qodo-client-type: skill-qodo-get-rules" \
   ${TRACE_HEADER} \
-  -d "{\"query\": \"${SEARCH_QUERY}\", \"top_k\": 20}" \
+  -d "${BODY}" \
   "${API_URL}/rules/search"
 ```
 
@@ -115,7 +131,11 @@ headers = {
 if trace_id := os.environ.get("TRACE_ID"):
     headers["trace_id"] = trace_id
 
-body = json.dumps({"query": search_query, "top_k": 20}).encode()
+payload = {"query": search_query, "top_k": 20}
+if scope:  # omit field entirely when scope is not available
+    payload["scopes"] = [scope]
+
+body = json.dumps(payload).encode()
 req = Request(f"{api_url}/rules/search", data=body, headers=headers, method="POST")
 with urlopen(req, timeout=30) as resp:
     data = json.loads(resp.read())
