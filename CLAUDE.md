@@ -74,7 +74,7 @@ Step 4: Proceed with coding task applying loaded rules
 
 ### qodo-get-rules Skill
 
-**Purpose**: Fetch repository-specific coding rules from Qodo API
+**Purpose**: Fetch the most relevant coding rules from Qodo for the current coding task using semantic search
 
 **Manual invocation**: `/qodo-get-rules`
 
