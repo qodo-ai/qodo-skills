@@ -114,7 +114,7 @@ Content: Module directory structure, type annotations or type safety, structured
 
 Adjust the Content field to reflect the repository's tech stack and the organization's rule emphasis when known.
 
-Call the search endpoint **once per query** (each with `top_k=20`) and merge the results, deduplicating by rule ID.
+Call the search endpoint **once per query** (each with the configured `TOP_K` value) and merge the results, deduplicating by rule ID.
 
 **Low-return fallback:** If the topic query returns fewer than 3 rules, do not silently accept the sparse result. Re-generate the topic query with a broader Content field by including adjacent concepts for the domain (see the "Broadening Content for weak domains" table above). Then call the endpoint again with the broadened query before merging with cross-cutting results. Note: the threshold is count-based — use it as a trigger, not a hard guarantee of quality. Apply judgment on the semantic fit of returned rules; a sparse but highly relevant set may be preferable to a broader query that surfaces loosely related rules.
 

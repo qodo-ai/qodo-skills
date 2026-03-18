@@ -1,26 +1,12 @@
 # Repository Scope Detection
 
-## Extracting Repository Scope from Git Remote URL
+The only requirement is that the current directory is inside a git repository. The repository scope (org/repo path) is not used as a query parameter — the search endpoint handles relevance via semantic matching.
 
-Parse the `origin` remote URL to derive the scope path. Both URL formats are supported:
+## Git Repository Check
 
-- SSH: `git@github.com:org/repo.git` → `/org/repo/`
-- HTTPS: `https://github.com/org/repo.git` → `/org/repo/`
+```bash
+# Check if inside a git repository
+git rev-parse --is-inside-work-tree
+```
 
-If no remote is found, exit silently. If the URL cannot be parsed, inform the user and exit gracefully.
-
-## Module-Level Scope Detection
-
-If the current working directory is inside a `modules/*` subdirectory relative to the repository root, use it as the query scope:
-
-- `modules/rules/src/service.py` → query scope: `/org/repo/modules/rules/`
-- repository root or any other path → query scope: `/org/repo/`
-
-## Scope Hierarchy
-
-The API returns all rules matching the query scope via prefix matching:
-
-| Query scope | Rules returned |
-|---|---|
-| `/org/repo/modules/rules/` | universal + org + repo + path-level rules |
-| `/org/repo/` | universal + org + repo-level rules |
+Exit code from `git rev-parse` will be non-zero (128) if not in a git repository. If not in a git repo, inform the user and exit gracefully.

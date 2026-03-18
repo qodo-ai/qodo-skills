@@ -14,11 +14,13 @@
 qodo-skills/
 ├── AGENTS.md                    # This file - universal guidelines
 ├── CLAUDE.md                    # Claude Code-specific directives
+├── references/                  # Shared reference docs for all skills
+│   └── usage-tracking.md        # Required HTTP headers for Qodo API calls
 ├── skills/                      # Agent Skills catalog
-│   ├── qodo-get-rules/         # Fetch Qodo coding rules
+│   ├── qodo-get-rules/         # Fetch relevant Qodo coding rules
 │   │   ├── SKILL.md            # Skill specification
 │   │   ├── AGENTS.md           # Skill-specific guidelines
-│   │   └── scripts/            # Helper scripts
+│   │   └── references/         # Skill-specific reference docs
 │   └── qodo-pr-resolver/       # Fix PR review issues
 │       ├── SKILL.md
 │       └── AGENTS.md

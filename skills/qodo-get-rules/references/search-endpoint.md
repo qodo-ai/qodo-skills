@@ -7,7 +7,7 @@ POST {API_URL}/rules/search
 Content-Type: application/json
 Authorization: Bearer {API_KEY}
 request-id: {REQUEST_ID}
-qodo-client-type: skill-qodo-get-relevant-rules
+qodo-client-type: skill-qodo-get-rules
 ```
 
 **Body:**
@@ -18,21 +18,22 @@ qodo-client-type: skill-qodo-get-relevant-rules
 }
 ```
 
-**`top_k` default:** Use `20` per query. The skill generates two queries (topic + cross-cutting) and calls this endpoint once per query, each with `top_k=20`. Results are merged and deduplicated by rule ID. This gives the LLM classification step more candidates while maintaining precision per query. Experimentation (Track D) validated that `top_k=20` per query provides a good balance.
+**`TOP_K` (tunable constant):** The number of results to request per query. Default: `20`. The skill generates two queries (topic + cross-cutting) and calls this endpoint once per query, each with `top_k=TOP_K`. Results are merged and deduplicated by rule ID — the final count depends on overlap between the two result sets.
 
-**Merge strategy and result cap:** When merging topic and cross-cutting results, use the following approach to prevent rule fatigue:
+Increase `TOP_K` if retrieval quality data shows relevant rules are being missed. No pagination is needed regardless of the value — the search endpoint returns up to `top_k` results in a single response.
+
+**Merge strategy:** When merging topic and cross-cutting results:
 1. Start with topic query results (in order of relevance).
 2. Append cross-cutting results not already present, in order of relevance.
-3. **Cap the final merged list at 15-20 unique rules.** If the combined deduplicated set exceeds 20 rules, truncate at 20, keeping topic results ahead of cross-cutting fills.
 
-This prioritization ensures task-specific rules are never pushed out by cross-cutting results.
+Topic results always take priority, ensuring task-specific rules are never pushed out by cross-cutting results.
 
 ## Response
 
 ```json
 {
   "rules": [
-    { "id": "...", "name": "...", "content": "..." },
+    { "id": "...", "name": "...", "content": "...", "severity": "..." },
     ...
   ]
 }
@@ -60,13 +61,13 @@ The `ENVIRONMENT_NAME` value is substituted verbatim as a subdomain segment.
 
 ## Attribution Headers
 
-All requests must include attribution headers per the [attribution guidelines](../../qodo-get-rules/references/attribution.md):
+All requests must include attribution headers per the [usage tracking guidelines](../../../references/usage-tracking.md):
 
 | Header | Value |
 |---|---|
 | `Authorization` | `Bearer {API_KEY}` |
 | `request-id` | UUID generated once per invocation |
-| `qodo-client-type` | `skill-qodo-get-relevant-rules` |
+| `qodo-client-type` | `skill-qodo-get-rules` |
 | `trace_id` (optional) | Value of `TRACE_ID` env var if set |
 
 ## Example (curl)
@@ -76,7 +77,7 @@ curl -s -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_KEY}" \
   -H "request-id: ${REQUEST_ID}" \
-  -H "qodo-client-type: skill-qodo-get-relevant-rules" \
+  -H "qodo-client-type: skill-qodo-get-rules" \
   -d "{\"query\": \"${SEARCH_QUERY}\", \"top_k\": 20}" \
   "${API_URL}/rules/search"
 ```
@@ -92,7 +93,7 @@ curl -s -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_KEY}" \
   -H "request-id: ${REQUEST_ID}" \
-  -H "qodo-client-type: skill-qodo-get-relevant-rules" \
+  -H "qodo-client-type: skill-qodo-get-rules" \
   ${TRACE_HEADER} \
   -d "{\"query\": \"${SEARCH_QUERY}\", \"top_k\": 20}" \
   "${API_URL}/rules/search"
@@ -109,7 +110,7 @@ headers = {
     "Content-Type": "application/json",
     "Authorization": f"Bearer {api_key}",
     "request-id": request_id,
-    "qodo-client-type": "skill-qodo-get-relevant-rules",
+    "qodo-client-type": "skill-qodo-get-rules",
 }
 if trace_id := os.environ.get("TRACE_ID"):
     headers["trace_id"] = trace_id

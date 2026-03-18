@@ -171,7 +171,7 @@ git commit -m "Brief description of changes"
 
 If your skill calls Qodo API endpoints, all requests must include usage tracking headers to identify the caller and correlate requests.
 
-See [usage tracking guidelines](skills/qodo-get-rules/references/usage-tracking.md) for required headers (`Authorization`, `request-id`, `qodo-client-type`) and optional headers (`trace_id`), with implementation examples in bash and Python.
+See [usage tracking guidelines](references/usage-tracking.md) for required headers (`Authorization`, `request-id`, `qodo-client-type`) and optional headers (`trace_id`), with implementation examples in bash and Python.
 
 ## Helper Scripts
 
