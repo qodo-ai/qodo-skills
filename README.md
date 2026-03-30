@@ -7,14 +7,13 @@ Shift-left code review skills for AI coding agents. Bring Qodo's quality standar
 ## Available Skills
 
 ### 🔧 qodo-get-rules
-Fetches repository-specific coding rules from the Qodo platform API. Provides your agent with security requirements, coding standards, and team conventions before generating code.
+Fetches the most relevant coding rules from Qodo for the current coding task. Generates a semantic search query from your assignment and retrieves only the rules that matter, ranked by relevance.
 
 **Features:**
-- 📚 Hierarchical rule matching (universal, org, repo, path-level)
+- 🔍 Semantic search — only the most relevant rules for your specific task
 - ⚖️ Severity-based enforcement (ERROR, WARNING, RECOMMENDATION)
-- 🔄 Module-specific scope detection (`modules/` directories)
-- 📄 Pagination support for large rule sets
-- 🪟 **Full Windows support** - Native compatibility without requiring Git Bash/WSL
+- 🎯 Dual-query strategy (topic + cross-cutting) for comprehensive coverage
+- 🚀 Auto-runs before code generation, editing, and refactoring
 
 [View skill details](./skills/qodo-get-rules/SKILL.md)
 
@@ -190,13 +189,13 @@ This repository follows the [Agent Skills](https://agentskills.io) standard:
 
 ```
 qodo-skills/
+├── references/
+│   └── usage-tracking.md        # Shared HTTP headers for Qodo API calls
 ├── skills/
-│   ├── qodo-get-rules/           # Fetch coding rules skill
-│   │   ├── SKILL.md         # Agent Skills standard
-│   │   └── scripts/
-│   │       ├── fetch-qodo-rules.py   # Main script (cross-platform)
-│   │       ├── fetch-qodo-rules.sh   # Unix/macOS/Linux wrapper
-│   │       └── fetch-qodo-rules.cmd  # Windows wrapper
+│   ├── qodo-get-rules/          # Fetch relevant coding rules skill
+│   │   ├── SKILL.md             # Agent Skills standard
+│   │   ├── AGENTS.md            # Skill-specific agent guidelines
+│   │   └── references/          # Detailed reference docs
 │   └── qodo-pr-resolver/        # Fix PR review issues skill
 │       └── SKILL.md
 ├── README.md
@@ -246,19 +245,6 @@ cat ~/.qodo/config.json
 **Check Python is installed:**
 ```bash
 python3 --version || python --version
-```
-
-**Manually test the fetch script:**
-```bash
-# Navigate to your agent's skills directory and run the Python script directly
-cd ~/.claude/skills/qodo-get-rules  # or ~/.cursor/skills/qodo-get-rules, etc.
-python3 scripts/fetch-qodo-rules.py
-
-# Or use the shell wrapper (Unix/macOS/Linux):
-scripts/fetch-qodo-rules.sh
-
-# Or use the batch wrapper (Windows):
-scripts\fetch-qodo-rules.cmd
 ```
 
 ### No rules found?
