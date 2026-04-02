@@ -69,10 +69,21 @@ Match against:
 **CLI:** `az` with DevOps extension
 - **Install:** `brew install azure-cli` or [docs.microsoft.com/cli/azure](https://docs.microsoft.com/cli/azure)
 - **Install extension:** `az extension add --name azure-devops`
-- **Authenticate:** `az login` then `az devops configure --defaults organization=https://dev.azure.com/yourorg project=yourproject`
+- **Authenticate and configure:**
+  ```bash
+  az login
+  # Extract org/project from remote URL and configure defaults:
+  ADO_REMOTE=$(git remote get-url origin)
+  ADO_ORG=$(echo "$ADO_REMOTE" | sed -E 's|https://[^@]*@?dev\.azure\.com/([^/]+)/.*|\1|')
+  ADO_PROJECT=$(echo "$ADO_REMOTE" | sed -E 's|https://[^/]*/[^/]+/([^/]+)/.*|\1|')
+  ADO_REPO=$(echo "$ADO_REMOTE" | sed -E 's|.*/([^/]+)$|\1|')
+  az devops configure --defaults organization=https://dev.azure.com/$ADO_ORG project=$ADO_PROJECT
+  # Get repository ID (required for thread API calls):
+  ADO_REPO_ID=$(az repos show --name $ADO_REPO --query id -o tsv)
+  ```
 - **Verify:**
   ```bash
-  az --version && az devops
+  az --version && az devops configure --list
   ```
 
 ## Find Open PR/MR
@@ -145,12 +156,15 @@ curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
 ### Azure DevOps
 
 ```bash
-# PR-level threads (includes summary comments)
-az repos pr show --id <pr-id> --output json
-
-# All PR threads including inline comments
-az repos pr policy list --id <pr-id> --output json
-az repos pr thread list --id <pr-id> --output json
+# List all PR threads (includes both summary and inline comments)
+# Note: az repos pr thread subcommands do not exist — use az devops invoke
+az devops invoke \
+  --area git \
+  --resource pullRequestThreads \
+  --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> \
+  --http-method GET \
+  --api-version 7.1 \
+  --output json
 ```
 
 ## Reply to Inline Comments
@@ -190,10 +204,16 @@ curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
 ### Azure DevOps
 
 ```bash
-az repos pr thread comment add \
-  --id <pr-id> \
-  --thread-id <thread-id> \
-  --content '<reply-body>'
+# Add a reply comment to an existing thread (az repos pr thread does not exist)
+echo '{"content": "<reply-body>", "commentType": 1}' > /tmp/ado_comment.json
+az devops invoke \
+  --area git \
+  --resource pullRequestThreadComments \
+  --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> threadId=<thread-id> \
+  --http-method POST \
+  --api-version 7.1 \
+  --in-file /tmp/ado_comment.json \
+  --output json
 ```
 
 ## Post Summary Comment
@@ -225,9 +245,18 @@ curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
 ### Azure DevOps
 
 ```bash
-az repos pr thread create \
-  --id <pr-id> \
-  --comment-content '<comment-body>'
+# Create a new top-level comment thread (az repos pr thread create does not exist)
+cat > /tmp/ado_thread.json << 'EOF'
+{"comments": [{"content": "<comment-body>", "commentType": 1}], "status": "active"}
+EOF
+az devops invoke \
+  --area git \
+  --resource pullRequestThreads \
+  --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> \
+  --http-method POST \
+  --api-version 7.1 \
+  --in-file /tmp/ado_thread.json \
+  --output json
 ```
 
 **Summary format:**
@@ -293,11 +322,16 @@ curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
 ### Azure DevOps
 
 ```bash
-# Mark the thread as resolved
-az repos pr thread update \
-  --id <pr-id> \
-  --thread-id <thread-id> \
-  --status resolved
+# Mark the thread as fixed (Azure DevOps uses "fixed" not "resolved"; az repos pr thread update does not exist)
+echo '{"status": "fixed"}' > /tmp/ado_status.json
+az devops invoke \
+  --area git \
+  --resource pullRequestThreads \
+  --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> threadId=<thread-id> \
+  --http-method PATCH \
+  --api-version 7.1 \
+  --in-file /tmp/ado_status.json \
+  --output json
 ```
 
 ## Create PR/MR (Special Case)
