@@ -6,7 +6,7 @@ This document contains all provider-specific CLI commands and API interactions f
 
 - GitHub (via `gh` CLI)
 - GitLab (via `glab` CLI)
-- Bitbucket (via `bb` CLI)
+- Bitbucket (via REST API with `curl`)
 - Azure DevOps (via `az` CLI with DevOps extension)
 
 ## Provider Detection
