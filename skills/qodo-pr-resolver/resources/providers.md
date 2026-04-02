@@ -8,6 +8,7 @@ This document contains all provider-specific CLI commands and API interactions f
 - GitLab (via `glab` CLI)
 - Bitbucket (via REST API with `curl`)
 - Azure DevOps (via `az` CLI with DevOps extension)
+- Gerrit (via REST API with `curl`) — see [gerrit.md](./gerrit.md)
 
 ## Provider Detection
 
@@ -22,6 +23,7 @@ Match against:
 - `gitlab.com` → GitLab
 - `bitbucket.org` → Bitbucket
 - `dev.azure.com` → Azure DevOps
+- `.gitreview` file or port `29418` or `googlesource.com` → Gerrit (see [gerrit.md](./gerrit.md))
 
 ## Prerequisites by Provider
 
@@ -389,7 +391,7 @@ If the detected provider's CLI is not installed:
 
 If the remote URL doesn't match any supported provider:
 1. Inform: "❌ Unsupported git provider detected: `<url>`"
-2. List supported providers: GitHub, GitLab, Bitbucket, Azure DevOps
+2. List supported providers: GitHub, GitLab, Bitbucket, Azure DevOps, Gerrit
 3. Exit the skill
 
 ### API Failures
