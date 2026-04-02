@@ -78,7 +78,7 @@ gh pr list --head <branch-name> --state open --json number,title
 ### GitLab
 
 ```bash
-glab mr list --source-branch <branch-name> --state opened
+glab mr list --source-branch <branch-name>
 ```
 
 ### Bitbucket
