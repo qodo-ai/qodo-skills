@@ -6,7 +6,7 @@ This document contains all provider-specific CLI commands and API interactions f
 
 - GitHub (via `gh` CLI)
 - GitLab (via `glab` CLI)
-- Bitbucket (via `bb` CLI)
+- Bitbucket (via REST API with `curl`)
 - Azure DevOps (via `az` CLI with DevOps extension)
 
 ## Provider Detection
@@ -47,11 +47,21 @@ Match against:
 
 ### Bitbucket
 
-**CLI:** `bb` or API access
-- **Install:** See [bitbucket.org/product/cli](https://bitbucket.org/product/cli)
+**Authentication:** Bitbucket REST API with an App Password (there is no official `bb` CLI)
+- Create an App Password: Bitbucket → **Settings → App passwords**
+  - Required scopes: **Repositories: Read**, **Pull requests: Read, Write**
+- Extract workspace/repo from the remote URL and set environment variables:
+  ```bash
+  BB_REMOTE=$(git remote get-url origin)
+  BB_WORKSPACE=$(echo "$BB_REMOTE" | sed -E 's|.*bitbucket\.org[:/]([^/]+)/.*|\1|')
+  BB_REPO=$(echo "$BB_REMOTE" | sed -E 's|.*bitbucket\.org[:/][^/]+/([^/.]+)(\.git)?$|\1|')
+  export BB_USERNAME="your-bitbucket-username"
+  export BB_APP_PASSWORD="your-app-password"
+  ```
 - **Verify:**
   ```bash
-  bb --version
+  curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+    "https://api.bitbucket.org/2.0/user" | python3 -m json.tool
   ```
 
 ### Azure DevOps
@@ -84,7 +94,17 @@ glab mr list --source-branch <branch-name>
 ### Bitbucket
 
 ```bash
-bb pr list --source-branch <branch-name> --state OPEN
+BRANCH=$(git branch --show-current)
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests?state=OPEN" \
+  | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+branch = '$BRANCH'
+for pr in data.get('values', []):
+    if pr['source']['branch']['name'] == branch:
+        print(json.dumps({'id': pr['id'], 'title': pr['title']}, indent=2))
+"
 ```
 
 ### Azure DevOps
@@ -118,7 +138,8 @@ glab mr view <mr-iid> --comments
 
 ```bash
 # All PR comments including inline comments
-bb pr view <pr-id> --comments
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments"
 ```
 
 ### Azure DevOps
@@ -159,10 +180,11 @@ glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>/note
 ### Bitbucket
 
 ```bash
-bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments" \
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -H "Content-Type: application/json" \
   -X POST \
-  -f 'content.raw=<reply-body>' \
-  -f 'parent.id=<inline-comment-id>'
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments" \
+  -d '{"content": {"raw": "<reply-body>"}, "parent": {"id": <inline-comment-id>}}'
 ```
 
 ### Azure DevOps
@@ -193,7 +215,11 @@ glab mr comment <mr-iid> --message '<comment-body>'
 ### Bitbucket
 
 ```bash
-bb pr comment <pr-id> '<comment-body>'
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments" \
+  -d '{"content": {"raw": "<comment-body>"}}'
 ```
 
 ### Azure DevOps
@@ -258,10 +284,10 @@ glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>" \
 ### Bitbucket
 
 ```bash
-# Fetch comments via bb api, find the comment ID, then update to resolved status
-bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments/<comment-id>" \
-  -X PUT \
-  -f 'resolved=true'
+# Resolve a comment using the dedicated /resolve endpoint (POST, no body required)
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -X POST \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments/<comment-id>/resolve"
 ```
 
 ### Azure DevOps
@@ -293,7 +319,17 @@ glab mr create --title '<title>' --description '<body>'
 ### Bitbucket
 
 ```bash
-bb pr create --title '<title>' --description '<body>'
+BRANCH=$(git branch --show-current)
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests" \
+  -d "{
+    \"title\": \"<title>\",
+    \"description\": \"<body>\",
+    \"source\": {\"branch\": {\"name\": \"$BRANCH\"}},
+    \"destination\": {\"branch\": {\"name\": \"main\"}}
+  }"
 ```
 
 ### Azure DevOps
