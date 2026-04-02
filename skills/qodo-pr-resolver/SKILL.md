@@ -1,6 +1,6 @@
 ---
 name: qodo-pr-resolver
-description: "Use when the user wants to review Qodo PR feedback or fix code review comments. Capabilities: view issues by severity, apply fixes interactively or in batch, reply to inline comments, post fix summaries (GitHub, GitLab, Bitbucket, Azure DevOps)"
+description: "Use when the user wants to review Qodo PR feedback or fix code review comments. Capabilities: view issues by severity, apply fixes interactively or in batch, reply to inline comments, post fix summaries (GitHub, GitLab, Bitbucket, Azure DevOps, Gerrit)"
 triggers:
   - qodo.?pr.?resolver
   - pr.?resolver
@@ -17,20 +17,20 @@ triggers:
 
 # Qodo PR Resolver
 
-Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision. Supports GitHub, GitLab, Bitbucket, and Azure DevOps.
+Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision. Supports GitHub, GitLab, Bitbucket, Azure DevOps, and Gerrit.
 
 ## Prerequisites
 
 ### Required Tools:
 - **Git** - For branch operations
-- **Git Provider CLI** - One of: `gh` (GitHub), `glab` (GitLab), `bb` (Bitbucket), or `az` (Azure DevOps)
+- **Git Provider CLI** - One of: `gh` (GitHub), `glab` (GitLab), `curl` (Bitbucket/Gerrit), or `az` (Azure DevOps)
 
 **Installation and authentication details:** See [providers.md](./resources/providers.md) for provider-specific setup instructions.
 
 ### Required Context:
 - Must be in a git repository
-- Repository must be hosted on a supported git provider (GitHub, GitLab, Bitbucket, or Azure DevOps)
-- Current branch must have an open PR/MR
+- Repository must be hosted on a supported git provider (GitHub, GitLab, Bitbucket, Azure DevOps, or Gerrit)
+- Current branch must have an open PR/MR (or Gerrit change)
 - PR/MR must have been reviewed by Qodo (pr-agent-pro bot, qodo-merge[bot], etc.)
 
 ### Quick Check:
@@ -88,13 +88,13 @@ Check for uncommitted changes, unpushed commits, and get the current branch.
 
 Detect git provider from the remote URL (`git remote get-url origin`).
 
-See [providers.md](./resources/providers.md) for provider detection patterns.
+See [providers.md](./resources/providers.md) for provider detection patterns. For Gerrit, also check for `.gitreview` file, port 29418 in remote URL, or `googlesource.com` — see [gerrit.md](./resources/gerrit.md#provider-detection).
 
 ### Step 2: Find the open PR/MR
 
 Find the open PR/MR for this branch using the provider's CLI.
 
-See [providers.md § Find Open PR/MR](./resources/providers.md#find-open-prmr) for provider-specific commands.
+See [providers.md § Find Open PR/MR](./resources/providers.md#find-open-prmr) for provider-specific commands. For Gerrit, look up the change using the `Change-Id` from the HEAD commit message — see [gerrit.md § Find Open Change](./resources/gerrit.md#find-open-change).
 
 ### Step 3: Get Qodo review comments
 
@@ -105,6 +105,8 @@ Qodo typically posts both a **summary comment** (PR-level, containing all issues
 See [providers.md § Fetch Review Comments](./resources/providers.md#fetch-review-comments) for provider-specific commands.
 
 Look for comments where the author is "qodo-merge[bot]", "pr-agent-pro", "pr-agent-pro-staging" or similar Qodo bot name.
+
+**Gerrit note:** Gerrit has three separate comment endpoints: robot comments (`/robotcomments`), human comments (`/comments`), and change messages (`/messages`). Qodo posts as **robot comments** with a `robot_id` field and structured `fix_suggestions`. Check all three endpoints. When `fix_suggestions` are present, prefer them over parsing text descriptions. See [gerrit.md § Fetch Review Comments](./resources/gerrit.md#fetch-review-comments).
 
 #### Step 3a: Check if review is still in progress
 
@@ -125,6 +127,8 @@ Deduplicate issues across summary and inline comments:
   - **IMPORTANT:** Preserve each issue's **inline review comment ID** — you will need it later (Step 8) to reply directly to that comment with the decision
 - Also deduplicate across multiple summary comments by location (file path + line numbers) as a secondary key
 - If the same issue appears in multiple places, combine the agent prompts
+
+**Gerrit deduplication:** Robot comments may include `fix_suggestions` with machine-applicable replacements. Preserve these alongside the agent prompt — when both exist, prefer `fix_suggestions` for applying the fix and the agent prompt for understanding intent.
 
 ### Step 4: Parse and display the issues
 
@@ -261,7 +265,7 @@ If "Auto-fix all" was selected:
 
 **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred.
 
-See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
+See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format. For Gerrit, summary and all inline replies can be batched in a single API call — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
 
 **After posting the summary, resolve the Qodo review comment:**
 
@@ -274,7 +278,7 @@ If resolve fails (comment not found, API error), continue — the summary commen
 ### Step 9: Push to remote
 
 If any fixes were applied (commits were created in Steps 6/7), ask the user if they want to push:
-- If yes: `git push`
+- If yes: `git push` (for Gerrit: `git push origin HEAD:refs/for/<target-branch>` — see [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
 - If no: Inform them they can push later with `git push`
 
 **Important:** If all issues were deferred, there are no commits to push — skip this step.
@@ -284,12 +288,13 @@ If any fixes were applied (commits were created in Steps 6/7), ask the user if t
 After completing all steps, always echo the PR/MR URL to the user so they can easily navigate to it. Use the PR URL detected in Step 2.
 
 Example output: `🔗 PR: https://github.com/owner/repo/pull/123`
+For Gerrit: `🔗 Change: https://<gerrit-host>/c/<project>/+/<change-number>`
 
 ### Special cases
 
 #### Unsupported git provider
 
-If the remote URL doesn't match GitHub, GitLab, Bitbucket, or Azure DevOps, inform the user and exit.
+If the remote URL doesn't match GitHub, GitLab, Bitbucket, Azure DevOps, or Gerrit, inform the user and exit.
 
 See [providers.md § Error Handling](./resources/providers.md#error-handling) for details.
 
@@ -297,7 +302,7 @@ See [providers.md § Error Handling](./resources/providers.md#error-handling) fo
 
 - Inform: "No PR/MR found for branch `<branch-name>`"
 - Ask: "Would you like me to create a PR/MR?"
-- If yes: Use appropriate CLI to create PR/MR (see [providers.md § Create PR/MR](./resources/providers.md#create-prmr-special-case)), then inform "PR created! Qodo will review it shortly. Run this skill again in ~5 minutes."
+- If yes: Use appropriate CLI to create PR/MR (see [providers.md § Create PR/MR](./resources/providers.md#create-prmr-special-case)). For Gerrit, push with `git push origin HEAD:refs/for/<branch>` to create a change (see [gerrit.md § Create Change](./resources/gerrit.md#create-change)). Then inform "PR/Change created! Qodo will review it shortly. Run this skill again in ~5 minutes."
 - If no: Exit skill
 
 **IMPORTANT:** Do NOT proceed without a PR/MR
@@ -326,6 +331,6 @@ Used per-issue in Steps 6 and 7 to reply to Qodo's inline comments:
 
 Use the inline comment ID preserved during deduplication (Step 3b) to reply directly to Qodo's comment.
 
-See [providers.md § Reply to Inline Comments](./resources/providers.md#reply-to-inline-comments) for provider-specific commands and reply format.
+See [providers.md § Reply to Inline Comments](./resources/providers.md#reply-to-inline-comments) for provider-specific commands and reply format. For Gerrit, all replies go through a single unified endpoint and can be batched — see [gerrit.md § Reply to Comments](./resources/gerrit.md#reply-to-comments).
 
 Keep replies short (one line). If a reply fails, log it and continue.
