@@ -50,13 +50,20 @@ Match against:
 **Authentication:** Bitbucket REST API with an App Password (there is no official `bb` CLI)
 - Create an App Password: Bitbucket → **Settings → App passwords**
   - Required scopes: **Repositories: Read**, **Pull requests: Read, Write**
-- Extract workspace/repo from the remote URL and set environment variables:
+- **Qodo config** (`~/.qodo/config.json`) — store credentials persistently:
+  ```json
+  {
+    "BB_USERNAME": "your-bitbucket-username",
+    "BB_APP_PASSWORD": "your-app-password",
+    "BB_URL": "https://bitbucket.example.com"
+  }
+  ```
+  `BB_URL` is optional — only needed for self-hosted Bitbucket (defaults to `https://api.bitbucket.org`).
+- Workspace and repo slug are extracted from the remote URL at runtime:
   ```bash
   BB_REMOTE=$(git remote get-url origin)
   BB_WORKSPACE=$(echo "$BB_REMOTE" | sed -E 's|.*bitbucket\.org[:/]([^/]+)/.*|\1|')
   BB_REPO=$(echo "$BB_REMOTE" | sed -E 's|.*bitbucket\.org[:/][^/]+/([^/.]+)(\.git)?$|\1|')
-  export BB_USERNAME="your-bitbucket-username"
-  export BB_APP_PASSWORD="your-app-password"
   ```
 - **Verify:**
   ```bash
@@ -69,6 +76,14 @@ Match against:
 **CLI:** `az` with DevOps extension
 - **Install:** `brew install azure-cli` or [docs.microsoft.com/cli/azure](https://docs.microsoft.com/cli/azure)
 - **Install extension:** `az extension add --name azure-devops`
+- **Qodo config** (`~/.qodo/config.json`) — optional, for non-interactive auth:
+  ```json
+  {
+    "AZURE_DEVOPS_EXT_PAT": "your-personal-access-token",
+    "AZURE_DEVOPS_URL": "https://dev.azure.com"
+  }
+  ```
+  `AZURE_DEVOPS_EXT_PAT` replaces `az login`. `AZURE_DEVOPS_URL` is optional — only needed for on-premises Azure DevOps Server.
 - **Authenticate and configure:**
   ```bash
   az login
