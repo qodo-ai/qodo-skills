@@ -171,8 +171,8 @@ curl -s -u "$GERRIT_USERNAME:$GERRIT_HTTP_PASSWORD" \
 - `unresolved: false` resolves the thread in the same call — no separate resolve step needed
 
 **Reply format** (same as other providers):
-- **Fixed:** `✅ **Fixed** — <brief description>`
-- **Deferred:** `⏭️ **Deferred** — <reason>`
+- **Fixed:** `✅ **Fixed** — <brief description>` — set `"unresolved": false`
+- **Deferred:** `⏭️ **Deferred** — <reason>` — set `"unresolved": true` (keep open for developer)
 
 ### Batch multiple replies
 
