@@ -6,7 +6,7 @@ This document contains all provider-specific CLI commands and API interactions f
 
 - GitHub (via `gh` CLI)
 - GitLab (via `glab` CLI)
-- Bitbucket (via `bb` CLI)
+- Bitbucket (via REST API with `curl`)
 - Azure DevOps (via `az` CLI with DevOps extension)
 
 ## Provider Detection
@@ -47,11 +47,28 @@ Match against:
 
 ### Bitbucket
 
-**CLI:** `bb` or API access
-- **Install:** See [bitbucket.org/product/cli](https://bitbucket.org/product/cli)
+**Authentication:** Bitbucket REST API with an App Password (there is no official `bb` CLI)
+- Create an App Password: Bitbucket → **Settings → App passwords**
+  - Required scopes: **Repositories: Read**, **Pull requests: Read, Write**
+- **Qodo config** (`~/.qodo/config.json`) — store credentials persistently:
+  ```json
+  {
+    "BB_USERNAME": "your-bitbucket-username",
+    "BB_APP_PASSWORD": "your-app-password",
+    "BB_URL": "https://bitbucket.example.com"
+  }
+  ```
+  `BB_URL` is optional — only needed for self-hosted Bitbucket (defaults to `https://api.bitbucket.org`).
+- Workspace and repo slug are extracted from the remote URL at runtime:
+  ```bash
+  BB_REMOTE=$(git remote get-url origin)
+  BB_WORKSPACE=$(echo "$BB_REMOTE" | sed -E 's|.*bitbucket\.org[:/]([^/]+)/.*|\1|')
+  BB_REPO=$(echo "$BB_REMOTE" | sed -E 's|.*bitbucket\.org[:/][^/]+/([^/.]+)(\.git)?$|\1|')
+  ```
 - **Verify:**
   ```bash
-  bb --version
+  curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+    "https://api.bitbucket.org/2.0/user" | python3 -m json.tool
   ```
 
 ### Azure DevOps
@@ -59,10 +76,29 @@ Match against:
 **CLI:** `az` with DevOps extension
 - **Install:** `brew install azure-cli` or [docs.microsoft.com/cli/azure](https://docs.microsoft.com/cli/azure)
 - **Install extension:** `az extension add --name azure-devops`
-- **Authenticate:** `az login` then `az devops configure --defaults organization=https://dev.azure.com/yourorg project=yourproject`
+- **Qodo config** (`~/.qodo/config.json`) — optional, for non-interactive auth:
+  ```json
+  {
+    "AZURE_DEVOPS_EXT_PAT": "your-personal-access-token",
+    "AZURE_DEVOPS_URL": "https://dev.azure.com"
+  }
+  ```
+  `AZURE_DEVOPS_EXT_PAT` replaces `az login`. `AZURE_DEVOPS_URL` is optional — only needed for on-premises Azure DevOps Server.
+- **Authenticate and configure:**
+  ```bash
+  az login
+  # Extract org/project from remote URL and configure defaults:
+  ADO_REMOTE=$(git remote get-url origin)
+  ADO_ORG=$(echo "$ADO_REMOTE" | sed -E 's|https://[^@]*@?dev\.azure\.com/([^/]+)/.*|\1|')
+  ADO_PROJECT=$(echo "$ADO_REMOTE" | sed -E 's|https://[^/]*/[^/]+/([^/]+)/.*|\1|')
+  ADO_REPO=$(echo "$ADO_REMOTE" | sed -E 's|.*/([^/]+)$|\1|')
+  az devops configure --defaults organization=https://dev.azure.com/$ADO_ORG project=$ADO_PROJECT
+  # Get repository ID (required for thread API calls):
+  ADO_REPO_ID=$(az repos show --name $ADO_REPO --query id -o tsv)
+  ```
 - **Verify:**
   ```bash
-  az --version && az devops
+  az --version && az devops configure --list
   ```
 
 ## Find Open PR/MR
@@ -78,13 +114,23 @@ gh pr list --head <branch-name> --state open --json number,title
 ### GitLab
 
 ```bash
-glab mr list --source-branch <branch-name> --state opened
+glab mr list --source-branch <branch-name>
 ```
 
 ### Bitbucket
 
 ```bash
-bb pr list --source-branch <branch-name> --state OPEN
+BRANCH=$(git branch --show-current)
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests?state=OPEN" \
+  | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+branch = '$BRANCH'
+for pr in data.get('values', []):
+    if pr['source']['branch']['name'] == branch:
+        print(json.dumps({'id': pr['id'], 'title': pr['title']}, indent=2))
+"
 ```
 
 ### Azure DevOps
@@ -118,18 +164,22 @@ glab mr view <mr-iid> --comments
 
 ```bash
 # All PR comments including inline comments
-bb pr view <pr-id> --comments
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments"
 ```
 
 ### Azure DevOps
 
 ```bash
-# PR-level threads (includes summary comments)
-az repos pr show --id <pr-id> --output json
-
-# All PR threads including inline comments
-az repos pr policy list --id <pr-id> --output json
-az repos pr thread list --id <pr-id> --output json
+# List all PR threads (includes both summary and inline comments)
+# Note: az repos pr thread subcommands do not exist — use az devops invoke
+az devops invoke \
+  --area git \
+  --resource pullRequestThreads \
+  --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> \
+  --http-method GET \
+  --api-version 7.1 \
+  --output json
 ```
 
 ## Reply to Inline Comments
@@ -159,19 +209,26 @@ glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>/note
 ### Bitbucket
 
 ```bash
-bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments" \
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -H "Content-Type: application/json" \
   -X POST \
-  -f 'content.raw=<reply-body>' \
-  -f 'parent.id=<inline-comment-id>'
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments" \
+  -d '{"content": {"raw": "<reply-body>"}, "parent": {"id": <inline-comment-id>}}'
 ```
 
 ### Azure DevOps
 
 ```bash
-az repos pr thread comment add \
-  --id <pr-id> \
-  --thread-id <thread-id> \
-  --content '<reply-body>'
+# Add a reply comment to an existing thread (az repos pr thread does not exist)
+echo '{"content": "<reply-body>", "commentType": 1}' > /tmp/ado_comment.json
+az devops invoke \
+  --area git \
+  --resource pullRequestThreadComments \
+  --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> threadId=<thread-id> \
+  --http-method POST \
+  --api-version 7.1 \
+  --in-file /tmp/ado_comment.json \
+  --output json
 ```
 
 ## Post Summary Comment
@@ -193,15 +250,28 @@ glab mr comment <mr-iid> --message '<comment-body>'
 ### Bitbucket
 
 ```bash
-bb pr comment <pr-id> '<comment-body>'
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments" \
+  -d '{"content": {"raw": "<comment-body>"}}'
 ```
 
 ### Azure DevOps
 
 ```bash
-az repos pr thread create \
-  --id <pr-id> \
-  --comment-content '<comment-body>'
+# Create a new top-level comment thread (az repos pr thread create does not exist)
+cat > /tmp/ado_thread.json << 'EOF'
+{"comments": [{"content": "<comment-body>", "commentType": 1}], "status": "active"}
+EOF
+az devops invoke \
+  --area git \
+  --resource pullRequestThreads \
+  --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> \
+  --http-method POST \
+  --api-version 7.1 \
+  --in-file /tmp/ado_thread.json \
+  --output json
 ```
 
 **Summary format:**
@@ -258,20 +328,25 @@ glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>" \
 ### Bitbucket
 
 ```bash
-# Fetch comments via bb api, find the comment ID, then update to resolved status
-bb api "/2.0/repositories/{workspace}/{repo}/pullrequests/<pr-id>/comments/<comment-id>" \
-  -X PUT \
-  -f 'resolved=true'
+# Resolve a comment using the dedicated /resolve endpoint (POST, no body required)
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -X POST \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments/<comment-id>/resolve"
 ```
 
 ### Azure DevOps
 
 ```bash
-# Mark the thread as resolved
-az repos pr thread update \
-  --id <pr-id> \
-  --thread-id <thread-id> \
-  --status resolved
+# Mark the thread as fixed (Azure DevOps uses "fixed" not "resolved"; az repos pr thread update does not exist)
+echo '{"status": "fixed"}' > /tmp/ado_status.json
+az devops invoke \
+  --area git \
+  --resource pullRequestThreads \
+  --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> threadId=<thread-id> \
+  --http-method PATCH \
+  --api-version 7.1 \
+  --in-file /tmp/ado_status.json \
+  --output json
 ```
 
 ## Create PR/MR (Special Case)
@@ -293,7 +368,17 @@ glab mr create --title '<title>' --description '<body>'
 ### Bitbucket
 
 ```bash
-bb pr create --title '<title>' --description '<body>'
+BRANCH=$(git branch --show-current)
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests" \
+  -d "{
+    \"title\": \"<title>\",
+    \"description\": \"<body>\",
+    \"source\": {\"branch\": {\"name\": \"$BRANCH\"}},
+    \"destination\": {\"branch\": {\"name\": \"main\"}}
+  }"
 ```
 
 ### Azure DevOps
