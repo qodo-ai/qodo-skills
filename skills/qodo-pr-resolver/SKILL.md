@@ -286,7 +286,7 @@ See [providers.md § Post Summary Comment](./resources/providers.md#post-summary
 
 **Important resolution rules for inline replies:**
 - **Fixed** issues: set `"unresolved": false` (resolves the thread)
-- **Deferred** issues: set `"unresolved": true` (keeps the thread open for developer attention)
+- **Deferred** issues: set `"unresolved": false` (resolves the thread — the next Qodo review will re-evaluate)
 
 **After posting the summary, resolve the Qodo review comment:**
 
