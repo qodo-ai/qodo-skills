@@ -175,6 +175,8 @@ Derive severity from Qodo's action level and position:
 
 #### Output format
 
+**IMPORTANT: Use actual Unicode emoji characters** (e.g. `🔴`, `🟠`, `📘`, `⛨`, `⚙`), NOT GitHub-style shortcodes (`:red_circle:`, `:books:`, `:shield:`). Shortcodes do not render in terminal environments.
+
 Display as a markdown table in Qodo's exact original ordering (do NOT reorder by severity - Qodo's order IS the severity ranking):
 
 ```
@@ -251,6 +253,8 @@ Do NOT create individual commits per fix for Gerrit.
 **CRITICAL:** Single validation only - do NOT show the diff separately and then ask. Combine the diff display and the question into ONE message. The user should see: brief context → current code → proposed diff → AskUserQuestion, all at once.
 
 **Example:** Show location, Qodo's guidance, current code, proposed diff, then AskUserQuestion with options (✅ Apply fix / ⏭️ Defer / 🔧 Modify). Wait for user choice, apply via Edit tool if approved.
+
+**Judgment on questionable suggestions:** If a Qodo agent prompt's suggestion seems incorrect, overly pedantic (e.g. flagging `len + 1` as a magic number — it's `len + NUL terminator`, a standard C pattern), or would reduce readability, the agent should use judgment. It's acceptable to skip or adapt the suggestion — document the reasoning in the reply (e.g. "Deferred — `len + 1` is a standard NUL-terminator pattern, not a magic number").
 
 ### Step 7: Auto-fix mode
 

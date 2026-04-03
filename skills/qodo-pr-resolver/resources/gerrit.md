@@ -172,7 +172,9 @@ curl -s -u "$GERRIT_USERNAME:$GERRIT_HTTP_PASSWORD" \
 
 **Reply format** (same as other providers):
 - **Fixed:** `✅ **Fixed** — <brief description>` — set `"unresolved": false`
-- **Deferred:** `⏭️ **Deferred** — <reason>` — set `"unresolved": true` (keep open for developer)
+- **Deferred:** `⏭️ **Deferred** — <reason>` — set `"unresolved": false`
+
+Resolution of deferred items will be re-evaluated by the next Qodo review when a new patchset is pushed.
 
 ### Batch multiple replies
 
@@ -283,6 +285,17 @@ If `Change-Id` grep returns empty:
 - Inform: "Gerrit authentication failed. Check `GERRIT_USERNAME` and `GERRIT_HTTP_PASSWORD`."
 - Note: HTTP password is generated at **Settings → HTTP Credentials**, not the account password
 - Exit the skill
+
+### Recovery: squash accidental per-fix commits
+
+If separate commits were accidentally created (one per fix), squash them before pushing:
+```bash
+# Find the original change commit (the one with the Change-Id)
+ORIGINAL=$(git log --format=%H --grep="Change-Id:" | head -1)
+git reset --soft $ORIGINAL
+git commit --amend --no-edit
+git push origin HEAD:refs/for/$TARGET_BRANCH
+```
 
 ### Change URL format
 
