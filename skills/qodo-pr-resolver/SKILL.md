@@ -61,6 +61,8 @@ When the user asks for a code review, to see Qodo issues, or fix Qodo comments:
 
 Check for uncommitted changes, unpushed commits, and get the current branch.
 
+**Note:** Only consider **tracked** files when checking for uncommitted changes. Untracked files (scripts, local configs, etc.) that are not part of the repository should be ignored. Use `git diff --name-only` and `git diff --cached --name-only` rather than `git status --porcelain` which includes untracked files.
+
 #### Scenario A: Uncommitted changes exist
 
 - Inform: "⚠️ You have uncommitted changes. These won't be included in the Qodo review."
@@ -173,6 +175,8 @@ Derive severity from Qodo's action level and position:
 
 #### Output format
 
+**IMPORTANT: Use actual Unicode emoji characters** (e.g. `🔴`, `🟠`, `📘`, `⛨`, `⚙`), NOT GitHub-style shortcodes (`:red_circle:`, `:books:`, `:shield:`). Shortcodes do not render in terminal environments.
+
 Display as a markdown table in Qodo's exact original ordering (do NOT reorder by severity - Qodo's order IS the severity ranking):
 
 ```
@@ -219,18 +223,25 @@ If "Review each issue" was selected:
   - **WAIT for user's choice via AskUserQuestion**
   - **If "Apply fix" selected:**
     - Apply change using Edit tool (or Write if creating new file)
-    - Reply to the Qodo inline comment with the decision (see Step 8 for inline reply commands)
-    - Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
-    - Confirm: "✅ Fix applied, commented, and committed!"
+    - **Non-Gerrit providers:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+    - **Gerrit:** Do NOT commit yet — stage the change (`git add <modified-files>`) but wait until all fixes are applied, then amend into a single commit (see Gerrit note below)
+    - Confirm: "✅ Fix applied!"
     - Mark issue as completed
   - **If "Defer" selected:**
     - Ask for deferral reason using AskUserQuestion
-    - Reply to the Qodo inline comment with the deferral (see Step 8 for inline reply commands)
     - Record reason and move to next issue
   - **If "Modify" selected:**
     - Inform user they can make changes manually
     - Move to next issue
 - Continue until all "Fix" issues are addressed or the user decides to stop
+- **After all fixes are applied**, reply to all Qodo inline comments in one batch (see Step 8)
+
+**Gerrit commit strategy:** In Gerrit, each commit becomes a separate change. To keep all fixes as a single new patchset on the existing change:
+1. Apply all fixes (Edit tool) and stage them (`git add`)
+2. After ALL fixes are done, amend the original commit: `git commit --amend --no-edit`
+3. Push once in Step 9
+
+Do NOT create individual commits per fix for Gerrit.
 
 #### Important notes
 
@@ -251,21 +262,29 @@ If "Auto-fix all" was selected:
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Apply the fix using Edit tool
-  - Reply to the Qodo inline comment with the decision (see Step 8 for inline reply commands)
-  - Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+  - **Non-Gerrit:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+  - **Gerrit:** Stage only (`git add <modified-files>`) — do NOT commit yet
   - Report each fix with the agent prompt that was followed:
     > ✅ **Fixed: [Issue Title]** at `[Location]`
     > **Agent prompt:** [the Qodo agent prompt used]
   - Mark issue as completed
+- **Gerrit:** After ALL fixes are applied, amend into one commit: `git commit --amend --no-edit`
+- Reply to all Qodo inline comments in one batch (see Step 8)
 - After all auto-fixes are applied, display summary:
   - List of all issues that were fixed
   - List of any issues that were skipped (with reasons)
 
-### Step 8: Post summary to PR/MR
+### Step 8: Post summary and reply to comments
 
 **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred.
 
-See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format. For Gerrit, summary and all inline replies can be batched in a single API call — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
+See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
+
+**Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
+
+**Important resolution rules for inline replies:**
+- **Fixed** issues: set `"unresolved": false` (resolves the thread)
+- **Deferred** issues: set `"unresolved": false` (resolves the thread — the next Qodo review will re-evaluate)
 
 **After posting the summary, resolve the Qodo review comment:**
 
@@ -278,7 +297,7 @@ If resolve fails (comment not found, API error), continue — the summary commen
 ### Step 9: Push to remote
 
 If any fixes were applied (commits were created in Steps 6/7), ask the user if they want to push:
-- If yes: `git push` (for Gerrit: `git push origin HEAD:refs/for/<target-branch>` — see [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
+- If yes: `git push` (for Gerrit: `git push origin HEAD:refs/for/<target-branch>` — this creates a new patchset on the existing change, matched by the `Change-Id` in the commit message. See [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
 - If no: Inform them they can push later with `git push`
 
 **Important:** If all issues were deferred, there are no commits to push — skip this step.
