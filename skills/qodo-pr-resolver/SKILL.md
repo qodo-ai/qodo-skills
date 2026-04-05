@@ -254,8 +254,6 @@ Do NOT create individual commits per fix for Gerrit.
 
 **Example:** Show location, Qodo's guidance, current code, proposed diff, then AskUserQuestion with options (✅ Apply fix / ⏭️ Defer / 🔧 Modify). Wait for user choice, apply via Edit tool if approved.
 
-**Judgment on questionable suggestions:** If a Qodo agent prompt's suggestion seems incorrect, overly pedantic (e.g. flagging `len + 1` as a magic number — it's `len + NUL terminator`, a standard C pattern), or would reduce readability, the agent should use judgment. It's acceptable to skip or adapt the suggestion — document the reasoning in the reply (e.g. "Deferred — `len + 1` is a standard NUL-terminator pattern, not a magic number").
-
 ### Step 7: Auto-fix mode
 
 If "Auto-fix all" was selected:
