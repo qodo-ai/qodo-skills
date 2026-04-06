@@ -223,7 +223,7 @@ If "Review each issue" was selected:
   - **WAIT for user's choice via AskUserQuestion**
   - **If "Apply fix" selected:**
     - Apply change using Edit tool (or Write if creating new file)
-    - **Non-Gerrit providers:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+    - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
     - **Gerrit:** Do NOT commit yet — stage the change (`git add <modified-files>`) but wait until all fixes are applied, then amend into a single commit (see Gerrit note below)
     - Confirm: "✅ Fix applied!"
     - Mark issue as completed
@@ -262,7 +262,7 @@ If "Auto-fix all" was selected:
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Apply the fix using Edit tool
-  - **Non-Gerrit:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+  - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
   - **Gerrit:** Stage only (`git add <modified-files>`) — do NOT commit yet
   - Report each fix with the agent prompt that was followed:
     > ✅ **Fixed: [Issue Title]** at `[Location]`
