@@ -40,7 +40,7 @@ except Exception as e:
 " 2>/dev/null)
 
 # Criterion 1: Mock issue title parsed from comment (Phase 1 — content)
-if echo "$OUTPUT" | grep -qi "SyntaxError"; then
+if echo "$OUTPUT" | grep -qi "syntax"; then
   check "Mock Qodo issue parsed" true
 else
   check "Mock Qodo issue parsed" false

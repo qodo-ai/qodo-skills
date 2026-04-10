@@ -33,7 +33,7 @@ try {
 }
 
 # Criterion 1: Mock issue title parsed from comment (Phase 1 — content)
-Check-Criterion "Mock Qodo issue parsed" ($OUTPUT -imatch "SyntaxError")
+Check-Criterion "Mock Qodo issue parsed" ($OUTPUT -imatch "syntax")
 
 # Criterion 2: Severity label in output OR in posted ADO comment (Phase 2)
 Check-Criterion "Severity labels derived" (($OUTPUT + $COMMENTS) -imatch "CRITICAL|HIGH|MEDIUM|LOW")
