@@ -1,0 +1,28 @@
+schema_version: "1"
+skill: qodo-get-rules
+
+# Supported coding agents
+# Vocabulary: claude-code | cursor | windsurf | cline | copilot | codex
+agents:
+  - claude-code
+  - cursor
+  - windsurf
+  - cline
+
+# Supported operating systems
+# Vocabulary: ubuntu | macos | windows
+os:
+  - ubuntu
+  - macos
+  - windows
+
+# Git provider dependency
+# List providers only if the skill invokes provider-specific CLIs (gh, glab, bb, az devops).
+# This skill only reads git remote URL — no provider CLI dependency. Leave empty.
+# Vocabulary: github | gitlab | bitbucket | azure-devops
+git_providers: []
+
+# Custom test commands (optional)
+# Shell commands run from the skill root directory after structural checks pass.
+# Use cross-platform Python where possible. Leave empty if structural checks are sufficient.
+tests: []
