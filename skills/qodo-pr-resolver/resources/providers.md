@@ -351,9 +351,9 @@ az devops invoke \
   --output json
 ```
 
-## Create PR/MR (Special Case)
+## Create PR/MR
 
-If no PR/MR exists for the current branch, offer to create one.
+If no PR/MR exists for the current branch, create one. The user chooses between draft or regular mode — add the `--draft` flag when creating in draft mode.
 
 ### GitHub
 
@@ -361,11 +361,15 @@ If no PR/MR exists for the current branch, offer to create one.
 gh pr create --title '<title>' --body '<body>'
 ```
 
+Add `--draft` flag when creating in draft mode.
+
 ### GitLab
 
 ```bash
 glab mr create --title '<title>' --description '<body>'
 ```
+
+Add `--draft` flag when creating in draft mode.
 
 ### Bitbucket
 
@@ -383,6 +387,8 @@ curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
   }"
 ```
 
+**Note:** Bitbucket Cloud has no native draft PR API. When creating in draft mode, prefix the title with `[DRAFT]` as a convention (e.g. `[DRAFT] <title>`).
+
 ### Azure DevOps
 
 ```bash
@@ -391,6 +397,42 @@ az repos pr create \
   --description '<body>' \
   --source-branch <branch-name> \
   --target-branch main
+```
+
+Add `--draft` flag when creating in draft mode.
+
+## Mark PR Ready for Review
+
+After all fixes are applied, if the PR was created as a draft, optionally mark it as ready for review.
+
+### GitHub
+
+```bash
+gh pr ready <pr-number>
+```
+
+### GitLab
+
+```bash
+glab mr update <mr-iid> --ready
+```
+
+### Bitbucket
+
+If the title was prefixed with `[DRAFT]`, update it to remove the prefix:
+
+```bash
+curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
+  -H "Content-Type: application/json" \
+  -X PUT \
+  "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>" \
+  -d '{"title": "<title-without-draft-prefix>"}'
+```
+
+### Azure DevOps
+
+```bash
+az repos pr update --id <pr-id> --draft false
 ```
 
 ## Error Handling
