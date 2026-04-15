@@ -36,7 +36,7 @@ Install skills using the standard Agent Skills CLI:
 
 ```bash
 # Install all Qodo skills
-npx skills add qodo-ai/qodo-skills
+npx skills add qodo-ai/qodo-skills/skills
 
 # Or install individual skills
 npx skills add qodo-ai/qodo-skills/skills/qodo-get-rules
