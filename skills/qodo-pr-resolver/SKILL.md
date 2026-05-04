@@ -249,9 +249,14 @@ After displaying the table, ask the user how they want to proceed using AskUserQ
 
 If "Review each issue" was selected:
 
+**🔒 SCOPE GUARDRAIL:** At the start, compute the PR diff scope:
+- Get list of files in the PR diff: `git diff --name-only <base-branch>...HEAD`
+- Record this set for the duration of the fix loop
+- This prevents fixes from expanding PR scope beyond what was originally changed
+
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
-  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, but **only modify files in the current PR diff**. If the prompt implies modifications outside the diff, treat it as out-of-scope and follow the out-of-scope handling flow (see below). Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
   - **Present the fix and ask for approval in a SINGLE step:**
     1. Show a brief header with issue title and location
@@ -264,6 +269,17 @@ If "Review each issue" was selected:
        - 🔧 "Modify" - User wants to adjust the fix first
   - **WAIT for user's choice via AskUserQuestion**
   - **If "Apply fix" selected:**
+    - **🔒 SCOPE CHECK:** Before applying, verify which files this fix would modify
+    - If ANY target file is NOT in the PR diff scope:
+      - Surface to user: "⚠️ This fix would modify files outside the PR scope: `<outside-files>`"
+      - Use AskUserQuestion with options:
+        - ⏭️ "Defer" (Recommended) - Skip this issue
+        - ✅ "Apply anyway" - Expand PR scope to include these files
+        - 🔧 "Modify" - Adjust the fix first
+      - If "Defer": Record reason as "fix would modify files outside PR diff: `<files>`" and move to next issue
+      - If "Modify": Inform user and move to next issue
+      - If "Apply anyway": Proceed with fix (and warn PR scope is expanding)
+    - If all target files ARE in the PR diff scope: Apply normally (no additional prompt)
     - Apply change using Edit tool (or Write if creating new file)
     - **Stage only** (all providers): `git add <modified-files>` — do NOT commit yet
     - Confirm: "✅ Fix applied and staged"
@@ -322,9 +338,19 @@ After all fixes are applied (or user stops), create a single commit with all sta
 
 If "Auto-fix all" was selected:
 
+**🔒 SCOPE GUARDRAIL:** At the start, compute the PR diff scope:
+- Get list of files in the PR diff: `git diff --name-only <base-branch>...HEAD`
+- Record this set for the duration of the fix loop
+
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
-  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, but **only modify files in the current PR diff**. If the prompt implies modifications outside the diff, treat it as out-of-scope (defer automatically with reason). Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+  - **🔒 SCOPE CHECK:** Before applying, verify which files this fix would modify
+  - If ANY target file is NOT in the PR diff scope:
+    - Automatically defer with reason: "fix would modify files outside PR diff: `<outside-files>`"
+    - Report: "⏭️ **Deferred (Issue #N of M): [Issue Title]** — would modify files outside PR scope: `<files>`"
+    - Move to next issue
+  - If all target files ARE in the PR diff scope: Apply normally
   - Apply the fix using Edit tool
   - **Stage only** (all providers): `git add <modified-files>` — do NOT commit yet
   - Report each fix with the agent prompt that was followed:
@@ -401,6 +427,8 @@ When inline comment IDs are missing, post a **structured consolidated summary** 
 - Location: `src/utils/helpers.ts:23`
 - Reason: <verbatim user reason>
 ```
+
+**Out-of-scope deferrals:** For issues deferred because they would modify files outside the PR diff, list the specific outside-diff files and add: "💡 Consider a follow-up PR for this issue."
 
 **Gerrit:** Batch the summary comment AND any available inline replies into a **single API call** using the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
 
