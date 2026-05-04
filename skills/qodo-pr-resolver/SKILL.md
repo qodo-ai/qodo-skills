@@ -195,6 +195,8 @@ Derive severity from Qodo's action level and position:
 
 Display as a markdown table in Qodo's exact original ordering (do NOT reorder by severity - Qodo's order IS the severity ranking):
 
+**IMPORTANT:** Number the issues sequentially (1, 2, 3, ...) based on the issues shown in THIS table. If multiple review rounds have occurred, only count the issues from the current round that are being displayed. Do NOT use cumulative numbering from previous rounds.
+
 ```
 Qodo Issues for PR #123: [PR Title]
 
@@ -223,12 +225,14 @@ After displaying the table, ask the user how they want to proceed using AskUserQ
 
 If "Review each issue" was selected:
 
+**IMPORTANT:** When processing issues, use local indices scoped to the current session only. Count issues as 1, 2, 3, ... N where N is the total number of issues being processed in THIS walkthrough. Do NOT use cumulative indices from previous review rounds.
+
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
   - **Present the fix and ask for approval in a SINGLE step:**
-    1. Show a brief header with issue title and location
+    1. Show a brief header with "**Issue #N of M:**" (where N = current position in the list, M = total issues being processed), followed by the issue title and location
     2. **Show Qodo's agent prompt in full** so the user can verify the fix matches it
     3. Display current code snippet
     4. Display proposed change as markdown diff
@@ -274,14 +278,16 @@ Do NOT create individual commits per fix for Gerrit.
 
 If "Auto-fix all" was selected:
 
+**IMPORTANT:** When processing issues, use local indices scoped to the current session only. Count issues as 1, 2, 3, ... N where N is the total number of issues being processed in THIS walkthrough. Do NOT use cumulative indices from previous review rounds.
+
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Apply the fix using Edit tool
   - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
   - **Gerrit:** Stage only (`git add <modified-files>`) — do NOT commit yet
-  - Report each fix with the agent prompt that was followed:
-    > ✅ **Fixed: [Issue Title]** at `[Location]`
+  - Report each fix with "Issue #N of M" (where N = current position, M = total issues being fixed) and the agent prompt that was followed:
+    > ✅ **Fixed (Issue #N of M): [Issue Title]** at `[Location]`
     > **Agent prompt:** [the Qodo agent prompt used]
   - Mark issue as completed
 - **Gerrit:** After ALL fixes are applied, amend into one commit: `git commit --amend --no-edit`
