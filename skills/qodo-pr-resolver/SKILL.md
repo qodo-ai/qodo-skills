@@ -148,6 +148,26 @@ Deduplicate issues across summary and inline comments:
 
 **Gerrit deduplication:** Qodo inline comments contain an **Agent Prompt** section (rendered as plain text — Gerrit doesn't support expandable blocks) with detailed fix instructions. When deduplicating, preserve the Agent Prompt from each unique finding.
 
+#### Step 3c: Detect comment mode
+
+Classify the PR into one of three comment modes based on what was fetched:
+
+**Mode 1: Full Inline** (default/expected)
+- Both summary comment(s) AND inline review comments present
+- Each issue has an inline comment ID for replies
+- **User message:** Silent (no announcement needed)
+
+**Mode 2: Summary Only**
+- Summary comment(s) present, but NO inline review comments
+- OR inline-reply API fails on test call (restrictive permissions, rate limits)
+- **User message:** "ℹ️ Detected Qodo summary comment without inline threads — I'll consolidate per-issue resolution into the summary."
+
+**Mode 3: Inline Only**
+- Inline review comments present, but NO summary comment from Qodo
+- **User message:** "ℹ️ Detected inline comments without a summary — I'll generate a summary at the end."
+
+**Record the detected mode** for use in Step 8 (different reply strategies per mode).
+
 ### Step 4: Parse and display the issues
 
 - Extract the review body/comments from Qodo's review
@@ -330,17 +350,69 @@ Same as Step 6b - create a single commit with all staged changes:
 
 **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred.
 
-See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
+Route to the appropriate strategy based on comment mode (detected in Step 3c):
 
-**Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
+#### Mode 1: Full Inline (per-issue replies + brief summary)
 
-**Important resolution rules for inline replies:**
-- **Fixed** issues: set `"unresolved": false` (resolves the thread)
-- **Deferred** issues: set `"unresolved": false` (resolves the thread — the next Qodo review will re-evaluate)
+**Existing behavior - no changes needed:**
 
-**After posting the summary, resolve the Qodo review comment:**
+1. **Reply to each inline comment** with the decision:
+   - For **Fixed** issues: `"✅ Fixed in commit <sha>"`
+   - For **Deferred** issues: `"⏭️ Deferred — reason: <verbatim user reason>"`
+   - Set `"unresolved": false` for both (resolves the thread)
+   - **Retry logic:** If an inline reply fails, retry once. If second attempt fails, fall back to including that issue in the consolidated summary instead
 
-Find the Qodo "Code Review by Qodo" comment and mark it as resolved or react to acknowledge it.
+2. **Post brief top-level summary:**
+   ```
+   ## Qodo PR Resolver Summary
+
+   ✅ Fixed: 6 issues
+   ⏭️ Deferred: 2 issues
+
+   See inline replies for details.
+   ```
+
+3. **Resolve the Qodo review comment** (see below)
+
+#### Mode 2: Summary Only (consolidated summary, no inline replies)
+
+When inline comment IDs are missing, post a **structured consolidated summary** with one section per issue:
+
+```markdown
+## Qodo PR Resolver — Resolution Summary
+
+### ✅ Fixed (6)
+
+**1. [Action required] Insecure authentication check**
+- Location: `src/auth/service.py:42`
+- Fix: Inverted authorization check restored to correct logic
+- Commit: <sha>
+
+**2. [Action required] Missing input validation**
+- Location: `src/api/handlers.py:156`
+- Fix: User input now sanitized before database query
+- Commit: <sha>
+
+...
+
+### ⏭️ Deferred (2)
+
+**7. [Advisory] Style: prefer const over let**
+- Location: `src/utils/helpers.ts:23`
+- Reason: <verbatim user reason>
+```
+
+**Gerrit:** Batch the summary comment AND any available inline replies into a **single API call** using the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
+
+#### Mode 3: Inline Only (generate summary + inline replies)
+
+1. **Reply to each inline comment** (same as Mode 1)
+2. **Generate and post summary** (since Qodo didn't post one)
+3. **Resolve the Qodo review comment** (see below)
+
+#### All Modes: Resolve Qodo review comment
+
+After posting summary/replies, find the Qodo "Code Review by Qodo" comment and mark it as resolved or react to acknowledge it.
 
 See [providers.md § Resolve Qodo Review Comment](./resources/providers.md#resolve-qodo-review-comment) for provider-specific commands.
 
