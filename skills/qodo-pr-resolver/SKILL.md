@@ -209,15 +209,21 @@ Qodo Issues for PR #123: [PR Title]
 
 After displaying the table, ask the user how they want to proceed using AskUserQuestion:
 
-**Options:**
+**Question 1: Fix mode**
 - 🔍 "Review each issue" - Review and approve/defer each issue individually (recommended for careful review)
 - ⚡ "Auto-fix all" - Automatically apply all fixes marked as "Fix" without individual approval (faster, but less control)
 - ❌ "Cancel" - Exit without making changes
 
-**Based on the user's choice:**
-- If "Review each issue": Proceed to Step 6 (manual review)
-- If "Auto-fix all": Skip to Step 7 (auto-fix mode - apply all "Fix" issues automatically using Qodo's agent prompts)
+**Question 2: Commit mode** (only if not "Cancel")
+- 🆕 "New commit" (Recommended) - Create a new commit with all fixes
+- ✏️ "Amend HEAD" - Update the current commit with fixes (use for draft PRs / shift-left workflows)
+
+**Based on the user's choices:**
 - If "Cancel": Exit the skill
+- If "Review each issue": Proceed to Step 6 (manual review) with selected commit mode
+- If "Auto-fix all": Skip to Step 7 (auto-fix mode) with selected commit mode
+
+**Note:** Record the commit mode choice for use in Step 9.
 
 ### Step 6: Review and fix issues (manual mode)
 
@@ -239,9 +245,9 @@ If "Review each issue" was selected:
   - **WAIT for user's choice via AskUserQuestion**
   - **If "Apply fix" selected:**
     - Apply change using Edit tool (or Write if creating new file)
-    - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
-    - **Gerrit:** Do NOT commit yet — stage the change (`git add <modified-files>`) but wait until all fixes are applied, then amend into a single commit (see Gerrit note below)
-    - Confirm: "✅ Fix applied!"
+    - **Stage only** (all providers): `git add <modified-files>` — do NOT commit yet
+    - Confirm: "✅ Fix applied and staged"
+    - Record issue as fixed with: severity, title, location, and commit message fragment
     - Mark issue as completed
   - **If "Defer" selected:**
     - Ask for deferral reason using AskUserQuestion
@@ -250,14 +256,7 @@ If "Review each issue" was selected:
     - Inform user they can make changes manually
     - Move to next issue
 - Continue until all "Fix" issues are addressed or the user decides to stop
-- **After all fixes are applied**, reply to all Qodo inline comments in one batch (see Step 8)
-
-**Gerrit commit strategy:** In Gerrit, each commit becomes a separate change. To keep all fixes as a single new patchset on the existing change:
-1. Apply all fixes (Edit tool) and stage them (`git add`)
-2. After ALL fixes are done, amend the original commit: `git commit --amend --no-edit`
-3. Push once in Step 9
-
-Do NOT create individual commits per fix for Gerrit.
+- **After all fixes are applied**, proceed to Step 6b (coherence pass and commit)
 
 #### Important notes
 
@@ -270,6 +269,35 @@ Do NOT create individual commits per fix for Gerrit.
 
 **Example:** Show location, Qodo's guidance, current code, proposed diff, then AskUserQuestion with options (✅ Apply fix / ⏭️ Defer / 🔧 Modify). Wait for user choice, apply via Edit tool if approved.
 
+### Step 6b: Coherence pass and commit
+
+After all fixes are applied (or user stops), create a single commit with all staged changes:
+
+1. **Coherence pass** - Check for conflicts or overlapping edits:
+   - Read the cumulative staged diff: `git diff --cached`
+   - Scan for potential conflicts: same file modified by multiple fixes, overlapping line ranges, contradicting changes
+   - If suspicious overlaps detected: surface to user with specific files/lines and ask whether to proceed
+   - If no issues: proceed silently to commit
+
+2. **Create structured commit message:**
+   ```
+   fix: resolve Qodo review findings
+
+   ✅ Fixed:
+   - [Action required] Insecure authentication check (src/auth/service.py:42)
+   - [Action required] Missing input validation (src/api/handlers.py:156)
+   - [Remediation recommended] Database query not awaited (src/db/repository.py:89)
+
+   ⏭️ Deferred:
+   - [Advisory] Style: prefer const over let (src/utils/helpers.ts:23) — reason: out of scope
+   ```
+
+3. **Commit with selected mode:**
+   - If "New commit" mode: `git commit -m "<structured message>"`
+   - If "Amend HEAD" mode: `git commit --amend -m "<structured message>"` (updates current commit in place)
+
+4. **Proceed to Step 8** (post summary and reply to comments)
+
 ### Step 7: Auto-fix mode
 
 If "Auto-fix all" was selected:
@@ -278,17 +306,25 @@ If "Auto-fix all" was selected:
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Apply the fix using Edit tool
-  - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
-  - **Gerrit:** Stage only (`git add <modified-files>`) — do NOT commit yet
+  - **Stage only** (all providers): `git add <modified-files>` — do NOT commit yet
   - Report each fix with the agent prompt that was followed:
     > ✅ **Fixed: [Issue Title]** at `[Location]`
     > **Agent prompt:** [the Qodo agent prompt used]
+  - Record issue as fixed with: severity, title, location, and commit message fragment
   - Mark issue as completed
-- **Gerrit:** After ALL fixes are applied, amend into one commit: `git commit --amend --no-edit`
-- Reply to all Qodo inline comments in one batch (see Step 8)
-- After all auto-fixes are applied, display summary:
-  - List of all issues that were fixed
-  - List of any issues that were skipped (with reasons)
+- After all auto-fixes are applied, proceed to Step 7b (coherence pass and commit)
+
+### Step 7b: Coherence pass and commit (auto-fix mode)
+
+Same as Step 6b - create a single commit with all staged changes:
+
+1. **Coherence pass** - Check `git diff --cached` for conflicts
+2. **Create structured commit message** with all fixed/deferred issues
+3. **Commit with selected mode** (New commit or Amend HEAD)
+4. **Display summary** to user:
+   - List of all issues that were fixed
+   - List of any issues that were skipped (with reasons)
+5. **Proceed to Step 8** (post summary and reply to comments)
 
 ### Step 8: Post summary and reply to comments
 
@@ -312,11 +348,15 @@ If resolve fails (comment not found, API error), continue — the summary commen
 
 ### Step 9: Push to remote
 
-If any fixes were applied (commits were created in Steps 6/7), ask the user if they want to push:
-- If yes: `git push` (for Gerrit: `git push origin HEAD:refs/for/<target-branch>` — this creates a new patchset on the existing change, matched by the `Change-Id` in the commit message. See [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
+If any fixes were applied (a commit was created in Step 6b/7b), ask the user if they want to push:
+- If yes:
+  - **GitHub / GitLab / Bitbucket / Azure DevOps:** `git push`
+  - **Gerrit:** `git push origin HEAD:refs/for/<target-branch>` (creates a new patchset on the existing change, matched by the `Change-Id` in the commit message. See [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
 - If no: Inform them they can push later with `git push`
 
-**Important:** If all issues were deferred, there are no commits to push — skip this step.
+**Notes:**
+- If all issues were deferred, there is no commit to push — skip this step
+- With "Amend HEAD" mode, existing commits are updated in place (force-push may be required for non-Gerrit providers - ask user first)
 
 ### Step 9b: Handle draft PR status
 
