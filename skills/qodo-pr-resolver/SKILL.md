@@ -305,6 +305,37 @@ If "Review each issue" was selected:
 
 **Example:** Show location, Qodo's guidance, current code, proposed diff, then AskUserQuestion with options (✅ Apply fix / ⏭️ Defer / 🔧 Modify). Wait for user choice, apply via Edit tool if approved.
 
+#### ⚠️ Important: Crash Recovery
+
+**If the agent terminates unexpectedly before reaching Step 6b/7b (commit step), you will have uncommitted staged changes.**
+
+**To check:**
+```bash
+git status          # See what's staged
+git diff --cached   # Review staged changes
+```
+
+**Recovery options:**
+
+1. **Commit partial work** (if changes look good):
+   ```bash
+   git commit -m "fix: partial Qodo fixes (incomplete session)"
+   ```
+
+2. **Discard and restart**:
+   ```bash
+   git reset --hard HEAD
+   # Re-run qodo-pr-resolver from scratch
+   ```
+
+3. **Save and seek help**:
+   ```bash
+   git stash save "qodo-resolver-partial-work"
+   # Changes saved in stash, restore later with: git stash pop
+   ```
+
+**Best practice:** Run skill on dedicated feature branches, never on main. Commit other work first (clean working tree).
+
 ### Step 6b: Coherence pass and commit
 
 After all fixes are applied (or user stops), create a single commit with all staged changes:
