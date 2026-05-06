@@ -229,21 +229,19 @@ Qodo Issues for PR #123: [PR Title]
 
 After displaying the table, ask the user how they want to proceed using AskUserQuestion:
 
-**Question 1: Fix mode**
+**Options:**
 - 🔍 "Review each issue" - Review and approve/defer each issue individually (recommended for careful review)
 - ⚡ "Auto-fix all" - Automatically apply all fixes marked as "Fix" without individual approval (faster, but less control)
 - ❌ "Cancel" - Exit without making changes
 
-**Question 2: Commit mode** (only if not "Cancel")
-- 🆕 "New commit" (Recommended) - Create a new commit with all fixes
+**If "Auto-fix all" selected, ask commit mode:**
+- 🆕 "New commit" (Recommended) - Create a new commit with all fixes at the end
 - ✏️ "Amend HEAD" - Update the current commit with fixes (use for draft PRs / shift-left workflows)
 
 **Based on the user's choices:**
 - If "Cancel": Exit the skill
-- If "Review each issue": Proceed to Step 6 (manual review) with selected commit mode
-- If "Auto-fix all": Skip to Step 7 (auto-fix mode) with selected commit mode
-
-**Note:** Record the commit mode choice for use in Step 9.
+- If "Review each issue": Proceed to Step 6 (manual review - commits per fix)
+- If "Auto-fix all": Skip to Step 7 (auto-fix mode - single commit at end) with selected commit mode
 
 ### Step 6: Review and fix issues (manual mode)
 
@@ -281,9 +279,8 @@ If "Review each issue" was selected:
       - If "Apply anyway": Proceed with fix (and warn PR scope is expanding)
     - If all target files ARE in the PR diff scope: Apply normally (no additional prompt)
     - Apply change using Edit tool (or Write if creating new file)
-    - **Stage only** (all providers): `git add <modified-files>` — do NOT commit yet
-    - Confirm: "✅ Fix applied and staged"
-    - Record issue as fixed with: severity, title, location, and commit message fragment
+    - **Commit immediately** (all providers): `git add <modified-files> && git commit -m "fix: <issue title>"`
+    - Confirm: "✅ Fix applied and committed"
     - Mark issue as completed
   - **If "Defer" selected:**
     - Ask for deferral reason using AskUserQuestion
@@ -292,7 +289,7 @@ If "Review each issue" was selected:
     - Inform user they can make changes manually
     - Move to next issue
 - Continue until all "Fix" issues are addressed or the user decides to stop
-- **After all fixes are applied**, proceed to Step 6b (coherence pass and commit)
+- **After all fixes are applied**, proceed to Step 8 (post summary and reply to comments)
 
 #### Important notes
 
@@ -304,66 +301,6 @@ If "Review each issue" was selected:
 **CRITICAL:** Single validation only - do NOT show the diff separately and then ask. Combine the diff display and the question into ONE message. The user should see: brief context → current code → proposed diff → AskUserQuestion, all at once.
 
 **Example:** Show location, Qodo's guidance, current code, proposed diff, then AskUserQuestion with options (✅ Apply fix / ⏭️ Defer / 🔧 Modify). Wait for user choice, apply via Edit tool if approved.
-
-#### ⚠️ Important: Crash Recovery
-
-**If the agent terminates unexpectedly before reaching Step 6b/7b (commit step), you will have uncommitted staged changes.**
-
-**To check:**
-```bash
-git status          # See what's staged
-git diff --cached   # Review staged changes
-```
-
-**Recovery options:**
-
-1. **Commit partial work** (if changes look good):
-   ```bash
-   git commit -m "fix: partial Qodo fixes (incomplete session)"
-   ```
-
-2. **Discard and restart**:
-   ```bash
-   git reset --hard HEAD
-   # Re-run qodo-pr-resolver from scratch
-   ```
-
-3. **Save and seek help**:
-   ```bash
-   git stash save "qodo-resolver-partial-work"
-   # Changes saved in stash, restore later with: git stash pop
-   ```
-
-**Best practice:** Run skill on dedicated feature branches, never on main. Commit other work first (clean working tree).
-
-### Step 6b: Coherence pass and commit
-
-After all fixes are applied (or user stops), create a single commit with all staged changes:
-
-1. **Coherence pass** - Check for conflicts or overlapping edits:
-   - Read the cumulative staged diff: `git diff --cached`
-   - Scan for potential conflicts: same file modified by multiple fixes, overlapping line ranges, contradicting changes
-   - If suspicious overlaps detected: surface to user with specific files/lines and ask whether to proceed
-   - If no issues: proceed silently to commit
-
-2. **Create structured commit message:**
-   ```
-   fix: resolve Qodo review findings
-
-   ✅ Fixed:
-   - [Action required] Insecure authentication check (src/auth/service.py:42)
-   - [Action required] Missing input validation (src/api/handlers.py:156)
-   - [Remediation recommended] Database query not awaited (src/db/repository.py:89)
-
-   ⏭️ Deferred:
-   - [Advisory] Style: prefer const over let (src/utils/helpers.ts:23) — reason: out of scope
-   ```
-
-3. **Commit with selected mode:**
-   - If "New commit" mode: `git commit -m "<structured message>"`
-   - If "Amend HEAD" mode: `git commit --amend -m "<structured message>"` (updates current commit in place)
-
-4. **Proceed to Step 8** (post summary and reply to comments)
 
 ### Step 7: Auto-fix mode
 
@@ -390,6 +327,37 @@ If "Auto-fix all" was selected:
   - Record issue as fixed with: severity, title, location, and commit message fragment
   - Mark issue as completed
 - After all auto-fixes are applied, proceed to Step 7b (coherence pass and commit)
+
+#### ⚠️ Important: Crash Recovery (Auto-fix Mode Only)
+
+**If the agent terminates unexpectedly before reaching Step 7b (commit step), you will have uncommitted staged changes.**
+
+**To check:**
+```bash
+git status          # See what's staged
+git diff --cached   # Review staged changes
+```
+
+**Recovery options:**
+
+1. **Commit partial work** (if changes look good):
+   ```bash
+   git commit -m "fix: partial Qodo fixes (incomplete session)"
+   ```
+
+2. **Discard and restart**:
+   ```bash
+   git reset --hard HEAD
+   # Re-run qodo-pr-resolver from scratch
+   ```
+
+3. **Save and seek help**:
+   ```bash
+   git stash save "qodo-resolver-partial-work"
+   # Changes saved in stash, restore later with: git stash pop
+   ```
+
+**Note:** This crash risk only applies to auto-fix mode. Manual mode commits after each fix, so partial progress is always saved.
 
 ### Step 7b: Coherence pass and commit (auto-fix mode)
 
@@ -479,15 +447,18 @@ If resolve fails (comment not found, API error), continue — the summary commen
 
 ### Step 9: Push to remote
 
-If any fixes were applied (a commit was created in Step 6b/7b), ask the user if they want to push:
+If any fixes were applied (commits were created), ask the user if they want to push:
+- **Manual mode:** Multiple commits created (one per fix in Step 6)
+- **Auto-fix mode:** Single commit created (in Step 7b)
+
 - If yes:
   - **GitHub / GitLab / Bitbucket / Azure DevOps:** `git push`
   - **Gerrit:** `git push origin HEAD:refs/for/<target-branch>` (creates a new patchset on the existing change, matched by the `Change-Id` in the commit message. See [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
 - If no: Inform them they can push later with `git push`
 
 **Notes:**
-- If all issues were deferred, there is no commit to push — skip this step
-- With "Amend HEAD" mode, existing commits are updated in place (force-push may be required for non-Gerrit providers - ask user first)
+- If all issues were deferred, there are no commits to push — skip this step
+- With "Amend HEAD" mode (auto-fix only), existing commits are updated in place (force-push may be required for non-Gerrit providers - ask user first)
 
 ### Step 9b: Handle draft PR status
 
