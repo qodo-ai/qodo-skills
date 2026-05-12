@@ -2,7 +2,7 @@
 
 Shift-left code review skills for AI coding agents. Bring Qodo's quality standards and code review capabilities into your local development workflow.
 
-**Compatible with:** Claude Code, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
+**Compatible with:** Claude Code, Codex, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
 
 ## Available Skills
 
@@ -50,10 +50,25 @@ npx skills add qodo-ai/qodo-skills/skills/qodo-pr-resolver
 
 **Works with:**
 - **Claude Code** - Skills available as `/qodo-get-rules`, `/qodo-pr-resolver`
+- **Codex** - Skills available from `/skills`; invoke with `$qodo-get-rules` or `$qodo-pr-resolver`
 - **Cursor** - Skills available in command palette
 - **Windsurf** - Skills available in flow menu
 - **Cline** - Skills available via skill invocation
 - **Any agent** supporting [agentskills.io](https://agentskills.io)
+
+### Codex
+
+Codex supports Agent Skills and discovers project skills from `.agents/skills/` and user skills from `$HOME/.agents/skills/`.
+
+To use Qodo skills with Codex, install with the Agent Skills CLI above if your skill manager is configured for Codex, or copy/symlink the skill folders into the user-level Codex skills directory:
+
+```bash
+mkdir -p "$HOME/.agents/skills"
+ln -s "$(pwd)/skills/qodo-get-rules" "$HOME/.agents/skills/qodo-get-rules"
+ln -s "$(pwd)/skills/qodo-pr-resolver" "$HOME/.agents/skills/qodo-pr-resolver"
+```
+
+Restart Codex if newly installed skills do not appear in `/skills`.
 
 ### Agent-Specific Directories
 
@@ -62,6 +77,7 @@ Skills are automatically installed to the correct location for your agent:
 | Agent | Installation Directory |
 |-------|----------------------|
 | Claude Code | `~/.claude/skills/` or `.claude/skills/` |
+| Codex | `$HOME/.agents/skills/` or `.agents/skills/` |
 | Cursor | `~/.cursor/skills/` or `.cursor/skills/` |
 | Windsurf | `~/.windsurf/skills/` or `.windsurf/skills/` |
 | Cline | `~/.cline/skills/` or `.cline/skills/` |
@@ -159,6 +175,14 @@ After installation, invoke skills directly in your agent:
 ```bash
 /qodo-get-rules      # Fetch coding rules
 /qodo-pr-resolver    # Fix PR review issues
+```
+
+**Codex:**
+These are Codex commands, not terminal commands:
+
+```text
+$qodo-get-rules      # Fetch coding rules
+$qodo-pr-resolver    # Fix PR review issues
 ```
 
 **Cursor / Windsurf / Cline:**
