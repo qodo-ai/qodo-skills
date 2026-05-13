@@ -143,7 +143,7 @@ az repos pr list --source-branch <branch-name> --status active --output json
 
 ## Fetch Review Comments
 
-Qodo posts both **summary comments** (PR-level) and **inline review comments** (per-line). Fetch both.
+Qodo posts **summary comments** (PR-level), **inline review comments** (per-line), and on GitHub a **review submission body** (`pulls/<n>/reviews`). Fetch all three. **Run the calls in parallel** — fire each provider command as a separate tool call in a single assistant message rather than serializing them. On rate-limit (403), retry just the failed call.
 
 ### GitHub
 
