@@ -263,6 +263,7 @@ If "Review each issue" was selected:
 
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
+  - **Premise check:** before applying, ask once — does this finding still apply given current code + repo context? Qodo can be wrong (false positives on test fixtures, wrong-language idiom suggestions, refactor proposals that don't fit the codebase). If the premise is wrong → skip the fix and defer with reason `"Qodo premise incorrect: <one-liner>"`. Step 8's reply will explain to Qodo; the next review pass will see and adjust.
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
   - **Present the fix and ask for approval in a SINGLE step:**
@@ -314,6 +315,7 @@ If "Auto-fix all" was selected:
 
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
+  - **Premise check:** quick sanity pass — if Qodo's finding is clearly wrong relative to the current code (premise no longer holds), mark the issue deferred with reason `"Qodo premise incorrect: <one-liner>"` and continue. Do not pause for user input in auto-fix mode; record the decision for Step 8's summary.
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Apply the fix using Edit tool
   - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
