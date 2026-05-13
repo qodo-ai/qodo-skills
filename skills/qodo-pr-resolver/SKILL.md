@@ -167,6 +167,25 @@ Deduplicate issues across summary and inline comments:
 
 **Gerrit deduplication:** Qodo inline comments contain an **Agent Prompt** section (rendered as plain text — Gerrit doesn't support expandable blocks) with detailed fix instructions. When deduplicating, preserve the Agent Prompt from each unique finding.
 
+#### Step 3c: Detect clusters (root-cause consolidation)
+
+Dedup-by-title catches the obvious duplicates. It misses **clusters** — multiple findings with different titles but one root cause (e.g. three "missing null check" issues that share an unvalidated input path; four "unused import" findings from one module reshuffle; five suggestions that all point at a missing helper).
+
+After Step 3b returns the deduplicated set, run a single synthesis pass:
+
+- Group by **file proximity** — issues in the same file within ±50 lines of each other.
+- Group by **shared theme keywords** — title or agent-prompt overlap on terms like "null check", "await", "validation", "logging", "error handling".
+
+If at least one cluster is found, surface it to the user **ONCE at the start of Step 6** via AskUserQuestion:
+
+> "Issues 2, 4, 7 all touch the retry logic — handle as one architectural change or one-by-one?"
+>
+> Options: "Handle together" / "One-by-one (default)" / "Skip cluster, address others"
+
+Don't auto-merge — the "ask, don't decide" framing avoids false clustering (sometimes co-location is coincidence). If the user picks "Handle together", route the cluster through Step 6 once with combined agent prompts and post N inline replies pointing at the consolidating commit.
+
+Why this matters: Qodo's per-line granularity often surfaces 3–4 inline comments for one underlying smell. Stepping through each separately wastes time and produces messy commit history.
+
 ### Step 4: Parse and display the issues
 
 - Extract the review body/comments from Qodo's review
