@@ -53,6 +53,24 @@ Look for comments from: **`pr-agent-pro`**, **`pr-agent-pro-staging`**, **`qodo-
 2. **PR Code Suggestions** ✨ - Categorized improvements with importance ratings
 3. **Code Review by Qodo** - Structured issues with 🐞/📘/📎 sections and agent prompts (most detailed)
 
+## Looping (opt-in)
+
+By default this skill runs once. Pass `watch` or a trailing `every Nm`/`every Nh` to arm a recurring cron so new Qodo reviews after each push are picked up without re-typing the command.
+
+- `/qodo-pr-resolver` → one-shot (default)
+- `/qodo-pr-resolver watch` → arm 30-minute cron
+- `/qodo-pr-resolver every 10m` → arm 10-minute cron
+- `/qodo-pr-resolver once` → explicit one-shot (same as default)
+
+**Mechanics:**
+
+1. Run one pass per the steps below.
+2. If looping was requested, at end of pass call `CronList` first; if a recurring `/qodo-pr-resolver` job already exists, skip and remind the user of its ID + cadence. Otherwise `CronCreate` with prompt `/qodo-pr-resolver`, `recurring: true`, and the chosen schedule. Surface the job ID so the user can `CronDelete <id>` later. 7-day session expiry is the backstop.
+3. **Stop conditions:** PR not `OPEN` (closed/merged) — detect via Step 2's PR lookup, exit without arming the next cron. User says "stop"/"cancel" → `CronDelete` and confirm.
+4. **Cron-fire re-entry:** when a fire re-enters the skill with the same prompt, run the pass as normal — step 2 above detects the existing job and skips re-arming.
+
+Convert intervals to cron with off-minute offsets (e.g. `5m` → `3-59/5 * * * *`, not `*/5 * * * *`) to avoid fleet-alignment on the `:00`/`:30` marks. For intervals that don't cleanly divide their unit, pick the nearest clean one and tell the user what you rounded to.
+
 ## Instructions
 
 When the user asks for a code review, to see Qodo issues, or fix Qodo comments:
