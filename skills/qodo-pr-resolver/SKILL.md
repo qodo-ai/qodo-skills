@@ -332,33 +332,33 @@ If "Auto-fix all" was selected:
   - List of all issues that were fixed
   - List of any issues that were skipped (with reasons)
 
-### Step 8: Post summary and reply to comments
+### Step 8: Prepare summary and replies (DO NOT post yet)
 
-**REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred.
+After all issues have been reviewed (fixed or deferred), **draft** the summary comment AND the per-issue inline replies into temp files. **Do not post them yet** — they fire in Step 9's atomic chain so Qodo's webhook re-scan sees the push, summary, and replies as one event. Posting the summary before the push lets the bot re-flag just-fixed issues during the re-scan window.
 
-See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
+See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) and [§ Reply to Inline Comments](./resources/providers.md#reply-to-inline-comments) for provider-specific commands and the reply format. **REQUIRED:** always draft a summary, even if all issues were deferred.
 
-**Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
+**Gerrit exception:** Gerrit's unified `/review` endpoint already batches summary + replies into a single atomic API call — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment). The chaining concern (next step) is GitHub/GitLab/Bitbucket/Azure DevOps only.
 
 **Important resolution rules for inline replies:**
 - **Fixed** issues: set `"unresolved": false` (resolves the thread)
 - **Deferred** issues: set `"unresolved": false` (resolves the thread — the next Qodo review will re-evaluate)
 
-**After posting the summary, resolve the Qodo review comment:**
+**Also prepare the Qodo review-comment acknowledgment.** Find the Qodo "Code Review by Qodo" comment ID; the resolve-or-react command will fire as part of Step 9's chain. See [providers.md § Resolve Qodo Review Comment](./resources/providers.md#resolve-qodo-review-comment).
 
-Find the Qodo "Code Review by Qodo" comment and mark it as resolved or react to acknowledge it.
+### Step 9: Atomic publish — push + summary + replies
 
-See [providers.md § Resolve Qodo Review Comment](./resources/providers.md#resolve-qodo-review-comment) for provider-specific commands.
+Chain the push, summary post, inline replies, and Qodo-comment resolution into a **single approval gate**. **Why:** webhook-driven bots (including Qodo itself) re-scan the PR on push events. If the summary and replies don't land in the same webhook window as the push, the bot may re-flag the just-fixed issues because the post-push state doesn't yet include the acknowledgments.
 
-If resolve fails (comment not found, API error), continue — the summary comment is the important part.
+**Order matters:** push must precede the summary (the summary may reference SHAs); summary must precede inline replies (replies may cite the summary URL). Use `&&` short-circuit semantics — if push fails, the summary doesn't post (don't leave a summary citing commits the remote doesn't have); if summary fails, replies still try independently.
 
-### Step 9: Push to remote
+Ask for approval on the bundle as one unit ("approve push + summary + N replies + resolve?"). The "ask before push" rule still applies, but it's one gate, not many. Clean up the temp files after the command succeeds. If resolve/reaction fails, continue — the summary is the important part.
 
-If any fixes were applied (commits were created in Steps 6/7), ask the user if they want to push:
-- If yes: `git push` (for Gerrit: `git push origin HEAD:refs/for/<target-branch>` — this creates a new patchset on the existing change, matched by the `Change-Id` in the commit message. See [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
-- If no: Inform them they can push later with `git push`
+See [providers.md § Atomic Publish](./resources/providers.md#atomic-publish-push--summary--replies) for the chained command per provider.
 
-**Important:** If all issues were deferred, there are no commits to push — skip this step.
+**If all issues were deferred**, there are no commits to push — skip `git push`, post the summary + replies as a chained command without the push prefix.
+
+**Gerrit:** Step 9 is just the push (`git push origin HEAD:refs/for/<target-branch>`) — Step 8's unified `/review` POST already published summary + replies. See [gerrit.md § Push Changes](./resources/gerrit.md#push-changes).
 
 ### Step 9b: Handle draft PR status
 

@@ -342,6 +342,60 @@ az devops invoke --area git --resource pullRequestThreadComments \
   --http-method PATCH --api-version 7.1 --in-file /tmp/ado_comment_patch.json --output json
 ```
 
+## Atomic Publish (push + summary + replies)
+
+Chain push, summary post, inline replies, and Qodo-comment reaction into one `&&`-short-circuited command so webhook-driven bots (Qodo included) see the push and the acknowledgments in the same event window. Without this, the bot's re-scan may re-flag the just-fixed issues.
+
+### GitHub
+
+```bash
+git push && \
+  gh pr comment <pr-number> --body-file <summary-path> && \
+  gh api repos/<owner>/<repo>/pulls/<pr-number>/comments/<inline-id-A>/replies -X POST -F body=@<reply-A-path> && \
+  gh api repos/<owner>/<repo>/pulls/<pr-number>/comments/<inline-id-B>/replies -X POST -F body=@<reply-B-path> && \
+  gh api -X POST repos/<owner>/<repo>/issues/comments/<qodo-summary-id>/reactions -f content=+1
+```
+
+Repeat the inline-reply line for each comment. If a reply fails, the chain stops; that's intentional — don't leave the bot acknowledging a fix that never published.
+
+### GitLab
+
+```bash
+git push && \
+  glab api "/projects/:id/merge_requests/<mr-iid>/notes" -X POST -F body=@<summary-path> && \
+  glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<id>/notes" -X POST -F body=@<reply-path>
+```
+
+### Bitbucket
+
+```bash
+git push && \
+  curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" -X POST \
+    "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments" \
+    -H "Content-Type: application/json" -d @<summary.json> && \
+  curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" -X POST \
+    "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments" \
+    -H "Content-Type: application/json" -d @<reply.json>
+```
+
+### Azure DevOps
+
+```bash
+git push && \
+  az devops invoke --area git --resource pullRequestThreads \
+    --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> \
+    --http-method POST --api-version 7.1 --in-file <summary.json> --output json && \
+  az devops invoke --area git --resource pullRequestThreadComments \
+    --route-parameters project=$ADO_PROJECT repositoryId=$ADO_REPO_ID pullRequestId=<pr-id> threadId=<thread-id> \
+    --http-method POST --api-version 7.1 --in-file <reply.json> --output json
+```
+
+### Gerrit
+
+Gerrit's unified `/review` endpoint already publishes summary + replies in one atomic call — see [gerrit.md § Post Summary Comment](./gerrit.md#post-summary-comment). Step 9 is just the push.
+
+If all issues were deferred and no commits were created, drop the `git push &&` prefix; the rest of the chain stays the same.
+
 ## Resolve Qodo Review Comment
 
 After posting the summary, resolve the main Qodo review comment.
