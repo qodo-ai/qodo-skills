@@ -153,6 +153,10 @@ gh pr view <pr-number> --json comments
 
 # Inline review comments (per-line comments on specific code)
 gh api repos/{owner}/{repo}/pulls/<pr-number>/comments
+
+# Review submission bodies (Qodo's main review sometimes lands here, esp. CHANGES_REQUESTED)
+# Skip entries with empty body unless state is CHANGES_REQUESTED.
+gh api repos/{owner}/{repo}/pulls/<pr-number>/reviews
 ```
 
 ### GitLab
