@@ -192,12 +192,14 @@ az devops invoke \
 
 Use the inline comment ID preserved during deduplication to reply directly to Qodo's comments.
 
+**Pass bodies via file, not inline strings.** Inline forms (`-f body='…'`, `-d '{"content":"…"}'`) hit shell-quoting hazards — backticks, `$`, newlines silently corrupt `@mentions`/markdown. Write each body to a temp file (e.g. `.git/<name>.md` or `.json`), pass with `-F body=@<path>` / `--body-file <path>` / `-d @<path>`, delete after. Also scan reply text for `#\d+` patterns before posting — GitHub auto-links these to PRs/issues, so Qodo's "Item 2" / "Item 3" references get misrendered; reword (`item 2`) or escape (`\#2`).
+
 ### GitHub
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/<pr-number>/comments/<inline-comment-id>/replies \
   -X POST \
-  -f body='<reply-body>'
+  -F body=@<path-to-reply-body>
 ```
 
 **Reply format:**
@@ -209,17 +211,18 @@ gh api repos/{owner}/{repo}/pulls/<pr-number>/comments/<inline-comment-id>/repli
 ```bash
 glab api "/projects/:id/merge_requests/<mr-iid>/discussions/<discussion-id>/notes" \
   -X POST \
-  -f body='<reply-body>'
+  -F body=@<path-to-reply-body>
 ```
 
 ### Bitbucket
 
 ```bash
+# JSON body file: {"content": {"raw": "<reply-body>"}, "parent": {"id": <inline-comment-id>}}
 curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
   -H "Content-Type: application/json" \
   -X POST \
   "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments" \
-  -d '{"content": {"raw": "<reply-body>"}, "parent": {"id": <inline-comment-id>}}'
+  -d @<path-to-bitbucket-reply.json>
 ```
 
 ### Azure DevOps
@@ -239,28 +242,31 @@ az devops invoke \
 
 ## Post Summary Comment
 
-After reviewing all issues, post a summary comment to the PR/MR.
+After reviewing all issues, post a summary comment to the PR/MR. Same body-via-file rule as the inline reply section above.
 
 ### GitHub
 
 ```bash
-gh pr comment <pr-number> --body '<comment-body>'
+gh pr comment <pr-number> --body-file <path-to-summary>
 ```
 
 ### GitLab
 
 ```bash
-glab mr comment <mr-iid> --message '<comment-body>'
+glab api "/projects/:id/merge_requests/<mr-iid>/notes" \
+  -X POST \
+  -F body=@<path-to-summary>
 ```
 
 ### Bitbucket
 
 ```bash
+# JSON body file: {"content": {"raw": "<comment-body>"}}
 curl -s -u "$BB_USERNAME:$BB_APP_PASSWORD" \
   -H "Content-Type: application/json" \
   -X POST \
   "https://api.bitbucket.org/2.0/repositories/$BB_WORKSPACE/$BB_REPO/pullrequests/<pr-id>/comments" \
-  -d '{"content": {"raw": "<comment-body>"}}'
+  -d @<path-to-bitbucket-summary.json>
 ```
 
 ### Azure DevOps
