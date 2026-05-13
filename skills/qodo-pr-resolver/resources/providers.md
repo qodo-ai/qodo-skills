@@ -398,7 +398,7 @@ If all issues were deferred and no commits were created, drop the `git push &&` 
 
 ## Resolve Qodo Review Comment
 
-After posting the summary, resolve the main Qodo review comment.
+After posting the summary, resolve the main Qodo review comment. **Gated on `AUTO_RESOLVE` from Step 5**: if `true`, run the resolve/mark-fixed command below; if `false`, run only the 👍 reaction (acknowledgment without losing thread context for human readers).
 
 **Steps:**
 1. Fetch all PR/MR comments

@@ -247,14 +247,20 @@ Qodo Issues for PR #123: [PR Title]
 
 ### Step 5: Ask user for fix preference
 
-After displaying the table, ask the user how they want to proceed using AskUserQuestion:
+After displaying the table, ask the user **two questions in one AskUserQuestion call** (the tool supports up to 4 questions per invocation):
 
-**Options:**
+**Question 1 — How to proceed?**
 - 🔍 "Review each issue" - Review and approve/defer each issue individually (recommended for careful review)
 - ⚡ "Auto-fix all" - Automatically apply all fixes marked as "Fix" without individual approval (faster, but less control)
 - ❌ "Cancel" - Exit without making changes
 
-**Based on the user's choice:**
+**Question 2 — Auto-resolve threads after fix/defer?**
+- ✅ "Yes" - Set `unresolved: false` on inline replies; mark the main Qodo review comment resolved. Faster cleanup; Qodo re-evaluates on next pass.
+- 🟡 "No" - Leave threads unresolved so human teammates can still see the discussion; only react 👍 on acknowledgments.
+
+Record Question 2's answer as `AUTO_RESOLVE = true|false`. Step 8's resolution rules and Step 9's chain depend on it.
+
+**Based on Question 1's choice:**
 - If "Review each issue": Proceed to Step 6 (manual review)
 - If "Auto-fix all": Skip to Step 7 (auto-fix mode - apply all "Fix" issues automatically using Qodo's agent prompts)
 - If "Cancel": Exit the skill
@@ -340,11 +346,11 @@ See [providers.md § Post Summary Comment](./resources/providers.md#post-summary
 
 **Gerrit exception:** Gerrit's unified `/review` endpoint already batches summary + replies into a single atomic API call — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment). The chaining concern (next step) is GitHub/GitLab/Bitbucket/Azure DevOps only.
 
-**Important resolution rules for inline replies:**
-- **Fixed** issues: set `"unresolved": false` (resolves the thread)
-- **Deferred** issues: set `"unresolved": false` (resolves the thread — the next Qodo review will re-evaluate)
+**Important resolution rules for inline replies** (depend on `AUTO_RESOLVE` from Step 5):
+- If `AUTO_RESOLVE = true`: set `"unresolved": false` on both Fixed and Deferred replies (resolves the thread; Qodo re-evaluates next pass).
+- If `AUTO_RESOLVE = false`: omit the `unresolved` field (leave threads unresolved so human teammates can still see the discussion). Replies still post normally; only the resolution state is skipped.
 
-**Also prepare the Qodo review-comment acknowledgment.** Find the Qodo "Code Review by Qodo" comment ID; the resolve-or-react command will fire as part of Step 9's chain. See [providers.md § Resolve Qodo Review Comment](./resources/providers.md#resolve-qodo-review-comment).
+**Also prepare the Qodo review-comment acknowledgment.** Find the Qodo "Code Review by Qodo" comment ID. If `AUTO_RESOLVE = true`, prepare the resolve command; otherwise prepare only the 👍 reaction. Either fires as part of Step 9's chain. See [providers.md § Resolve Qodo Review Comment](./resources/providers.md#resolve-qodo-review-comment).
 
 ### Step 9: Atomic publish — push + summary + replies
 
