@@ -203,8 +203,10 @@ gh api repos/{owner}/{repo}/pulls/<pr-number>/comments/<inline-comment-id>/repli
 ```
 
 **Reply format:**
-- **Fixed:** `✅ **Fixed** — <brief description of what was changed>`
-- **Deferred:** `⏭️ **Deferred** — <reason for deferring>`
+- Prefix replies with the Qodo bot's `@<login>` (short form, no `[bot]` suffix — e.g. `@qodo-merge`). The bot reads PR activity via webhooks, not `@mentions`, but the prefix is a visual cue for humans scanning the thread to see which bot the reply is addressed to.
+- **Fixed:** `@qodo-merge ✅ **Fixed** — <brief description of what was changed>`
+- **Deferred:** `@qodo-merge ⏭️ **Deferred** — <reason for deferring>`
+- Cite Qodo items by title, not number — e.g. `Item 2 ("Unnecessary heavy module import")`, not bare `Item 2`. Qodo renumbers items between passes as issues resolve and new ones appear; bare numbers rot, titles are stable.
 
 ### GitLab
 
