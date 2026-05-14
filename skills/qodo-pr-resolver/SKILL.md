@@ -123,7 +123,7 @@ Qodo typically posts in three places: a **summary comment** (PR-level), **inline
 
 See [providers.md § Fetch Review Comments](./resources/providers.md#fetch-review-comments) for provider-specific commands.
 
-**Fetch in parallel.** Once Step 2 returns the PR number, fire the three comment endpoints (plus `gh api user --jq .login` for own-comment filtering and `git log -5 --oneline` for commit-style matching in Step 6/7) as parallel tool calls in a single assistant message — not as a serial chain. Latency gains matter most on self-hosted providers. If any single call returns rate-limited (403), retry just that one serially after a brief wait; the bucket is shared but parallel batches of 5–6 are usually fine.
+**Fetch in parallel.** Once Step 2 returns the PR number, fire the three comment endpoints (plus the provider's current-user lookup for own-comment filtering and `git log -5 --oneline` for commit-style matching in Step 6/7) as parallel tool calls in a single assistant message — not as a serial chain. Latency gains matter most on self-hosted providers. If any single call returns rate-limited (403), retry just that one serially after a brief wait; the bucket is shared but parallel batches of 5–6 are usually fine.
 
 Look for comments where the author is "qodo-merge[bot]", "pr-agent-pro", "pr-agent-pro-staging" or similar Qodo bot name. For review submissions, skip entries with empty `body` unless `state` is `CHANGES_REQUESTED`.
 
