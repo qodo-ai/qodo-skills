@@ -356,7 +356,7 @@ See [providers.md § Post Summary Comment](./resources/providers.md#post-summary
 
 Chain the push, summary post, inline replies, and Qodo-comment resolution into a **single approval gate**. **Why:** webhook-driven bots (including Qodo itself) re-scan the PR on push events. If the summary and replies don't land in the same webhook window as the push, the bot may re-flag the just-fixed issues because the post-push state doesn't yet include the acknowledgments.
 
-**Order matters:** push must precede the summary (the summary may reference SHAs); summary must precede inline replies (replies may cite the summary URL). Use `&&` short-circuit semantics — if push fails, the summary doesn't post (don't leave a summary citing commits the remote doesn't have); if summary fails, replies still try independently.
+**Order matters:** push must precede the summary (the summary may reference SHAs); summary must precede inline replies (replies may cite the summary URL). Use `&&` short-circuit semantics — the chain stops at the first failure, by design: a failed push doesn't leave a summary citing unpushed commits, and a failed summary doesn't leave replies citing a non-existent summary URL. If you want "best-effort replies" after a summary failure, don't use a pure `&&` chain — handle the missing summary URL explicitly.
 
 Ask for approval on the bundle as one unit ("approve push + summary + N replies + resolve?"). The "ask before push" rule still applies, but it's one gate, not many. Clean up the temp files after the command succeeds. If resolve/reaction fails, continue — the summary is the important part.
 
