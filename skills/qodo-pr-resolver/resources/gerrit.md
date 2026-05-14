@@ -210,7 +210,7 @@ curl -s -u "$GERRIT_USERNAME:$GERRIT_HTTP_PASSWORD" \
 }
 ```
 
-Summary format: same as [providers.md § Summary format](./providers.md#post-summary-comment).
+Summary format: same as [providers.md § Summary format](./providers.md#summary-format).
 
 ## Resolve Comments
 
