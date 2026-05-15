@@ -148,6 +148,26 @@ Deduplicate issues across summary and inline comments:
 
 **Gerrit deduplication:** Qodo inline comments contain an **Agent Prompt** section (rendered as plain text — Gerrit doesn't support expandable blocks) with detailed fix instructions. When deduplicating, preserve the Agent Prompt from each unique finding.
 
+#### Step 3c: Detect comment mode
+
+Classify the PR into one of three comment modes based on what was fetched:
+
+**Mode 1: Full Inline** (default/expected)
+- Both summary comment(s) AND inline review comments present
+- Each issue has an inline comment ID for replies
+- **User message:** Silent (no announcement needed)
+
+**Mode 2: Summary Only**
+- Summary comment(s) present, but NO inline review comments
+- OR inline-reply API fails on test call (restrictive permissions, rate limits)
+- **User message:** "ℹ️ Detected Qodo summary comment without inline threads — I'll consolidate per-issue resolution into the summary."
+
+**Mode 3: Inline Only**
+- Inline review comments present, but NO summary comment from Qodo
+- **User message:** "ℹ️ Detected inline comments without a summary — I'll generate a summary at the end."
+
+**Record the detected mode** for use in Step 8 (different reply strategies per mode).
+
 ### Step 4: Parse and display the issues
 
 - Extract the review body/comments from Qodo's review
@@ -214,18 +234,27 @@ After displaying the table, ask the user how they want to proceed using AskUserQ
 - ⚡ "Auto-fix all" - Automatically apply all fixes marked as "Fix" without individual approval (faster, but less control)
 - ❌ "Cancel" - Exit without making changes
 
-**Based on the user's choice:**
-- If "Review each issue": Proceed to Step 6 (manual review)
-- If "Auto-fix all": Skip to Step 7 (auto-fix mode - apply all "Fix" issues automatically using Qodo's agent prompts)
+**If "Auto-fix all" selected, ask commit mode:**
+- 🆕 "New commit" (Recommended) - Create a new commit with all fixes at the end
+- ✏️ "Amend HEAD" - Update the current commit with fixes (use for draft PRs / shift-left workflows)
+
+**Based on the user's choices:**
 - If "Cancel": Exit the skill
+- If "Review each issue": Proceed to Step 6 (manual review - commits per fix)
+- If "Auto-fix all": Skip to Step 7 (auto-fix mode - single commit at end) with selected commit mode
 
 ### Step 6: Review and fix issues (manual mode)
 
 If "Review each issue" was selected:
 
+**🔒 SCOPE GUARDRAIL:** At the start, compute the PR diff scope:
+- Get list of files in the PR diff: `git diff --name-only <base-branch>...HEAD`
+- Record this set for the duration of the fix loop
+- This prevents fixes from expanding PR scope beyond what was originally changed
+
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
-  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, but **only modify files in the current PR diff**. If the prompt implies modifications outside the diff, treat it as out-of-scope and follow the out-of-scope handling flow (see below). Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
   - **Present the fix and ask for approval in a SINGLE step:**
     1. Show a brief header with issue title and location
@@ -238,10 +267,20 @@ If "Review each issue" was selected:
        - 🔧 "Modify" - User wants to adjust the fix first
   - **WAIT for user's choice via AskUserQuestion**
   - **If "Apply fix" selected:**
+    - **🔒 SCOPE CHECK:** Before applying, verify which files this fix would modify
+    - If ANY target file is NOT in the PR diff scope:
+      - Surface to user: "⚠️ This fix would modify files outside the PR scope: `<outside-files>`"
+      - Use AskUserQuestion with options:
+        - ⏭️ "Defer" (Recommended) - Skip this issue
+        - ✅ "Apply anyway" - Expand PR scope to include these files
+        - 🔧 "Modify" - Adjust the fix first
+      - If "Defer": Record reason as "fix would modify files outside PR diff: `<files>`" and move to next issue
+      - If "Modify": Inform user and move to next issue
+      - If "Apply anyway": Proceed with fix (and warn PR scope is expanding)
+    - If all target files ARE in the PR diff scope: Apply normally (no additional prompt)
     - Apply change using Edit tool (or Write if creating new file)
-    - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
-    - **Gerrit:** Do NOT commit yet — stage the change (`git add <modified-files>`) but wait until all fixes are applied, then amend into a single commit (see Gerrit note below)
-    - Confirm: "✅ Fix applied!"
+    - **Commit immediately** (all providers): `git add <modified-files> && git commit -m "fix: <issue title>"`
+    - Confirm: "✅ Fix applied and committed"
     - Mark issue as completed
   - **If "Defer" selected:**
     - Ask for deferral reason using AskUserQuestion
@@ -250,14 +289,7 @@ If "Review each issue" was selected:
     - Inform user they can make changes manually
     - Move to next issue
 - Continue until all "Fix" issues are addressed or the user decides to stop
-- **After all fixes are applied**, reply to all Qodo inline comments in one batch (see Step 8)
-
-**Gerrit commit strategy:** In Gerrit, each commit becomes a separate change. To keep all fixes as a single new patchset on the existing change:
-1. Apply all fixes (Edit tool) and stage them (`git add`)
-2. After ALL fixes are done, amend the original commit: `git commit --amend --no-edit`
-3. Push once in Step 9
-
-Do NOT create individual commits per fix for Gerrit.
+- **After all fixes are applied**, proceed to Step 8 (post summary and reply to comments)
 
 #### Important notes
 
@@ -274,37 +306,140 @@ Do NOT create individual commits per fix for Gerrit.
 
 If "Auto-fix all" was selected:
 
+**🔒 SCOPE GUARDRAIL:** At the start, compute the PR diff scope:
+- Get list of files in the PR diff: `git diff --name-only <base-branch>...HEAD`
+- Record this set for the duration of the fix loop
+
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
-  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, but **only modify files in the current PR diff**. If the prompt implies modifications outside the diff, treat it as out-of-scope (defer automatically with reason). Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+  - **🔒 SCOPE CHECK:** Before applying, verify which files this fix would modify
+  - If ANY target file is NOT in the PR diff scope:
+    - Automatically defer with reason: "fix would modify files outside PR diff: `<outside-files>`"
+    - Report: "⏭️ **Deferred (Issue #N of M): [Issue Title]** — would modify files outside PR scope: `<files>`"
+    - Move to next issue
+  - If all target files ARE in the PR diff scope: Apply normally
   - Apply the fix using Edit tool
-  - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
-  - **Gerrit:** Stage only (`git add <modified-files>`) — do NOT commit yet
+  - **Stage only** (all providers): `git add <modified-files>` — do NOT commit yet
   - Report each fix with the agent prompt that was followed:
     > ✅ **Fixed: [Issue Title]** at `[Location]`
     > **Agent prompt:** [the Qodo agent prompt used]
+  - Record issue as fixed with: severity, title, location, and commit message fragment
   - Mark issue as completed
-- **Gerrit:** After ALL fixes are applied, amend into one commit: `git commit --amend --no-edit`
-- Reply to all Qodo inline comments in one batch (see Step 8)
-- After all auto-fixes are applied, display summary:
-  - List of all issues that were fixed
-  - List of any issues that were skipped (with reasons)
+- After all auto-fixes are applied, proceed to Step 7b (coherence pass and commit)
+
+#### ⚠️ Important: Crash Recovery (Auto-fix Mode Only)
+
+**If the agent terminates unexpectedly before reaching Step 7b (commit step), you will have uncommitted staged changes.**
+
+**To check:**
+```bash
+git status          # See what's staged
+git diff --cached   # Review staged changes
+```
+
+**Recovery options:**
+
+1. **Commit partial work** (if changes look good):
+   ```bash
+   git commit -m "fix: partial Qodo fixes (incomplete session)"
+   ```
+
+2. **Discard and restart**:
+   ```bash
+   git reset --hard HEAD
+   # Re-run qodo-pr-resolver from scratch
+   ```
+
+3. **Save and seek help**:
+   ```bash
+   git stash save "qodo-resolver-partial-work"
+   # Changes saved in stash, restore later with: git stash pop
+   ```
+
+**Note:** This crash risk only applies to auto-fix mode. Manual mode commits after each fix, so partial progress is always saved.
+
+### Step 7b: Coherence pass and commit (auto-fix mode)
+
+Same as Step 6b - create a single commit with all staged changes:
+
+1. **Coherence pass** - Check `git diff --cached` for conflicts
+2. **Create structured commit message** with all fixed/deferred issues
+3. **Commit with selected mode** (New commit or Amend HEAD)
+4. **Display summary** to user:
+   - List of all issues that were fixed
+   - List of any issues that were skipped (with reasons)
+5. **Proceed to Step 8** (post summary and reply to comments)
 
 ### Step 8: Post summary and reply to comments
 
 **REQUIRED:** After all issues have been reviewed (fixed or deferred), ALWAYS post a comment summarizing the actions taken, even if all issues were deferred.
 
-See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
+Route to the appropriate strategy based on comment mode (detected in Step 3c):
 
-**Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
+#### Mode 1: Full Inline (per-issue replies + brief summary)
 
-**Important resolution rules for inline replies:**
-- **Fixed** issues: set `"unresolved": false` (resolves the thread)
-- **Deferred** issues: set `"unresolved": false` (resolves the thread — the next Qodo review will re-evaluate)
+**Existing behavior - no changes needed:**
 
-**After posting the summary, resolve the Qodo review comment:**
+1. **Reply to each inline comment** with the decision:
+   - For **Fixed** issues: `"✅ Fixed in commit <sha>"`
+   - For **Deferred** issues: `"⏭️ Deferred — reason: <verbatim user reason>"`
+   - Set `"unresolved": false` for both (resolves the thread)
+   - **Retry logic:** If an inline reply fails, retry once. If second attempt fails, fall back to including that issue in the consolidated summary instead
 
-Find the Qodo "Code Review by Qodo" comment and mark it as resolved or react to acknowledge it.
+2. **Post brief top-level summary:**
+   ```
+   ## Qodo PR Resolver Summary
+
+   ✅ Fixed: 6 issues
+   ⏭️ Deferred: 2 issues
+
+   See inline replies for details.
+   ```
+
+3. **Resolve the Qodo review comment** (see below)
+
+#### Mode 2: Summary Only (consolidated summary, no inline replies)
+
+When inline comment IDs are missing, post a **structured consolidated summary** with one section per issue:
+
+```markdown
+## Qodo PR Resolver — Resolution Summary
+
+### ✅ Fixed (6)
+
+**1. [Action required] Insecure authentication check**
+- Location: `src/auth/service.py:42`
+- Fix: Inverted authorization check restored to correct logic
+- Commit: <sha>
+
+**2. [Action required] Missing input validation**
+- Location: `src/api/handlers.py:156`
+- Fix: User input now sanitized before database query
+- Commit: <sha>
+
+...
+
+### ⏭️ Deferred (2)
+
+**7. [Advisory] Style: prefer const over let**
+- Location: `src/utils/helpers.ts:23`
+- Reason: <verbatim user reason>
+```
+
+**Out-of-scope deferrals:** For issues deferred because they would modify files outside the PR diff, list the specific outside-diff files and add: "💡 Consider a follow-up PR for this issue."
+
+**Gerrit:** Batch the summary comment AND any available inline replies into a **single API call** using the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
+
+#### Mode 3: Inline Only (generate summary + inline replies)
+
+1. **Reply to each inline comment** (same as Mode 1)
+2. **Generate and post summary** (since Qodo didn't post one)
+3. **Resolve the Qodo review comment** (see below)
+
+#### All Modes: Resolve Qodo review comment
+
+After posting summary/replies, find the Qodo "Code Review by Qodo" comment and mark it as resolved or react to acknowledge it.
 
 See [providers.md § Resolve Qodo Review Comment](./resources/providers.md#resolve-qodo-review-comment) for provider-specific commands.
 
@@ -312,11 +447,18 @@ If resolve fails (comment not found, API error), continue — the summary commen
 
 ### Step 9: Push to remote
 
-If any fixes were applied (commits were created in Steps 6/7), ask the user if they want to push:
-- If yes: `git push` (for Gerrit: `git push origin HEAD:refs/for/<target-branch>` — this creates a new patchset on the existing change, matched by the `Change-Id` in the commit message. See [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
+If any fixes were applied (commits were created), ask the user if they want to push:
+- **Manual mode:** Multiple commits created (one per fix in Step 6)
+- **Auto-fix mode:** Single commit created (in Step 7b)
+
+- If yes:
+  - **GitHub / GitLab / Bitbucket / Azure DevOps:** `git push`
+  - **Gerrit:** `git push origin HEAD:refs/for/<target-branch>` (creates a new patchset on the existing change, matched by the `Change-Id` in the commit message. See [gerrit.md § Push Changes](./resources/gerrit.md#push-changes))
 - If no: Inform them they can push later with `git push`
 
-**Important:** If all issues were deferred, there are no commits to push — skip this step.
+**Notes:**
+- If all issues were deferred, there are no commits to push — skip this step
+- With "Amend HEAD" mode (auto-fix only), existing commits are updated in place (force-push may be required for non-Gerrit providers - ask user first)
 
 ### Step 9b: Handle draft PR status
 
