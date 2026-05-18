@@ -207,7 +207,9 @@ Qodo Issues for PR #123: [PR Title]
 
 ### Step 5: Ask user for fix preference
 
-After displaying the table, ask the user how they want to proceed using AskUserQuestion:
+**Single-finding shortcut:** If exactly **one** issue was parsed in Step 4, skip this question entirely — "Review each issue" and "Auto-fix all" collapse to the same thing with one finding and are misleading. Proceed directly to Step 6 (manual review) for that single issue. Step 6's per-issue prompt already offers ✅ Apply fix / ⏭️ Defer / 🔧 Modify, which covers both fixing and opting out.
+
+Otherwise (two or more issues), ask the user how they want to proceed using AskUserQuestion:
 
 **Options:**
 - 🔍 "Review each issue" - Review and approve/defer each issue individually (recommended for careful review)
