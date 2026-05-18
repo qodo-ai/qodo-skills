@@ -183,7 +183,7 @@ Multiple replies across files can be combined in a single request:
 {
   "comments": {
     "file1.py": [{"in_reply_to": "id1", "message": "Fixed", "unresolved": false}],
-    "file2.py": [{"in_reply_to": "id2", "message": "Deferred", "unresolved": true}]
+    "file2.py": [{"in_reply_to": "id2", "message": "Deferred", "unresolved": false}]
   }
 }
 ```
