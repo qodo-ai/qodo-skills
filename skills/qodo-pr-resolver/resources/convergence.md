@@ -29,35 +29,44 @@ Step 3** (no new endpoints), plus git log:
 
 ```bash
 # Prior *resolver* fix commits on this branch — matched by signature trailer, NOT a bare ^fix:
-# grep, so human conventional-commit `fix:` commits never pollute the ledger.
-git log --grep 'Qodo-PR-Resolver-Round:' origin/<base-branch>..HEAD
+# grep, so human conventional-commit `fix:` commits never pollute the ledger. Scan the whole
+# reachable history of the current branch (the trailer is unique to resolver commits, and the
+# base branch isn't known this early).
+git log --grep 'Qodo-PR-Resolver-Round:' HEAD
 ```
 
-From these, build a **decision ledger keyed by `file:line`** (the primary lookup key) — one entry
-per issue the resolver has acted on before:
+**Gerrit** keeps all fixes in one amended commit, so the trailer is never written to git there. On
+Gerrit the prior pass and round number come from the comment trail (prior fix-summary comments and
+`✅ **Fixed**` / `⏭️ **Deferred**` inline replies), not from `git log`.
+
+From these, build a **decision ledger keyed by `file` + issue `title`** (the primary lookup key) —
+one entry per issue the resolver has acted on before:
 
 | field | source |
 |-------|--------|
-| `key` (`file:line`) | precise location the issue was raised at — **primary lookup key** (from the inline comment) |
-| `title` | Qodo issue title (verbatim) |
+| `key` (`file` + `title`) | **primary lookup key** — file path + Qodo issue title (verbatim); stable across rounds even when a prior fix shifts the line numbers |
+| `line` | line the issue was raised at (from the inline comment) — recorded for display; used only to **disambiguate** multiple same-title findings in one file, never as the primary match key |
 | `decision` | `fixed` or `deferred` |
 | `rationale` | what was changed / why it was deferred |
-| `round` | which prior round (by summary-comment order) |
+| `round` | which prior round (commit-trailer round on GitHub/GitLab/Bitbucket/Azure DevOps; prior-summary count on Gerrit) |
 
 ## Tagging current issues against the ledger
 
-For each issue parsed in Step 4, look it up in the ledger **by its `file:line` key** (fall back to a
-`title` match only when line numbers have shifted since the prior round) and tag it:
+For each issue parsed in Step 4, look it up in the ledger **by its `file` + `title` key** — this is
+stable across rounds, whereas the line number shifts whenever a prior fix edits the file, so matching
+on the line alone would miss the very re-flagged issue the guard exists to catch. When one file has
+more than one ledger entry with the same title, use the recorded `line` to pick the nearest match.
+Then tag it:
 
-- **🔁 Repeat** — the issue's `file:line` matches a ledger entry that was already **fixed** in a
+- **🔁 Repeat** — the issue's `file` + `title` matches a ledger entry that was already **fixed** in a
   prior round, and Qodo is raising it again. The earlier fix either didn't satisfy Qodo or Qodo is
   re-deriving the same finding. Do **not** assume a fresh fix is needed.
-- **⚠️ Contradiction** — looked up at the **same `file:line`**, the new suggestion would **reverse**
+- **⚠️ Contradiction** — matched at the **same `file` + `title`**, the new suggestion would **reverse**
   a change the resolver made in a prior round, *or* it re-raises an issue the user **deliberately
   deferred**. This is the oscillation signal. Detect it by either:
-  - the new agent prompt asks to undo / invert what a prior resolver fix commit did at that
-    `file:line` (e.g. round N added a guard clause, round N+1 asks to remove it), or
-  - the `file:line` matches a ledger entry whose `decision` was `deferred`.
+  - the new agent prompt asks to undo / invert what a prior resolver fix commit did at that location
+    (e.g. round N added a guard clause, round N+1 asks to remove it), or
+  - the matched ledger entry's `decision` was `deferred`.
 - **(untagged)** — not seen before; handle normally.
 
 When the ledger is empty (first round, or history could not be fetched), treat every issue as
@@ -95,11 +104,12 @@ whether the prior fix is still present and correct:
 
 ## Oscillation cycle counting and hard stop
 
-For each `file:line`, count the **direction flips** recorded in the ledger — each time consecutive
-resolver rounds reversed the prior action at that location (add → remove → add = 2 flips).
+For each ledger entry (its `file` + `title` key), count the **direction flips** recorded in the
+ledger — each time consecutive resolver rounds reversed the prior action at that location
+(add → remove → add = 2 flips).
 
 - **0–1 flips** — handle via the normal ⚠️ Contradiction / 🔁 Repeat flow above.
-- **≥2 flips (the 3rd oscillation cycle at that `file:line`)** — **hard stop.** The resolver must
+- **≥2 flips (the 3rd oscillation cycle at that location)** — **hard stop.** The resolver must
   **refuse to apply** any further change at that location, *even if the user selects ✅ Apply*, and
   *even in manual mode*. The only way to proceed is an **explicit override message** from the user
   naming the location (e.g. `override oscillation guard for src/foo.py:42`). Absent an override,
