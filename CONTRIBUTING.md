@@ -218,7 +218,7 @@ main "$@"
 
 2. Test in your AI assistant:
    - Invoke manually: `/my-skill`
-   - In Codex, verify the skill appears in `/skills` or invoke it explicitly as `$my-skill`
+   - In Codex, run `/skills` inside Codex or invoke the skill in Codex chat as `$my-skill`
    - Test auto-invoke (if triggers defined)
    - Try edge cases and error scenarios
 

@@ -223,7 +223,7 @@ main "$@"
 
 **Coding agent verification:**
 - [ ] **Claude Code**: Tested with `/plugin install` or `npx skills add`
-- [ ] **Codex**: Tested with `/skills` or explicit `$skill-name` invocation
+- [ ] **Codex**: Tested by running `/skills` inside Codex or using explicit `$skill-name` invocation in Codex chat
 - [ ] **Cursor**: Tested with `npx skills add`
 - [ ] **Windsurf/Cline**: Tested with `npx skills add`
 - [ ] Trigger patterns work across agents

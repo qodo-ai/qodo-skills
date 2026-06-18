@@ -58,30 +58,33 @@ npx skills add qodo-ai/qodo-skills/skills/qodo-pr-resolver
 
 ### Codex
 
-Codex supports Agent Skills and discovers project skills from `.agents/skills/` and user skills from `$HOME/.agents/skills/`.
+Codex supports Agent Skills and discovers project skills from `.agents/skills/` and user skills from `$HOME/.agents/skills/`. See the [Codex Agent Skills documentation](https://developers.openai.com/codex/skills) for Codex discovery behavior and invocation syntax.
 
-To use Qodo skills with Codex, install with the Agent Skills CLI above if your skill manager is configured for Codex. For manual installation from a local checkout, copy the skill folders into the user-level Codex skills directory. Run these examples from the `qodo-skills` repository root, where `./skills/` exists.
+To use Qodo skills with Codex, install with the Agent Skills CLI above if your skill manager is configured for Codex. For manual installation from a local checkout, copy the skill folders into a Codex-discovered skills directory. Use `$HOME/.agents/skills/` for skills available across Codex workspaces, or `.agents/skills/` for project-local skills available only in the current repository. Run these examples from the `qodo-skills` repository root, where `./skills/` exists.
 
 macOS/Linux, Git Bash, or WSL:
 
 ```bash
-mkdir -p "$HOME/.agents/skills"
-mkdir -p "$HOME/.agents/skills/qodo-get-rules" "$HOME/.agents/skills/qodo-pr-resolver"
-cp -R ./skills/qodo-get-rules/. "$HOME/.agents/skills/qodo-get-rules/"
-cp -R ./skills/qodo-pr-resolver/. "$HOME/.agents/skills/qodo-pr-resolver/"
+# User-level install. For project-local install, set CODEX_SKILLS_DIR=".agents/skills".
+CODEX_SKILLS_DIR="$HOME/.agents/skills"
+mkdir -p "$CODEX_SKILLS_DIR/qodo-get-rules" "$CODEX_SKILLS_DIR/qodo-pr-resolver"
+cp -R ./skills/qodo-get-rules/. "$CODEX_SKILLS_DIR/qodo-get-rules/"
+cp -R ./skills/qodo-pr-resolver/. "$CODEX_SKILLS_DIR/qodo-pr-resolver/"
 ```
 
 Windows PowerShell:
 
 ```powershell
-New-Item -ItemType Directory -Force "$HOME\.agents\skills\qodo-get-rules", "$HOME\.agents\skills\qodo-pr-resolver"
-Copy-Item -Recurse -Force ".\skills\qodo-get-rules\*" "$HOME\.agents\skills\qodo-get-rules"
-Copy-Item -Recurse -Force ".\skills\qodo-pr-resolver\*" "$HOME\.agents\skills\qodo-pr-resolver"
+# User-level install. For project-local install, set $CodexSkillsDir = ".agents\skills".
+$CodexSkillsDir = Join-Path $HOME ".agents\skills"
+New-Item -ItemType Directory -Force "$CodexSkillsDir\qodo-get-rules", "$CodexSkillsDir\qodo-pr-resolver"
+Copy-Item -Recurse -Force ".\skills\qodo-get-rules\*" "$CodexSkillsDir\qodo-get-rules"
+Copy-Item -Recurse -Force ".\skills\qodo-pr-resolver\*" "$CodexSkillsDir\qodo-pr-resolver"
 ```
 
 Codex also supports symlinked skill folders, but copying avoids path-dependent links if you later move the checkout.
 
-Restart Codex if newly installed skills do not appear when running `/skills`.
+Restart Codex if newly installed skills do not appear when running `/skills` inside Codex.
 
 ### Agent-Specific Directories
 
@@ -191,7 +194,7 @@ After installation, invoke skills directly in your agent:
 ```
 
 **Codex:**
-These are Codex commands, not terminal commands:
+These are Codex chat commands, not terminal commands:
 
 ```text
 $qodo-get-rules      # Fetch coding rules
