@@ -207,7 +207,9 @@ Qodo Issues for PR #123: [PR Title]
 
 ### Step 5: Ask user for fix preference
 
-After displaying the table, ask the user how they want to proceed using AskUserQuestion:
+**Single-finding shortcut:** If exactly **one** issue was parsed in Step 4, skip this question entirely — "Review each issue" and "Auto-fix all" collapse to the same thing with one finding and are misleading. Proceed directly to Step 6 (manual review) for that single issue, **regardless of its Action ("Fix" or "Defer")**. Step 6's per-issue prompt always surfaces in single-finding mode, so the user is never silently skipped over.
+
+Otherwise (two or more issues), ask the user how they want to proceed using AskUserQuestion:
 
 **Options:**
 - 🔍 "Review each issue" - Review and approve/defer each issue individually (recommended for careful review)
@@ -223,7 +225,7 @@ After displaying the table, ask the user how they want to proceed using AskUserQ
 
 If "Review each issue" was selected:
 
-- For each issue marked as "Fix" (starting with CRITICAL):
+- For each issue marked as "Fix" (starting with CRITICAL) — **plus**, in single-finding mode, the lone issue even if marked "Defer":
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
@@ -233,23 +235,28 @@ If "Review each issue" was selected:
     3. Display current code snippet
     4. Display proposed change as markdown diff
     5. Immediately use AskUserQuestion with these options:
-       - ✅ "Apply fix" - Apply the proposed change
-       - ⏭️ "Defer" - Skip this issue (will prompt for reason)
-       - 🔧 "Modify" - User wants to adjust the fix first
+       - If the issue's Action is **"Fix"** (default for CRITICAL/HIGH, and most MEDIUM):
+         - ✅ "Apply fix" - Apply the proposed change
+         - ⏭️ "Defer" - Skip this issue (will prompt for reason)
+         - 🔧 "Modify" - User wants to adjust the fix first
+       - If the issue's Action is **"Defer"** (only reachable in single-finding mode):
+         - ⏭️ "Confirm defer" - Keep the deferral (will prompt for reason)
+         - ✅ "Apply fix anyway" - Apply the proposed change despite the suggested deferral
+         - 🔧 "Modify" - User wants to adjust the fix first
   - **WAIT for user's choice via AskUserQuestion**
-  - **If "Apply fix" selected:**
+  - **If "Apply fix" / "Apply fix anyway" selected:**
     - Apply change using Edit tool (or Write if creating new file)
     - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
     - **Gerrit:** Do NOT commit yet — stage the change (`git add <modified-files>`) but wait until all fixes are applied, then amend into a single commit (see Gerrit note below)
     - Confirm: "✅ Fix applied!"
     - Mark issue as completed
-  - **If "Defer" selected:**
+  - **If "Defer" / "Confirm defer" selected:**
     - Ask for deferral reason using AskUserQuestion
     - Record reason and move to next issue
   - **If "Modify" selected:**
     - Inform user they can make changes manually
     - Move to next issue
-- Continue until all "Fix" issues are addressed or the user decides to stop
+- Continue until all in-scope issues are addressed or the user decides to stop
 - **After all fixes are applied**, reply to all Qodo inline comments in one batch (see Step 8)
 
 **Gerrit commit strategy:** In Gerrit, each commit becomes a separate change. To keep all fixes as a single new patchset on the existing change:
