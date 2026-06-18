@@ -218,7 +218,7 @@ main "$@"
 
 2. Test in your AI assistant:
    - Invoke manually: `/my-skill`
-   - In Codex, run `/skills` inside Codex or invoke the skill in Codex chat as `$my-skill`
+   - In OpenAI Codex, run `/skills` inside Codex or invoke the skill in Codex chat as `$my-skill`
    - Test auto-invoke (if triggers defined)
    - Try edge cases and error scenarios
 
@@ -241,7 +241,7 @@ main "$@"
 
 **Cross-compatibility** (see [Testing Requirements in AGENTS.md](./AGENTS.md#testing-requirements) for full test matrix):
 - [ ] Tested on macOS, Linux (Ubuntu/Debian), and Windows
-- [ ] Tested with multiple coding agents (Claude Code, Codex, Cursor, etc.)
+- [ ] Tested with multiple coding agents (Claude Code, OpenAI Codex, Cursor, etc.)
 - [ ] If applicable: Tested with multiple git providers (GitHub, GitLab, Bitbucket, Azure DevOps)
 
 ## Submitting Your Contribution
@@ -289,7 +289,7 @@ Detailed description of what the skill does and why it's useful.
 
 **Agents:**
 - [ ] Tested with Claude Code
-- [ ] Tested with Codex (if applicable)
+- [ ] Tested with OpenAI Codex (if applicable)
 - [ ] Tested with Cursor
 - [ ] Tested with Windsurf/Cline (if applicable)
 

@@ -6,7 +6,7 @@
 
 **Purpose**: Shift-left code review skills that bring Qodo's quality standards into local development workflow.
 
-**Compatible Agents**: Claude Code, Codex, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
+**Compatible Agents**: Claude Code, OpenAI Codex, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
 
 ## Repository Structure
 
@@ -193,7 +193,7 @@ main "$@"
 | Dimension | Required Coverage | Priority |
 |-----------|------------------|----------|
 | **Git Providers** | GitHub, GitLab, Bitbucket, Azure DevOps | P0 for provider-dependent skills |
-| **Coding Agents** | Claude Code, Codex, Cursor, Windsurf, Cline | P0 for Claude Code, P1 for others |
+| **Coding Agents** | Claude Code, OpenAI Codex, Cursor, Windsurf, Cline | P0 for Claude Code, P1 for others |
 | **Operating Systems** | macOS, Ubuntu/Debian, Windows | P0 for all three |
 
 **Checklist before submitting:**
@@ -223,7 +223,7 @@ main "$@"
 
 **Coding agent verification:**
 - [ ] **Claude Code**: Tested with `/plugin install` or `npx skills add`
-- [ ] **Codex**: Tested by running `/skills` inside Codex or using explicit `$skill-name` invocation in Codex chat
+- [ ] **OpenAI Codex**: Tested by running `/skills` inside Codex or using explicit `$skill-name` invocation in Codex chat
 - [ ] **Cursor**: Tested with `npx skills add`
 - [ ] **Windsurf/Cline**: Tested with `npx skills add`
 - [ ] Trigger patterns work across agents

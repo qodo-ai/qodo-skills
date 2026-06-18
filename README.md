@@ -2,7 +2,7 @@
 
 Shift-left code review skills for AI coding agents. Bring Qodo's quality standards and code review capabilities into your local development workflow.
 
-**Compatible with:** Claude Code, Codex, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
+**Compatible with:** Claude Code, OpenAI Codex, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
 
 ## Available Skills
 
@@ -50,13 +50,13 @@ npx skills add qodo-ai/qodo-skills/skills/qodo-pr-resolver
 
 **Works with:**
 - **Claude Code** - Skills available as `/qodo-get-rules`, `/qodo-pr-resolver`
-- **Codex** - Skills available from `/skills`; invoke with `$qodo-get-rules` or `$qodo-pr-resolver`
+- **OpenAI Codex** - Skills available from `/skills`; invoke with `$qodo-get-rules` or `$qodo-pr-resolver`
 - **Cursor** - Skills available in command palette
 - **Windsurf** - Skills available in flow menu
 - **Cline** - Skills available via skill invocation
 - **Any agent** supporting [agentskills.io](https://agentskills.io)
 
-### Codex
+### OpenAI Codex
 
 Codex supports Agent Skills and discovers project skills from `.agents/skills/` and user skills from `$HOME/.agents/skills/`. See the [Codex Agent Skills documentation](https://developers.openai.com/codex/skills) for Codex discovery behavior and invocation syntax.
 
@@ -93,7 +93,7 @@ Skills are automatically installed to the correct location for your agent:
 | Agent | Installation Directory |
 |-------|----------------------|
 | Claude Code | `~/.claude/skills/` or `.claude/skills/` |
-| Codex | `$HOME/.agents/skills/` or `.agents/skills/` |
+| OpenAI Codex | `$HOME/.agents/skills/` or `.agents/skills/` |
 | Cursor | `~/.cursor/skills/` or `.cursor/skills/` |
 | Windsurf | `~/.windsurf/skills/` or `.windsurf/skills/` |
 | Cline | `~/.cline/skills/` or `.cline/skills/` |
@@ -193,7 +193,7 @@ After installation, invoke skills directly in your agent:
 /qodo-pr-resolver    # Fix PR review issues
 ```
 
-**Codex:**
+**OpenAI Codex:**
 These are Codex chat commands, not terminal commands:
 
 ```text
