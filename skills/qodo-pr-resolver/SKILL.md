@@ -307,6 +307,11 @@ If "Auto-fix all" was selected:
 
 See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
 
+**Do NOT let the summary comment trigger the chat agent.** The summary is a top-level PR comment; Qodo's chat agent wakes up on any top-level comment that addresses it. So in the summary comment:
+- Do NOT start it with `qodo`, `@qodo`, `/qodo`, or a greeting followed by `qodo` (e.g. "Hi qodo").
+- Do NOT include `@qodo` anywhere in the body (an inline `@qodo` mention triggers it too). Refer to findings as "the Qodo review" / "this finding" mid-sentence — that's fine; only a leading address or an `@qodo` handle triggers.
+- The `@qodo …` dismissal phrasing belongs ONLY on the individual inline replies (where it must reach the chat agent), never echoed into the summary. If the summary lists per-finding decisions, describe them plainly (e.g. "Dismissed as intentional"), without the `@qodo` prefix.
+
 **Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
 
 **Important — word each inline reply so Qodo's chat agent reads the right intent.**
