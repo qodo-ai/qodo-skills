@@ -251,8 +251,12 @@ If "Review each issue" was selected:
     - Confirm: "✅ Fix applied!"
     - Mark issue as completed
   - **If "Defer" / "Confirm defer" selected:**
-    - Ask for deferral reason using AskUserQuestion
-    - Record reason and move to next issue
+    - Ask for the closure reason using AskUserQuestion, offering the canonical categories so the inline reply (Step 8) can be tagged correctly:
+      - **Deferred** — valid, will handle later/elsewhere (→ reason `deferred`)
+      - **False positive** — not a real issue (→ reason `false_positive`)
+      - **Intentional** — by design / accepted trade-off (→ reason `intentional`)
+      - **Won't fix / out of scope** — declined, not relevant, or pre-existing (→ reason `rejected`)
+    - Record the chosen category (it drives the `@qodo …` reply wording in Step 8) and move to next issue
   - **If "Modify" selected:**
     - Inform user they can make changes manually
     - Move to next issue
@@ -305,9 +309,20 @@ See [providers.md § Post Summary Comment](./resources/providers.md#post-summary
 
 **Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
 
-**Important resolution rules for inline replies:**
-- **Fixed** issues: set `"unresolved": false` (resolves the thread)
-- **Deferred** issues: set `"unresolved": false` (resolves the thread — the next Qodo review will re-evaluate)
+**Important — word each inline reply so Qodo's chat agent reads the right intent.**
+
+Qodo processes inline replies two different ways: the **attribution engine** auto-detects implemented fixes from the pushed code (no tag needed), while the **chat agent** handles dismissals but only acts when the reply **explicitly addresses `@qodo`**. Word replies accordingly:
+
+- **Fixed** issues → reply **without** `@qodo`. Begin with `Fixed` and state what changed (include the commit sha when available), e.g. `Fixed in abc1234: added the missing await`. Do NOT tag `@qodo` — the attribution engine detects the implementation from the pushed code and marks the finding implemented; tagging would only spawn a redundant chat reply. Set `"unresolved": false`.
+- **Closed without a code change** (deferred / won't-fix / false positive / by design / out of scope) → the chat agent must record the dismissal, and it only acts when explicitly addressed, so **start the reply with `@qodo`** and word it to match the reason. Use one of these canonical phrasings:
+  - Deferred / handled later or elsewhere → `@qodo deferring — will handle in a follow-up PR` (append `tracked in TICKET-123` when applicable) → reason `deferred`.
+  - False positive / not a real issue → `@qodo this is a false positive — <why it's not a real issue>` → reason `false_positive`.
+  - Intentional / by design → `@qodo this is intentional — <why it's deliberate>` → reason `intentional`.
+  - Won't fix / not relevant / pre-existing / out of scope → `@qodo not fixing this — <won't fix / not relevant / pre-existing / out of scope>` → reason `rejected`.
+
+  Set `"unresolved": false`. The chat agent dismisses the finding with the matching canonical reason; do not also paraphrase the closure without the `@qodo` prefix, or the dismissal won't be recorded.
+
+Never tag `@qodo` on a **Fixed** reply, and always tag `@qodo` (at the very start) on a **closed-without-change** reply.
 
 **After posting the summary, resolve the Qodo review comment:**
 
@@ -379,3 +394,5 @@ Use the inline comment ID preserved during deduplication (Step 3b) to reply dire
 See [providers.md § Reply to Inline Comments](./resources/providers.md#reply-to-inline-comments) for provider-specific commands and reply format. For Gerrit, all replies go through a single unified endpoint and can be batched — see [gerrit.md § Reply to Comments](./resources/gerrit.md#reply-to-comments).
 
 Keep replies short (one line). If a reply fails, log it and continue.
+
+**Word every reply per the intent rules in Step 8**: a **Fixed** reply starts with `Fixed` and is NOT tagged (the attribution engine catches it); a **closed-without-change** reply starts with `@qodo` and uses the canonical phrasing for its reason (`deferred` / `false_positive` / `intentional` / `rejected`) so the chat agent records the dismissal. The provider reply-format snippets in `providers.md` must use these same templates.
