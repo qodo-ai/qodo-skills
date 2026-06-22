@@ -307,36 +307,23 @@ If "Auto-fix all" was selected:
 
 See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
 
-**Do NOT let the summary comment trigger the chat agent.** The summary is a top-level PR comment; Qodo's chat agent wakes up on any top-level comment that addresses it. So in the summary comment:
-- Do NOT start it with the word `qodo` (even as a heading/title), `@qodo`, `/qodo`, or a greeting followed by `qodo` (e.g. "Hi qodo").
-- Do NOT include any `@qodo…` handle ANYWHERE in the body — `@qodo`, `@qodo-code-review`, `@qodo-merge`, etc. all match, **even when you're only thanking or crediting the bot**. An inline mention anywhere triggers a run.
-- Referring to findings mid-sentence as "the Qodo review" / "this finding" is fine; only a leading address or an `@qodo…` handle triggers.
-- The `@qodo …` dismissal phrasing belongs ONLY on the individual inline replies (where it must reach the chat agent), never echoed into the summary. If the summary lists per-finding decisions, describe them plainly (e.g. "Dismissed as intentional"), without the `@qodo` prefix.
+**Keep the summary comment from triggering the chat agent.** It's a top-level comment, and the chat agent runs on any top-level comment that addresses it. So don't start it with `qodo`/`@qodo`/`/qodo` (headings count), and don't put any `@qodo…` handle anywhere in the body — even thanking the bot triggers a run. Mid-sentence references like "the Qodo review" are fine. Keep the `@qodo …` dismissal phrasing on the inline replies only; in the summary, state decisions plainly (e.g. "Dismissed as intentional").
 
-**Concrete example of what to avoid** — this summary triggers the agent twice (leading "Qodo" + the `@qodo-code-review` handle):
-> ❌ `Qodo review triage — summary`
-> ❌ `Thanks @qodo-code-review. Triaged all 9 findings…`
-
-Safe rewrite of the same summary:
-> ✅ `Review triage — summary` (or `PR review triage`)
-> ✅ `Triaged all 9 findings from the Qodo review…` (no `@`-handle, "Qodo" only mid-sentence)
+> ❌ `Thanks @qodo-code-review — triaged all 9 findings` (the handle triggers a run)
+> ✅ `Triaged all 9 findings from the Qodo review` (no `@`-handle, "Qodo" mid-sentence)
 
 **Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
 
-**Important — word each inline reply so Qodo's chat agent reads the right intent.**
+**Word each inline reply so the chat agent reads the right intent.** Qodo handles replies two ways: the **attribution engine** auto-detects fixes from the pushed code (no tag), and the **chat agent** records dismissals — start the reply with `@qodo` so it reliably picks up the dismissal intent. So:
 
-Qodo processes inline replies two different ways: the **attribution engine** auto-detects implemented fixes from the pushed code (no tag needed), while the **chat agent** handles dismissals but only acts when the reply **explicitly addresses `@qodo`**. Word replies accordingly:
+- **Fixed** → reply **without** `@qodo`. Begin with `Fixed` and say what changed, with the commit sha when available — e.g. `Fixed in abc1234: added the missing await`. The attribution engine marks it implemented; tagging would only spawn a redundant reply.
+- **Closed without a code change** → **start the reply with `@qodo`** and match the reason to one canonical phrasing:
+  - `@qodo deferring — will handle in a follow-up PR` (append `tracked in TICKET-123` when applicable) → `deferred`
+  - `@qodo this is a false positive — <why it's not a real issue>` → `false_positive`
+  - `@qodo this is intentional — <why it's deliberate>` → `intentional`
+  - `@qodo not fixing this — <not relevant / pre-existing / out of scope>` → `rejected`
 
-- **Fixed** issues → reply **without** `@qodo`. Begin with `Fixed` and state what changed (include the commit sha when available), e.g. `Fixed in abc1234: added the missing await`. Do NOT tag `@qodo` — the attribution engine detects the implementation from the pushed code and marks the finding implemented; tagging would only spawn a redundant chat reply. Set `"unresolved": false`.
-- **Closed without a code change** (deferred / won't-fix / false positive / by design / out of scope) → the chat agent must record the dismissal, and it only acts when explicitly addressed, so **start the reply with `@qodo`** and word it to match the reason. Use one of these canonical phrasings:
-  - Deferred / handled later or elsewhere → `@qodo deferring — will handle in a follow-up PR` (append `tracked in TICKET-123` when applicable) → reason `deferred`.
-  - False positive / not a real issue → `@qodo this is a false positive — <why it's not a real issue>` → reason `false_positive`.
-  - Intentional / by design → `@qodo this is intentional — <why it's deliberate>` → reason `intentional`.
-  - Won't fix / not relevant / pre-existing / out of scope → `@qodo not fixing this — <won't fix / not relevant / pre-existing / out of scope>` → reason `rejected`.
-
-  Set `"unresolved": false`. The chat agent dismisses the finding with the matching canonical reason; do not also paraphrase the closure without the `@qodo` prefix, or the dismissal won't be recorded.
-
-Never tag `@qodo` on a **Fixed** reply, and always tag `@qodo` (at the very start) on a **closed-without-change** reply.
+Set `"unresolved": false` either way.
 
 **After posting the summary, resolve the Qodo review comment:**
 
@@ -409,4 +396,4 @@ See [providers.md § Reply to Inline Comments](./resources/providers.md#reply-to
 
 Keep replies short (one line). If a reply fails, log it and continue.
 
-**Word every reply per the intent rules in Step 8**: a **Fixed** reply starts with `Fixed` and is NOT tagged (the attribution engine catches it); a **closed-without-change** reply starts with `@qodo` and uses the canonical phrasing for its reason (`deferred` / `false_positive` / `intentional` / `rejected`) so the chat agent records the dismissal. The provider reply-format snippets in `providers.md` must use these same templates.
+**Word every reply per the intent rules in Step 8**: a **Fixed** reply starts with `Fixed` and is NOT tagged; a **closed-without-change** reply starts with `@qodo` and uses the canonical phrasing for its reason (`deferred` / `false_positive` / `intentional` / `rejected`). The provider reply-format snippets in `providers.md` and `gerrit.md` use these same templates.

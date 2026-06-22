@@ -196,9 +196,13 @@ gh api repos/{owner}/{repo}/pulls/<pr-number>/comments/<inline-comment-id>/repli
   -f body='<reply-body>'
 ```
 
-**Reply format:**
-- **Fixed:** `✅ **Fixed** — <brief description of what was changed>`
-- **Deferred:** `⏭️ **Deferred** — <reason for deferring>`
+**Reply format** (see [SKILL.md § Step 8](../SKILL.md) for the full intent rules):
+- **Fixed** — no `@qodo` (the attribution engine detects the fix from the pushed code): `Fixed in <sha>: <what changed>`
+- **Closed without a code change** — start with `@qodo` so the chat agent records the dismissal:
+  - `@qodo deferring — will handle in a follow-up PR` → `deferred`
+  - `@qodo this is a false positive — <why>` → `false_positive`
+  - `@qodo this is intentional — <why it's deliberate>` → `intentional`
+  - `@qodo not fixing this — <not relevant / pre-existing / out of scope>` → `rejected`
 
 ### GitLab
 
@@ -276,18 +280,18 @@ az devops invoke \
   --output json
 ```
 
-**Summary format:**
+**Summary format** — must NOT trigger the chat agent: don't start it with `qodo` and don't use any `@qodo…` handle anywhere (see [SKILL.md § Step 8](../SKILL.md)). State each decision plainly (no `@qodo` prefix here).
 
 ```markdown
-## Qodo Fix Summary
+## PR Review Triage
 
-Reviewed and addressed Qodo review issues:
+Reviewed and addressed the Qodo review issues:
 
-### ✅ Fixed Issues
-- **Issue Title** (Severity) - Brief description of what was fixed
+### ✅ Fixed
+- **Issue Title** (Severity) - what was fixed
 
-### ⏭️ Deferred Issues
-- **Issue Title** (Severity) - Reason for deferring
+### ⏭️ Closed without a change
+- **Issue Title** (Severity) - Deferred / False positive / Intentional / Won't fix - brief reason
 
 ---
 [![Qodo](https://www.qodo.ai/wp-content/uploads/2025/03/qodo-logo.svg)](https://qodo.ai)
