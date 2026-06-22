@@ -308,9 +308,18 @@ If "Auto-fix all" was selected:
 See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
 
 **Do NOT let the summary comment trigger the chat agent.** The summary is a top-level PR comment; Qodo's chat agent wakes up on any top-level comment that addresses it. So in the summary comment:
-- Do NOT start it with `qodo`, `@qodo`, `/qodo`, or a greeting followed by `qodo` (e.g. "Hi qodo").
-- Do NOT include `@qodo` anywhere in the body (an inline `@qodo` mention triggers it too). Refer to findings as "the Qodo review" / "this finding" mid-sentence — that's fine; only a leading address or an `@qodo` handle triggers.
+- Do NOT start it with the word `qodo` (even as a heading/title), `@qodo`, `/qodo`, or a greeting followed by `qodo` (e.g. "Hi qodo").
+- Do NOT include any `@qodo…` handle ANYWHERE in the body — `@qodo`, `@qodo-code-review`, `@qodo-merge`, etc. all match, **even when you're only thanking or crediting the bot**. An inline mention anywhere triggers a run.
+- Referring to findings mid-sentence as "the Qodo review" / "this finding" is fine; only a leading address or an `@qodo…` handle triggers.
 - The `@qodo …` dismissal phrasing belongs ONLY on the individual inline replies (where it must reach the chat agent), never echoed into the summary. If the summary lists per-finding decisions, describe them plainly (e.g. "Dismissed as intentional"), without the `@qodo` prefix.
+
+**Concrete example of what to avoid** — this summary triggers the agent twice (leading "Qodo" + the `@qodo-code-review` handle):
+> ❌ `Qodo review triage — summary`
+> ❌ `Thanks @qodo-code-review. Triaged all 9 findings…`
+
+Safe rewrite of the same summary:
+> ✅ `Review triage — summary` (or `PR review triage`)
+> ✅ `Triaged all 9 findings from the Qodo review…` (no `@`-handle, "Qodo" only mid-sentence)
 
 **Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
 
