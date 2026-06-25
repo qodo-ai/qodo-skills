@@ -2,7 +2,7 @@
 
 Shift-left code review skills for AI coding agents. Bring Qodo's quality standards and code review capabilities into your local development workflow.
 
-**Compatible with:** Claude Code, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
+**Compatible with:** Claude Code, OpenAI Codex, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
 
 ## Available Skills
 
@@ -50,10 +50,41 @@ npx skills add qodo-ai/qodo-skills/skills/qodo-pr-resolver
 
 **Works with:**
 - **Claude Code** - Skills available as `/qodo-get-rules`, `/qodo-pr-resolver`
+- **OpenAI Codex** - Skills available from `/skills`; invoke with `$qodo-get-rules` or `$qodo-pr-resolver`
 - **Cursor** - Skills available in command palette
 - **Windsurf** - Skills available in flow menu
 - **Cline** - Skills available via skill invocation
 - **Any agent** supporting [agentskills.io](https://agentskills.io)
+
+### OpenAI Codex
+
+Codex supports Agent Skills and discovers project skills from `.agents/skills/` and user skills from `$HOME/.agents/skills/`. See the [Codex Agent Skills documentation](https://developers.openai.com/codex/skills) for Codex discovery behavior and invocation syntax.
+
+To use Qodo skills with Codex, install with the Agent Skills CLI above if your skill manager is configured for Codex. For manual installation from a local checkout, copy the skill folders into a Codex-discovered skills directory. Use `$HOME/.agents/skills/` for skills available across Codex workspaces, or `.agents/skills/` for project-local skills available only in the current repository. Run these examples from the `qodo-skills` repository root, where `./skills/` exists.
+
+macOS/Linux, Git Bash, or WSL:
+
+```bash
+# User-level install. For project-local install, set CODEX_SKILLS_DIR=".agents/skills".
+CODEX_SKILLS_DIR="$HOME/.agents/skills"
+mkdir -p "$CODEX_SKILLS_DIR/qodo-get-rules" "$CODEX_SKILLS_DIR/qodo-pr-resolver"
+cp -R ./skills/qodo-get-rules/. "$CODEX_SKILLS_DIR/qodo-get-rules/"
+cp -R ./skills/qodo-pr-resolver/. "$CODEX_SKILLS_DIR/qodo-pr-resolver/"
+```
+
+Windows PowerShell:
+
+```powershell
+# User-level install. For project-local install, set $CodexSkillsDir = ".agents\skills".
+$CodexSkillsDir = Join-Path $HOME ".agents\skills"
+New-Item -ItemType Directory -Force "$CodexSkillsDir\qodo-get-rules", "$CodexSkillsDir\qodo-pr-resolver"
+Copy-Item -Recurse -Force ".\skills\qodo-get-rules\*" "$CodexSkillsDir\qodo-get-rules"
+Copy-Item -Recurse -Force ".\skills\qodo-pr-resolver\*" "$CodexSkillsDir\qodo-pr-resolver"
+```
+
+Codex also supports symlinked skill folders, but copying avoids path-dependent links if you later move the checkout.
+
+Restart Codex if newly installed skills do not appear when running `/skills` inside Codex.
 
 ### Agent-Specific Directories
 
@@ -62,6 +93,7 @@ Skills are automatically installed to the correct location for your agent:
 | Agent | Installation Directory |
 |-------|----------------------|
 | Claude Code | `~/.claude/skills/` or `.claude/skills/` |
+| OpenAI Codex | `$HOME/.agents/skills/` or `.agents/skills/` |
 | Cursor | `~/.cursor/skills/` or `.cursor/skills/` |
 | Windsurf | `~/.windsurf/skills/` or `.windsurf/skills/` |
 | Cline | `~/.cline/skills/` or `.cline/skills/` |
@@ -159,6 +191,14 @@ After installation, invoke skills directly in your agent:
 ```bash
 /qodo-get-rules      # Fetch coding rules
 /qodo-pr-resolver    # Fix PR review issues
+```
+
+**OpenAI Codex:**
+These are Codex chat commands, not terminal commands:
+
+```text
+$qodo-get-rules      # Fetch coding rules
+$qodo-pr-resolver    # Fix PR review issues
 ```
 
 **Cursor / Windsurf / Cline:**
