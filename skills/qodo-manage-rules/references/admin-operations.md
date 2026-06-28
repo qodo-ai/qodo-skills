@@ -23,7 +23,7 @@ This operation (update/delete rule) is only available to organization owners
 and team owners. Your current API key does not have admin rights on this workspace.
 
 If you believe this is wrong, check your role at:
-  {APP_URL}/settings/members
+  {APP_URL}/account/members
 ```
 
 Where `APP_URL` is derived from the API URL (reverse the env extraction:

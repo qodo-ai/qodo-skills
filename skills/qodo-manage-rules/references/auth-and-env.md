@@ -12,7 +12,7 @@ If no key is found, exit with:
 ```
 Error: Qodo API key not found.
 Set QODO_API_KEY or create ~/.qodo/auth.key with your key.
-Get your key at https://app.qodo.ai/settings/api-keys
+Get your key at https://app.qodo.ai/account/api-keys
 ```
 
 ## API URL
