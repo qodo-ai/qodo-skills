@@ -205,7 +205,7 @@ curl -s -u "$GERRIT_USERNAME:$GERRIT_HTTP_PASSWORD" \
 **Optimization:** Summary and all inline replies can be batched in a single request:
 ```json
 {
-  "message": "## PR Review Triage\n...",
+  "message": "## PR Review Triage (Qodo)\n...",
   "comments": {
     "file1.py": [{"in_reply_to": "id1", "message": "Fixed in abc1234: added the missing await", "unresolved": false}]
   }

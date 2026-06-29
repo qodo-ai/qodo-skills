@@ -280,10 +280,10 @@ az devops invoke \
   --output json
 ```
 
-**Summary format** — must NOT trigger the chat agent: don't start it with `qodo` and don't use any `@qodo…` handle anywhere (see [SKILL.md § Step 8](../SKILL.md)). State each decision plainly (no `@qodo` prefix here).
+**Summary format** — must NOT trigger the chat agent: don't start it with `qodo` and don't use any `@qodo…` handle anywhere (see [SKILL.md § Step 8](../SKILL.md)). State each decision plainly (no `@qodo` prefix here). A trailing/mid-line `(Qodo)` is safe — only a leading address or an `@qodo…` handle triggers a run.
 
 ```markdown
-## PR Review Triage
+## PR Review Triage (Qodo)
 
 Reviewed and addressed the Qodo review issues:
 
