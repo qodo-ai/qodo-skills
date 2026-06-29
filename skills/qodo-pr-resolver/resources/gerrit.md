@@ -170,11 +170,13 @@ curl -s -u "$GERRIT_USERNAME:$GERRIT_HTTP_PASSWORD" \
 - `in_reply_to`: the comment's `id` field (works for both robot and human comments)
 - `unresolved: false` resolves the thread in the same call — no separate resolve step needed
 
-**Reply format** (same as other providers):
-- **Fixed:** `✅ **Fixed** — <brief description>` — set `"unresolved": false`
-- **Deferred:** `⏭️ **Deferred** — <reason>` — set `"unresolved": false`
-
-Resolution of deferred items will be re-evaluated by the next Qodo review when a new patchset is pushed.
+**Reply format** (same intent rules as other providers — see [SKILL.md § Step 8](../SKILL.md)), set `"unresolved": false` either way:
+- **Fixed** — no `@qodo` (the attribution engine detects the fix from the pushed patchset): `Fixed in <sha>: <what changed>`
+- **Closed without a code change** — start with `@qodo` so the chat agent records the dismissal:
+  - `@qodo deferring — will handle in a follow-up PR` → `deferred`
+  - `@qodo this is a false positive — <why>` → `false_positive`
+  - `@qodo this is intentional — <why it's deliberate>` → `intentional`
+  - `@qodo not fixing this — <not relevant / pre-existing / out of scope>` → `rejected`
 
 ### Batch multiple replies
 
@@ -182,8 +184,8 @@ Multiple replies across files can be combined in a single request:
 ```json
 {
   "comments": {
-    "file1.py": [{"in_reply_to": "id1", "message": "Fixed", "unresolved": false}],
-    "file2.py": [{"in_reply_to": "id2", "message": "Deferred", "unresolved": false}]
+    "file1.py": [{"in_reply_to": "id1", "message": "Fixed in abc1234: added the missing await", "unresolved": false}],
+    "file2.py": [{"in_reply_to": "id2", "message": "@qodo this is intentional — kept for backward compatibility", "unresolved": false}]
   }
 }
 ```
@@ -203,12 +205,14 @@ curl -s -u "$GERRIT_USERNAME:$GERRIT_HTTP_PASSWORD" \
 **Optimization:** Summary and all inline replies can be batched in a single request:
 ```json
 {
-  "message": "## Qodo Fix Summary\n...",
+  "message": "## PR Review Triage (Qodo)\n...",
   "comments": {
-    "file1.py": [{"in_reply_to": "id1", "message": "Fixed", "unresolved": false}]
+    "file1.py": [{"in_reply_to": "id1", "message": "Fixed in abc1234: added the missing await", "unresolved": false}]
   }
 }
 ```
+
+The `message` (summary) must NOT trigger the chat agent: don't start it with `qodo` and don't include any `@qodo…` handle (see [SKILL.md § Step 8](../SKILL.md)). The `@qodo` dismissal phrasing belongs only on the inline `comments`.
 
 Summary format: same as [providers.md § Summary format](./providers.md#post-summary-comment).
 

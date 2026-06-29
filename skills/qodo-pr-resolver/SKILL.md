@@ -251,8 +251,12 @@ If "Review each issue" was selected:
     - Confirm: "✅ Fix applied!"
     - Mark issue as completed
   - **If "Defer" / "Confirm defer" selected:**
-    - Ask for deferral reason using AskUserQuestion
-    - Record reason and move to next issue
+    - Ask for the closure reason using AskUserQuestion, offering the canonical categories so the inline reply (Step 8) can be tagged correctly:
+      - **Deferred** — valid, will handle later/elsewhere (→ reason `deferred`)
+      - **False positive** — not a real issue (→ reason `false_positive`)
+      - **Intentional** — by design / accepted trade-off (→ reason `intentional`)
+      - **Won't fix / out of scope** — declined, not relevant, or pre-existing (→ reason `rejected`)
+    - Record the chosen category (it drives the `@qodo …` reply wording in Step 8) and move to next issue
   - **If "Modify" selected:**
     - Inform user they can make changes manually
     - Move to next issue
@@ -303,11 +307,23 @@ If "Auto-fix all" was selected:
 
 See [providers.md § Post Summary Comment](./resources/providers.md#post-summary-comment) for provider-specific commands and summary format.
 
+**Keep the summary comment from triggering the chat agent.** It's a top-level comment, and the chat agent runs on any top-level comment that addresses it. So don't start it with `qodo`/`@qodo`/`/qodo` (headings count), and don't put any `@qodo…` handle anywhere in the body — even thanking the bot triggers a run. Mid-sentence references like "the Qodo review" are fine. Keep the `@qodo …` dismissal phrasing on the inline replies only; in the summary, state decisions plainly (e.g. "Dismissed as intentional").
+
+> ❌ `Thanks @qodo-code-review — triaged all 9 findings` (the handle triggers a run)
+> ✅ `Triaged all 9 findings from the Qodo review` (no `@`-handle, "Qodo" mid-sentence)
+
 **Gerrit:** Batch the summary comment AND all inline replies into a **single API call**. This is more efficient and avoids multiple email notifications. Use the unified review endpoint with both `message` (summary) and `comments` (inline replies) — see [gerrit.md § Post Summary Comment](./resources/gerrit.md#post-summary-comment).
 
-**Important resolution rules for inline replies:**
-- **Fixed** issues: set `"unresolved": false` (resolves the thread)
-- **Deferred** issues: set `"unresolved": false` (resolves the thread — the next Qodo review will re-evaluate)
+**Word each inline reply so the chat agent reads the right intent.** Qodo handles replies two ways: the **attribution engine** auto-detects fixes from the pushed code (no tag), and the **chat agent** records dismissals — start the reply with `@qodo` so it reliably picks up the dismissal intent. So:
+
+- **Fixed** → reply **without** `@qodo`. Begin with `Fixed` and say what changed, with the commit sha when available — e.g. `Fixed in abc1234: added the missing await`. The attribution engine marks it implemented; tagging would only spawn a redundant reply.
+- **Closed without a code change** → **start the reply with `@qodo`** and match the reason to one canonical phrasing:
+  - `@qodo deferring — will handle in a follow-up PR` (append `tracked in TICKET-123` when applicable) → `deferred`
+  - `@qodo this is a false positive — <why it's not a real issue>` → `false_positive`
+  - `@qodo this is intentional — <why it's deliberate>` → `intentional`
+  - `@qodo not fixing this — <not relevant / pre-existing / out of scope>` → `rejected`
+
+Set `"unresolved": false` either way.
 
 **After posting the summary, resolve the Qodo review comment:**
 
@@ -379,3 +395,5 @@ Use the inline comment ID preserved during deduplication (Step 3b) to reply dire
 See [providers.md § Reply to Inline Comments](./resources/providers.md#reply-to-inline-comments) for provider-specific commands and reply format. For Gerrit, all replies go through a single unified endpoint and can be batched — see [gerrit.md § Reply to Comments](./resources/gerrit.md#reply-to-comments).
 
 Keep replies short (one line). If a reply fails, log it and continue.
+
+**Word every reply per the intent rules in Step 8**: a **Fixed** reply starts with `Fixed` and is NOT tagged; a **closed-without-change** reply starts with `@qodo` and uses the canonical phrasing for its reason (`deferred` / `false_positive` / `intentional` / `rejected`). The provider reply-format snippets in `providers.md` and `gerrit.md` use these same templates.
