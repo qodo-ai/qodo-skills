@@ -221,13 +221,26 @@ Otherwise (two or more issues), ask the user how they want to proceed using AskU
 - If "Auto-fix all": Skip to Step 7 (auto-fix mode - apply all "Fix" issues automatically using Qodo's agent prompts)
 - If "Cancel": Exit the skill
 
+### Applying each fix (shared by Step 6 and Step 7)
+
+The following applies to every fix in both manual mode (Step 6) and auto-fix mode (Step 7):
+
+- **Implement the fix by executing the Qodo agent prompt as a direct instruction.** The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+- **Commit strategy by provider:**
+  - **GitHub / GitLab / Bitbucket / Azure DevOps:** commit each fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
+  - **Gerrit:** stage only (`git add <modified-files>`) — do NOT commit yet. Each commit becomes a separate change, so keep all fixes as a single new patchset on the existing change:
+    1. Apply all fixes (Edit tool) and stage them (`git add`)
+    2. After ALL fixes are done, amend the original commit: `git commit --amend --no-edit`
+    3. Push once in Step 9
+    Do NOT create individual commits per fix for Gerrit.
+
 ### Step 6: Review and fix issues (manual mode)
 
 If "Review each issue" was selected:
 
 - For each issue marked as "Fix" (starting with CRITICAL) — **plus**, in single-finding mode, the lone issue even if marked "Defer":
   - Read the relevant file(s) to understand the current code
-  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+  - Implement the fix per [Applying each fix](#applying-each-fix-shared-by-step-6-and-step-7) above.
   - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
   - **Present the fix and ask for approval in a SINGLE step:**
     1. Show a brief header with issue title and location
@@ -246,8 +259,7 @@ If "Review each issue" was selected:
   - **WAIT for user's choice via AskUserQuestion**
   - **If "Apply fix" / "Apply fix anyway" selected:**
     - Apply change using Edit tool (or Write if creating new file)
-    - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
-    - **Gerrit:** Do NOT commit yet — stage the change (`git add <modified-files>`) but wait until all fixes are applied, then amend into a single commit (see Gerrit note below)
+    - Commit per the shared [Applying each fix](#applying-each-fix-shared-by-step-6-and-step-7) commit strategy (GitHub/GitLab/Bitbucket/Azure commit each fix; Gerrit stages and amends once at the end)
     - Confirm: "✅ Fix applied!"
     - Mark issue as completed
   - **If "Defer" / "Confirm defer" selected:**
@@ -258,13 +270,6 @@ If "Review each issue" was selected:
     - Move to next issue
 - Continue until all in-scope issues are addressed or the user decides to stop
 - **After all fixes are applied**, reply to all Qodo inline comments in one batch (see Step 8)
-
-**Gerrit commit strategy:** In Gerrit, each commit becomes a separate change. To keep all fixes as a single new patchset on the existing change:
-1. Apply all fixes (Edit tool) and stage them (`git add`)
-2. After ALL fixes are done, amend the original commit: `git commit --amend --no-edit`
-3. Push once in Step 9
-
-Do NOT create individual commits per fix for Gerrit.
 
 #### Important notes
 
@@ -283,15 +288,15 @@ If "Auto-fix all" was selected:
 
 - For each issue marked as "Fix" (starting with CRITICAL):
   - Read the relevant file(s) to understand the current code
-  - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
+  - Implement the fix per [Applying each fix](#applying-each-fix-shared-by-step-6-and-step-7) above.
   - Apply the fix using Edit tool
-  - **GitHub / GitLab / Bitbucket / Azure DevOps:** Git commit the fix: `git add <modified-files> && git commit -m "fix: <issue title>"`
-  - **Gerrit:** Stage only (`git add <modified-files>`) — do NOT commit yet
+  - **Verify the fix (validate-after-apply):** because auto-fix applies multiple edits without per-fix approval, confirm each one landed correctly before moving on. Re-open the edited file/region to confirm the change is present and matches the agent prompt; if the project exposes a fast check (lint, typecheck, or the repo's test command for the touched area), run it and capture the result. If a check fails or the edit did not apply as intended, stop the batch, surface the failure to the user, and do not commit that fix.
+  - Commit per the shared [Applying each fix](#applying-each-fix-shared-by-step-6-and-step-7) commit strategy (GitHub/GitLab/Bitbucket/Azure commit each fix; Gerrit stages and amends once at the end)
   - Report each fix with the agent prompt that was followed:
     > ✅ **Fixed: [Issue Title]** at `[Location]`
     > **Agent prompt:** [the Qodo agent prompt used]
   - Mark issue as completed
-- **Gerrit:** After ALL fixes are applied, amend into one commit: `git commit --amend --no-edit`
+- **Gerrit:** After ALL fixes are applied (and verified), amend into one commit: `git commit --amend --no-edit`
 - Reply to all Qodo inline comments in one batch (see Step 8)
 - After all auto-fixes are applied, display summary:
   - List of all issues that were fixed
