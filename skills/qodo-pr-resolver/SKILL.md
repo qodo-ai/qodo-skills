@@ -153,56 +153,57 @@ Deduplicate issues across summary and inline comments:
 - Extract the review body/comments from Qodo's review
 - Parse out individual issues/suggestions
 - **IMPORTANT: Preserve Qodo's exact issue titles verbatim** — do not rename, paraphrase, or summarize them. Use the title exactly as Qodo wrote it.
-- **IMPORTANT: Preserve Qodo's original ordering** — display issues in the same order Qodo listed them. Qodo already orders by severity.
+- **IMPORTANT: Preserve Qodo's original ordering** — display issues in the same order Qodo listed them within each bucket. Qodo already orders by relevance.
 - Extract location, issue description, and suggested fix
 - Extract the agent prompt from Qodo's suggestion (the description of what needs to be fixed)
 
-#### Severity mapping
+#### Read Qodo's taxonomy — do not derive it
 
-Derive severity from Qodo's action level and position:
+Qodo's Git review already classifies every issue. Read these values **directly from the comment markup** — never compute, rank, or guess them:
 
-1. **Action level determines severity range:**
-   - **"Action required"** issues → Can only be 🔴 CRITICAL or 🟠 HIGH
-   - **"Review recommended"** / **"Remediation recommended"** issues → Can only be 🟡 MEDIUM or ⚪ LOW
-   - **"Other"** / **"Advisory comments"** issues → Always ⚪ LOW (lowest priority)
+1. **Bucket (severity banner)** — Qodo groups issues under a banner rendered as a shields.io badge image, e.g. `<img src="https://img.shields.io/badge/Action_required-634FD1?style=flat-square" alt="Action required">`. The label GitHub actually displays is the **URL slug** — the text between `/badge/` and the color code — with underscores turned into spaces. Take the label from there, **not** from `alt`: the two can differ (slug `Review_recommended` renders as "Review recommended", while `alt="Remediation recommended"` is only invisible fallback), and the slug is what the user sees, so using it keeps the terminal consistent with the GitHub review. Banners observed, high→low: **Action required**, **Review recommended**, **Optional**. When a bucket has no findings, Qodo may instead print a plain-text banner such as **Great, no actions required** — surface it verbatim. Treat this as an open set: render whatever label Qodo uses; do not map it onto a fixed list.
 
-2. **Qodo's position within each action level determines the specific severity:**
-   - Group issues by action level ("Action required" vs "Review recommended" vs "Other")
-   - Within "Action required" and "Review recommended" groups: earlier positions → higher severity, later positions → lower severity
-   - Split point: roughly first half of each group gets the higher severity, second half gets the lower
-   - All "Other" issues are treated as ⚪ LOW regardless of position
+2. **Type tag(s) + sub-category** — on each issue's summary line the **title comes first**, followed by `<code>`-wrapped tags, e.g. `1.  Insecure auth check <code>🐞 Bug</code> <code>⛨ Security</code>`. Preserve each `<code>` tag verbatim **with its emoji/symbol**: the type (e.g. 🐞 Bug, 📘 Rule violation, 📎 Requirement gap, 🔗 Cross-repo conflict, 🧑 Team insight, 📜 Skill insight) and the sub-category symbol (e.g. ≡ Correctness, ✧ Quality, ☼ Reliability, ⚙ Maintainability, ⛨ Security, …). Both sets are open — read new ones literally. **Ignore status tags** that may also sit on the title line as `<code>`: `<code>✓ Resolved</code>` (title is struck through — already fixed) and `<code>⭐ New</code>` (a novelty marker — **not** a relevance rating).
 
-**Example:** 7 "Action required" issues would be split as:
-- Issues 1-3: 🔴 CRITICAL
-- Issues 4-7: 🟠 HIGH
-- Result: No MEDIUM or LOW issues (because there are no "Review recommended" or "Other" issues)
+3. **Relevance stars** — only *some* reviews include them, inside a separate `<summary>Relevance</summary>` section as inline code like `` `⭐⭐ Medium` `` (⭐⭐⭐ High / ⭐⭐ Medium / ⭐ Low). Many reviews (e.g. open-source deployments) omit relevance entirely — if there is no Relevance section, the issue simply has no stars.
 
-**Example:** 5 "Action required" + 3 "Review recommended" + 2 "Other" issues would be split as:
-- Issues 1-2 or 1-3: 🔴 CRITICAL (first ~half of "Action required")
-- Issues 3-5 or 4-5: 🟠 HIGH (second ~half of "Action required")
-- Issues 6-7: 🟡 MEDIUM (first ~half of "Review recommended")
-- Issue 8: ⚪ LOW (second ~half of "Review recommended")
-- Issues 9-10: ⚪ LOW (all "Other" issues)
+**Do NOT invent a severity.** There is no CRITICAL/HIGH/MEDIUM/LOW and no 🔴/🟠/🟡/⚪ derivation — Qodo's banner is the severity signal. Qodo changes types, symbols, and banner labels over time and across environments, so always follow by reading the current values literally; never maintain a parallel taxonomy here.
 
-**Action guidelines:**
-- 🔴 CRITICAL / 🟠 HIGH ("Action required"): Always "Fix"
-- 🟡 MEDIUM ("Review recommended"): Usually "Fix", can "Defer" if low impact
-- ⚪ LOW ("Review recommended" or "Other"): Can be "Defer" unless quick to fix; "Other" issues are lowest priority
+**Missing data:** if an issue has no stars, no type tag, or no sub-category, omit that field for that issue — never fabricate one.
+
+**Action defaulting** (by banner, highest→lowest severity):
+- Top banner (**Action required**) → default Action: **Fix**
+- Middle banner (**Review recommended**) → default Action: **Fix** (Defer if low impact)
+- Low banner (**Optional** / advisory-type) → default Action: **Defer** (Fix if quick)
 
 #### Output format
 
-**IMPORTANT: Use actual Unicode emoji characters** (e.g. `🔴`, `🟠`, `📘`, `⛨`, `⚙`), NOT GitHub-style shortcodes (`:red_circle:`, `:books:`, `:shield:`). Shortcodes do not render in terminal environments.
+**IMPORTANT — terminal-safe rendering:**
+- Use actual Unicode emoji/symbol characters (e.g. `🐞`, `📘`, `⛨`, `⚙`, `⭐`), NOT GitHub-style shortcodes (`:beetle:`, `:books:`, `:shield:`, `:star:`) — shortcodes don't render in a terminal.
+- **Never use `&nbsp;` or any HTML entities, and do not use runs of multiple spaces to align columns** — Markdown collapses runs of spaces and `&nbsp;` prints literally in a terminal. Separate fields on the title line with a middot ` · `, put the title after an em-dash ` — `, and place Location/Action on their own indented `-` bullet lines.
 
-Display as a markdown table in Qodo's exact original ordering (do NOT reorder by severity - Qodo's order IS the severity ranking):
+Group issues under Qodo's own bucket headers, preserving Qodo's original order within each bucket. For each issue, put the type tag(s), relevance stars, and the verbatim title on one line, then Location and Action as indented bullets beneath. Only render buckets that contain issues, and omit any field Qodo didn't provide (don't fabricate).
 
 ```
 Qodo Issues for PR #123: [PR Title]
 
-| # | Severity | Issue Title | Issue Details | Type | Action |
-|---|----------|-------------|---------------|------|--------|
-| 1 | 🔴 CRITICAL | Insecure authentication check | • **Location:** src/auth/service.py:42<br><br>• **Issue:** Authorization logic is inverted | 🐞 Bug ⛨ Security | Fix |
-| 2 | 🔴 CRITICAL | Missing input validation | • **Location:** src/api/handlers.py:156<br><br>• **Issue:** User input not sanitized before database query | 📘 Rule violation ⛯ Reliability | Fix |
-| 3 | 🟠 HIGH | Database query not awaited | • **Location:** src/db/repository.py:89<br><br>• **Issue:** Async call missing await keyword | 🐞 Bug ✓ Correctness | Fix |
+━━ Action required ━━
+
+1. 🐞 Bug · ⛨ Security · ⭐⭐⭐ — Insecure authentication check
+   - Location: src/auth/service.py:42
+   - Action: Fix
+
+━━ Review recommended ━━
+
+2. 🧑 Team insight · ◔ Observability · ⭐⭐⭐ — Provider errors logged as error
+   - Location: src/services/sync_service.py:314
+   - Action: Fix
+
+━━ Optional ━━
+
+3. 🧑 Team insight · ⚙ Maintainability — Schema flag lacks description
+   - Location: src/schemas.py:685
+   - Action: Defer (low priority)
 ```
 
 ### Step 5: Ask user for fix preference
@@ -225,7 +226,7 @@ Otherwise (two or more issues), ask the user how they want to proceed using AskU
 
 If "Review each issue" was selected:
 
-- For each issue marked as "Fix" (starting with CRITICAL) — **plus**, in single-finding mode, the lone issue even if marked "Defer":
+- For each issue marked as "Fix" (in Qodo's order, starting with the **Action required** bucket) — **plus**, in single-finding mode, the lone issue even if marked "Defer":
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
@@ -235,7 +236,7 @@ If "Review each issue" was selected:
     3. Display current code snippet
     4. Display proposed change as markdown diff
     5. Immediately use AskUserQuestion with these options:
-       - If the issue's Action is **"Fix"** (default for CRITICAL/HIGH, and most MEDIUM):
+       - If the issue's Action is **"Fix"** (default for **Action required** and **Review recommended**):
          - ✅ "Apply fix" - Apply the proposed change
          - ⏭️ "Defer" - Skip this issue (will prompt for reason)
          - 🔧 "Modify" - User wants to adjust the fix first
@@ -281,7 +282,7 @@ Do NOT create individual commits per fix for Gerrit.
 
 If "Auto-fix all" was selected:
 
-- For each issue marked as "Fix" (starting with CRITICAL):
+- For each issue marked as "Fix" (in Qodo's order, starting with the **Action required** bucket):
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Apply the fix using Edit tool
