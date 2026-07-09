@@ -171,10 +171,10 @@ Qodo's Git review already classifies every issue. Read these values **directly f
 
 **Missing data:** if an issue has no stars, no type tag, or no sub-category, omit that field for that issue — never fabricate one.
 
-**Action defaulting** (by banner, highest→lowest severity):
-- Top banner (**Action required**) → default Action: **Fix**
-- Middle banner (**Review recommended**) → default Action: **Fix** (Defer if low impact)
-- Low banner (**Optional** / advisory-type) → default Action: **Defer** (Fix if quick)
+**Ordering & action defaulting** — derive both from Qodo's own signals, never from a hardcoded list of label strings:
+- **Order:** process buckets in the order Qodo lists them, top to bottom — Qodo already sorts most-severe first. This works for any number of buckets and any labels.
+- **Default Action = `Fix`** for every bucket, **except** a bucket whose banner label signals low priority — a case-insensitive match on `optional`, `advisory`, `informational`, or `no action(s)` → default **`Defer`**. An unrecognized label defaults to **`Fix`** (surface it rather than hide it).
+- The labels observed today (`Action required` / `Review recommended` / `Optional`) are **examples**, not a fixed set — do not special-case them beyond the low-priority keyword rule above.
 
 #### Output format
 
@@ -226,7 +226,7 @@ Otherwise (two or more issues), ask the user how they want to proceed using AskU
 
 If "Review each issue" was selected:
 
-- For each issue marked as "Fix" (in Qodo's order, starting with the **Action required** bucket) — **plus**, in single-finding mode, the lone issue even if marked "Defer":
+- For each issue marked as "Fix" (in Qodo's order, starting with the **topmost** bucket — Qodo lists most-severe first) — **plus**, in single-finding mode, the lone issue even if marked "Defer":
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Calculate the proposed fix in memory (DO NOT use Edit or Write tool yet)
@@ -236,7 +236,7 @@ If "Review each issue" was selected:
     3. Display current code snippet
     4. Display proposed change as markdown diff
     5. Immediately use AskUserQuestion with these options:
-       - If the issue's Action is **"Fix"** (default for **Action required** and **Review recommended**):
+       - If the issue's Action is **"Fix"** (the default for any bucket **not** flagged low-priority/optional):
          - ✅ "Apply fix" - Apply the proposed change
          - ⏭️ "Defer" - Skip this issue (will prompt for reason)
          - 🔧 "Modify" - User wants to adjust the fix first
@@ -282,7 +282,7 @@ Do NOT create individual commits per fix for Gerrit.
 
 If "Auto-fix all" was selected:
 
-- For each issue marked as "Fix" (in Qodo's order, starting with the **Action required** bucket):
+- For each issue marked as "Fix" (in Qodo's order, starting with the **topmost** bucket):
   - Read the relevant file(s) to understand the current code
   - Implement the fix by **executing the Qodo agent prompt as a direct instruction**. The agent prompt is the fix specification — follow it literally, do not reinterpret or improvise a different solution. Only deviate if the prompt is clearly outdated relative to the current code (e.g. references lines that no longer exist).
   - Apply the fix using Edit tool
