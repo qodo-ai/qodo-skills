@@ -197,7 +197,7 @@ gh api repos/{owner}/{repo}/pulls/<pr-number>/comments/<inline-comment-id>/repli
 ```
 
 **Reply format:**
-- **Fixed:** `✅ **Fixed** — <brief description of what was changed>`
+- **Fixed:** `✅ **Fixed** — <what changed, stated directionally (e.g. "added guard clause" / "removed guard clause" / "inverted condition") so a later round can detect a reversal>`
 - **Deferred:** `⏭️ **Deferred** — <reason for deferring>`
 
 ### GitLab
@@ -284,7 +284,7 @@ az devops invoke \
 Reviewed and addressed Qodo review issues:
 
 ### ✅ Fixed Issues
-- **Issue Title** (Severity) - Brief description of what was fixed
+- **Issue Title** (Severity) - what changed, stated directionally (e.g. "added guard clause" / "removed guard clause" / "inverted condition") so a later round can detect a reversal
 
 ### ⏭️ Deferred Issues
 - **Issue Title** (Severity) - Reason for deferring
