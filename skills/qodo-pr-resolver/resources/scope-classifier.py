@@ -88,12 +88,17 @@ def overlaps(start, end, rngs):
 
 
 def classify(finding, pr_ranges, cur_ranges, single_round):
+    if not isinstance(finding, dict):
+        return "unknown"
     f = _norm(str(finding.get("file", "")))
     raw_start = finding.get("start_line", finding.get("line"))
-    if raw_start is None:
+    if raw_start is None or not f:
         return "unknown"
-    start = int(raw_start)
-    end = int(finding.get("end_line", finding.get("line", start)))
+    try:
+        start = int(raw_start)
+        end = int(finding.get("end_line", finding.get("line", start)))
+    except (TypeError, ValueError):
+        return "unknown"
     if end < start:
         start, end = end, start
     pr = pr_ranges.get(f, [])
@@ -127,7 +132,10 @@ def main():
         print("findings JSON must be an array", file=sys.stderr)
         return 2
 
-    out = [dict(fnd, scope=classify(fnd, pr_ranges, cur_ranges, single_round)) for fnd in findings]
+    out = []
+    for fnd in findings:
+        scope = classify(fnd, pr_ranges, cur_ranges, single_round)
+        out.append(dict(fnd, scope=scope) if isinstance(fnd, dict) else {"finding": fnd, "scope": scope})
     json.dump(out, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0

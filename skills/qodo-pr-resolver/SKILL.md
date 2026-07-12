@@ -180,10 +180,11 @@ Qodo re-reviews on every push, so a review can surface issues on code that did *
    - Else if the PR has more than one commit, set `ROUND_BASE = HEAD~1` (the latest commit vs. its parent).
    - Else set `ROUND_BASE = PR_BASE`.
 3. If `ROUND_BASE` resolves to `PR_BASE` — a single-round PR, or the boundary can't be determined — set **`SINGLE_ROUND = true`** and stop here: every issue is treated as current-round in Step 4 (no filtering; guarantees no regression on the common single-round case).
-4. Otherwise write two unified diffs for the classifier:
+4. Otherwise write two unified diffs to a **portable temp dir** for the classifier (don't hard-code `/tmp` — it doesn't exist on Windows / restricted environments):
    ```bash
-   git diff --unified=0 <PR_BASE>..HEAD    > /tmp/qodo-pr.diff
-   git diff --unified=0 <ROUND_BASE>..HEAD > /tmp/qodo-current.diff
+   TMP=$(python3 -c "import tempfile; print(tempfile.gettempdir())")
+   git diff --unified=0 <PR_BASE>..HEAD    > "$TMP/qodo-pr.diff"
+   git diff --unified=0 <ROUND_BASE>..HEAD > "$TMP/qodo-current.diff"
    ```
 
 **Other providers / failures:** the commit list and prior-summary timestamp come from the same Step 3 comment/commit APIs. If a provider can't supply them, set `SINGLE_ROUND = true` and continue — never drop an issue over a missing scope.
@@ -199,13 +200,13 @@ Qodo re-reviews on every push, so a review can surface issues on code that did *
 
 #### Classify issues by scope (from Step 3d)
 
-If `SINGLE_ROUND` is true, skip this — every issue is current-round. Otherwise build `findings.json` = `[{"file": "<path>", "line": <line>}, …]` from the parsed issues (each issue's Location; use the start line for a multi-line range) and classify them:
+If `SINGLE_ROUND` is true, skip this — every issue is current-round. Otherwise build `$TMP/findings.json` = `[{"file": "<path>", "line": <line>}, …]` from the parsed issues (each issue's Location; use the start line for a multi-line range) and classify them. The classifier is **bundled with this skill** — invoke it by its path inside the skill's own `resources/` directory (the folder tree containing this SKILL.md), **not** the user's repo working directory:
 ```bash
-python3 resources/scope-classifier.py \
-  --pr-diff /tmp/qodo-pr.diff --current-diff /tmp/qodo-current.diff \
-  --findings findings.json
+python3 "<path-to-this-skill>/resources/scope-classifier.py" \
+  --pr-diff "$TMP/qodo-pr.diff" --current-diff "$TMP/qodo-current.diff" \
+  --findings "$TMP/findings.json"
 ```
-It echoes each issue back with a `scope`: `current`, `carried_over`, `outside_pr`, or `unknown`. Attach it to each issue. Treat `unknown` (no line number) as `current` — never hide an issue over a missing location.
+It echoes each issue back with a `scope`: `current`, `carried_over`, `outside_pr`, or `unknown`. Attach it to each issue. Treat `unknown` (no line number) as `current` — never hide an issue over a missing location. **If the classifier can't be located or run, fall back to `SINGLE_ROUND` (treat every issue as current-round)** rather than failing — never block resolution over the scope step.
 
 #### Read Qodo's taxonomy — do not derive it
 
