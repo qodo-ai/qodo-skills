@@ -50,6 +50,10 @@ Check that the current directory is inside a git repository. If not, inform the 
 
 After confirming a git repository exists, extract the repository scope to pass to the search API. Scope narrows results to rules relevant to this specific repository.
 
+Use only POSIX shell here — no `sed`, no `grep`. Parameter expansion and `case` behave
+identically on macOS (BSD) and Linux (GNU); `sed` does not (see
+[repository scope detection](references/repository-scope.md#portability)).
+
 ```bash
 # 1. Confirm inside a git repository
 git rev-parse --is-inside-work-tree
@@ -58,25 +62,46 @@ git rev-parse --is-inside-work-tree
 REMOTE_URL=$(git remote get-url origin 2>/dev/null)
 
 # 3. Parse the URL into a scope path
+SCOPE=""
 if [ -n "$REMOTE_URL" ]; then
-  # Strip .git suffix if present
-  REMOTE_URL="${REMOTE_URL%.git}"
+  # Strip .git suffix and any trailing slash
+  REPO_PATH="${REMOTE_URL%.git}"
+  REPO_PATH="${REPO_PATH%/}"
 
-  # Handle SSH format: git@github.com:org/repo
-  if echo "$REMOTE_URL" | grep -q "^git@"; then
-    REPO_PATH=$(echo "$REMOTE_URL" | sed 's/^git@[^:]*://')
-  # Handle HTTPS format: https://github.com/org/repo
-  elif echo "$REMOTE_URL" | grep -q "^https\?://"; then
-    REPO_PATH=$(echo "$REMOTE_URL" | sed 's|^https\?://[^/]*/||')
-  else
-    REPO_PATH=""
-  fi
+  case "$REPO_PATH" in
+    # scheme://[user[:pass]@]host/path — https, http, ssh, git
+    *://*)
+      REPO_PATH="${REPO_PATH#*://}"   # drop scheme
+      REPO_PATH="${REPO_PATH#*/}"     # drop [userinfo@]host
+      ;;
+    # scp-like: [user@]host:path — git@github.com:org/repo
+    *:*/*)
+      REPO_PATH="${REPO_PATH#*:}"
+      ;;
+    *)
+      REPO_PATH=""
+      ;;
+  esac
+
+  # Require at least org/repo; reject absolute and Windows paths
+  case "$REPO_PATH" in
+    /*|*\\*) REPO_PATH="" ;;
+    */*)     ;;
+    *)       REPO_PATH="" ;;
+  esac
 
   if [ -n "$REPO_PATH" ]; then
-    # 4. Detect module-level scope: check if cwd is inside modules/<name>/
-    REPO_ROOT=$(git rev-parse --show-toplevel)
-    REL_PATH=$(realpath --relative-to="$REPO_ROOT" "$(pwd)" 2>/dev/null || python3 -c "import os; print(os.path.relpath('$(pwd)', '$REPO_ROOT'))")
-    MODULE=$(echo "$REL_PATH" | sed -n 's|^modules/\([^/]*\).*|\1|p')
+    # 4. Detect module-level scope: is cwd inside modules/<name>/ ?
+    #    --show-prefix is the cwd relative to the repo root, "" at the root,
+    #    with a trailing slash. No realpath, no python3.
+    PREFIX=$(git rev-parse --show-prefix)
+    MODULE=""
+    case "$PREFIX" in
+      modules/*/*)
+        MODULE="${PREFIX#modules/}"
+        MODULE="${MODULE%%/*}"
+        ;;
+    esac
 
     if [ -n "$MODULE" ]; then
       SCOPE="/${REPO_PATH}/modules/${MODULE}/"
