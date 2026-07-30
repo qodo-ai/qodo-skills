@@ -10,7 +10,7 @@
 
 set -eu
 
-DOC_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+DOC_DIR=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
 failures=0
 
 fail() {
