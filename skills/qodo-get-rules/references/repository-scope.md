@@ -32,8 +32,11 @@ REMOTE_URL=$(git remote get-url origin 2>/dev/null)
 | GitLab subgroup | `https://gitlab.com/group/subgroup/repo` | `group/subgroup/repo` |
 | Azure DevOps | `https://dev.azure.com/org/proj/_git/repo` | `org/proj/_git/repo` |
 
-The `.git` suffix and any trailing slash are stripped before parsing. The resulting scope
-path is `/<REPO_PATH>/`.
+A trailing slash is stripped first, then a `.git` suffix — in that order, since
+`${url%.git}` only removes an exact final suffix and would leave `.git` in place on
+`https://host/org/repo.git/`. The resulting scope path is `/<REPO_PATH>/`.
+
+A `file://` remote is a local clone with no hosted org/repo path, so it yields no scope.
 
 **Keep the full path after the host** — do not collapse to two segments. GitLab subgroups and
 Azure DevOps paths are legitimately deeper than `org/repo`.
@@ -98,7 +101,7 @@ Scope is **optional**. If scope cannot be determined for any reason, the skill p
 Skip scope and proceed without error when:
 - No `origin` remote is configured
 - Remote URL cannot be parsed into an org/repo path — no `/` after the host (a single
-  segment), a local absolute path, or a Windows path
+  segment), a local absolute path, a `file://` clone, or a Windows path
 - Any other unexpected failure during extraction
 
 Do not send `"scopes": null` or `"scopes": []` — omit the `scopes` field entirely from the request body.

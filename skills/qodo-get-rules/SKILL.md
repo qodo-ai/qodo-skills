@@ -64,11 +64,16 @@ REMOTE_URL=$(git remote get-url origin 2>/dev/null)
 # 3. Parse the URL into a scope path
 SCOPE=""
 if [ -n "$REMOTE_URL" ]; then
-  # Strip .git suffix and any trailing slash
-  REPO_PATH="${REMOTE_URL%.git}"
-  REPO_PATH="${REPO_PATH%/}"
+  # Trailing slash first, then .git — the other order leaves ".git" on
+  # "https://host/org/repo.git/", because %.git only strips an exact suffix.
+  REPO_PATH="${REMOTE_URL%/}"
+  REPO_PATH="${REPO_PATH%.git}"
 
   case "$REPO_PATH" in
+    # local clone — no rules are scoped to a filesystem path
+    file://*)
+      REPO_PATH=""
+      ;;
     # scheme://[user[:pass]@]host/path — https, http, ssh, git
     *://*)
       REPO_PATH="${REPO_PATH#*://}"   # drop scheme

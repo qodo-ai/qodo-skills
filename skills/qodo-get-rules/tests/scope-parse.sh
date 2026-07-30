@@ -23,10 +23,13 @@ fail() {
 # below fails if either doc drifts back to sed/grep, which is the failure mode that
 # actually bit us.
 parse_repo_path() {
-  REPO_PATH="${1%.git}"
-  REPO_PATH="${REPO_PATH%/}"
+  REPO_PATH="${1%/}"
+  REPO_PATH="${REPO_PATH%.git}"
 
   case "$REPO_PATH" in
+    file://*)
+      REPO_PATH=""
+      ;;
     *://*)
       REPO_PATH="${REPO_PATH#*://}"
       REPO_PATH="${REPO_PATH#*/}"
@@ -79,6 +82,10 @@ expect_path 'ssh://git@github.com/org/repo.git'               'org/repo'
 expect_path 'git://host/org/repo'                             'org/repo'
 expect_path 'https://user:token@github.com/org/repo.git'      'org/repo'
 expect_path 'https://github.com/org/repo/'                    'org/repo'
+# .git AND a trailing slash together — strip order matters here
+expect_path 'https://github.com/org/repo.git/'                'org/repo'
+expect_path 'git@github.com:org/repo.git/'                    'org/repo'
+expect_path 'https://gitlab.com/group/subgroup/repo.git/'     'group/subgroup/repo'
 
 # deeper paths must survive — do not collapse to two segments
 expect_path 'https://gitlab.com/group/subgroup/repo.git'      'group/subgroup/repo'
@@ -88,6 +95,10 @@ expect_path 'git@ssh.dev.azure.com:v3/org/proj/repo'          'v3/org/proj/repo'
 # --- must degrade to no scope rather than emit a nonsense one -----------------
 expect_path 'https://github.com/onlyorg' ''
 expect_path '/Users/me/local-repo'       ''
+# a local clone has no hosted org/repo path, in any spelling
+expect_path 'file:///Users/me/local-repo'    ''
+expect_path 'file://localhost/Users/me/repo' ''
+expect_path 'file:///c/repos/foo'            ''
 expect_path 'C:\repos\foo'               ''
 expect_path 'C:/repos/foo'               ''
 expect_path ''                           ''
