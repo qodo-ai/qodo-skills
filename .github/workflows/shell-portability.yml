@@ -1,0 +1,28 @@
+name: Shell Portability
+
+# The skills are prose an agent executes as shell. A GNU-only construct doesn't
+# fail on macOS — it silently no-ops — so macOS must be in the matrix, not just Linux.
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - '.github/workflows/shell-portability.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'skills/**'
+
+jobs:
+  scope-parse:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Repository scope parsing
+        run: sh skills/qodo-get-rules/tests/scope-parse.sh
