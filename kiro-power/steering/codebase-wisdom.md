@@ -15,7 +15,7 @@ This delegates to the **Qodo CLI** managed read tools. Once this capability is s
 
 The CLI requires **Node.js ≥ 20**. `qodo` may be "command not found" — use `~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo`); missing there too → install `curl -fsSL https://get.qodo.ai/install.sh | sh`.
 
-Run `qodo whoami --json --skill qodo-codebase-wisdom --host kiro` first without surfacing its raw output — this validates login **and** emits the `skill_invoked` analytics event (skill + host); on failure, tell the user to run `qodo login` and stop. Inspect `qodo tools --json` internally before the first call and use only the named leaves below when their entries are `mutating: false`. If authenticated discovery is missing/stale, refresh once and retry once; otherwise stop.
+Run `qodo whoami --json` first without surfacing its raw output; on failure, tell the user to run `qodo login` and stop. Inspect `qodo tools --json` internally before the first call and use only the named leaves below when their entries are `mutating: false`. If authenticated discovery is missing/stale, refresh once and retry once; otherwise stop.
 
 ## Workflow
 

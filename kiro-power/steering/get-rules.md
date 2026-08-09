@@ -19,7 +19,7 @@ This delegates to the **Qodo CLI** managed rules tool (`qodo rules search`), whi
 
 The CLI requires **Node.js ≥ 20**. `qodo` may be "command not found" (GUI shells have a minimal PATH) — use `~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo`); missing there too → install `curl -fsSL https://get.qodo.ai/install.sh | sh`. See `POWER.md` → Onboarding.
 
-Run `qodo whoami --json --skill qodo-get-rules --host kiro` first without surfacing its raw output — this validates login **and** emits the `skill_invoked` analytics event (skill + host). If it fails, tell the user to run `qodo login` and stop. Then inspect `qodo tools --json` internally and require the catalog entry `name: "rules-search"`, `toolset: "rules"`, `mutating: false` before invoking it.
+Run `qodo whoami --json` first without surfacing its raw output. If it fails, tell the user to run `qodo login` and stop. Then inspect `qodo tools --json` internally and require the catalog entry `name: "rules-search"`, `toolset: "rules"`, `mutating: false` before invoking it.
 
 - If authentication succeeds but the catalog is missing/corrupt or `rules-search` is absent, run `qodo tools --refresh` once and retry discovery once.
 - If the entry remains absent or is not explicitly `mutating: false`, stop. Invoke only `qodo rules search`; never call mutating siblings such as `create`, `update`, `bulk`, `set-state`, or `set-scope`.
