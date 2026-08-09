@@ -17,7 +17,7 @@ This delegates to the **Qodo CLI** (`qodo pr-review-session findings`), which re
 
 The CLI requires **Node.js ≥ 20**. `qodo` may be "command not found" (GUI shells have a minimal PATH) — use `~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo`). Missing there too → install with `curl -fsSL https://get.qodo.ai/install.sh | sh`.
 
-Run `qodo whoami --json --skill qodo-pr-resolver --host kiro` first without surfacing its raw output — this validates login **and** emits the `skill_invoked` analytics event (skill + host). On failure, tell the user to run `qodo login` and stop. Confirm flags with `qodo pr-review-session findings --help`, then inspect `qodo tools --json` internally and require `name: "get-pr-review-findings"`, `toolset: "pr_review_session"`, `mutating: false`. If authenticated discovery fails, refresh the catalog once and retry once; otherwise stop. Never pass `--idempotency-key` in this read capability.
+Run `qodo whoami --json` first without surfacing its raw output. On failure, tell the user to run `qodo login` and stop. Confirm flags with `qodo pr-review-session findings --help`, then inspect `qodo tools --json` internally and require `name: "get-pr-review-findings"`, `toolset: "pr_review_session"`, `mutating: false`. If authenticated discovery fails, refresh the catalog once and retry once; otherwise stop. Never pass `--idempotency-key` in this read capability.
 
 ## Workflow
 
