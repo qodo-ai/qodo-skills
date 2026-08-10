@@ -1,4 +1,4 @@
-# Qodo Skills
+# Qodo
 
 Shift-left code review skills for AI coding agents. Bring Qodo's quality standards and code review capabilities into your local development workflow.
 
