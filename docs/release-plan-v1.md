@@ -29,8 +29,8 @@ Release the `qodo-in-cli` change before changing any listing:
 - Kiro remains a provider-UI step because the curated install is owned by Kiro.
 - ordinary startup no longer writes marketplace-managed skills;
 - `qodo skills install` remains the explicit offline fallback;
-- `qodo skills cleanup` removes only exact `vendor: qodo` fallback copies and refuses shared roots
-  without explicit acknowledgement.
+- `qodo skills cleanup` removes only byte-exact generated fallback copies and refuses shared roots
+  without explicit acknowledgement; retained provenance metadata never grants deletion authority.
 
 **Gate:** fresh CLI install, upgrade from the preceding CLI, login, catalog refresh, and all
 marketplace status outcomes pass on macOS, Linux, and Windows. Do not remove legacy skill copies.
@@ -68,12 +68,13 @@ After Stage 1's CLI is available and the Stage 2 release exists, validate the di
 - consent says “Connect Qodo to <agent>?” and explains automatic official-skill updates;
 - the CLI verifies the release checksum, every safe relative path, each file digest, and the
   aggregate content digest before writing;
-- the complete release is staged and swapped transactionally into only the recorded Qodo skill
-  directories;
+- the complete release is staged and swapped under a per-root recovery journal into only the
+  recorded Qodo skill directories; backups remain until ownership state is durably committed;
 - a normal Qodo skill invocation checks in a detached process at most once per day;
 - local edits, removals, unexpected files, symlinks, offline requests, and checksum failures keep
   the prior release and pause updates for that target;
-- marketplace-managed agents are excluded, and the new release loads on the next agent session.
+- marketplace-managed agents and every skill root owned by a detected marketplace host are
+  excluded, and the new release loads on the next agent session.
 
 **Gate:** repository-level release immutability, clean connection, automatic update, restart
 activation, shared-root deduplication, conflict preservation, checksum failure, interrupted
