@@ -105,7 +105,7 @@ for (const skill of catalog.skills ?? []) {
 const expectedVersions = [
   ['package.json', json('package.json').version],
   ['plugin.json', json('plugin.json').version],
-  ['.codex-plugin/plugin.json', json('.codex-plugin/plugin.json').version],
+  ['kiro-power/plugin.json', json('kiro-power/plugin.json').version],
   ['.claude-plugin/plugin.json', json('.claude-plugin/plugin.json').version],
   ['.claude-plugin/marketplace.json metadata', json('.claude-plugin/marketplace.json').metadata?.version],
   ['gemini-extension.json', json('gemini-extension.json').version],
@@ -126,12 +126,8 @@ for (const field of Object.keys(agentPlugin)) {
   if (!allowedAgentFields.has(field)) fail(`plugin.json: unsupported field ${field}`);
 }
 
-const codexMarketplace = json('.agents/plugins/marketplace.json');
-const codexEntry = codexMarketplace.plugins?.find((entry) => entry.name === catalog.package?.name);
-if (codexMarketplace.name !== 'qodo' || !codexEntry) fail('Codex marketplace must expose qodo');
-if (codexEntry?.source?.path !== './') fail('Codex marketplace must package this repository root');
-if (codexEntry?.policy?.authentication !== 'ON_USE') {
-  fail('Codex marketplace authentication must happen on first use');
+if (existsSync(join(root, '.codex-plugin')) || existsSync(join(root, '.agents', 'plugins'))) {
+  fail('Codex packaging belongs to qodo-in-harness, not qodo-skills');
 }
 
 const claudeMarketplace = json('.claude-plugin/marketplace.json');

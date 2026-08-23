@@ -39,14 +39,16 @@ The `Release skills` workflow performs the GitHub-side publication:
 1. Re-run the complete validation suite on the merged commit.
 2. Create an annotated `v<package-version>` tag on that exact commit.
 3. Render the immutable release record into a GitHub Release.
-4. Refresh or submit each official marketplace listing according to that host's process.
-5. Verify the marketplace-visible version and perform a fresh install—repository and CI
+4. Dispatch a version-pinned import pull request to `qodo-in-harness` for Codex.
+5. Refresh or submit each official marketplace listing according to that host's process.
+6. Verify the marketplace-visible version and perform a fresh install—repository and CI
    success are not proof of listing acceptance.
-6. Upgrade an existing installation and verify that the host, not the CLI, replaced it.
+7. Upgrade an existing installation and verify that the host, not the CLI, replaced it.
 
-The workflow has only `contents: write`; it cannot alter marketplace accounts or publish the Qodo
-runtime. Official marketplace submission and provider-visible verification remain explicit release
-gates.
+The workflow uses `QODO_IN_HARNESS_DISPATCH_TOKEN`, scoped only to dispatch the private
+`qodo-in-harness` repository. A missing token fails the downstream-dispatch step without mutating
+marketplace state. The import workflow opens a reviewable PR; it never publishes automatically.
+Official marketplace submission and provider-visible verification remain explicit release gates.
 
 ## CLI fallback cadence
 
@@ -59,8 +61,8 @@ never a hidden side effect of this repository's release workflow.
 
 | Host | Source refresh |
 |---|---|
-| Codex | `codex plugin marketplace upgrade qodo`; install the offered plugin update and restart when prompted |
-| Claude Code | `claude plugin marketplace update qodo`, then `claude plugin update qodo@qodo` |
+| Codex | Install the update offered by the official Codex marketplace and restart when prompted |
+| Claude Code | `claude plugin update qodo@claude-plugins-official` |
 | Gemini CLI | Automatic when installed with `--auto-update`, or `gemini extensions update qodo` |
 | Kiro | Power → Check for updates → Install updates |
 

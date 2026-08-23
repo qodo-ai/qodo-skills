@@ -18,14 +18,20 @@ This separates three lifecycles that otherwise fight each other:
 `skills/<name>/SKILL.md` is canonical product content. The distribution catalog is the
 canonical package and presentation metadata. `npm run adapters` renders that metadata into:
 
-- `plugin.json` for Agent Plugins 1.0 hosts, including Kiro;
-- `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json` for Codex;
+- `plugin.json` for Agent Plugins 1.0 hosts;
+- `kiro-power/` as the generated Agent Plugins projection at Kiro's existing listing path;
 - `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` for Claude Code;
 - `gemini-extension.json` for Gemini CLI;
 - `skills/*/agents/openai.yaml` for Codex skill presentation.
 
 Generated adapters are committed because hosts read the repository directly. They are
 never edited by hand; CI rejects drift from the catalog.
+
+The marketplace identities deliberately remain in their current repositories. Claude consumes
+this repository root through its existing official `qodo` listing. Kiro consumes
+`kiro-power/`. Codex consumes a generated, provenance-locked copy in
+`qodo-in-harness/codex-qodo`. This repository must not expose a second Codex plugin, and the
+Codex packaging repository must not author skills or bundle the CLI runtime.
 
 ## First-use state machine
 

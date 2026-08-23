@@ -54,3 +54,15 @@ jobs:
           fi
 
           gh release create "${TAG}" --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}"
+
+      - name: Open the version-pinned Codex import train
+        env:
+          GH_TOKEN: ${{ secrets.QODO_IN_HARNESS_DISPATCH_TOKEN }}
+        run: |
+          test -n "${GH_TOKEN}" || { echo "QODO_IN_HARNESS_DISPATCH_TOKEN is required" >&2; exit 1; }
+          VERSION="$(node -p "require('./distribution/catalog.json').package.version")"
+          gh api --method POST repos/qodo-ai/qodo-in-harness/dispatches \
+            -f event_type=qodo-skills-released \
+            -f "client_payload[version]=${VERSION}" \
+            -f "client_payload[tag]=v${VERSION}" \
+            -f "client_payload[sha]=${GITHUB_SHA}"

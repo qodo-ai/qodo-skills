@@ -25,6 +25,15 @@ generated fallback snapshot, but it must never become a second editable source.
 5. After adoption and rollback gates are met, remove the fallback command and generated
    snapshot in a separate CLI release.
 
+## Existing listing cutover
+
+- Claude: preserve the official plugin id `qodo@claude-plugins-official`; update its pinned source
+  SHA only after the canonical release passes validation.
+- Kiro: preserve the listing's `kiro-power/` source path. That directory is now a generated Agent
+  Plugins 1.0 adapter, so existing installs can upgrade without a registry path migration.
+- Codex: preserve the `qodo-in-harness/codex-qodo` package identity. A release dispatch imports
+  the exact `qodo-skills` tag into a PR, records source hashes, and removes the embedded CLI.
+
 ## Safety rules
 
 - Never delete a skill directory merely because its contents differ; it may be user-owned.

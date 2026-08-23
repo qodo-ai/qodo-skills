@@ -1,5 +1,13 @@
 /** Generate marketplace adapters from distribution/catalog.json. */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -48,46 +56,6 @@ writeJson('plugin.json', {
   repository: pkg.repository,
   license: pkg.license,
   keywords,
-});
-
-writeJson('.codex-plugin/plugin.json', {
-  name: pkg.name,
-  version: pkg.version,
-  description: pkg.description,
-  author,
-  homepage: pkg.homepage,
-  repository: pkg.repository,
-  license: pkg.license,
-  keywords,
-  skills: './skills/',
-  interface: {
-    displayName: pkg.displayName,
-    shortDescription: 'Qodo intelligence and reviews in your coding agent.',
-    longDescription: pkg.description,
-    developerName: author.name,
-    category: 'Developer Tools',
-    capabilities: ['Code intelligence', 'Code review', 'Organizational standards'],
-    websiteURL: pkg.homepage,
-    brandColor: pkg.brandColor,
-    defaultPrompt: [
-      'Set up Qodo in this coding agent.',
-      'Review my local changes with Qodo.',
-      'Load the Qodo standards for this task.',
-    ],
-  },
-});
-
-writeJson('.agents/plugins/marketplace.json', {
-  name: 'qodo',
-  interface: { displayName: 'Qodo' },
-  plugins: [
-    {
-      name: pkg.name,
-      source: { source: 'local', path: './' },
-      policy: { installation: 'AVAILABLE', authentication: 'ON_USE' },
-      category: 'Developer Tools',
-    },
-  ],
 });
 
 writeJson('.claude-plugin/plugin.json', {
@@ -139,6 +107,77 @@ for (const skill of catalog.skills) {
   ].join('\n');
   const target = join(root, 'skills', skill.name, 'agents', 'openai.yaml');
   writeText(relative(root, target).split(sep).join('/'), yaml);
+}
+
+// Kiro's existing official listing points at `kiro-power/`. Keep that path
+// stable while replacing the legacy POWER.md package with a generated Agent
+// Plugins 1.0 projection. Canonical skill content remains under `skills/`.
+const kiroRoot = join(root, 'kiro-power');
+const generatedKiroFiles = new Map([
+  ['plugin.json', `${JSON.stringify({
+    $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
+    name: pkg.name,
+    version: pkg.version,
+    description: pkg.description,
+    author,
+    homepage: pkg.homepage,
+    repository: pkg.repository,
+    license: pkg.license,
+    keywords,
+  }, null, 2)}\n`],
+  ['README.md', [
+    '# Qodo for Kiro',
+    '',
+    'Generated from the canonical skills in `../skills/`.',
+    'Install or update Qodo through the Kiro Powers marketplace.',
+    'The Qodo CLI remains a separate runtime and is never bundled here.',
+    '',
+  ].join('\n')],
+]);
+
+function collectFiles(dir, prefix = '') {
+  if (!existsSync(dir)) return [];
+  const files = [];
+  for (const name of readdirSync(dir).sort()) {
+    const path = join(dir, name);
+    const relativePath = prefix ? `${prefix}/${name}` : name;
+    const stat = lstatSync(path);
+    if (stat.isSymbolicLink()) throw new Error(`${path}: generated adapters may not contain symlinks`);
+    if (stat.isDirectory()) files.push(...collectFiles(path, relativePath));
+    else if (stat.isFile()) files.push(relativePath);
+  }
+  return files;
+}
+
+for (const skill of catalog.skills) {
+  const sourceRoot = join(root, 'skills', skill.name);
+  for (const path of collectFiles(sourceRoot)) {
+    generatedKiroFiles.set(`skills/${skill.name}/${path}`, readFileSync(join(sourceRoot, path), 'utf8'));
+  }
+}
+
+if (check) {
+  const actual = collectFiles(kiroRoot).sort();
+  const expected = [...generatedKiroFiles.keys()].sort();
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) stale.push('kiro-power/');
+  for (const [path, content] of generatedKiroFiles) {
+    let current = '';
+    try {
+      current = readFileSync(join(kiroRoot, path), 'utf8');
+    } catch {
+      // Missing files are stale.
+    }
+    if (current.replace(/\r\n/g, '\n') !== content.replace(/\r\n/g, '\n')) {
+      stale.push(`kiro-power/${path}`);
+    }
+  }
+} else {
+  rmSync(kiroRoot, { recursive: true, force: true });
+  for (const [path, content] of generatedKiroFiles) {
+    const target = join(kiroRoot, path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, content);
+  }
 }
 
 if (stale.length) {

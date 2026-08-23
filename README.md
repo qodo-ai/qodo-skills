@@ -26,10 +26,10 @@ before login, but the operational skills stay unusable until authentication succ
 
 | Host | Install |
 |---|---|
-| Codex | `codex plugin marketplace add qodo-ai/qodo-skills`, then `codex plugin add qodo@qodo` |
-| Claude Code | `claude plugin marketplace add qodo-ai/qodo-skills`, then `claude plugin install qodo@qodo` |
+| Codex | Install **Qodo** from the official Codex marketplace (packaged by `qodo-in-harness`) |
+| Claude Code | `claude plugin install qodo@claude-plugins-official --scope user` |
 | Gemini CLI | `gemini extensions install https://github.com/qodo-ai/qodo-skills --auto-update` |
-| Kiro | Powers → Add Custom Power → Import from GitHub → `https://github.com/qodo-ai/qodo-skills` |
+| Kiro | Install **Qodo** from the curated Powers marketplace |
 | Agent Plugins hosts | Import the repository URL through the host's plugin UI |
 
 These source-install commands are immediately usable after the branch is published.
@@ -70,7 +70,9 @@ qodo-skills repository          coding-agent marketplace       qodo CLI
 - Skills never read secret files or call Qodo endpoints directly; they invoke `qodo`.
 
 The detailed contracts are in [Architecture](docs/architecture.md),
-[Compatibility](docs/compatibility.md), and [Releasing](docs/releasing.md).
+[Compatibility](docs/compatibility.md), and [Releasing](docs/releasing.md). The ordered first
+migration, provider gates, acceptance matrix, and rollback path are in
+[Marketplace migration and release plan](docs/release-plan-v1.md).
 
 ## Development
 

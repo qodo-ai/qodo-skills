@@ -4,9 +4,9 @@
 
 | Surface | Manifest | Skill location | Update owner |
 |---|---|---|---|
-| Codex | `.codex-plugin/plugin.json` | `skills/` | Codex marketplace |
+| Codex | Generated in `qodo-in-harness/codex-qodo` | `skills/` | Codex marketplace |
 | Claude Code | `.claude-plugin/plugin.json` | `skills/` | Claude marketplace |
-| Kiro / Agent Plugins 1.0 | `plugin.json` | `skills/` | Host power/plugin manager |
+| Kiro / Agent Plugins 1.0 | `kiro-power/plugin.json` | `kiro-power/skills/` | Existing Kiro Powers listing |
 | Gemini CLI | `gemini-extension.json` | `skills/` | Gemini extension manager |
 
 The package is skills-only. There is no `mcp.json`, `.mcp.json`, or hosted tool server.
