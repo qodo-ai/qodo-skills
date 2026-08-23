@@ -1,7 +1,7 @@
 ---
 name: qodo-review-resolver
 description: >-
-  Read or resolve a pull request's Qodo review with the qodo CLI. Fetch the structured review status, reviewed commit, and findings for any pull request; optionally resolve open findings in code and record approved outcomes. Use it to inspect or act on Qodo review findings instead of scraping provider comments. Use qodo-review for local pre-PR review.
+  Read or resolve a pull request's Qodo review with the qodo CLI. Fetch the structured review — status, the reviewed commit SHA, and every finding with its status — for ANY PR (yours or someone else's) as JSON, then optionally resolve the open findings in code and record the outcome on each one (mark implemented, or dismiss with a reason), once or in a watch loop until it comes back clean. Use this — never `gh`/`curl` scraping of the PR's review comments — whenever you need to know where a review stands or what it flagged: "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "what did Qodo flag on that PR", "is this PR's review up to date with head", "check the review before merging", plus "resolve my PR review", "fix the review findings", "address Qodo's findings", "babysit / watch this PR until it's clean".
 metadata:
   vendor: qodo
   version: "1.4.0"

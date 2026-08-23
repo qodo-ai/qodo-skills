@@ -4,6 +4,17 @@ The previous design bundled editable skill sources in the CLI, copied them into 
 directory, and refreshed those copies on ordinary CLI launches. That made the CLI a shadow
 marketplace and coupled skill delivery to runtime releases.
 
+## Initial import provenance
+
+The canonical marketplace package was seeded from the newer skill implementations in
+`qodo-ai/qodo-in-cli@4970ea83ae9d247c474215fa05648c899799f977`, not from the legacy
+copies previously held in this repository. The five imported `SKILL.md` bodies and their
+discovery descriptions are preserved verbatim. Only unsupported frontmatter fields were
+normalized into portable Agent Skills metadata. `qodo-setup` is the one newly authored skill.
+
+After this import, skill behavior is authored only in this repository. The CLI may consume a
+generated fallback snapshot, but it must never become a second editable source.
+
 ## Target behavior
 
 1. New users install the plugin through their agent and run `qodo-setup`.

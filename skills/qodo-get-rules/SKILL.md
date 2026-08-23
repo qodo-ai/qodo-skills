@@ -1,7 +1,7 @@
 ---
 name: qodo-get-rules
 description: >-
-  Load the coding rules from Qodo most relevant to the current coding task, using the qodo CLI's managed rules search — generate structured semantic queries from the assignment, retrieve the workspace's matching rules ranked by relevance, and apply them while writing the code. Use when the user asks to write, edit, refactor, or review code. Skip if rules are already loaded in this conversation.
+  Load the coding rules from Qodo most relevant to the current coding task, using the qodo CLI's managed rules search — generate structured semantic queries from the assignment, retrieve the workspace's matching rules ranked by relevance, and apply them while writing the code. Use when the user asks to write, edit, refactor, or review code, when starting implementation planning, or on "get rules", "load qodo rules", "fetch coding rules", "relevant rules", "search rules". Skip if rules are already loaded in this conversation.
 metadata:
   vendor: qodo
   version: "1.1.0"

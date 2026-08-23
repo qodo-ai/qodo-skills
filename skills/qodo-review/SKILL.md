@@ -1,7 +1,7 @@
 ---
 name: qodo-review
 description: >-
-  Review local changes before opening a pull request using the qodo CLI. Send the uncommitted or unpushed diff with coding-session context, evaluate the findings, and apply only approved fixes unless the user explicitly invokes autofix. Use for pre-PR review; use qodo-review-resolver after a pull request exists.
+  Review your LOCAL changes before opening a pull request, using the qodo CLI — send your uncommitted/unpushed diff to Qodo's review engine along with the coding-session context (what you changed and why, plus links to the ticket/spec/design that drove it) that a forge-based reviewer can never see, then evaluate the findings and apply the fixes you approve (or pass `autofix` to apply directly). Use when asked to "review my changes before I push", "pre-PR review", "check this before I open a PR", "review my local diff", or "run qodo review".
 metadata:
   vendor: qodo
   version: "1.9.0"
