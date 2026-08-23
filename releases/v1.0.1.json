@@ -1,0 +1,15 @@
+{
+  "version": "1.0.1",
+  "summary": "Import the latest Qodo review resolver workflow from the legacy CLI source.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 1,
+  "skills": [
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.1",
+      "change": "patch"
+    }
+  ]
+}

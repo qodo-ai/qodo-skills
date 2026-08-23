@@ -2,10 +2,15 @@
 name: qodo-review-resolver
 description: >-
   Read or resolve a pull request's Qodo review with the qodo CLI. Fetch the structured review — status, the reviewed commit SHA, and every finding with its status — for ANY PR (yours or someone else's) as JSON, then optionally resolve the open findings in code and record the outcome on each one (mark implemented, or dismiss with a reason), once or in a watch loop until it comes back clean. Use this — never `gh`/`curl` scraping of the PR's review comments — whenever you need to know where a review stands or what it flagged: "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "what did Qodo flag on that PR", "is this PR's review up to date with head", "check the review before merging", plus "resolve my PR review", "fix the review findings", "address Qodo's findings", "babysit / watch this PR until it's clean".
+when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
   vendor: qodo
-  version: "1.4.0"
+  version: "1.4.1"
   recommended: "true"
+arguments:
+  - name: autofix
+    description: Resolve the recommended fixes directly without asking. Omit to evaluate the findings and let the user pick which to resolve.
+    optional: true
 ---
 
 # Read & Resolve Findings
@@ -39,7 +44,6 @@ fact required for the freshness check below; the "don't scrape" rule is about qo
 ```
 qodo whoami --json --skill qodo-review-resolver                       # auth check (exit 0 = logged in)
 qodo pr-review-session findings --pr-url <PR_URL> --json            # the review session for a PR
-qodo pr-review-session findings --pr-url <PR_URL> --git-provider github --json
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
 qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explanation "..." --json
 qodo pr-review-session --help                                       # exact tools + flags (offline)
@@ -76,7 +80,7 @@ or pipe an installer directly into a shell.
 
 ## Fetch the review session
 
-`qodo pr-review-session findings --pr-url <PR_URL> [--git-provider <p>] --json` returns:
+`qodo pr-review-session findings --pr-url <PR_URL> --json` returns:
 
 - `review_session` — the latest review run: `status`, `commit_sha` (**the last commit included in
   the review** — the code these findings describe), `started_at`. **`null` = the PR has no review
@@ -85,8 +89,7 @@ or pipe an installer directly into a shell.
   `action_level` (`action_required` > `remediation_recommended` > `informational`),
   `attribution_status`, `git_sha`, `review_run_id`, `comment_id` / `inline_comment_id`.
 
-Pass `--git-provider` when you know it (github / gitlab / bitbucket / ado) — it sharpens URL
-matching. `finding_count: 0` with a non-null session = a clean review.
+`finding_count: 0` with a non-null session = a clean review.
 
 ## Read the session state FIRST (before trusting any finding)
 
@@ -254,7 +257,7 @@ qodo pr-review-session dismiss --finding-ids <id>,<id> --reason <reason> --expla
 **User: "Resolve the action-required findings on https://github.com/acme/api/pull/318"**
 
 1. `qodo whoami` → logged in.
-2. `qodo pr-review-session findings --pr-url https://github.com/acme/api/pull/318 --git-provider github --json`
+2. `qodo pr-review-session findings --pr-url https://github.com/acme/api/pull/318 --json`
    → `review_session`: `status: completed`, `commit_sha: a1b2c3d` (= the PR head, so findings are current);
    `findings`: 3 open (2 `pending`, 1 `partial_implementation`) — 2 `action_required`, 1 `informational`.
 3. Instruction filters to `action_required` → work those 2; the informational one is out of scope (report it, don't fix).
@@ -282,7 +285,7 @@ qodo pr-review-session dismiss --finding-ids <id>,<id> --reason <reason> --expla
   their explicit go. On a real disagreement the user is the arbiter.
 - **Don't close what you didn't settle.** A finding you skipped for scope stays open — report it as
   skipped rather than dismissing it as `deferred` to make the list look clean.
-- **Don't guess** the PR URL or provider — resolve them first; a `null` session means no review yet.
+- **Don't guess** the PR URL — resolve it first; a `null` session means no review yet.
 - An `MT-TOOL-LOOP` or `MT-RATE-LIMITED` error means stop/back off and change approach, not retry.
 
 Lead with the bottom line — how many findings, how many you resolved, what's left and why —
