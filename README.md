@@ -26,7 +26,7 @@ before login, but the operational skills stay unusable until authentication succ
 
 | Host | Install |
 |---|---|
-| Codex | Install **Qodo** from the official Codex marketplace (packaged by `qodo-in-harness`) |
+| Codex | Install **Qodo** from the official Codex marketplace |
 | Claude Code | `claude plugin install qodo@claude-plugins-official --scope user` |
 | Gemini CLI | `gemini extensions install https://github.com/qodo-ai/qodo-skills --auto-update` |
 | Kiro | Install **Qodo** from the curated Powers marketplace |

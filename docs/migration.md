@@ -31,8 +31,9 @@ generated fallback snapshot, but it must never become a second editable source.
   SHA only after the canonical release passes validation.
 - Kiro: preserve the listing's `kiro-power/` source path. That directory is now a generated Agent
   Plugins 1.0 adapter, so existing installs can upgrade without a registry path migration.
-- Codex: preserve the `qodo-in-harness/codex-qodo` package identity. A release dispatch imports
-  the exact `qodo-skills` tag into a PR, records source hashes, and removes the embedded CLI.
+- Codex: preserve the existing official plugin identity while repointing its source from
+  `qodo-in-harness/codex-qodo` to this repository's exact release commit. Do not merge the harness
+  deprecation PR until fresh-install and existing-install upgrade verification passes.
 
 ## Safety rules
 

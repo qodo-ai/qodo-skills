@@ -10,11 +10,9 @@ and an evidence gate. The invariant is:
 - Confirm the existing identities and source paths in the provider consoles:
   - Claude: `qodo@claude-plugins-official` → `qodo-ai/qodo-skills` root.
   - Kiro: Qodo Power → `qodo-ai/qodo-skills/kiro-power`.
-  - Codex: existing Qodo entry → `qodo-in-harness/codex-qodo` package identity.
-- Create the `codex-production` GitHub environment with required human approval.
-- Configure `NPM_TOKEN` there only if the existing Codex listing consumes npm.
-- Configure `QODO_IN_HARNESS_DISPATCH_TOKEN` in `qodo-skills`, scoped only to dispatch
-  `qodo-in-harness`.
+  - Codex: existing Qodo entry, currently sourced from `qodo-in-harness/codex-qodo`.
+- Confirm the provider can repoint that existing Codex entry to `qodo-ai/qodo-skills` without
+  creating a new plugin identity.
 - Record the last known-good provider versions, source SHAs, artifacts, and reinstall steps.
 
 **Gate:** all three listing identities and rollback artifacts are confirmed from provider-visible
@@ -47,7 +45,8 @@ Merge and publish `qodo-skills` v1.0.0 only after Stage 1 is available:
 - Claude continues using the existing repository root and official plugin ID;
 - Kiro continues using the existing `kiro-power/` source path, now a generated Agent Plugins 1.0
   projection;
-- the release tags the exact reviewed commit and dispatches the Codex import train.
+- the same release contains the direct Codex manifest, but the Codex listing remains unchanged
+  until Stage 3.
 
 Update Claude and Kiro source SHAs through their existing listings. Do not create new listings.
 
@@ -58,24 +57,27 @@ update replacement. Restart the host where required.
 **Rollback:** publish a new canonical patch restoring the last good behavior and repoint the
 provider to that immutable patch. Never move v1.0.0 or mutate a cached package.
 
-## Stage 3 — migrate Codex through its existing package
+## Stage 3 — repoint the existing Codex listing and deprecate the old repository
 
-The skills release opens a generated `qodo-in-harness` PR. Review that PR for:
+Repoint the existing Codex listing from `qodo-in-harness/codex-qodo` to the exact released
+`qodo-skills` commit. Do not submit a second plugin. Verify:
 
-- exact upstream tag and commit;
-- content hash and six expected skill versions;
-- removal of the embedded CLI runtime and all independent skill launchers;
-- preservation of the `qodo` plugin and `@qodo/codex-plugin` identities;
-- isolated marketplace/cache install with no `runtime/` directory.
+- the provider-visible plugin ID is unchanged;
+- the provider-visible source commit is the approved `qodo-skills` release;
+- the six canonical skills load and no embedded runtime is present;
+- a fresh install works;
+- an existing 0.1.4 installation upgrades in place rather than creating a duplicate.
 
-After merge, run `Release Codex plugin` with the exact version through the protected production
-environment. Publishing an artifact is not listing acceptance.
+Only after those checks pass may the separate `qodo-in-harness` deprecation PR merge. Keep its last
+known-good artifact and history available for the rollback window; disable new releases and mark
+the repository archived only after two successful normal release cycles.
 
 **Gate:** official marketplace shows the released version; fresh install and upgrade from 0.1.4
 both load the six canonical skills; the separately installed CLI logs in and updates normally.
 
-**Rollback:** publish a new Codex patch generated from the last known-good canonical tag. Do not
-restore an embedded runtime and do not mutate the old package/tag.
+**Rollback:** repoint the existing listing to the last known-good harness source while the rollback
+window is open, or to a new canonical patch after the source move is stable. Never create a second
+listing or mutate an old tag.
 
 ## Stage 4 — migrate existing CLI-first users
 
@@ -120,4 +122,3 @@ Keep the fallback for at least two normal CLI release cycles. Remove it only whe
 | Marketplace update fails | Previous cached plugin remains; CLI remains independently usable |
 | Runtime update fails | Plugin remains; runtime rollback does not change skill artifacts |
 | Offline environment | Explicit generated fallback remains available during the compatibility window |
-

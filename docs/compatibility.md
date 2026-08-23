@@ -4,7 +4,7 @@
 
 | Surface | Manifest | Skill location | Update owner |
 |---|---|---|---|
-| Codex | Generated in `qodo-in-harness/codex-qodo` | `skills/` | Codex marketplace |
+| Codex | `.codex-plugin/plugin.json` | `skills/` | Existing Codex marketplace listing, repointed to this repository |
 | Claude Code | `.claude-plugin/plugin.json` | `skills/` | Claude marketplace |
 | Kiro / Agent Plugins 1.0 | `kiro-power/plugin.json` | `kiro-power/skills/` | Existing Kiro Powers listing |
 | Gemini CLI | `gemini-extension.json` | `skills/` | Gemini extension manager |

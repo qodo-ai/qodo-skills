@@ -39,16 +39,15 @@ The `Release skills` workflow performs the GitHub-side publication:
 1. Re-run the complete validation suite on the merged commit.
 2. Create an annotated `v<package-version>` tag on that exact commit.
 3. Render the immutable release record into a GitHub Release.
-4. Dispatch a version-pinned import pull request to `qodo-in-harness` for Codex.
-5. Refresh or submit each official marketplace listing according to that host's process.
-6. Verify the marketplace-visible version and perform a fresh install—repository and CI
+4. Refresh or submit each official marketplace listing according to that host's process.
+5. Verify the marketplace-visible version and perform a fresh install—repository and CI
    success are not proof of listing acceptance.
-7. Upgrade an existing installation and verify that the host, not the CLI, replaced it.
+6. Upgrade an existing installation and verify that the host, not the CLI, replaced it.
 
-The workflow uses `QODO_IN_HARNESS_DISPATCH_TOKEN`, scoped only to dispatch the private
-`qodo-in-harness` repository. A missing token fails the downstream-dispatch step without mutating
-marketplace state. The import workflow opens a reviewable PR; it never publishes automatically.
-Official marketplace submission and provider-visible verification remain explicit release gates.
+The workflow cannot alter marketplace accounts or publish the Qodo runtime. Official marketplace
+submission and provider-visible verification remain explicit release gates. The
+`qodo-in-harness` deprecation is a later, separately reviewed operation after the Codex listing
+source cutover passes both install tests.
 
 ## CLI fallback cadence
 

@@ -58,6 +58,46 @@ writeJson('plugin.json', {
   keywords,
 });
 
+writeJson('.codex-plugin/plugin.json', {
+  name: pkg.name,
+  version: pkg.version,
+  description: pkg.description,
+  author,
+  homepage: pkg.homepage,
+  repository: pkg.repository,
+  license: pkg.license,
+  keywords,
+  skills: './skills/',
+  interface: {
+    displayName: pkg.displayName,
+    shortDescription: 'Qodo intelligence and reviews in Codex.',
+    longDescription: pkg.description,
+    developerName: author.name,
+    category: 'Developer Tools',
+    capabilities: ['Code intelligence', 'Code review', 'Organizational standards'],
+    websiteURL: pkg.homepage,
+    brandColor: pkg.brandColor,
+    defaultPrompt: [
+      'Set up Qodo in Codex.',
+      'Review my local changes with Qodo.',
+      'Load the Qodo standards for this task.',
+    ],
+  },
+});
+
+writeJson('.agents/plugins/marketplace.json', {
+  name: 'qodo',
+  interface: { displayName: 'Qodo' },
+  plugins: [
+    {
+      name: pkg.name,
+      source: { source: 'local', path: './' },
+      policy: { installation: 'AVAILABLE', authentication: 'ON_USE' },
+      category: 'Developer Tools',
+    },
+  ],
+});
+
 writeJson('.claude-plugin/plugin.json', {
   name: pkg.name,
   version: pkg.version,
