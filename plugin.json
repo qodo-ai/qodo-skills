@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qodo",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
   "author": {
     "name": "Qodo",

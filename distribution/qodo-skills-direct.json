@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "package": {
     "name": "qodo",
-    "version": "1.0.1",
+    "version": "1.0.0",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "contentSha256": "3c40db549d505d6c06a392b6d30289fbf6b595c70ae5453b02010f60f050d941"
   },
