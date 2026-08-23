@@ -1,0 +1,69 @@
+{
+  "$schema": "./catalog.schema.json",
+  "schemaVersion": 1,
+  "package": {
+    "name": "qodo",
+    "displayName": "Qodo for coding agents",
+    "version": "1.0.0",
+    "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
+    "repository": "https://github.com/qodo-ai/qodo-skills",
+    "homepage": "https://www.qodo.ai",
+    "license": "MIT",
+    "brandColor": "#6D4AFF"
+  },
+  "runtime": {
+    "command": "qodo",
+    "loginCommand": "qodo login",
+    "protocolVersion": 1
+  },
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.0",
+      "recommended": true,
+      "displayName": "Set up Qodo",
+      "shortDescription": "Connect the Qodo runtime and verify this agent is ready.",
+      "defaultPrompt": "Use $qodo-setup to connect my Qodo account and verify this coding agent."
+    },
+    {
+      "name": "qodo-codebase-wisdom",
+      "version": "1.1.0",
+      "recommended": true,
+      "displayName": "Qodo Codebase Wisdom",
+      "shortDescription": "Understand code, history, and cross-repo impact.",
+      "defaultPrompt": "Use $qodo-codebase-wisdom to explain how this code works and cite the evidence."
+    },
+    {
+      "name": "qodo-get-rules",
+      "version": "1.1.0",
+      "recommended": true,
+      "displayName": "Qodo Rules",
+      "shortDescription": "Load the standards that apply to the current change.",
+      "defaultPrompt": "Use $qodo-get-rules to load the Qodo standards relevant to this task."
+    },
+    {
+      "name": "qodo-manage-standards",
+      "version": "1.0.0",
+      "recommended": false,
+      "displayName": "Qodo Standards Manager",
+      "shortDescription": "Create and maintain Qodo Review Standards.",
+      "defaultPrompt": "Use $qodo-manage-standards to capture this convention as a Qodo standard."
+    },
+    {
+      "name": "qodo-review",
+      "version": "1.9.0",
+      "recommended": true,
+      "displayName": "Qodo Local Review",
+      "shortDescription": "Review local changes before opening a pull request.",
+      "defaultPrompt": "Use $qodo-review to review my local changes before I push them."
+    },
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.0",
+      "recommended": true,
+      "displayName": "Qodo Review Resolver",
+      "shortDescription": "Read and resolve Qodo pull-request findings.",
+      "defaultPrompt": "Use $qodo-review-resolver to show me the current Qodo review findings."
+    }
+  ]
+}

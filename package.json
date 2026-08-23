@@ -1,0 +1,17 @@
+{
+  "name": "@qodo/agent-skills",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Canonical Qodo skills and local coding-agent marketplace adapters.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "scripts": {
+    "adapters": "node scripts/sync-adapters.mjs",
+    "export:cli": "node scripts/export-cli-bundle.mjs",
+    "check": "node scripts/validate.mjs",
+    "test": "npm run check"
+  },
+  "license": "MIT"
+}

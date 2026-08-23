@@ -1,219 +1,138 @@
 ---
 name: qodo-get-rules
-description: "Loads coding rules from Qodo most relevant to the current coding task by generating a semantic search query from the assignment. Use when Qodo is configured and the user asks to write, edit, refactor, or review code, or when starting implementation planning. Skip if rules are already loaded."
-allowed-tools: "Bash"
-triggers:
-  - "get.?qodo.?rules"
-  - "get.?rules"
-  - "load.?qodo.?rules"
-  - "load.?rules"
-  - "fetch.?qodo.?rules"
-  - "fetch.?rules"
-  - "qodo.?rules"
-  - "get.?relevant.?rules"
-  - "relevant.?rules"
-  - "search.?rules"
-  - "coding.?rules"
-  - "code.?rules"
-  - "before.?cod"
-  - "start.?coding"
-  - "write.?code"
-  - "implement"
-  - "create.*code"
-  - "build.*feature"
-  - "add.*feature"
-  - "fix.*bug"
-  - "refactor"
-  - "modify.*code"
-  - "update.*code"
+description: >-
+  Load the coding rules from Qodo most relevant to the current coding task, using the qodo CLI's managed rules search — generate structured semantic queries from the assignment, retrieve the workspace's matching rules ranked by relevance, and apply them while writing the code. Use when the user asks to write, edit, refactor, or review code. Skip if rules are already loaded in this conversation.
+metadata:
+  vendor: qodo
+  version: "1.1.0"
+  recommended: "true"
 ---
 
-# Get Qodo Rules Skill
+# Get Rules
 
-## Description
+Use the `qodo` CLI to fetch the workspace's coding rules most relevant to the task at
+hand, then **apply them while producing the code**. Retrieval is semantic — the quality
+of what comes back is decided by how you write the query, so follow the query format
+below exactly.
 
-Fetches the most relevant Qodo coding rules for the current coding task. Generates a focused semantic search query from the coding assignment and calls `POST /rules/search` to retrieve only the rules most relevant to the task at hand, ranked by relevance.
+## Quick start
 
-**Skip** if "Qodo Rules Loaded" already appears in conversation context.
+```
+qodo whoami --json --skill qodo-get-rules                 # auth check (exit 0 = logged in)
+qodo rules search --query "Name: JWT Authentication Endpoint Validation
+Category: Security
+Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json
+qodo rules --help                                         # exact flags (renders offline)
+```
 
+The newlines inside the quoted `--query` value are literal — a multi-line double-quoted
+string works as-is in POSIX sh/bash/zsh and in PowerShell. Don't use Bash-only `$'…'`
+quoting. (cmd.exe can't express multi-line strings — run the command from PowerShell or
+bash there.)
+
+**`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents run
+shells with a minimal PATH. Retry with the absolute path `~/.qodo/bin/qodo` (or
+`$QODO_HOME/bin/qodo` if set) and keep using it. Only if that file is missing too is qodo
+actually not installed; tell the user to obtain a checksum-pinned installer command from
+Qodo or their organization's administrator. Installers are served from https://get.qodo.ai,
+but never invent a digest or pipe an installer directly into a shell.
+
+## Preflight
+
+1. **Already loaded?** If "Qodo Rules Loaded" appears earlier in this conversation, skip
+   straight to applying those rules — don't re-fetch.
+2. **Auth.** `qodo whoami` — non-zero exit → tell the user to run `qodo login`, then stop.
+   `Not logged in` / `No tool catalog cached` → not logged in. An `unknown command` on
+   `qodo rules` while `whoami` SUCCEEDS is a different failure: the cached catalog predates
+   the rules tool — run `qodo tools --refresh` and retry; only ask for `qodo login` when
+   `whoami` itself fails.
+3. **Repository scope** (optional, improves precision). From the repo's `origin` remote,
+   take the **full path after the host** and strip a `.git` suffix — `git@host:a/b` and
+   `https://host/a/b` both parse to `a/b`, and a deeper hosted path survives intact
+   (GitLab subgroups `group/subgroup/repo`, Azure DevOps `org/project/repo` — don't
+   collapse to two segments). Wrap as `/<path>/`. If the cwd is inside a
+   `modules/<name>/` subdirectory of the repo root, narrow to
+   `/<path>/modules/<name>/`. No remote / unparseable → **omit `--scopes` entirely**
+   (org-wide search still works); never pass an empty scopes value.
+
+## Write the queries
+
+Generate **two** structured queries — retrieval data shows a single topic query
+systematically misses the cross-cutting standards rules that dominate real reviews.
+Each query is a three-line block mirroring how rules are indexed:
+
+```
+Name: <concise 5-10 word title of the rule this task would trigger>
+Category: <one of: Security, Correctness, Quality, Reliability, Performance, Testability, Compliance, Accessibility, Observability, Architecture>
+Content: <1-2 sentences describing what should be checked or enforced; mention the tech stack when known>
+```
+
+- **Topic query** — the assignment's primary concern. Pick the category by the change's
+  *purpose*, not a side effect (rate limiting → Reliability, not Security); prefer Security
+  when it's genuinely a candidate; don't default everything to Correctness — structural
+  work is Architecture, style is Quality, fault tolerance is Reliability, instrumentation
+  is Observability.
+- **Cross-cutting query** — the standards the org applies to *all* changes. Default:
+  `Name: Code Quality and Standards Compliance / Category: Architecture / Content: Module
+  directory structure, type annotations or type safety, structured logging, repository or
+  service layer patterns, dependency injection, and naming conventions` — adjust Content
+  to the repo's stack.
+- **Never** pass keyword lists, flat sentences, or filler ("please", "I need to") — they
+  retrieve poorly against the structured index.
+
+## Search and merge
+
+Run `qodo rules search` **once per query** (in parallel when you can), each with
+`--top-k 20`, plus `--scopes` when detected, always `--json`:
+
+```
+qodo rules search --query "$TOPIC_QUERY" --top-k 20 --scopes "$SCOPE" --json
+qodo rules search --query "$CROSS_QUERY" --top-k 20 --scopes "$SCOPE" --json
+```
+
+Merge: topic results first (in order), then cross-cutting results not already present —
+dedup by rule `id`. Topic rules are task-specific guidance; treat cross-cutting rules as
+supplementary and deprioritize any that are semantically distant from the task.
+**Low-return fallback:** topic query returns < 3 rules → re-run it once with a broadened
+Content line (add adjacent concepts for the domain: e.g. auth → token validation,
+credential handling, session management) before merging. An **empty merged list is a valid
+outcome** — proceed without rule constraints, never treat it as an error.
+**Unscoped search caveat:** when you had to omit `--scopes`, the results are org-wide —
+before applying each rule, check it plausibly applies to THIS repo/stack (a rule naming a
+different service, language, or framework doesn't); skip mismatches and say so rather than
+imposing another repo's standards.
+
+## Output, then apply
+
+Print the loaded rules before writing code:
+
+```
+# 📋 Qodo Rules Loaded
+
+Rules loaded: **<N>** (ranked by relevance to your task)
+
+- **<name>** [<SEVERITY if present>]: <content>
+...
 ---
-
-## Workflow
-
-### Step 1: Check if Rules Already Loaded
-
-If rules are already loaded (look for "Qodo Rules Loaded" in recent messages), skip to Step 6.
-
-### Step 2: Verify Working in a Git Repository and Detect Repository Scope
-
-Check that the current directory is inside a git repository. If not, inform the user that a git repository is required and exit gracefully.
-
-After confirming a git repository exists, extract the repository scope to pass to the search API. Scope narrows results to rules relevant to this specific repository.
-
-Use only POSIX shell here — no `sed`, no `grep`. Parameter expansion and `case` behave
-identically on macOS (BSD) and Linux (GNU); `sed` does not (see
-[repository scope detection](references/repository-scope.md#portability)).
-
-```bash
-# 1. Confirm inside a git repository
-git rev-parse --is-inside-work-tree
-
-# 2. Get the remote URL
-REMOTE_URL=$(git remote get-url origin 2>/dev/null)
-
-# 3. Parse the URL into a scope path
-SCOPE=""
-if [ -n "$REMOTE_URL" ]; then
-  # Trailing slash first, then .git — the other order leaves ".git" on
-  # "https://host/org/repo.git/", because %.git only strips an exact suffix.
-  REPO_PATH="${REMOTE_URL%/}"
-  REPO_PATH="${REPO_PATH%.git}"
-
-  case "$REPO_PATH" in
-    # local clone — no rules are scoped to a filesystem path
-    file://*)
-      REPO_PATH=""
-      ;;
-    # scheme://[user[:pass]@]host/path — https, http, ssh, git
-    *://*)
-      REPO_PATH="${REPO_PATH#*://}"   # drop scheme
-      REPO_PATH="${REPO_PATH#*/}"     # drop [userinfo@]host
-      ;;
-    # scp-like: [user@]host:path — git@github.com:org/repo
-    *:*/*)
-      REPO_PATH="${REPO_PATH#*:}"
-      ;;
-    *)
-      REPO_PATH=""
-      ;;
-  esac
-
-  # Require at least org/repo; reject absolute and Windows paths
-  case "$REPO_PATH" in
-    /*|*\\*) REPO_PATH="" ;;
-    */*)     ;;
-    *)       REPO_PATH="" ;;
-  esac
-
-  if [ -n "$REPO_PATH" ]; then
-    # 4. Detect module-level scope: is cwd inside modules/<name>/ ?
-    #    --show-prefix is the cwd relative to the repo root, "" at the root,
-    #    with a trailing slash. No realpath, no python3.
-    PREFIX=$(git rev-parse --show-prefix)
-    MODULE=""
-    case "$PREFIX" in
-      modules/*/*)
-        MODULE="${PREFIX#modules/}"
-        MODULE="${MODULE%%/*}"
-        ;;
-    esac
-
-    if [ -n "$MODULE" ]; then
-      SCOPE="/${REPO_PATH}/modules/${MODULE}/"
-    else
-      SCOPE="/${REPO_PATH}/"
-    fi
-  fi
-fi
-# If SCOPE is empty (no remote, unparseable URL), proceed without scope — graceful degradation
 ```
 
-Pass `SCOPE` in the search request body if set (see Step 5). If `SCOPE` is empty or unset, omit the `scopes` field entirely and proceed — org-wide search still returns relevant results.
+(Empty result: "No relevant rules found for this task. Proceeding without rule
+constraints.") Then apply every returned rule to the code you produce. When a rule
+carries a severity:
 
-See [repository scope detection](references/repository-scope.md) for URL format details and degradation behavior.
+| Severity | Enforcement |
+|---|---|
+| **ERROR** | Must comply — non-negotiable; if you must deviate, stop and ask the user |
+| **WARNING** | Comply by default; briefly explain any deliberate skip in your response |
+| **RECOMMENDATION** | Apply when appropriate; mention only if it shaped a design decision |
 
-### Step 3: Verify Qodo Configuration
+After the code is written, report which rules were applied and which WARNING rules were
+skipped and why. If none applied, say "No Qodo rules were applicable to this code change."
 
-Check that the required Qodo configuration is present. The default location is `~/.qodo/config.json`.
+## Guardrails
 
-- **API key**: Read from `~/.qodo/config.json` (`API_KEY` field). Environment variable `QODO_API_KEY` takes precedence. If not found, inform the user that an API key is required and provide setup instructions, then exit gracefully.
-- **Environment name**: Read from `~/.qodo/config.json` (`ENVIRONMENT_NAME` field), with `QODO_ENVIRONMENT_NAME` environment variable taking precedence. If not found or empty, use production.
-- **API URL override** (optional): Read from `~/.qodo/config.json` (`QODO_API_URL` field). If present, use `{QODO_API_URL}/rules/v1` as the API base URL. If absent, the `ENVIRONMENT_NAME`-based URL is used.
-- **Request ID**: Generate a UUID (e.g. `python3 -c "import uuid; print(uuid.uuid4())"`) to use as `request-id` for all API calls in this invocation.
-
-Example config parsing:
-```bash
-API_KEY=$(python3 -c "import json,os; c=json.load(open(os.path.expanduser('~/.qodo/config.json'))); print(c['API_KEY'])")
-ENV_NAME=$(python3 -c "import json,os; c=json.load(open(os.path.expanduser('~/.qodo/config.json'))); print(c.get('ENVIRONMENT_NAME',''))")
-QODO_API_URL=$(python3 -c "import json,os; c=json.load(open(os.path.expanduser('~/.qodo/config.json'))); print(c.get('QODO_API_URL',''))")
-REQUEST_ID=$(uuidgen || python3 -c "import uuid; print(uuid.uuid4())")
-# Determine API_URL: QODO_API_URL takes precedence over ENVIRONMENT_NAME
-if [ -n "$QODO_API_URL" ]; then
-  API_URL="${QODO_API_URL}/rules/v1"
-elif [ -z "$ENV_NAME" ]; then
-  API_URL="https://qodo-platform.qodo.ai/rules/v1"
-else
-  API_URL="https://qodo-platform.${ENV_NAME}.qodo.ai/rules/v1"
-fi
-```
-
-### Step 4: Generate Structured Search Queries from Coding Assignment
-
-Generate **two structured search queries** that mirror the rule embedding format. Query quality directly determines retrieval quality.
-
-Each query must use this exact three-line structure:
-
-```
-Name: {concise 5-10 word title of the rule this task would trigger}
-Category: {one of: Security, Correctness, Quality, Reliability, Performance, Testability, Compliance, Accessibility, Observability, Architecture}
-Content: {1-2 sentences describing what should be checked or enforced}
-```
-
-**Query 1 (Topic query):** Focused on the coding assignment's primary concern. Pick the most relevant Category and describe the specific check in Content. When the repository's tech stack is known, mention it in the Content field.
-
-**Query 2 (Cross-cutting query):** Targets recurring quality and standards patterns that apply to most code changes. Choose Category based on the org's rule emphasis (Security, Compliance, Observability, or Architecture as default). Include concerns like module structure, type annotations, structured logging, and repository patterns in Content.
-
-**Do not** write keyword lists or flat sentences — they perform poorly with the embedding model.
-
-See [query generation guidelines](references/query-generation.md) for the full strategy, category selection rules, and examples.
-
-### Step 5: Call POST /rules/search
-
-Call the search endpoint **once per query** (topic query and cross-cutting query), each with the configured `TOP_K` value (default: 20 — see [search endpoint](references/search-endpoint.md) for tuning guidance). When parallel execution is available, run both calls in parallel. Merge results, deduplicating by rule ID. Topic query results take priority.
-
-Include `scopes` in the request body if `SCOPE` was detected in Step 2. If `SCOPE` is empty, omit the field entirely — do not send `"scopes": null` or `"scopes": []`.
-
-See [search endpoint](references/search-endpoint.md) for the full request/response contract, URL construction, scopes field usage, and error handling.
-
-### Step 6: Format and Output Rules
-
-Print the "📋 Qodo Rules Loaded" header and list rules in relevance order with severity as a label per rule.
-
-See [output format](references/output-format.md) for the exact format.
-
-### Step 7: Apply Rules by Severity
-
-Apply all returned rules to the coding task. Rules are ranked by relevance — apply all returned rules based on their severity:
-
-| Severity | Enforcement | When Skipped |
-|---|---|---|
-| **ERROR** | Must comply, non-negotiable. Add a comment documenting compliance (e.g., `# Following Qodo rule: No Hardcoded Credentials`) | Explain to user and ask for guidance |
-| **WARNING** | Should comply by default | Briefly explain why in response |
-| **RECOMMENDATION** | Consider when appropriate | No action needed |
-
-### Step 8: Report
-
-After code generation, inform the user about rule application:
-- **Rules applied**: List which rules were followed and their severity
-- **WARNING rules skipped**: Explain why
-- **No applicable rules**: Inform: "No Qodo rules were applicable to this code change"
-- **RECOMMENDATION rules**: Mention only if they influenced a design decision
-
----
-
-## Configuration
-
-See [README.md](../../README.md#configuration) for full configuration instructions, including API key setup and environment variable options.
-
----
-
-## Common Mistakes
-
-- **Re-running when rules are loaded** - Check for "Qodo Rules Loaded" in context first
-- **Wrong query format** - Write queries using the structured Name/Category/Content format, not keyword lists or flat sentences
-- **Single query only** - Always generate both a topic query and a cross-cutting query; a single topic query misses cross-cutting rules
-- **Vague query** - The query must capture the nature of the task; generic Name or Content returns irrelevant rules
-- **Crashing on empty results** - An empty rules list is valid; proceed without rule constraints
-- **Not in git repo** - Inform the user that a git repository is required and exit gracefully
-- **No API key** - Inform the user with setup instructions; set `QODO_API_KEY` or create `~/.qodo/config.json`
-- **Missing compliance comments on ERROR rules** - ERROR rules require a comment documenting compliance
+- `rules search` is read-only; it never changes workspace state.
+- Don't re-fetch when rules are already loaded; don't crash on an empty list.
+- A rate-limit error (the search is capped per organisation) → wait for the indicated
+  reset, or proceed without rules and say so — don't hammer retries.
+- Don't fabricate rules: apply exactly what came back, cite rules by their returned name.

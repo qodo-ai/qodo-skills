@@ -1,0 +1,115 @@
+---
+name: qodo-codebase-wisdom
+description: >-
+  Understand how code works, how a change was done before, and which repos are coupled — to answer a question, plan a code change, debug a regression, or scope a fix, using the qodo CLI's managed tools. Use when a task needs to understand a codebase, its history, or how its repos relate — especially for a repo you don't have checked out or work spanning repos. It reads and cites; it never edits code or posts to the forge.
+metadata:
+  vendor: qodo
+  version: "1.1.0"
+  recommended: "true"
+---
+
+# Codebase Wisdom
+
+Use the `qodo` CLI to learn how code works, how a change was done before, and how repos
+are coupled — then hand back **cited findings**. This feeds answering a question, planning
+a change, debugging a regression, or scoping a fix. It reaches repos you don't have on disk
+and spans repo boundaries. You drive qodo's **read** tools only; you never post to the forge.
+
+## Quick start
+
+```
+qodo whoami --json --skill qodo-codebase-wisdom                # auth check (exit 0 = logged in)
+qodo codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
+qodo codebase grep --repo owner/repo --pattern "chargeCard" --json
+qodo codebase read-file --repo owner/repo --path src/pay.py --json
+qodo codebase blame --repo owner/repo --path src/pay.py --json
+qodo pull-request similar --repo owner/repo --query "retry failed charge" --json
+qodo cross-repo relations --repo owner/repo --json
+qodo codebase --help                                      # a group's tools + exact flags (offline)
+```
+
+Add `--json` to anything you parse. **Before calling a tool, confirm its exact name, flags,
+and read/write status with `qodo <group> --help` / `qodo <group> <tool> --help`** (renders
+offline) — the tool names below are illustrative, not guaranteed current.
+
+**`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
+the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
+`~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo` if set) and keep using it for every `qodo`
+command here. Only if that file is missing too is qodo actually not installed; tell the
+user to obtain a checksum-pinned installer command from Qodo or their organization's
+administrator. Installers are served from https://get.qodo.ai, but never invent a digest
+or pipe an installer directly into a shell.
+
+## Preflight
+
+1. **Auth first.** Run `qodo whoami` — non-zero exit → tell the user to run `qodo login`, then
+   stop. Never guess creds. The tool-group commands (`codebase`/`pull-request`/`cross-repo`) only
+   exist *after* login, so treat any of these as "not logged in → run `qodo login`" too: `Not
+   logged in`, `No tool catalog cached`, or an `unknown command`/`unknown option` when calling a
+   group. Don't retry the tool call before the user has logged in.
+2. Resolve the repo. Named repo → `--repo owner/repo`. Inside a git repo with none named →
+   omit `--repo` (autodetected from origin). Otherwise `qodo codebase search-repos --query
+   "<name>" --json` and **never guess a slug**. Multiple matches → ask the user which; zero
+   matches → say so and stop, don't invent one.
+
+## Route to a tool group
+
+| The task needs… | Group | Representative tools (verify via --help) |
+|---|---|---|
+| **Current code** — where/what/how it works now | `qodo codebase` | search-repos, grep, find, ls, read-file, blame, list-commits, get-commit, list-prs, get-pr, list-issues, get-issue, search-issues |
+| **History / prior art** — how a change was done, a file's PR history, past review feedback | `qodo pull-request` | stats, similar, by-file, details, patch |
+| **Impact / coupling** — what a change affects, which repos depend on this | `qodo cross-repo` | overview, relations |
+
+Real tasks span groups — see Examples.
+
+## Narrow, then fetch
+
+Cheap discovery before heavy pulls: **orient** (`search-repos`; `pull-request stats` to
+confirm a repo has indexed PR history; `cross-repo relations` for coupling) → **locate**
+(`grep`/`find`/`blame`/`list-commits`; `pull-request similar`/`by-file`) → **read** (only
+then `read-file` with `--start-line`/`--limit-lines`, `get-pr`, `pull-request details`/`patch`).
+
+## Examples
+
+**Q — "Where is `chargeCard()` defined?"**
+`codebase grep --pattern "chargeCard"` → pick the hit → `codebase read-file --path src/pay.py
+--start-line 120 --limit-lines 40`. → "`chargeCard()` is at `owner/repo` `src/pay.py:142`;
+calls Stripe, last changed in PR #1523."
+
+**Plan — "Add retry to failed charges."**
+`pull-request similar --query "retry failed charge"` → PR #1401 (webhook retries) →
+`pull-request details --pr-number 1401` (backoff + queue pattern) → `cross-repo relations`
+(is charging coupled to other repos?) → `codebase grep --pattern "chargeCard\("` (call sites).
+→ "Done before in PR #1401 (exp. backoff, max 3, dedicated queue). `chargeCard()` has 2 call
+sites (`src/checkout.py:88`, `src/batch.py:210`); `cross-repo` shows no coupling beyond this
+repo, so the change stays local to those two flows."
+
+**Debug — "Why did checkout start 500ing last week?"**
+`codebase list-commits --path src/checkout.py --since <date>` / `blame` → find the suspect
+change → `codebase get-pr --number <n>` → name the cause with evidence.
+
+## Deliver
+
+- Lead with the bottom line in plain language (the reader may be non-engineering); code,
+  paths, diffs under it.
+- **Cite everything** — repo, `path:line`, PR number, commit SHA. When a fact has no locatable
+  source (a hit without a line, or a synthesis of several), say so plainly — don't invent a citation.
+- **Source precedence** when sources disagree: `read-file` (current code) = how it behaves now;
+  `pull-request` = how/why it got there; `cross-repo` = estimated coupling. Present state trumps history.
+- **Empty or `truncated: true` → narrow once and retry** (tighter query / path / repo) before
+  concluding. Still empty → report "not found in <scope>", don't overclaim.
+- Freshness caveats: `pull-request` = merged PRs only (no open/draft); `cross-repo` edges may be
+  `pending` (analysis running) or `not_found` (checked, no coupling).
+
+## Guardrails
+
+- Only call tools you've confirmed **read-only** via `--help`. The write tools — `approve`,
+  `post-comment`, `post-inline-comment(s)`, `set-labels`, `update-description` (non-exhaustive) —
+  post to the forge; **don't call them** while investigating. (Editing local code as part of a
+  fix is your normal work — that's not these tools.)
+- Don't guess slugs, paths, PR numbers, or SHAs — resolve them first.
+- Don't reason only from a local checkout when the work spans other repos; these tools reach
+  what you don't have on disk.
+- An `MT-TOOL-LOOP` error means stop and change approach, not retry.
+
+A short, well-cited result is a confidence signal; padding with uncited detail is noise.

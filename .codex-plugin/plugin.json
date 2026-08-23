@@ -1,0 +1,40 @@
+{
+  "name": "qodo",
+  "version": "1.0.0",
+  "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
+  "author": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "homepage": "https://www.qodo.ai",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT",
+  "keywords": [
+    "qodo",
+    "code-review",
+    "code-intelligence",
+    "standards",
+    "coding-agents"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Qodo for coding agents",
+    "shortDescription": "Qodo intelligence and reviews in your coding agent.",
+    "longDescription": "Qodo code intelligence, review, and organizational standards for local coding agents.",
+    "developerName": "Qodo",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Code intelligence",
+      "Code review",
+      "Organizational standards"
+    ],
+    "websiteURL": "https://www.qodo.ai",
+    "brandColor": "#6D4AFF",
+    "defaultPrompt": [
+      "Set up Qodo in this coding agent.",
+      "Review my local changes with Qodo.",
+      "Load the Qodo standards for this task."
+    ]
+  }
+}

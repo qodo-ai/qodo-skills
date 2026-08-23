@@ -1,0 +1,30 @@
+# Migration from CLI-managed skills
+
+The previous design bundled editable skill sources in the CLI, copied them into every agent
+directory, and refreshed those copies on ordinary CLI launches. That made the CLI a shadow
+marketplace and coupled skill delivery to runtime releases.
+
+## Target behavior
+
+1. New users install the plugin through their agent and run `qodo-setup`.
+2. Existing CLI-installed users receive an explicit migration notice with host-specific
+   marketplace instructions.
+3. The CLI keeps an explicit offline fallback for a bounded compatibility window.
+4. Normal CLI startup stops refreshing, adding, or deleting installed skills.
+5. After adoption and rollback gates are met, remove the fallback command and generated
+   snapshot in a separate CLI release.
+
+## Safety rules
+
+- Never delete a skill directory merely because its contents differ; it may be user-owned.
+- Never overwrite a marketplace cache or host settings from the CLI.
+- Detect legacy Qodo-managed copies using their existing provenance marker and report them.
+- Require a successful marketplace install before offering removal of a legacy copy.
+- Preserve project-scoped skills unless the user explicitly chooses to migrate that project.
+- Keep uninstall reversible or provide the exact recovery path.
+
+## Exit gate for the fallback
+
+Remove the CLI installer only after all supported hosts have a validated update path, the
+official listings are accepted where applicable, migration telemetry is healthy, and the
+support team has a tested rollback runbook. A merged manifest is not enough.

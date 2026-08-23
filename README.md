@@ -1,340 +1,92 @@
-# Qodo
+# Qodo for coding agents
 
-Shift-left code review skills for AI coding agents. Bring Qodo's quality standards and code review capabilities into your local development workflow.
+Qodo's code intelligence, review, and organizational standards—packaged once for the
+local coding agents developers already use.
 
-**Compatible with:** Claude Code, OpenAI Codex, Cursor, Windsurf, Cline, and any agent supporting the [Agent Skills](https://agentskills.io) standard.
+> **Qodo authors skills once; marketplaces update plugins; the CLI updates the runtime.**
 
-## Available Skills
+This repository is both the canonical source for Qodo's agent skills and a native package
+for Codex, Claude Code, Kiro, Gemini CLI, and hosts that implement the Agent Plugins 1.0
+format. It contains no MCP server and no copied credentials. Every skill calls the local
+`qodo` runtime, which owns login, tool discovery, compatibility, and updates.
 
-### 🔧 qodo-get-rules
-Fetches the most relevant coding rules from Qodo for the current coding task. Generates a semantic search query from your assignment and retrieves only the rules that matter, ranked by relevance.
+## Start here
 
-**Features:**
-- 🔍 Semantic search — only the most relevant rules for your specific task
-- ⚖️ Severity-based enforcement (ERROR, WARNING, RECOMMENDATION)
-- 🎯 Dual-query strategy (topic + cross-cutting) for comprehensive coverage
-- 🚀 Auto-runs before code generation, editing, and refactoring
-
-[View skill details](./skills/qodo-get-rules/SKILL.md)
-
-### 🔍 qodo-pr-resolver
-Fetch Qodo review issues for your current branch's PR/MR, fix them interactively or in batch, and reply to each inline comment with the decision.
-
-**Features:**
-- Multi-provider support (GitHub, GitLab, Bitbucket, Azure DevOps, Gerrit)
-- Interactive issue review and auto-fix modes
-- Per-issue inline comment replies and git commits
-- Gerrit-native workflow: amend + push instead of per-fix commits
-- Severity mapping from Qodo's action levels
-- Automatic PR/MR/change summary comments
-
-[View skill details](./skills/qodo-pr-resolver/SKILL.md)
-
-## Installation
-
-Install skills using the standard Agent Skills CLI:
-
-```bash
-# Install all Qodo skills
-npx skills add qodo-ai/qodo-skills/skills
-
-# Or install individual skills
-npx skills add qodo-ai/qodo-skills/skills/qodo-get-rules
-npx skills add qodo-ai/qodo-skills/skills/qodo-pr-resolver
-```
-
-**Claude Code Marketplace:**
-```
-/plugin install qodo-skills@claude-plugins-official
-```
-
-**Works with:**
-- **Claude Code** - Skills available as `/qodo-get-rules`, `/qodo-pr-resolver`
-- **OpenAI Codex** - Skills available from `/skills`; invoke with `$qodo-get-rules` or `$qodo-pr-resolver`
-- **Cursor** - Skills available in command palette
-- **Windsurf** - Skills available in flow menu
-- **Cline** - Skills available via skill invocation
-- **Any agent** supporting [agentskills.io](https://agentskills.io)
-
-### OpenAI Codex
-
-Codex supports Agent Skills and discovers project skills from `.agents/skills/` and user skills from `$HOME/.agents/skills/`. See the [Codex Agent Skills documentation](https://developers.openai.com/codex/skills) for Codex discovery behavior and invocation syntax.
-
-To use Qodo skills with Codex, install with the Agent Skills CLI above if your skill manager is configured for Codex. For manual installation from a local checkout, copy the skill folders into a Codex-discovered skills directory. Use `$HOME/.agents/skills/` for skills available across Codex workspaces, or `.agents/skills/` for project-local skills available only in the current repository. Run these examples from the `qodo-skills` repository root, where `./skills/` exists.
-
-macOS/Linux, Git Bash, or WSL:
-
-```bash
-# User-level install. For project-local install, set CODEX_SKILLS_DIR=".agents/skills".
-CODEX_SKILLS_DIR="$HOME/.agents/skills"
-mkdir -p "$CODEX_SKILLS_DIR/qodo-get-rules" "$CODEX_SKILLS_DIR/qodo-pr-resolver"
-cp -R ./skills/qodo-get-rules/. "$CODEX_SKILLS_DIR/qodo-get-rules/"
-cp -R ./skills/qodo-pr-resolver/. "$CODEX_SKILLS_DIR/qodo-pr-resolver/"
-```
-
-Windows PowerShell:
-
-```powershell
-# User-level install. For project-local install, set $CodexSkillsDir = ".agents\skills".
-$CodexSkillsDir = Join-Path $HOME ".agents\skills"
-New-Item -ItemType Directory -Force "$CodexSkillsDir\qodo-get-rules", "$CodexSkillsDir\qodo-pr-resolver"
-Copy-Item -Recurse -Force ".\skills\qodo-get-rules\*" "$CodexSkillsDir\qodo-get-rules"
-Copy-Item -Recurse -Force ".\skills\qodo-pr-resolver\*" "$CodexSkillsDir\qodo-pr-resolver"
-```
-
-Codex also supports symlinked skill folders, but copying avoids path-dependent links if you later move the checkout.
-
-Restart Codex if newly installed skills do not appear when running `/skills` inside Codex.
-
-### Agent-Specific Directories
-
-Skills are automatically installed to the correct location for your agent:
-
-| Agent | Installation Directory |
-|-------|----------------------|
-| Claude Code | `~/.claude/skills/` or `.claude/skills/` |
-| OpenAI Codex | `$HOME/.agents/skills/` or `.agents/skills/` |
-| Cursor | `~/.cursor/skills/` or `.cursor/skills/` |
-| Windsurf | `~/.windsurf/skills/` or `.windsurf/skills/` |
-| Cline | `~/.cline/skills/` or `.cline/skills/` |
-
-## Prerequisites
-
-### System Requirements
-
-- **Git** - For repository detection
-  - Usually pre-installed on macOS and most Linux distributions
-  - Windows: Download from https://git-scm.com/download/win
-- **curl** - For HTTPS API requests (works with system SSL certificates)
-  - Pre-installed on macOS, most Linux distributions, and Windows 10+
-  - If needed, install via package manager or download from https://curl.se
-  ```bash
-  # Check installation
-  curl --version
-
-  # Install if needed:
-  # macOS: brew install curl (or use system curl)
-  # Ubuntu/Debian: apt-get install curl
-  # Windows 10+: Included by default
-  ```
-- **Python 3.6+** - For JSON parsing and path manipulation only (no API calls)
-  - Pre-installed on macOS and most Linux distributions
-  - Windows: Download from https://www.python.org/downloads/
-
-**Note:** All prerequisites use standard system tools with no external dependencies.
-
-## Configuration
-
-### qodo-get-rules Skill
-
-Create `~/.qodo/config.json`:
-
-```json
-{
-  "API_KEY": "sk-xxxxxxxxxxxxx",
-  "ENVIRONMENT_NAME": "staging"
-}
-```
-
-**Configuration fields:**
-- `API_KEY` (required): Your Qodo API key
-- `ENVIRONMENT_NAME` (optional): Environment name for API URL
-  - If empty/omitted: Uses `https://qodo-platform.qodo.ai/rules/v1/`
-  - If specified: Uses `https://qodo-platform.<ENVIRONMENT_NAME>.qodo.ai/rules/v1/`
-- `QODO_API_URL` (optional): Direct API base URL — overrides `ENVIRONMENT_NAME`
-  - Use for self-hosted, on-prem, or custom deployments
-  - Example: `"QODO_API_URL": "https://qodo.my-company.com"`
-  - The skill appends `/rules/v1` internally; provide the base URL only
-
-**URL resolution priority:** `QODO_API_URL` → `ENVIRONMENT_NAME` → production default
-
-Get your API key at: https://app.qodo.ai/account/api-keys
-
-**Minimal configuration (production):**
-```json
-{
-  "API_KEY": "sk-xxxxxxxxxxxxx"
-}
-```
-
-**Custom deployment:**
-```json
-{
-  "API_KEY": "sk-xxxxxxxxxxxxx",
-  "QODO_API_URL": "https://qodo.my-company.com"
-}
-```
-
-**Environment variables (take precedence over config file):**
-```bash
-export QODO_API_KEY="sk-xxxxxxxxxxxxx"
-export QODO_ENVIRONMENT_NAME="staging"  # optional
-```
-
-### qodo-pr-resolver Skill
-
-Requires CLI tools for your git provider:
-
-- **GitHub**: `gh` CLI ([install guide](https://cli.github.com/))
-- **GitLab**: `glab` CLI ([install guide](https://glab.readthedocs.io/))
-- **Bitbucket**: `bb` CLI
-- **Azure DevOps**: `az` CLI with DevOps extension ([install guide](https://docs.microsoft.com/cli/azure/))
-- **Gerrit**: `curl` + SSH access to the Gerrit server (see [Gerrit setup guide](./skills/qodo-pr-resolver/resources/gerrit.md))
-
-## Usage
-
-### In Your Agent
-
-After installation, invoke skills directly in your agent:
-
-**Claude Code:**
-```bash
-/qodo-get-rules      # Fetch coding rules
-/qodo-pr-resolver    # Fix PR review issues
-```
-
-**OpenAI Codex:**
-These are Codex chat commands, not terminal commands:
+Install the Qodo plugin from your coding agent, then ask:
 
 ```text
-$qodo-get-rules      # Fetch coding rules
-$qodo-pr-resolver    # Fix PR review issues
+Set up Qodo
 ```
 
-**Cursor / Windsurf / Cline:**
-- Open command palette
-- Search for "qodo-get-rules" or "qodo-pr-resolver"
-- Or invoke via agent command input
+The `qodo-setup` skill verifies the runtime, opens `qodo login` when needed, confirms the
+managed-tool catalog, and tells you when the agent is ready. The plugin can be installed
+before login, but the operational skills stay unusable until authentication succeeds.
 
-### Managing Skills
+### Install from this repository
 
-**Update skills:**
-```bash
-# Update individual skills
-npx skills update qodo-ai/qodo-skills/skills/qodo-get-rules
-npx skills update qodo-ai/qodo-skills/skills/qodo-pr-resolver
+| Host | Install |
+|---|---|
+| Codex | `codex plugin marketplace add qodo-ai/qodo-skills`, then `codex plugin add qodo@qodo` |
+| Claude Code | `claude plugin marketplace add qodo-ai/qodo-skills`, then `claude plugin install qodo@qodo` |
+| Gemini CLI | `gemini extensions install https://github.com/qodo-ai/qodo-skills --auto-update` |
+| Kiro | Powers → Add Custom Power → Import from GitHub → `https://github.com/qodo-ai/qodo-skills` |
+| Agent Plugins hosts | Import the repository URL through the host's plugin UI |
+
+These source-install commands are immediately usable after the branch is published.
+Official marketplace listings are separate release operations; see
+[Releasing](docs/releasing.md).
+
+If the runtime is missing, `qodo-setup` routes the user to the checksum-verified installer
+at [get.qodo.ai](https://get.qodo.ai). The plugin deliberately does not download or execute
+a binary during marketplace installation.
+
+## Skills
+
+| Skill | Purpose | Default pack |
+|---|---|:---:|
+| `qodo-setup` | Connect the runtime and verify readiness | ✓ |
+| `qodo-codebase-wisdom` | Understand current code, history, and cross-repo impact | ✓ |
+| `qodo-get-rules` | Load the Qodo standards relevant to a coding task | ✓ |
+| `qodo-review` | Review local changes before opening a pull request | ✓ |
+| `qodo-review-resolver` | Read and resolve Qodo pull-request findings | ✓ |
+| `qodo-manage-standards` | Create and administer Qodo Review Standards | Optional |
+
+The skill instructions under [`skills/`](skills/) are the product source. Host-specific
+files are generated from [`distribution/catalog.json`](distribution/catalog.json).
+
+## The ownership boundary
+
+```text
+qodo-skills repository          coding-agent marketplace       qodo CLI
+┌──────────────────────┐       ┌────────────────────────┐      ┌────────────────────┐
+│ canonical SKILL.md   │──────▶│ install + update plugin│      │ login + credentials│
+│ catalog + adapters   │       │ discover + invoke skill│─────▶│ tools + auto-update│
+└──────────────────────┘       └────────────────────────┘      └────────────────────┘
 ```
 
-**List installed skills:**
-```bash
-npx skills list
+- A skill change ships by releasing this repository, independent of a CLI release.
+- A runtime change ships through the CLI updater, independent of marketplace review.
+- Marketplaces own installed plugin copies. The CLI does not rewrite them on launch.
+- Skills never read secret files or call Qodo endpoints directly; they invoke `qodo`.
+
+The detailed contracts are in [Architecture](docs/architecture.md),
+[Compatibility](docs/compatibility.md), and [Releasing](docs/releasing.md).
+
+## Development
+
+Node 20.6 or newer is the only validation dependency.
+
+```sh
+npm run adapters   # regenerate every host manifest from the catalog
+npm test           # validate skills, versions, security boundaries, and adapters
 ```
 
-**Remove skills:**
-```bash
-npx skills remove qodo-get-rules
+Also run the native validators for any host you have installed:
+
+```sh
+claude plugin validate .
+gemini extensions validate .
 ```
 
-## Repository Structure
-
-This repository follows the [Agent Skills](https://agentskills.io) standard:
-
-```
-qodo-skills/
-├── references/
-│   └── usage-tracking.md        # Shared HTTP headers for Qodo API calls
-├── skills/
-│   ├── qodo-get-rules/          # Fetch relevant coding rules skill
-│   │   ├── SKILL.md             # Agent Skills standard
-│   │   ├── AGENTS.md            # Skill-specific agent guidelines
-│   │   └── references/          # Detailed reference docs
-│   └── qodo-pr-resolver/        # Fix PR review issues skill
-│       └── SKILL.md
-├── README.md
-├── CONTRIBUTING.md
-└── LICENSE
-```
-
-### How It Works
-
-1. Skills are installed to agent-specific directories via `npx skills add`
-2. Available for manual invocation in any compatible agent
-3. Skills execute via their SKILL.md instructions
-
-### Testing Locally
-
-**Test with any agent:**
-```bash
-npx skills add /path/to/qodo-skills/skills/get-qodo-rules
-```
-
-## Troubleshooting
-
-### Skill not found?
-
-**Verify installation:**
-```bash
-npx skills list | grep qodo
-```
-
-**Reinstall if needed:**
-```bash
-npx skills add qodo-ai/qodo-skills
-```
-
-### Rules not loading?
-
-**Check you're in a git repository:**
-```bash
-git status
-```
-
-**Verify API key is configured:**
-```bash
-cat ~/.qodo/config.json
-```
-
-**Check Python is installed:**
-```bash
-python3 --version || python --version
-```
-
-### No rules found?
-
-- Rules must be configured in the Qodo platform for your repository
-- Visit https://app.qodo.ai to set up rules
-- Check that your repository remote URL matches the configured scope
-
-### Windows-specific issues?
-
-**Python not found:**
-- Ensure Python 3.6+ is installed and in PATH
-- Test: `python --version` or `py -3 --version` in PowerShell/cmd
-- Reinstall Python with "Add Python to PATH" option checked
-
-**Git not found:**
-- Install Git for Windows: https://git-scm.com/download/win
-- Test: `git --version` in PowerShell/cmd
-
-**Path separators:**
-- The script automatically handles Windows backslashes (`\`) vs Unix forward slashes (`/`)
-- API URLs always use forward slashes regardless of platform
-
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-feature`)
-3. Make your changes
-4. Test thoroughly with your preferred agent (Claude Code, Cursor, etc.)
-5. Submit a pull request
-
-## Resources
-
-- [Agent Skills Standard](https://agentskills.io) - Universal skill format
-- [npx skills CLI](https://github.com/vercel-labs/skills) - Install and manage skills
-- [Qodo Platform](https://qodo.ai) - Set up coding rules and review
-- [Claude Code Documentation](https://code.claude.com/docs) - Claude Code specific features
-
-## License
-
-MIT License - see [LICENSE](./LICENSE) file for details
-
-## Support
-
-For issues with:
-- **Skills themselves**: [Open an issue](https://github.com/qodo-ai/qodo-skills/issues) in this repository
-- **Qodo Platform**: Contact [Qodo Support](https://qodo.ai/support)
-- **npx skills tool**: See [vercel-labs/skills](https://github.com/vercel-labs/skills)
-- **Your agent**: Refer to your agent's documentation (Claude Code, Cursor, Windsurf, etc.)
+See [Contributing](CONTRIBUTING.md) before changing a skill. No push, tag, marketplace
+submission, or release is performed by these scripts.
