@@ -19,7 +19,9 @@ This separates three lifecycles that otherwise fight each other:
 ## Repository model
 
 `skills/<name>/SKILL.md` is canonical product content. The distribution catalog is the
-canonical package and presentation metadata. `npm run adapters` renders that metadata into:
+canonical package and presentation metadata. `distribution/agent-support.json` declares the
+production-observed agent coverage without duplicating CLI-owned paths or detection logic.
+`npm run adapters` renders the catalog into:
 
 - `plugin.json` for Agent Plugins 1.0 hosts;
 - `kiro-power/` as the generated Agent Plugins projection at Kiro's existing listing path;

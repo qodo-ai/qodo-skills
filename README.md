@@ -52,7 +52,9 @@ a binary during marketplace installation.
 | `qodo-manage-standards` | Create and administer Qodo Review Standards | Optional |
 
 The skill instructions under [`skills/`](skills/) are the product source. Host-specific
-files are generated from [`distribution/catalog.json`](distribution/catalog.json).
+files are generated from [`distribution/catalog.json`](distribution/catalog.json). The
+production-observed marketplace and direct-connect coverage is declared in
+[`distribution/agent-support.json`](distribution/agent-support.json).
 
 ## The ownership boundary
 

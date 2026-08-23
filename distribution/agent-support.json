@@ -1,0 +1,85 @@
+{
+  "$schema": "./agent-support.schema.json",
+  "schemaVersion": 1,
+  "evidence": {
+    "source": "Mixpanel production",
+    "event": "tool_run_started",
+    "property": "host_agent",
+    "snapshotDate": "2026-08-23",
+    "note": "Counts stay in the release strategy because telemetry changes independently of this compatibility contract."
+  },
+  "agents": [
+    {
+      "id": "claude-code",
+      "displayName": "Claude Code",
+      "observedHostAgentIds": ["claude", "claude-code"],
+      "delivery": "marketplace",
+      "artifact": ".claude-plugin/plugin.json",
+      "supportTier": "package-ready",
+      "nativeAcceptanceRequired": true
+    },
+    {
+      "id": "codex",
+      "displayName": "Codex",
+      "observedHostAgentIds": ["codex"],
+      "delivery": "marketplace",
+      "artifact": ".codex-plugin/plugin.json",
+      "supportTier": "package-ready",
+      "nativeAcceptanceRequired": true
+    },
+    {
+      "id": "kiro-cli",
+      "displayName": "Kiro",
+      "observedHostAgentIds": ["kiro"],
+      "delivery": "marketplace",
+      "artifact": "kiro-power/plugin.json",
+      "supportTier": "package-ready",
+      "nativeAcceptanceRequired": true
+    },
+    {
+      "id": "cursor",
+      "displayName": "Cursor",
+      "observedHostAgentIds": ["cursor-cli"],
+      "delivery": "direct",
+      "artifact": "distribution/qodo-skills-direct.json",
+      "supportTier": "package-ready",
+      "nativeAcceptanceRequired": true
+    },
+    {
+      "id": "opencode",
+      "displayName": "OpenCode",
+      "observedHostAgentIds": ["opencode"],
+      "delivery": "direct",
+      "artifact": "distribution/qodo-skills-direct.json",
+      "supportTier": "package-ready",
+      "nativeAcceptanceRequired": true
+    },
+    {
+      "id": "hermes-agent",
+      "displayName": "Hermes Agent",
+      "observedHostAgentIds": ["hermes"],
+      "delivery": "direct",
+      "artifact": "distribution/qodo-skills-direct.json",
+      "supportTier": "package-ready",
+      "nativeAcceptanceRequired": true
+    },
+    {
+      "id": "github-copilot",
+      "displayName": "GitHub Copilot",
+      "observedHostAgentIds": ["github-copilot-app", "github-copilot-vscode"],
+      "delivery": "direct",
+      "artifact": "distribution/qodo-skills-direct.json",
+      "supportTier": "package-ready",
+      "nativeAcceptanceRequired": true
+    },
+    {
+      "id": "replit",
+      "displayName": "Replit",
+      "observedHostAgentIds": ["replit"],
+      "delivery": "direct",
+      "artifact": "distribution/qodo-skills-direct.json",
+      "supportTier": "package-ready",
+      "nativeAcceptanceRequired": true
+    }
+  ]
+}

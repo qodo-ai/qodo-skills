@@ -79,6 +79,11 @@ After Stage 1's CLI is available and the Stage 2 release exists, validate the di
 activation, shared-root deduplication, conflict preservation, checksum failure, interrupted
 update, and opt-out pass on macOS, Linux, and Windows.
 
+The first cutover must cover every direct agent in `distribution/agent-support.json`: Cursor,
+OpenCode, Hermes Agent, GitHub Copilot, and Replit. Repository projection tests are necessary
+package evidence, but each named host still needs a discovery, restart-activation, invocation, and
+automatic-update smoke before the direct channel is declared generally available.
+
 **Rollback:** leave the installed last-good release in place and publish a new immutable patch.
 Do not mutate an existing release asset or fall back to the CLI's embedded compatibility snapshot.
 
