@@ -57,13 +57,16 @@ function parseArguments(argv) {
 }
 
 function updateFrontmatterVersion(path, version) {
-  const text = readFileSync(path, 'utf8');
+  const original = readFileSync(path, 'utf8');
+  const newline = original.includes('\r\n') ? '\r\n' : '\n';
+  const text = original.replace(/\r\n/g, '\n');
   const end = text.indexOf('\n---', 4);
   if (!text.startsWith('---\n') || end < 0) throw new Error(`${path}: invalid frontmatter`);
   const frontmatter = text.slice(0, end);
   const matches = frontmatter.match(/^  version:\s*.+$/gm) ?? [];
   if (matches.length !== 1) throw new Error(`${path}: expected one metadata version`);
-  return `${frontmatter.replace(/^  version:\s*.+$/m, `  version: "${version}"`)}${text.slice(end)}`;
+  const updated = `${frontmatter.replace(/^  version:\s*.+$/m, `  version: "${version}"`)}${text.slice(end)}`;
+  return newline === '\n' ? updated : updated.replace(/\n/g, newline);
 }
 
 function writeJson(path, value) {

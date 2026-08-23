@@ -8,6 +8,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -29,6 +30,8 @@ try {
     if (name === '.git' || name === 'node_modules') continue;
     cpSync(join(root, name), join(repositoryRoot, name), { recursive: true });
   }
+  const reviewPath = join(repositoryRoot, 'skills', 'qodo-review', 'SKILL.md');
+  writeFileSync(reviewPath, readFileSync(reviewPath, 'utf8').replace(/\r?\n/g, '\r\n'));
   execFileSync('git', ['init', '--quiet'], { cwd: repositoryRoot });
   execFileSync('git', ['config', 'user.name', 'Release Test'], { cwd: repositoryRoot });
   execFileSync('git', ['config', 'user.email', 'release-test@qodo.ai'], { cwd: repositoryRoot });
@@ -76,7 +79,7 @@ try {
     cwd: repositoryRoot,
     encoding: 'utf8',
   }).trim();
-  appendFileSync(join(repositoryRoot, 'skills', 'qodo-review', 'SKILL.md'), '\nUnversioned change.\n');
+  appendFileSync(reviewPath, '\r\nUnversioned change.\r\n');
   execFileSync('git', ['add', '.'], { cwd: repositoryRoot });
   execFileSync('git', ['commit', '--quiet', '-m', 'invalid change'], { cwd: repositoryRoot });
   assert.throws(() => execFileSync(
