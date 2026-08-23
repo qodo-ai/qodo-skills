@@ -28,6 +28,7 @@ before login, but the operational skills stay unusable until authentication succ
 |---|---|
 | Codex | Install **Qodo** from the official Codex marketplace |
 | Claude Code | `claude plugin install qodo@claude-plugins-official --scope user` |
+| Cursor | Use `qodo setup` until the Qodo Agent Plugin is accepted into Cursor Marketplace |
 | Gemini CLI | `gemini extensions install https://github.com/qodo-ai/qodo-skills --auto-update` |
 | Kiro | Install **Qodo** from the curated Powers marketplace |
 | Agent Plugins hosts | Import the repository URL through the host's plugin UI |
@@ -52,9 +53,9 @@ a binary during marketplace installation.
 | `qodo-manage-standards` | Create and administer Qodo Review Standards | Optional |
 
 The skill instructions under [`skills/`](skills/) are the product source. Host-specific
-files are generated from [`distribution/catalog.json`](distribution/catalog.json). The
-production-observed marketplace and direct-connect coverage is declared in
-[`distribution/agent-support.json`](distribution/agent-support.json).
+files are generated from [`distribution/catalog.json`](distribution/catalog.json). The direct
+bundle is agent-neutral: any CLI-recognized host with a verified project or global skills directory
+and no official Qodo marketplace path can consume it without a host-specific package change.
 
 ## The ownership boundary
 

@@ -19,9 +19,7 @@ This separates three lifecycles that otherwise fight each other:
 ## Repository model
 
 `skills/<name>/SKILL.md` is canonical product content. The distribution catalog is the
-canonical package and presentation metadata. `distribution/agent-support.json` declares the
-production-observed agent coverage without duplicating CLI-owned paths or detection logic.
-`npm run adapters` renders the catalog into:
+canonical package and presentation metadata. `npm run adapters` renders the catalog into:
 
 - `plugin.json` for Agent Plugins 1.0 hosts;
 - `kiro-power/` as the generated Agent Plugins projection at Kiro's existing listing path;
@@ -34,10 +32,18 @@ production-observed agent coverage without duplicating CLI-owned paths or detect
 Generated adapters are committed because hosts read the repository directly. They are
 never edited by hand; CI rejects drift from the catalog.
 
+The direct artifact has no agent allowlist, install path, or host adapter. Eligibility is
+capability-based in the CLI: a recognized host is direct-connectable when its registry entry has
+a verified project or global skills directory and does not declare an official Qodo marketplace
+channel. Adding a compatible agent therefore changes only the CLI registry; routine skill releases
+remain unchanged.
+
 Claude and Codex consume this repository root through their existing official `qodo` listing
-identities. Kiro consumes `kiro-power/`. The Codex listing must be repointed from the deprecated
-`qodo-in-harness/codex-qodo` source only after an existing-install upgrade test proves the provider
-preserves the plugin identity. No marketplace package bundles the CLI runtime.
+identities. Kiro consumes `kiro-power/`. Cursor can consume the root Agent Plugins package after
+its marketplace submission is accepted; until then it remains direct-connected. The Codex listing
+must be repointed from the deprecated `qodo-in-harness/codex-qodo` source only after an
+existing-install upgrade test proves the provider preserves the plugin identity. No marketplace
+package bundles the CLI runtime.
 
 ## First-use state machine
 

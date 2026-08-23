@@ -14,7 +14,7 @@
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:notes": "node scripts/release-notes.mjs",
     "check": "node scripts/validate.mjs && node scripts/build-direct-bundle.mjs --check",
-    "test": "npm run check && node scripts/test-agent-support.mjs && node scripts/test-release.mjs"
+    "test": "npm run check && node scripts/test-direct-portability.mjs && node scripts/test-release.mjs"
   },
   "license": "MIT"
 }

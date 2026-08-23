@@ -7,6 +7,7 @@
 | Codex | `.codex-plugin/plugin.json` | `skills/` | Existing Codex marketplace listing, repointed to this repository |
 | Claude Code | `.claude-plugin/plugin.json` | `skills/` | Claude marketplace |
 | Kiro / Agent Plugins 1.0 | `kiro-power/plugin.json` | `kiro-power/skills/` | Existing Kiro Powers listing |
+| Cursor / Agent Plugins 1.0 | `plugin.json` | `skills/` | Cursor Marketplace after provider acceptance; direct connection until then |
 | Gemini CLI | `gemini-extension.json` | `skills/` | Gemini extension manager |
 | Direct-connect agents | `distribution/qodo-skills-direct.json` | Agent-owned skills directory | Verified Qodo direct-connect updater |
 
@@ -46,24 +47,23 @@ Unchanged skills keep their skill version. The release tag is `v<package-version
 
 Do not describe package-ready as listed, or a source install as marketplace acceptance.
 
-## Production-observed agent coverage
+## Generic direct-connect compatibility
 
-`distribution/agent-support.json` is the reviewable compatibility declaration for coding-agent
-identities observed in production telemetry. It deliberately does not own detection aliases or
-filesystem locations; those remain CLI runtime concerns.
+The direct artifact is one agent-neutral Agent Skills tree. It contains no host IDs, aliases,
+filesystem locations, or allowlist. The CLI decides eligibility from capabilities in its agent
+registry:
 
-| Agent | Observed runtime IDs | Delivery after cutover | Current evidence |
-|---|---|---|---|
-| Claude Code | `claude`, `claude-code` | Existing marketplace listing | Package-ready; native upgrade acceptance required |
-| Codex | `codex` | Existing marketplace listing | Package-ready; listing repoint and native upgrade acceptance required |
-| Kiro | `kiro` | Existing marketplace listing | Package-ready; native upgrade acceptance required |
-| Cursor | `cursor-cli` | CLI direct connection | Repository projection passes; native-host smoke required |
-| OpenCode | `opencode` | CLI direct connection | Repository projection passes; native-host smoke required |
-| Hermes Agent | `hermes` | CLI direct connection | Repository projection passes; native-host smoke required |
-| GitHub Copilot | `github-copilot-app`, `github-copilot-vscode` | CLI direct connection | Repository projection passes; native-host smoke required |
-| Replit | `replit` | CLI direct connection | Repository projection passes; native-host smoke required |
+1. the host is detected or identifies the current runtime;
+2. the registry supplies a verified project or global skills directory;
+3. the host does not declare an official Qodo marketplace channel.
 
-CI installs the release-bound direct artifact into an isolated skill root for every direct agent and
-verifies every projected file digest. This proves package completeness and agent-neutral layout;
-it does not prove that a native host discovered or executed the skills. Native-host smoke results
-remain an explicit release gate.
+Every registry entry satisfying those conditions receives the same verified artifact. A newly
+supported agent needs a CLI registry entry and detection evidence, not a `qodo-skills` release.
+CI projects the bundle into an arbitrary isolated skills root and verifies every file digest. This
+proves package completeness and portable layout; native discovery and execution remain release
+acceptance evidence, prioritized using production telemetry rather than encoded as an allowlist.
+
+When a provider later accepts Qodo into a native marketplace, change that agent's CLI capability
+only after the listing is visible and its in-place upgrade passes. Existing direct installs stay
+owned by the direct channel until the user verifies the marketplace copy and explicitly cleans up;
+the two channels must never update the same target concurrently.

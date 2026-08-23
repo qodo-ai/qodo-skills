@@ -68,6 +68,7 @@ never a hidden side effect of this repository's release workflow.
 |---|---|
 | Codex | Install the update offered by the official Codex marketplace and restart when prompted |
 | Claude Code | `claude plugin update qodo@claude-plugins-official` |
+| Cursor | Cursor Marketplace after listing acceptance; verified direct connection before cutover |
 | Gemini CLI | Automatic when installed with `--auto-update`, or `gemini extensions update qodo` |
 | Kiro | Power → Check for updates → Install updates |
 | Direct-connect agent | Qodo checks the immutable release feed in the background and applies the verified bundle for the next agent session |
