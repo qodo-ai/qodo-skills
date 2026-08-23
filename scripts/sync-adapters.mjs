@@ -1,6 +1,6 @@
 /** Generate marketplace adapters from distribution/catalog.json. */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -24,7 +24,10 @@ function writeText(path, content) {
     } catch {
       // A missing generated file is stale, just like different content.
     }
-    if (current !== content) stale.push(path);
+    // Git for Windows may materialize tracked text with CRLF even though the
+    // generator emits deterministic LF. Freshness is about content, not the
+    // checkout's platform-native line endings.
+    if (current.replace(/\r\n/g, '\n') !== content) stale.push(path);
     return;
   }
   mkdirSync(dirname(target), { recursive: true });
@@ -136,7 +139,7 @@ for (const skill of catalog.skills) {
     '',
   ].join('\n');
   const target = join(root, 'skills', skill.name, 'agents', 'openai.yaml');
-  writeText(relative(root, target), yaml);
+  writeText(relative(root, target).split(sep).join('/'), yaml);
 }
 
 if (stale.length) {
