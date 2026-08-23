@@ -8,6 +8,7 @@
 | Claude Code | `.claude-plugin/plugin.json` | `skills/` | Claude marketplace |
 | Kiro / Agent Plugins 1.0 | `kiro-power/plugin.json` | `kiro-power/skills/` | Existing Kiro Powers listing |
 | Gemini CLI | `gemini-extension.json` | `skills/` | Gemini extension manager |
+| Direct-connect agents | `distribution/qodo-skills-direct.json` | Agent-owned skills directory | Verified Qodo direct-connect updater |
 
 The package is skills-only. There is no `mcp.json`, `.mcp.json`, or hosted tool server.
 Local agents execute the installed `qodo` binary and inherit its authenticated catalog.
@@ -33,6 +34,7 @@ Unchanged skills keep their skill version. The release tag is `v<package-version
 5. Host-only metadata may differ, but it must not change workflow semantics.
 6. No adapter may contain a second copy of a `SKILL.md` body.
 7. Source installs track the repository; stable marketplace listings should track releases.
+8. Direct-connect installs consume only the immutable release artifact and its published SHA-256.
 
 ## Support tiers
 

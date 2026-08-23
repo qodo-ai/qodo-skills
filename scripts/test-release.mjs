@@ -1,5 +1,6 @@
 /** Exercise release preparation in an isolated repository copy. */
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   appendFileSync,
   cpSync,
@@ -57,10 +58,33 @@ try {
     'utf8',
   ));
   const claudeMarketplace = JSON.parse(readFileSync(join(repositoryRoot, '.claude-plugin', 'marketplace.json'), 'utf8'));
+  const directBundlePath = join(repositoryRoot, 'distribution', 'qodo-skills-direct.json');
+  const directBundleText = readFileSync(directBundlePath, 'utf8');
+  const directBundle = JSON.parse(directBundleText);
   assert.equal(catalog.package.version, expectedPackageVersion);
   assert.equal(review.version, expectedReviewVersion);
   assert.equal(release.skills[0].version, expectedReviewVersion);
   assert.equal('version' in claudeMarketplace.plugins[0], false);
+  assert.equal(directBundle.package.version, expectedPackageVersion);
+  assert.equal(
+    directBundle.skills.find((skill) => skill.name === 'qodo-review').version,
+    expectedReviewVersion,
+  );
+  const directChecksum = readFileSync(`${directBundlePath}.sha256`, 'utf8').match(/^[a-f0-9]{64}/)?.[0];
+  assert.equal(createHash('sha256').update(directBundleText).digest('hex'), directChecksum);
+  const contentDigest = createHash('sha256');
+  for (const skill of directBundle.skills) {
+    for (const file of skill.files) {
+      const fileDigest = createHash('sha256').update(file.content).digest('hex');
+      assert.equal(fileDigest, file.sha256);
+      contentDigest
+        .update(skill.name).update('\0')
+        .update(skill.version).update('\0')
+        .update(file.path).update('\0')
+        .update(file.sha256).update('\0');
+    }
+  }
+  assert.equal(contentDigest.digest('hex'), directBundle.package.contentSha256);
   assert.match(
     readFileSync(join(repositoryRoot, 'skills', 'qodo-review', 'SKILL.md'), 'utf8'),
     new RegExp(`version: "${expectedReviewVersion.replaceAll('.', '\\.')}`),

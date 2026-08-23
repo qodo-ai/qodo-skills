@@ -34,15 +34,21 @@ on the base branch.
 
 ## Publish after merge
 
+Before the first release, a repository administrator must enable **Settings → Releases →
+Enable release immutability**. GitHub applies this only to future releases. The release workflow
+checks the published release's `immutable` API field and fails the release job unless it is true.
+This makes the tag and attached direct-connect artifact non-replaceable after publication.
+
 The `Release skills` workflow performs the GitHub-side publication:
 
 1. Re-run the complete validation suite on the merged commit.
 2. Create an annotated `v<package-version>` tag on that exact commit.
 3. Render the immutable release record into a GitHub Release.
-4. Refresh or submit each official marketplace listing according to that host's process.
-5. Verify the marketplace-visible version and perform a fresh install—repository and CI
+4. Attach `qodo-skills-direct.json` and its SHA-256 for agents without a marketplace.
+5. Refresh or submit each official marketplace listing according to that host's process.
+6. Verify the marketplace-visible version and perform a fresh install—repository and CI
    success are not proof of listing acceptance.
-6. Upgrade an existing installation and verify that the host, not the CLI, replaced it.
+7. Upgrade an existing installation and verify that the host, not the CLI, replaced it.
 
 The workflow cannot alter marketplace accounts or publish the Qodo runtime. Official marketplace
 submission and provider-visible verification remain explicit release gates. The
@@ -64,6 +70,7 @@ never a hidden side effect of this repository's release workflow.
 | Claude Code | `claude plugin update qodo@claude-plugins-official` |
 | Gemini CLI | Automatic when installed with `--auto-update`, or `gemini extensions update qodo` |
 | Kiro | Power → Check for updates → Install updates |
+| Direct-connect agent | Qodo checks the immutable release feed in the background and applies the verified bundle for the next agent session |
 
 The `qodo` runtime updates on its own channel with `qodo update`; a plugin update must never
 overwrite it.

@@ -119,6 +119,10 @@ export function prepareRelease(argv, repositoryRoot = root) {
     cwd: repositoryRoot,
     stdio: 'inherit',
   });
+  execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'build-direct-bundle.mjs')], {
+    cwd: repositoryRoot,
+    stdio: 'inherit',
+  });
   return { version: nextPackageVersion, changes };
 }
 

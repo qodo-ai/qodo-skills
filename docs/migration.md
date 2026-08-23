@@ -18,11 +18,13 @@ generated fallback snapshot, but it must never become a second editable source.
 ## Target behavior
 
 1. New users install the plugin through their agent and run `qodo-setup`.
-2. Existing CLI-installed users receive an explicit migration notice with host-specific
+2. Agents without an official Qodo marketplace path receive a consented direct connection from
+   the immutable release artifact and automatic, conflict-safe updates.
+3. Existing CLI-installed users receive an explicit migration notice with host-specific
    marketplace instructions.
-3. The CLI keeps an explicit offline fallback for a bounded compatibility window.
-4. Normal CLI startup stops refreshing, adding, or deleting installed skills.
-5. After adoption and rollback gates are met, remove the fallback command and generated
+4. The CLI keeps an explicit offline fallback for a bounded compatibility window.
+5. Normal CLI startup stops refreshing, adding, or deleting unregistered skill copies.
+6. After adoption and rollback gates are met, remove the fallback command and generated
    snapshot in a separate CLI release.
 
 ## Existing listing cutover
@@ -39,6 +41,8 @@ generated fallback snapshot, but it must never become a second editable source.
 
 - Never delete a skill directory merely because its contents differ; it may be user-owned.
 - Never overwrite a marketplace cache or host settings from the CLI.
+- For direct connections, update only paths recorded in the direct-connect manifest and only
+  while every installed file still matches its recorded digest.
 - Detect legacy Qodo-managed copies using their existing provenance marker and report them.
 - Require a successful marketplace install before offering removal of a legacy copy.
 - Preserve project-scoped skills unless the user explicitly chooses to migrate that project.
@@ -46,6 +50,6 @@ generated fallback snapshot, but it must never become a second editable source.
 
 ## Exit gate for the fallback
 
-Remove the CLI installer only after all supported hosts have a validated update path, the
+Remove the legacy fallback installer only after all supported hosts have a validated update path, the
 official listings are accepted where applicable, migration telemetry is healthy, and the
 support team has a tested rollback runbook. A merged manifest is not enough.

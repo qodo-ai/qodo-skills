@@ -2,8 +2,10 @@
 
 ## The invariant
 
-Qodo authors each skill once in this repository. Marketplaces distribute and update that
-content. The `qodo` CLI supplies the authenticated, evolving runtime.
+Qodo authors each skill once in this repository. Marketplaces distribute and update plugins;
+agents without an official marketplace path consume the immutable direct-connect release.
+The `qodo` CLI supplies the authenticated, evolving runtime and acts only as the verified
+transport for direct-connect artifacts.
 
 This separates three lifecycles that otherwise fight each other:
 
@@ -11,7 +13,8 @@ This separates three lifecycles that otherwise fight each other:
 |---|---|---|
 | `qodo-skills` | Skill instructions, discovery copy, package version, host adapters | Credentials, API transport, binary updates |
 | Marketplace host | Plugin install, cache, enablement, update UX | Qodo authentication or tool semantics |
-| `qodo` CLI | Login, credential storage, tool catalog, API compatibility, runtime update | Rewriting marketplace-managed plugin files |
+| Direct-connect channel | Immutable release bundle, published checksum, agent skill-directory update | Authored skill copies, marketplace caches, user-owned files |
+| `qodo` CLI | Login, credential storage, tool catalog, API compatibility, runtime update, verified direct-connect transport | Rewriting marketplace-managed plugin files or embedding direct-connect skill content |
 
 ## Repository model
 
@@ -23,7 +26,8 @@ canonical package and presentation metadata. `npm run adapters` renders that met
 - `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json` for Codex;
 - `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` for Claude Code;
 - `gemini-extension.json` for Gemini CLI;
-- `skills/*/agents/openai.yaml` for Codex skill presentation.
+- `skills/*/agents/openai.yaml` for Codex skill presentation;
+- `distribution/qodo-skills-direct.json` and its SHA-256 for agents without a marketplace.
 
 Generated adapters are committed because hosts read the repository directly. They are
 never edited by hand; CI rejects drift from the catalog.
@@ -56,6 +60,13 @@ have different execution and trust models, and silently running a curl pipeline 
 poor security boundary. The universal setup skill makes first use consistent without
 pretending those systems are one updater.
 
+For a detected agent without an official Qodo marketplace path, setup instead asks “Connect Qodo
+to <agent>?”, explains that Qodo will add its official skills and keep them updated, and downloads
+the immutable direct-connect artifact. The CLI verifies both the published artifact checksum and
+every file digest, records the installed paths and hashes, and checks for new releases in a
+detached process at most once per day. A changed, removed, additional, or symlinked file pauses
+updates for that target rather than overwriting it.
+
 ## Runtime contract
 
 Skills invoke documented `qodo` commands and inspect structured output. They authenticate
@@ -66,6 +77,9 @@ with `qodo whoami` before protected work. They do not:
 - embed transport tokens;
 - own provider-specific API clients;
 - update their installed copies.
+
+The final rule applies to skill logic. Marketplace hosts update marketplace copies; the generic
+direct-connect transport updates only the Qodo-owned files recorded in its local manifest.
 
 The CLI should keep command behavior backward compatible within the runtime protocol. When
 a skill requires a new command contract, release the CLI first, then the skill with a clear

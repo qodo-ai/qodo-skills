@@ -37,12 +37,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           VERSION="$(node -p "require('./distribution/catalog.json').package.version")"
           TAG="v${VERSION}"
           NOTES="${RUNNER_TEMP}/qodo-release-notes.md"
           node scripts/release-notes.mjs "${NOTES}"
 
           if gh release view "${TAG}" >/dev/null 2>&1; then
+            test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" = 'true'
             exit 0
           fi
 
@@ -53,4 +55,10 @@ jobs:
             git push origin "${TAG}"
           fi
 
-          gh release create "${TAG}" --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}"
+          gh release create "${TAG}" --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}" \
+            distribution/qodo-skills-direct.json \
+            distribution/qodo-skills-direct.json.sha256
+          if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" != 'true' ]]; then
+            echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
+            exit 1
+          fi

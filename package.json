@@ -9,10 +9,11 @@
   },
   "scripts": {
     "adapters": "node scripts/sync-adapters.mjs",
+    "direct:build": "node scripts/build-direct-bundle.mjs",
     "export:cli": "node scripts/export-cli-bundle.mjs",
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:notes": "node scripts/release-notes.mjs",
-    "check": "node scripts/validate.mjs",
+    "check": "node scripts/validate.mjs && node scripts/build-direct-bundle.mjs --check",
     "test": "npm run check && node scripts/test-release.mjs"
   },
   "license": "MIT"

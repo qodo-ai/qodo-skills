@@ -57,6 +57,31 @@ update replacement. Restart the host where required.
 **Rollback:** publish a new canonical patch restoring the last good behavior and repoint the
 provider to that immutable patch. Never move v1.0.0 or mutate a cached package.
 
+## Stage 2B — enable direct connections for agents without a marketplace
+
+The same immutable `qodo-skills` release publishes `qodo-skills-direct.json` and its SHA-256.
+After Stage 1's CLI is available and the Stage 2 release exists, validate the direct channel:
+
+- a repository administrator enables GitHub immutable releases before publication, and the
+  release workflow proves the published release's `immutable` API field is true;
+- setup detects only installed agents without an official Qodo marketplace path;
+- consent says “Connect Qodo to <agent>?” and explains automatic official-skill updates;
+- the CLI verifies the release checksum, every safe relative path, each file digest, and the
+  aggregate content digest before writing;
+- the complete release is staged and swapped transactionally into only the recorded Qodo skill
+  directories;
+- a normal Qodo skill invocation checks in a detached process at most once per day;
+- local edits, removals, unexpected files, symlinks, offline requests, and checksum failures keep
+  the prior release and pause updates for that target;
+- marketplace-managed agents are excluded, and the new release loads on the next agent session.
+
+**Gate:** repository-level release immutability, clean connection, automatic update, restart
+activation, shared-root deduplication, conflict preservation, checksum failure, interrupted
+update, and opt-out pass on macOS, Linux, and Windows.
+
+**Rollback:** leave the installed last-good release in place and publish a new immutable patch.
+Do not mutate an existing release asset or fall back to the CLI's embedded compatibility snapshot.
+
 ## Stage 3 — repoint the existing Codex listing and deprecate the old repository
 
 Repoint the existing Codex listing from `qodo-in-harness/codex-qodo` to the exact released
@@ -122,3 +147,5 @@ Keep the fallback for at least two normal CLI release cycles. Remove it only whe
 | Marketplace update fails | Previous cached plugin remains; CLI remains independently usable |
 | Runtime update fails | Plugin remains; runtime rollback does not change skill artifacts |
 | Offline environment | Explicit generated fallback remains available during the compatibility window |
+| Agent without an official marketplace path | Consent-driven direct connection; verified release installs and updates automatically |
+| Direct-connected skill was edited or removed | Preserve the target, report a conflict, and pause its automatic updates |
