@@ -14,7 +14,6 @@
       "name": "qodo",
       "source": "./",
       "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
-      "version": "1.0.0",
       "author": {
         "name": "Qodo",
         "email": "support@qodo.ai",

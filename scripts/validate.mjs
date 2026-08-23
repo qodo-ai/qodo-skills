@@ -108,7 +108,6 @@ const expectedVersions = [
   ['.codex-plugin/plugin.json', json('.codex-plugin/plugin.json').version],
   ['.claude-plugin/plugin.json', json('.claude-plugin/plugin.json').version],
   ['.claude-plugin/marketplace.json metadata', json('.claude-plugin/marketplace.json').metadata?.version],
-  ['.claude-plugin/marketplace.json plugin', json('.claude-plugin/marketplace.json').plugins?.[0]?.version],
   ['gemini-extension.json', json('gemini-extension.json').version],
 ];
 for (const [path, version] of expectedVersions) {
@@ -133,6 +132,33 @@ if (codexMarketplace.name !== 'qodo' || !codexEntry) fail('Codex marketplace mus
 if (codexEntry?.source?.path !== './') fail('Codex marketplace must package this repository root');
 if (codexEntry?.policy?.authentication !== 'ON_USE') {
   fail('Codex marketplace authentication must happen on first use');
+}
+
+const claudeMarketplace = json('.claude-plugin/marketplace.json');
+if ('version' in (claudeMarketplace.plugins?.[0] ?? {})) {
+  fail('Claude plugin version must come only from .claude-plugin/plugin.json');
+}
+
+const release = json(`releases/v${packageVersion}.json`);
+if (release.version !== packageVersion) fail('current release record must match package.version');
+if (typeof release.summary !== 'string' || !release.summary.trim()) fail('release summary is required');
+if (!['initial', 'patch', 'minor', 'major'].includes(release.package?.change)) {
+  fail('release package.change must be initial, patch, minor, or major');
+}
+if (release.runtimeProtocolVersion !== catalog.runtime?.protocolVersion) {
+  fail('release runtimeProtocolVersion must match the catalog');
+}
+const releaseSkillNames = new Set();
+for (const change of release.skills ?? []) {
+  if (releaseSkillNames.has(change.name)) fail(`release repeats skill ${change.name}`);
+  releaseSkillNames.add(change.name);
+  if (!semver.test(change.version ?? '')) fail(`release ${change.name}: invalid version`);
+  if (!['initial', 'patch', 'minor', 'major'].includes(change.change)) {
+    fail(`release ${change.name}: invalid change type`);
+  }
+  const skill = catalog.skills?.find((entry) => entry.name === change.name);
+  if (!skill) fail(`release references unknown skill ${change.name}`);
+  else if (skill.version !== change.version) fail(`release ${change.name}: version differs from catalog`);
 }
 
 for (const file of walk(root)) {

@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -28,6 +30,10 @@ jobs:
       - name: Validate canonical skills and adapters
         run: npm test
 
+      - name: Validate release versioning
+        if: github.event_name == 'pull_request'
+        run: node scripts/validate-diff.mjs "${{ github.event.pull_request.base.sha }}"
+
   claude:
     runs-on: ubuntu-latest
     steps:
@@ -36,5 +42,7 @@ jobs:
 
       - name: Validate Claude marketplace JSON
         run: |
-          jq -e '.name == "qodo" and (.plugins | length == 1) and .plugins[0].source == "./"' \
+          jq -e '.name == "qodo" and (.plugins | length == 1) and .plugins[0].source == "./" and (.plugins[0] | has("version") | not)' \
             .claude-plugin/marketplace.json
+          test "$(jq -r '.version' .claude-plugin/plugin.json)" = \
+            "$(jq -r '.metadata.version' .claude-plugin/marketplace.json)"

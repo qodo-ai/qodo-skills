@@ -10,8 +10,10 @@
   "scripts": {
     "adapters": "node scripts/sync-adapters.mjs",
     "export:cli": "node scripts/export-cli-bundle.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "release:notes": "node scripts/release-notes.mjs",
     "check": "node scripts/validate.mjs",
-    "test": "npm run check"
+    "test": "npm run check && node scripts/test-release.mjs"
   },
   "license": "MIT"
 }

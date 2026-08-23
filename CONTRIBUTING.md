@@ -5,9 +5,20 @@
 1. Edit only `skills/<name>/SKILL.md` for workflow behavior.
 2. Keep the file below 500 lines and use the `qodo-` lowercase-kebab name.
 3. Keep authentication and API transport behind the `qodo` command.
-4. Update the skill version in its frontmatter and `distribution/catalog.json`.
-5. Update the package version for a release-bound change.
-6. Run `npm run adapters` and `npm test`.
+4. Prepare the release atomically:
+
+   ```sh
+   npm run release:prepare -- \
+     --summary "Explain the user-visible improvement." \
+     --skill qodo-review=patch
+   ```
+
+   Repeat `--skill <name>=<patch|minor|major>` when one change affects several skills. Use
+   `<name>=initial` for a newly added skill; pull-request validation rejects `initial` for an
+   existing one. For marketplace-only packaging changes, use `--package patch` instead.
+5. Review the generated catalog, manifests, skill frontmatter, and immutable
+   `releases/v<version>.json` record.
+6. Run `npm test`.
 
 Do not edit generated manifests or `skills/*/agents/openai.yaml` by hand. Change their
 source metadata in the catalog, then regenerate.
@@ -31,6 +42,8 @@ Every Qodo skill must:
 
 ## Pull requests
 
-Describe the user-visible behavior, compatibility impact, skill/package versions, and hosts
-actually tested. Include native validator output when available. Do not call a package
-“published” until the external marketplace shows the released version.
+Every release-bound pull request is complete: it carries its version and release record. After
+merge, the release workflow validates the exact commit, creates the annotated tag, and creates
+the GitHub Release. Describe the user-visible behavior, compatibility impact, skill/package
+versions, and hosts actually tested. Include native validator output when available. Do not call
+a package “published” until the workflow and external marketplace both show the released version.

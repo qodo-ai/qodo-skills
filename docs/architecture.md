@@ -73,6 +73,11 @@ That snapshot is a build artifact exported from this repository, not another edi
 `skills/` tree. It must not refresh or add marketplace-managed skills during normal command
 startup. This fallback can be removed after marketplace adoption reaches the agreed gate.
 
+Normal marketplace releases do not regenerate or release the CLI fallback. Update that snapshot
+only when adding a fallback skill, delivering a critical or security correction to offline users,
+or deliberately moving the compatibility baseline. A scheduled compatibility sync may batch
+several marketplace releases; it is not part of the marketplace release transaction.
+
 Generate the snapshot from a checkout of both repositories:
 
 ```sh

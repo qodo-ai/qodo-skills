@@ -110,7 +110,6 @@ writeJson('.claude-plugin/marketplace.json', {
       name: pkg.name,
       source: './',
       description: pkg.description,
-      version: pkg.version,
       author,
       homepage: pkg.homepage,
       repository: pkg.repository,

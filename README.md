@@ -79,6 +79,7 @@ Node 20.6 or newer is the only validation dependency.
 ```sh
 npm run adapters   # regenerate every host manifest from the catalog
 npm test           # validate skills, versions, security boundaries, and adapters
+npm run release:prepare -- --summary "What changed" --skill qodo-review=patch
 ```
 
 Also run the native validators for any host you have installed:

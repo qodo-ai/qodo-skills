@@ -1,0 +1,40 @@
+{
+  "version": "1.0.0",
+  "summary": "Establish Qodo's canonical marketplace-native skill package for local coding agents.",
+  "package": {
+    "change": "initial"
+  },
+  "runtimeProtocolVersion": 1,
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.0",
+      "change": "initial"
+    },
+    {
+      "name": "qodo-codebase-wisdom",
+      "version": "1.1.0",
+      "change": "initial"
+    },
+    {
+      "name": "qodo-get-rules",
+      "version": "1.1.0",
+      "change": "initial"
+    },
+    {
+      "name": "qodo-manage-standards",
+      "version": "1.0.0",
+      "change": "initial"
+    },
+    {
+      "name": "qodo-review",
+      "version": "1.9.0",
+      "change": "initial"
+    },
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.0",
+      "change": "initial"
+    }
+  ]
+}
