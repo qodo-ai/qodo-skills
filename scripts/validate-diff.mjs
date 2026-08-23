@@ -42,7 +42,10 @@ const statuses = git('diff', '--name-status', `${base}...HEAD`)
   .filter(Boolean)
   .map((line) => line.split('\t'));
 const changedSkills = new Set(
-  files.flatMap((path) => path.match(/^skills\/([^/]+)\//)?.[1] ?? []),
+  files.flatMap((path) => {
+    const match = path.match(/^skills\/([^/]+)\/(.+)$/);
+    return match && !match[2].startsWith('agents/') ? match[1] : [];
+  }),
 );
 const catalogChanged = files.includes('distribution/catalog.json');
 const changedReleaseRecords = statuses.filter(([, path]) => path?.startsWith('releases/'));

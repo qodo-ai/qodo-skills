@@ -36,6 +36,7 @@ try {
   execFileSync('git', ['config', 'user.name', 'Release Test'], { cwd: repositoryRoot });
   execFileSync('git', ['config', 'user.email', 'release-test@qodo.ai'], { cwd: repositoryRoot });
   execFileSync('git', ['config', 'core.autocrlf', 'false'], { cwd: repositoryRoot });
+  execFileSync('git', ['config', 'core.safecrlf', 'false'], { cwd: repositoryRoot });
   execFileSync('git', ['config', 'commit.gpgsign', 'false'], { cwd: repositoryRoot });
   execFileSync('git', ['add', '.'], { cwd: repositoryRoot });
   execFileSync('git', ['commit', '--quiet', '-m', 'baseline'], { cwd: repositoryRoot });
