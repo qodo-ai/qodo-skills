@@ -5,7 +5,7 @@ description: >-
 when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
   vendor: qodo
-  version: "1.4.1"
+  version: "1.4.2"
   recommended: "true"
 arguments:
   - name: autofix
@@ -53,8 +53,9 @@ Add `--json` to anything you parse. **Confirm the exact tool names, flags, and r
 with `qodo pr-review-session --help`** (renders offline) — the names above are illustrative, not
 guaranteed current.
 
-`unknown command` on `dismiss`/`mark-implemented` means a stale local tool catalog, not a missing
-feature — see Preflight: refresh, don't re-login.
+`unknown command` on `dismiss`/`mark-implemented` after authentication may be a stale local tool
+catalog — refresh once as described below. If the commands are still absent, the workspace does
+not currently expose PR-review writes; report that capability boundary instead of looping.
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
 the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
@@ -69,11 +70,10 @@ or pipe an installer directly into a shell.
 1. **Auth first.** Run `qodo whoami` — non-zero exit → tell the user to run `qodo login`, then
    stop. Never guess creds. The tool only exists *after* login, so treat `Not logged in` or `No
    tool catalog cached` as "run `qodo login`", and don't retry before they have.
-   **An `unknown command`/`unknown option` while `whoami` SUCCEEDED is a stale catalog, not an
-   auth failure** — the group is there, but its commands were cached before this tool shipped.
-   Run `qodo tools --refresh` once and retry; only send the user to `qodo login` when `whoami`
-   itself failed. Sending a logged-in user to re-login here leaves the write commands
-   permanently out of reach.
+   **An `unknown command`/`unknown option` while `whoami` SUCCEEDED is not an auth failure.** Run
+   `qodo tools --refresh` once and re-check `qodo pr-review-session --help`. If the write command
+   remains absent, report that this account/workspace currently has read-only review capability;
+   do not re-login, retry indefinitely, or substitute a forge comment for the structured write.
 2. **Resolve the PR.** Use the PR URL the user gives. If they don't name one and you're inside
    a git repo, infer the open PR for the current branch and **confirm it with the user before
    acting**. Never guess a PR URL.
@@ -107,6 +107,25 @@ check it before acting:
 
 In short: act only on a **completed review of the current commit**. A running review or a
 lagging `commit_sha` means wait, don't fix.
+
+## Present the review state
+
+After fetching the session and comparing its commit to the PR head, show this once:
+
+```
+# 🔎 Qodo PR Review
+
+**PR:** <owner/repo#number>
+**Review:** <completed and current | running | stale | not found>
+**Findings:** <N open · N closed, grouped by action level when useful>
+**Reviewed commit:** <short SHA, or "none">
+---
+```
+
+This block exposes the freshness gate before anyone acts. Derive every field from the structured
+session and forge head; never label a review current unless it is completed at the exact head.
+Render it once per fetched state, not again after every edit or status write. Resolution details
+and remaining findings follow below it.
 
 ## Triage
 

@@ -4,7 +4,7 @@ description: >-
   Review your LOCAL changes before opening a pull request, using the qodo CLI — send your uncommitted/unpushed diff to Qodo's review engine along with the coding-session context (what you changed and why, plus links to the ticket/spec/design that drove it) that a forge-based reviewer can never see, then evaluate the findings and apply the fixes you approve (or pass `autofix` to apply directly). Use when asked to "review my changes before I push", "pre-PR review", "check this before I open a PR", "review my local diff", or "run qodo review".
 metadata:
   vendor: qodo
-  version: "1.9.0"
+  version: "1.9.1"
   recommended: "true"
 ---
 
@@ -200,9 +200,10 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 ## Preflight
 
 1. **Auth first.** Run `qodo whoami` — non-zero exit → tell the user to run `qodo login`, then
-   stop. Never guess creds. Treat `Not logged in`, `No tool catalog cached`, or an `unknown
-   command`/`unknown option` the same way: ask the user to run `qodo login`, and don't retry
-   before they have.
+   stop. Never guess creds. `Not logged in` / `No tool catalog cached` require login. If `whoami`
+   succeeds but the built-in `qodo review` command is unknown, the runtime is too old; ask the
+   user to update the CLI from the official source. Re-login and catalog refresh cannot add this
+   built-in command.
 2. **Push the base.** The reviewer clones the base commit from the remote, so the base branch
    (default `origin/main`) must be pushed. If `qodo review` says the base isn't pushed, push it or
    pass a pushed `--base <ref>`. Your own local changes do NOT need to be committed or pushed —
@@ -309,6 +310,25 @@ internal wiki, or a ticket you merely name. So:
   argues the code is fine reads as an excuse (and needlessly triggers a second, no-excuse safety pass);
   never write a "decision" whose purpose is to argue a bug or security issue away. The reviewer will
   (and should) still flag genuine problems.
+
+## Present the review result
+
+After reading the completed result file, show one compact summary before presenting findings:
+
+```
+# 🔍 Qodo Pre-PR Review
+
+**Result:** <clean | findings need attention>
+**Findings:** <N action required · N recommended · N informational>
+**Coverage:** <reviewers that ran; name material skipped dimensions>
+**Context:** <included | not provided>
+---
+```
+
+Use only fields the result actually contains. Omit unavailable counts instead of guessing, and
+do not call a review clean when a required reviewer failed or material coverage self-skipped.
+Render the block once per completed review—not during progress, on gated/failed runs, or again
+after each fix. Findings and the approval prompt follow below it.
 
 ## Act on the findings
 

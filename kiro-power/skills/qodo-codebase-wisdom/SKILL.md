@@ -4,7 +4,7 @@ description: >-
   Understand how code works, how a change was done before, and which repos are coupled — to answer a question, plan a code change, debug a regression, or scope a fix, using the qodo CLI's managed tools. Use when a task needs to understand a codebase, its history, or how its repos relate — especially for a repo you don't have checked out or work spanning repos — "how does X work", "where is X defined", "who changed X", "explain this service", "plan the change for X", "what would changing X affect", "which repos depend on X", "why did X regress / when did it break", "has this been fixed before", "how did we solve X".
 metadata:
   vendor: qodo
-  version: "1.1.0"
+  version: "1.1.1"
   recommended: "true"
 ---
 
@@ -43,10 +43,11 @@ or pipe an installer directly into a shell.
 ## Preflight
 
 1. **Auth first.** Run `qodo whoami` — non-zero exit → tell the user to run `qodo login`, then
-   stop. Never guess creds. The tool-group commands (`codebase`/`pull-request`/`cross-repo`) only
-   exist *after* login, so treat any of these as "not logged in → run `qodo login`" too: `Not
-   logged in`, `No tool catalog cached`, or an `unknown command`/`unknown option` when calling a
-   group. Don't retry the tool call before the user has logged in.
+   stop. Never guess creds. `Not logged in` / `No tool catalog cached` are authentication setup
+   failures. If `whoami` succeeds but a group is unknown, run `qodo tools --refresh` once. If the
+   CLI reports `tool_unavailable` or says Codebase tools are unavailable for the account/workspace,
+   stop and explain that a workspace admin must enable access; do not send an authenticated user
+   through login again or loop on refresh.
 2. Resolve the repo. Named repo → `--repo owner/repo`. Inside a git repo with none named →
    omit `--repo` (autodetected from origin). Otherwise `qodo codebase search-repos --query
    "<name>" --json` and **never guess a slug**. Multiple matches → ask the user which; zero
@@ -90,8 +91,22 @@ change → `codebase get-pr --number <n>` → name the cause with evidence.
 
 ## Deliver
 
-- Lead with the bottom line in plain language (the reader may be non-engineering); code,
-  paths, diffs under it.
+Lead with one compact value block, then put code, paths, and diffs underneath it:
+
+```
+# 🧭 Qodo Codebase Insight
+
+**Answer:** <the bottom line in plain language>
+**Scope:** <repos, refs, or date range actually checked>
+**Evidence:** <N cited locations, or "not found in the checked scope">
+---
+```
+
+Render this once, only after the investigation has an evidence-backed answer. The Qodo header
+identifies where the cross-repository evidence came from; the fields make the result auditable.
+Do not show it for auth/tool failures or use it to decorate an uncertain answer.
+
+- Keep the answer understandable to a non-engineering reader; put technical detail below it.
 - **Cite everything** — repo, `path:line`, PR number, commit SHA. When a fact has no locatable
   source (a hit without a line, or a synthesis of several), say so plainly — don't invent a citation.
 - **Source precedence** when sources disagree: `read-file` (current code) = how it behaves now;

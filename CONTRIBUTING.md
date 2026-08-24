@@ -40,6 +40,11 @@ Every Qodo skill must:
 - preserve user approval gates for local edits and external writes;
 - avoid direct Qodo HTTP requests, credentials, provider tokens, and secret output.
 
+Operational skills also expose one meaningful branded value moment. Follow
+`docs/architecture.md`: one `# <emoji> Qodo <outcome>` block after a verified result, with useful
+scope/count/freshness fields and no promotional or repeated banners. Add the expected heading to
+the validator when introducing a skill.
+
 ## Pull requests
 
 Every release-bound pull request is complete: it carries its version and release record. After

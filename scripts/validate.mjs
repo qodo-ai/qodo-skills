@@ -12,6 +12,14 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const errors = [];
 const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const valueMomentHeadings = new Map([
+  ['qodo-setup', '# ✅ Qodo Ready'],
+  ['qodo-codebase-wisdom', '# 🧭 Qodo Codebase Insight'],
+  ['qodo-get-rules', '# 📋 Qodo Rules Loaded'],
+  ['qodo-manage-standards', '# 🛡️ Qodo Review Standards'],
+  ['qodo-review', '# 🔍 Qodo Pre-PR Review'],
+  ['qodo-review-resolver', '# 🔎 Qodo PR Review'],
+]);
 const forbiddenRuntimeBypass = new RegExp([
   'QODO_', 'API_KEY', '|',
   'API_KEY', '\\s*[":=]', '|',
@@ -100,6 +108,12 @@ for (const skill of catalog.skills ?? []) {
   if (meta.metadata.version !== skill.version) fail(`${skill.name}: frontmatter version differs from catalog`);
   const recommended = meta.metadata.recommended === undefined ? true : meta.metadata.recommended === 'true';
   if (recommended !== skill.recommended) fail(`${skill.name}: recommended differs from catalog`);
+  const expectedHeading = valueMomentHeadings.get(skill.name);
+  const skillText = readFileSync(skillPath, 'utf8');
+  const headingCount = expectedHeading ? skillText.split(expectedHeading).length - 1 : 0;
+  if (!expectedHeading || headingCount !== 1) {
+    fail(`${skill.name}: expected exactly one branded value-moment heading ${expectedHeading ?? '<unregistered>'}`);
+  }
 }
 
 const expectedVersions = [

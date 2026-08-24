@@ -8,12 +8,12 @@
   "skills": [
     {
       "name": "qodo-setup",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "change": "initial"
     },
     {
       "name": "qodo-codebase-wisdom",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "change": "initial"
     },
     {
@@ -23,17 +23,17 @@
     },
     {
       "name": "qodo-manage-standards",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "change": "initial"
     },
     {
       "name": "qodo-review",
-      "version": "1.9.0",
+      "version": "1.9.1",
       "change": "initial"
     },
     {
       "name": "qodo-review-resolver",
-      "version": "1.4.1",
+      "version": "1.4.2",
       "change": "initial"
     }
   ]

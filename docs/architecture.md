@@ -94,6 +94,25 @@ a skill requires a new command contract, release the CLI first, then the skill w
 minimum-runtime check. Marketplace rollback must remain possible without rolling back the
 CLI.
 
+## Branded value moments
+
+Qodo's brand appears where it helps the user recognize a verified product outcome, not as a
+repeated banner. Every operational skill renders at most one compact Markdown result block after
+Qodo has produced or verified useful state. The header names Qodo and the outcome; the fields below
+carry task-specific evidence such as scope, counts, freshness, coverage, or the next safe action.
+
+The contract is:
+
+- start with `# <emoji> Qodo <outcome>`;
+- include only fields backed by structured command output or cited evidence;
+- render once at the workflow's value moment, before detailed results;
+- never render during progress, auth/setup failures, permission failures, or unverified success;
+- keep the semantic labels useful without emoji or color, and never add promotional copy.
+
+The skills intentionally use different outcome names—Ready, Rules Loaded, Codebase Insight,
+Review Standards, Pre-PR Review, and PR Review—because the value must be recognizable before the
+brand treatment is consistent. Validation pins those headings so generated adapters cannot drift.
+
 ## CLI fallback
 
 The CLI may carry a generated snapshot solely for explicit, offline legacy installation.

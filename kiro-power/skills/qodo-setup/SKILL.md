@@ -4,7 +4,7 @@ description: >-
   Connect Qodo to the current local coding agent — verify the Qodo CLI, guide a secure installation when it is missing, complete browser login, and confirm managed tools are ready. Use after installing the Qodo plugin, when the user asks to set up or connect Qodo, or when another Qodo skill reports that the CLI is missing or logged out.
 metadata:
   vendor: qodo
-  version: "1.0.0"
+  version: "1.0.1"
   recommended: "true"
 ---
 
@@ -75,8 +75,20 @@ but managed tools are not ready, including the returned error and the safe retry
 
 ## 4. Hand off
 
-When both checks pass, lead with: “Qodo is connected and ready in this coding agent.” Then
-offer the shortest relevant next action:
+When both checks pass, show this once using counts from the refreshed catalog:
+
+```
+# ✅ Qodo Ready
+
+Account: **connected**
+Managed tools: **<N> available**
+Runtime: **<version from qodo --version>**
+---
+```
+
+Only show the ready block after both identity and catalog checks succeed. It is a verified
+handoff, not a startup banner: do not show it while login is pending, after a partial setup, or
+when the tool count is unknown. Then offer the shortest relevant next action:
 
 - “Review my local changes” → `qodo-review`
 - “Load our coding standards” → `qodo-get-rules`
