@@ -92,6 +92,16 @@ try {
     }
   }
   assert.equal(contentDigest.digest('hex'), directBundle.package.contentSha256);
+  const cliBundlePath = join(repositoryRoot, 'distribution', 'bundled-skills.generated.ts');
+  execFileSync(process.execPath, [
+    join(repositoryRoot, 'scripts', 'export-cli-bundle.mjs'),
+    cliBundlePath,
+  ], { cwd: repositoryRoot, stdio: 'pipe' });
+  const cliBundle = readFileSync(cliBundlePath, 'utf8');
+  assert.match(cliBundle, /distribution: \\"qodo-direct\\"/);
+  assert.doesNotMatch(cliBundle, /distribution: \\"skills-sh\\"/);
+  assert.match(cliBundle, new RegExp(directBundle.package.contentSha256));
+  rmSync(cliBundlePath);
   const releaseIndexPath = join(repositoryRoot, 'distribution', 'qodo-skills-index.json');
   const releaseIndexText = readFileSync(releaseIndexPath, 'utf8');
   const releaseIndex = JSON.parse(releaseIndexText);
