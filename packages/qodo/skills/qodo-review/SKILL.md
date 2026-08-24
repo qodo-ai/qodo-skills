@@ -22,6 +22,18 @@ clones it).
 This is the **pre-PR** half of the review loop. After the PR exists, switch to resolving the PR's
 review findings instead.
 
+## Handle a skill update notice
+
+A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When
+`code` is `qodo_skill_update_available`, keep the command's result and finish the current
+task. Then follow the notice's `steps`: do read-only inventory first, resolve the installed
+Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
+once before any mutation. If the user declines, keep the current version usable.
+
+Never invoke a different lifecycle owner, guess a placeholder, or install an optional package
+implicitly. After an approved update, ask for the host restart named by the notice; the current
+session may still have the old skill loaded.
+
 ## Quick start
 
 You just wrote the code, so you hold the one input the reviewer can't get anywhere else: **why**.
