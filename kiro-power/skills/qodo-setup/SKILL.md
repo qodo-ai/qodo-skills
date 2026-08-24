@@ -4,7 +4,7 @@ description: >-
   Connect Qodo to the current local coding agent — verify the Qodo CLI, guide a secure installation when it is missing, complete browser login, and confirm managed tools are ready. Use after installing the Qodo plugin, when the user asks to set up or connect Qodo, or when another Qodo skill reports that the CLI is missing or logged out.
 metadata:
   vendor: qodo
-  version: "1.0.1"
+  version: "1.0.2"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -33,13 +33,13 @@ session may still have the old skill loaded.
 Run:
 
 ```sh
-qodo --version
+qodo --version --skill qodo-setup --skill-version 1.0.2 --distribution kiro-power
 ```
 
 If the shell reports `qodo: command not found`, retry the standard user-scoped location:
 
 ```sh
-"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version
+"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version --skill qodo-setup --skill-version 1.0.2 --distribution kiro-power
 ```
 
 Keep the working command for every later step. Do not rewrite PATH automatically.
@@ -54,7 +54,7 @@ an unofficial registry, or install software without the user's approval.
 
 ## 2. Check authentication
 
-Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.1 --distribution kiro-power`.
+Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.2 --distribution kiro-power`.
 
 - Success and an identified account: continue to verification.
 - `Not logged in`, missing credentials, or a non-zero authentication result: run
@@ -76,8 +76,8 @@ with cloud defaults.
 After login, run both:
 
 ```sh
-<qodo> whoami --json --skill qodo-setup --skill-version 1.0.1 --distribution kiro-power
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.1 --distribution kiro-power
+<qodo> whoami --json --skill qodo-setup --skill-version 1.0.2 --distribution kiro-power
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.2 --distribution kiro-power
 ```
 
 Read the structured results. Readiness requires both a successful authenticated identity

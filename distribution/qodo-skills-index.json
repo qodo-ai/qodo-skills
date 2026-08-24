@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "packageVersion": "1.0.1",
+  "packageVersion": "1.0.2",
   "repository": "https://github.com/qodo-ai/qodo-skills",
   "skills": {
     "qodo-setup": {
-      "version": "1.0.1",
+      "version": "1.0.2",
       "package": "qodo"
     },
     "qodo-codebase-wisdom": {
