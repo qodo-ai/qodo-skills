@@ -91,7 +91,10 @@ handoff, not a startup banner: do not show it while login is pending, after a pa
 when the tool count is unknown. Then offer the shortest relevant next action:
 
 - “Review my local changes” → `qodo-review`
-- “Load our coding standards” → `qodo-get-rules`
+- “Load our coding standards” → use `qodo-get-rules` only when it is available. Otherwise,
+  explain that it belongs to the optional **Qodo Standards** add-on; install that add-on through
+  the current agent marketplace, or use `qodo agents install --package qodo-standards` for a
+  CLI-managed direct connection.
 - “Explain this codebase” → `qodo-codebase-wisdom`
 - “Show the Qodo findings on this PR” → `qodo-review-resolver`
 
