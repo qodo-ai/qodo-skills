@@ -6,6 +6,8 @@ metadata:
   vendor: qodo
   version: "1.1.1"
   recommended: "true"
+  package: "qodo"
+  distribution: "skills-sh"
 ---
 
 # Codebase Wisdom
@@ -18,7 +20,7 @@ and spans repo boundaries. You drive qodo's **read** tools only; you never post 
 ## Quick start
 
 ```
-qodo whoami --json --skill qodo-codebase-wisdom                # auth check (exit 0 = logged in)
+qodo whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.1 --distribution skills-sh
 qodo codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
 qodo codebase grep --repo owner/repo --pattern "chargeCard" --json
 qodo codebase read-file --repo owner/repo --path src/pay.py --json

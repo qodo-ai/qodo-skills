@@ -140,11 +140,19 @@ for (const skill of catalog.skills ?? []) {
   const recommended = meta.metadata.recommended === undefined ? true : meta.metadata.recommended === 'true';
   if (recommended !== skill.recommended) fail(`${skill.name}: recommended differs from catalog`);
   const installPackage = (catalog.installPackages ?? []).find((entry) => entry.skills.includes(skill.name));
+  if (meta.metadata.package !== installPackage?.name) {
+    fail(`${skill.name}: frontmatter package differs from catalog`);
+  }
+  if (meta.metadata.distribution !== 'skills-sh') {
+    fail(`${skill.name}: canonical source distribution must be skills-sh`);
+  }
   if (installPackage && recommended !== installPackage.default) {
     fail(`${skill.name}: recommended must match install package ${installPackage.name} default state`);
   }
   const expectedHeading = valueMomentHeadings.get(skill.name);
   const skillText = readFileSync(skillPath, 'utf8');
+  const provenance = `--skill ${skill.name} --skill-version ${skill.version} --distribution skills-sh`;
+  if (!skillText.includes(provenance)) fail(`${skill.name}: missing canonical provenance invocation`);
   const headingCount = expectedHeading ? skillText.split(expectedHeading).length - 1 : 0;
   if (!expectedHeading || headingCount !== 1) {
     fail(`${skill.name}: expected exactly one branded value-moment heading ${expectedHeading ?? '<unregistered>'}`);
@@ -212,6 +220,28 @@ if (existsSync(join(root, 'packages', 'qodo', 'skills', 'qodo-get-rules'))) {
 }
 if (!existsSync(join(root, 'packages', 'qodo-standards', 'skills', 'qodo-get-rules', 'SKILL.md'))) {
   fail('qodo-get-rules must be present in the optional standards package');
+}
+
+for (const installPackage of catalog.installPackages ?? []) {
+  for (const skillName of installPackage.skills) {
+    const skill = catalog.skills.find((entry) => entry.name === skillName);
+    const generated = [
+      [`packages/${installPackage.name}/skills/${skillName}/SKILL.md`, 'marketplace'],
+      [
+        `${installPackage.name === catalog.package.name ? 'kiro-power' : 'kiro-power-standards'}/skills/${skillName}/SKILL.md`,
+        'kiro-power',
+      ],
+    ];
+    for (const [path, distribution] of generated) {
+      const meta = frontmatter(join(root, path));
+      if (meta.metadata.package !== installPackage.name || meta.metadata.distribution !== distribution) {
+        fail(`${path}: generated provenance differs from catalog`);
+      }
+      const text = readFileSync(join(root, path), 'utf8');
+      const marker = `--skill ${skillName} --skill-version ${skill.version} --distribution ${distribution}`;
+      if (!text.includes(marker)) fail(`${path}: missing generated provenance invocation`);
+    }
+  }
 }
 
 const release = json(`releases/v${packageVersion}.json`);

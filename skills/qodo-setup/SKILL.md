@@ -6,6 +6,8 @@ metadata:
   vendor: qodo
   version: "1.0.1"
   recommended: "true"
+  package: "qodo"
+  distribution: "skills-sh"
 ---
 
 # Set up Qodo
@@ -40,7 +42,7 @@ an unofficial registry, or install software without the user's approval.
 
 ## 2. Check authentication
 
-Run `<qodo> whoami --json --skill qodo-setup`.
+Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.1 --distribution skills-sh`.
 
 - Success and an identified account: continue to verification.
 - `Not logged in`, missing credentials, or a non-zero authentication result: run
@@ -62,8 +64,8 @@ with cloud defaults.
 After login, run both:
 
 ```sh
-<qodo> whoami --json --skill qodo-setup
-<qodo> tools --refresh --json --skill qodo-setup
+<qodo> whoami --json --skill qodo-setup --skill-version 1.0.1 --distribution skills-sh
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.1 --distribution skills-sh
 ```
 
 Read the structured results. Readiness requires both a successful authenticated identity

@@ -33,6 +33,13 @@ canonical package and presentation metadata. `npm run adapters` renders the cata
 Generated adapters are committed because hosts read the repository directly. They are
 never edited by hand; CI rejects drift from the catalog.
 
+Every skill invocation carries `--skill`, `--skill-version`, and `--distribution`. Canonical
+`skills/` sources use `skills-sh`; universal Agent Plugin packages use `marketplace`; Kiro
+projections use `kiro-power`; the temporary migration artifact uses `qodo-direct`. The universal
+marketplace package intentionally does not hard-code Claude, Codex, or Cursor: the CLI combines
+the package provenance with the runtime host signal. Distribution wins over host identity, so a
+skills.sh-installed skill running inside Claude Code remains owned by skills.sh.
+
 The direct artifact has no agent allowlist, install path, or host adapter. Eligibility is
 capability-based in the CLI: a recognized host is direct-connectable when its registry entry has
 a verified project or global skills directory and does not declare an official Qodo marketplace
@@ -99,6 +106,12 @@ The CLI should keep command behavior backward compatible within the runtime prot
 a skill requires a new command contract, release the CLI first, then the skill with a clear
 minimum-runtime check. Marketplace rollback must remain possible without rolling back the
 CLI.
+
+Protocol version 2 adds the provenance flags. The CLI checks the checksummed release index in a
+detached, daily refresh and emits a structured, non-fatal `QODO_NOTICE` only when the loaded skill
+is stale. The notice names one lifecycle owner: Claude and Codex receive native commands, Kiro and
+Cursor receive native UI guidance, skills.sh receives read-only inventory steps followed by an
+exact scoped named update after consent, and `qodo-direct` remains with the migration updater.
 
 ## Branded value moments
 

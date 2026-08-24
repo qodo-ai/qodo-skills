@@ -14,7 +14,7 @@
   "runtime": {
     "command": "qodo",
     "loginCommand": "qodo login",
-    "protocolVersion": 1
+    "protocolVersion": 2
   },
   "installPackages": [
     {

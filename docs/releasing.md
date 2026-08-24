@@ -44,7 +44,8 @@ The `Release skills` workflow performs the GitHub-side publication:
 1. Re-run the complete validation suite on the merged commit.
 2. Create an annotated `v<package-version>` tag on that exact commit.
 3. Render the immutable release record into a GitHub Release.
-4. Attach `qodo-skills-direct.json` and its SHA-256 for agents without a marketplace.
+4. Attach `qodo-skills-index.json` and its SHA-256 for metadata-only version checks. During the
+   migration window, also attach `qodo-skills-direct.json` and its SHA-256 for direct-connected agents.
 5. Refresh or submit each official marketplace listing according to that host's process.
    Preserve the existing `qodo` core identity and treat `qodo-standards` as a separate optional
    listing/Power; never fold its skills back into core discovery.

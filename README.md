@@ -76,6 +76,9 @@ qodo-skills repository          coding-agent marketplace       qodo CLI
 - A runtime change ships through the CLI updater, independent of marketplace review.
 - Marketplaces own installed plugin copies. The CLI does not rewrite them on launch.
 - Skills never read secret files or call Qodo endpoints directly; they invoke `qodo`.
+- Canonical skills stamp `skills-sh`; generated marketplace and Kiro copies stamp their lifecycle
+  owner. The runtime combines a generic marketplace stamp with the detected host, so Claude,
+  Codex, and Cursor receive native update guidance while a skills.sh copy stays on skills.sh.
 
 The detailed contracts are in [Architecture](docs/architecture.md),
 [Compatibility](docs/compatibility.md), and [Releasing](docs/releasing.md). The ordered first

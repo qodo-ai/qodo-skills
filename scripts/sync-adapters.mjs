@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stampSkillProvenance } from './skill-provenance.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const check = process.argv.includes('--check');
@@ -154,8 +155,21 @@ function generatedPackageFiles(value, adapterSet = 'all') {
   }
   for (const skillName of value.skills) {
     const sourceRoot = join(root, 'skills', skillName);
+    const skill = catalog.skills.find((entry) => entry.name === skillName);
+    const distribution = adapterSet === 'kiro' ? 'kiro-power' : 'marketplace';
     for (const path of collectFiles(sourceRoot)) {
-      files.set(`skills/${skillName}/${path}`, readFileSync(join(sourceRoot, path), 'utf8'));
+      const content = readFileSync(join(sourceRoot, path), 'utf8');
+      files.set(
+        `skills/${skillName}/${path}`,
+        path === 'SKILL.md'
+          ? stampSkillProvenance(content, {
+            name: skillName,
+            version: skill.version,
+            packageName: value.name,
+            distribution,
+          })
+          : content,
+      );
     }
   }
   return files;

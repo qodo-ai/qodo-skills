@@ -7,6 +7,8 @@ metadata:
   vendor: qodo
   version: "1.4.2"
   recommended: "true"
+  package: "qodo"
+  distribution: "kiro-power"
 arguments:
   - name: autofix
     description: Resolve the recommended fixes directly without asking. Omit to evaluate the findings and let the user pick which to resolve.
@@ -42,7 +44,7 @@ fact required for the freshness check below; the "don't scrape" rule is about qo
 ## Quick start
 
 ```
-qodo whoami --json --skill qodo-review-resolver                       # auth check (exit 0 = logged in)
+qodo whoami --json --skill qodo-review-resolver --skill-version 1.4.2 --distribution kiro-power
 qodo pr-review-session findings --pr-url <PR_URL> --json            # the review session for a PR
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
 qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explanation "..." --json

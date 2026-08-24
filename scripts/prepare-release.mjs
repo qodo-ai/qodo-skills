@@ -65,7 +65,11 @@ function updateFrontmatterVersion(path, version) {
   const frontmatter = text.slice(0, end);
   const matches = frontmatter.match(/^  version:\s*.+$/gm) ?? [];
   if (matches.length !== 1) throw new Error(`${path}: expected one metadata version`);
-  const updated = `${frontmatter.replace(/^  version:\s*.+$/m, `  version: "${version}"`)}${text.slice(end)}`;
+  const body = text.slice(end).replace(
+    /--skill-version\s+\S+(?=\s+--distribution)/g,
+    `--skill-version ${version}`,
+  );
+  const updated = `${frontmatter.replace(/^  version:\s*.+$/m, `  version: "${version}"`)}${body}`;
   return newline === '\n' ? updated : updated.replace(/\n/g, newline);
 }
 
@@ -120,6 +124,10 @@ export function prepareRelease(argv, repositoryRoot = root) {
     stdio: 'inherit',
   });
   execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'build-direct-bundle.mjs')], {
+    cwd: repositoryRoot,
+    stdio: 'inherit',
+  });
+  execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'build-release-index.mjs')], {
     cwd: repositoryRoot,
     stdio: 'inherit',
   });

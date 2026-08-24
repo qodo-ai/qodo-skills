@@ -8,6 +8,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stampSkillProvenance } from './skill-provenance.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const check = process.argv.includes('--check');
@@ -48,9 +49,19 @@ const packages = catalog.installPackages.map((entry) => {
 });
 const skills = catalog.skills.map((entry) => {
   const skillRoot = join(root, 'skills', entry.name);
+  const packageName = catalog.installPackages.find((candidate) => candidate.skills.includes(entry.name))?.name;
+  if (!packageName) throw new Error(`${entry.name}: missing install package`);
   const files = walk(skillRoot).map((path) => {
-    const content = readFileSync(path, 'utf8');
     const filePath = relative(skillRoot, path).split(sep).join('/');
+    const source = readFileSync(path, 'utf8');
+    const content = filePath === 'SKILL.md'
+      ? stampSkillProvenance(source, {
+        name: entry.name,
+        version: entry.version,
+        packageName,
+        distribution: 'qodo-direct',
+      })
+      : source;
     const digest = sha256(content);
     contentDigest
       .update(entry.name).update('\0')

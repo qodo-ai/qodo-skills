@@ -92,6 +92,16 @@ try {
     }
   }
   assert.equal(contentDigest.digest('hex'), directBundle.package.contentSha256);
+  const releaseIndexPath = join(repositoryRoot, 'distribution', 'qodo-skills-index.json');
+  const releaseIndexText = readFileSync(releaseIndexPath, 'utf8');
+  const releaseIndex = JSON.parse(releaseIndexText);
+  assert.equal(releaseIndex.packageVersion, expectedPackageVersion);
+  assert.deepEqual(releaseIndex.skills['qodo-review'], {
+    version: expectedReviewVersion,
+    package: 'qodo',
+  });
+  const indexChecksum = readFileSync(`${releaseIndexPath}.sha256`, 'utf8').match(/^[a-f0-9]{64}/)?.[0];
+  assert.equal(createHash('sha256').update(releaseIndexText).digest('hex'), indexChecksum);
   assert.match(
     readFileSync(join(repositoryRoot, 'skills', 'qodo-review', 'SKILL.md'), 'utf8'),
     new RegExp(`version: "${expectedReviewVersion.replaceAll('.', '\\.')}`),

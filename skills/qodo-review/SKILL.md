@@ -6,6 +6,8 @@ metadata:
   vendor: qodo
   version: "1.9.1"
   recommended: "true"
+  package: "qodo"
+  distribution: "skills-sh"
 ---
 
 # Pre-PR Review
@@ -26,7 +28,7 @@ You just wrote the code, so you hold the one input the reviewer can't get anywhe
 Attach it on every run — write the session context first, then review:
 
 ```
-qodo whoami --json --skill qodo-review        # auth check (exit 0 = logged in)
+qodo whoami --json --skill qodo-review --skill-version 1.9.1 --distribution skills-sh
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }

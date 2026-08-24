@@ -6,6 +6,8 @@ metadata:
   vendor: qodo
   version: "1.1.1"
   recommended: "false"
+  package: "qodo-standards"
+  distribution: "kiro-power"
 ---
 
 # Get Rules
@@ -18,7 +20,7 @@ below exactly.
 ## Quick start
 
 ```
-qodo whoami --json --skill qodo-get-rules                 # auth check (exit 0 = logged in)
+qodo whoami --json --skill qodo-get-rules --skill-version 1.1.1 --distribution kiro-power
 qodo rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json

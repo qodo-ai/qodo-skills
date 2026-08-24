@@ -6,6 +6,8 @@ metadata:
   vendor: qodo
   version: "1.0.1"
   recommended: "false"
+  package: "qodo-standards"
+  distribution: "skills-sh"
 ---
 
 # Manage Review Standards
@@ -20,7 +22,7 @@ before calling anything, and run bulk operations as a dry run first.
 ## Quick start
 
 ```
-qodo whoami --json --skill qodo-manage-standards                      # auth check (exit 0 = logged in)
+qodo whoami --json --skill qodo-manage-standards --skill-version 1.0.1 --distribution skills-sh
 qodo rules metadata --json                                            # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change

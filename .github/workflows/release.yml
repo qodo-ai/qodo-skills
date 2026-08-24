@@ -57,7 +57,9 @@ jobs:
 
           gh release create "${TAG}" --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}" \
             distribution/qodo-skills-direct.json \
-            distribution/qodo-skills-direct.json.sha256
+            distribution/qodo-skills-direct.json.sha256 \
+            distribution/qodo-skills-index.json \
+            distribution/qodo-skills-index.json.sha256
           if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" != 'true' ]]; then
             echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
             exit 1
