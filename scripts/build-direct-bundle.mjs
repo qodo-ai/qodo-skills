@@ -32,6 +32,20 @@ function walk(directory) {
 }
 
 const contentDigest = createHash('sha256');
+const packages = catalog.installPackages.map((entry) => {
+  contentDigest
+    .update('package').update('\0')
+    .update(entry.name).update('\0')
+    .update(entry.default ? 'default' : 'optional').update('\0');
+  for (const skillName of entry.skills) contentDigest.update(skillName).update('\0');
+  return {
+    name: entry.name,
+    displayName: entry.displayName,
+    description: entry.description,
+    default: entry.default,
+    skills: entry.skills,
+  };
+});
 const skills = catalog.skills.map((entry) => {
   const skillRoot = join(root, 'skills', entry.name);
   const files = walk(skillRoot).map((path) => {
@@ -54,13 +68,14 @@ const skills = catalog.skills.map((entry) => {
 });
 
 const bundle = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   package: {
     name: catalog.package.name,
     version: catalog.package.version,
     repository: catalog.package.repository,
     contentSha256: contentDigest.digest('hex'),
   },
+  packages,
   skills,
 };
 const output = `${JSON.stringify(bundle, null, 2)}\n`;

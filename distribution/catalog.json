@@ -4,7 +4,7 @@
   "package": {
     "name": "qodo",
     "displayName": "Qodo for coding agents",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "homepage": "https://www.qodo.ai",
@@ -16,6 +16,30 @@
     "loginCommand": "qodo login",
     "protocolVersion": 1
   },
+  "installPackages": [
+    {
+      "name": "qodo",
+      "displayName": "Qodo",
+      "description": "Qodo setup, code intelligence, and review workflows.",
+      "default": true,
+      "skills": [
+        "qodo-setup",
+        "qodo-codebase-wisdom",
+        "qodo-review",
+        "qodo-review-resolver"
+      ]
+    },
+    {
+      "name": "qodo-standards",
+      "displayName": "Qodo Standards",
+      "description": "Optional Qodo rules discovery and standards administration workflows.",
+      "default": false,
+      "skills": [
+        "qodo-get-rules",
+        "qodo-manage-standards"
+      ]
+    }
+  ],
   "skills": [
     {
       "name": "qodo-setup",
@@ -35,8 +59,8 @@
     },
     {
       "name": "qodo-get-rules",
-      "version": "1.1.0",
-      "recommended": true,
+      "version": "1.1.1",
+      "recommended": false,
       "displayName": "Qodo Rules",
       "shortDescription": "Load the standards that apply to the current change.",
       "defaultPrompt": "Use $qodo-get-rules to load the Qodo standards relevant to this task."

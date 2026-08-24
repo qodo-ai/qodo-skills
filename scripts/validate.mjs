@@ -91,6 +91,37 @@ if (JSON.stringify(diskSkills) !== JSON.stringify(catalogSkills)) {
   fail(`skills/catalog mismatch: disk=${diskSkills.join(',')} catalog=${catalogSkills.join(',')}`);
 }
 
+const installPackageNames = new Set();
+const packagedSkills = new Map();
+for (const installPackage of catalog.installPackages ?? []) {
+  if (!/^qodo(?:-[a-z0-9-]+)?$/.test(installPackage.name) || installPackageNames.has(installPackage.name)) {
+    fail(`invalid or duplicate install package ${installPackage.name ?? '<missing>'}`);
+    continue;
+  }
+  installPackageNames.add(installPackage.name);
+  if (!Array.isArray(installPackage.skills) || installPackage.skills.length === 0) {
+    fail(`${installPackage.name}: install package must contain skills`);
+    continue;
+  }
+  for (const skillName of installPackage.skills) {
+    if (packagedSkills.has(skillName)) {
+      fail(`${skillName}: assigned to both ${packagedSkills.get(skillName)} and ${installPackage.name}`);
+    } else {
+      packagedSkills.set(skillName, installPackage.name);
+    }
+  }
+}
+const defaults = (catalog.installPackages ?? []).filter((entry) => entry.default);
+if (defaults.length !== 1 || defaults[0]?.name !== catalog.package?.name) {
+  fail(`exactly the ${catalog.package?.name ?? 'qodo'} install package must be default`);
+}
+for (const skillName of catalogSkills) {
+  if (!packagedSkills.has(skillName)) fail(`${skillName}: missing install package assignment`);
+}
+for (const skillName of packagedSkills.keys()) {
+  if (!catalogSkills.includes(skillName)) fail(`${skillName}: install package references unknown skill`);
+}
+
 for (const skill of catalog.skills ?? []) {
   if (!/^qodo-[a-z0-9-]+$/.test(skill.name)) fail(`${skill.name}: invalid skill name`);
   if (!semver.test(skill.version ?? '')) fail(`${skill.name}: invalid version`);
@@ -108,6 +139,10 @@ for (const skill of catalog.skills ?? []) {
   if (meta.metadata.version !== skill.version) fail(`${skill.name}: frontmatter version differs from catalog`);
   const recommended = meta.metadata.recommended === undefined ? true : meta.metadata.recommended === 'true';
   if (recommended !== skill.recommended) fail(`${skill.name}: recommended differs from catalog`);
+  const installPackage = (catalog.installPackages ?? []).find((entry) => entry.skills.includes(skill.name));
+  if (installPackage && recommended !== installPackage.default) {
+    fail(`${skill.name}: recommended must match install package ${installPackage.name} default state`);
+  }
   const expectedHeading = valueMomentHeadings.get(skill.name);
   const skillText = readFileSync(skillPath, 'utf8');
   const headingCount = expectedHeading ? skillText.split(expectedHeading).length - 1 : 0;
@@ -118,40 +153,65 @@ for (const skill of catalog.skills ?? []) {
 
 const expectedVersions = [
   ['package.json', json('package.json').version],
-  ['plugin.json', json('plugin.json').version],
-  ['.codex-plugin/plugin.json', json('.codex-plugin/plugin.json').version],
+  ['packages/qodo/plugin.json', json('packages/qodo/plugin.json').version],
+  ['packages/qodo/.codex-plugin/plugin.json', json('packages/qodo/.codex-plugin/plugin.json').version],
+  ['packages/qodo-standards/plugin.json', json('packages/qodo-standards/plugin.json').version],
+  ['packages/qodo-standards/.codex-plugin/plugin.json', json('packages/qodo-standards/.codex-plugin/plugin.json').version],
   ['kiro-power/plugin.json', json('kiro-power/plugin.json').version],
-  ['.claude-plugin/plugin.json', json('.claude-plugin/plugin.json').version],
+  ['kiro-power-standards/plugin.json', json('kiro-power-standards/plugin.json').version],
+  ['packages/qodo/.claude-plugin/plugin.json', json('packages/qodo/.claude-plugin/plugin.json').version],
+  ['packages/qodo-standards/.claude-plugin/plugin.json', json('packages/qodo-standards/.claude-plugin/plugin.json').version],
   ['.claude-plugin/marketplace.json metadata', json('.claude-plugin/marketplace.json').metadata?.version],
-  ['gemini-extension.json', json('gemini-extension.json').version],
+  ['packages/qodo/gemini-extension.json', json('packages/qodo/gemini-extension.json').version],
+  ['packages/qodo-standards/gemini-extension.json', json('packages/qodo-standards/gemini-extension.json').version],
 ];
 for (const [path, version] of expectedVersions) {
   if (version !== packageVersion) fail(`${path}: version ${version ?? '<missing>'} != ${packageVersion}`);
 }
 
-const agentPlugin = json('plugin.json');
+const agentPlugin = json('packages/qodo/plugin.json');
 if (agentPlugin.$schema !== 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json') {
-  fail('plugin.json: unsupported Agent Plugins schema');
+  fail('packages/qodo/plugin.json: unsupported Agent Plugins schema');
 }
 const allowedAgentFields = new Set([
   '$schema', 'name', 'version', 'description', 'author', 'homepage',
   'repository', 'license', 'keywords', 'extensions',
 ]);
 for (const field of Object.keys(agentPlugin)) {
-  if (!allowedAgentFields.has(field)) fail(`plugin.json: unsupported field ${field}`);
+  if (!allowedAgentFields.has(field)) fail(`packages/qodo/plugin.json: unsupported field ${field}`);
 }
 
 const codexMarketplace = json('.agents/plugins/marketplace.json');
 const codexEntry = codexMarketplace.plugins?.find((entry) => entry.name === catalog.package?.name);
 if (codexMarketplace.name !== 'qodo' || !codexEntry) fail('Codex marketplace must expose qodo');
-if (codexEntry?.source?.path !== './') fail('Codex marketplace must package this repository root');
+if (codexEntry?.source?.path !== './packages/qodo') fail('Codex marketplace must package the generated core root');
 if (codexEntry?.policy?.authentication !== 'ON_USE') {
   fail('Codex marketplace authentication must happen on first use');
 }
+const codexStandards = codexMarketplace.plugins?.find((entry) => entry.name === 'qodo-standards');
+if (codexStandards?.source?.path !== './packages/qodo-standards') {
+  fail('Codex marketplace must expose standards as a separate optional plugin');
+}
 
 const claudeMarketplace = json('.claude-plugin/marketplace.json');
-if ('version' in (claudeMarketplace.plugins?.[0] ?? {})) {
-  fail('Claude plugin version must come only from .claude-plugin/plugin.json');
+if ((claudeMarketplace.plugins ?? []).some((entry) => 'version' in entry)) {
+  fail('Claude plugin versions must come only from package-local .claude-plugin/plugin.json files');
+}
+if (claudeMarketplace.plugins?.find((entry) => entry.name === 'qodo')?.source !== './packages/qodo') {
+  fail('Claude marketplace must package the generated core root');
+}
+if (claudeMarketplace.plugins?.find((entry) => entry.name === 'qodo-standards')?.source !== './packages/qodo-standards') {
+  fail('Claude marketplace must expose standards as a separate optional plugin');
+}
+
+for (const unsafeRoot of ['plugin.json', '.codex-plugin/plugin.json', '.claude-plugin/plugin.json', 'gemini-extension.json']) {
+  if (existsSync(join(root, unsafeRoot))) fail(`${unsafeRoot}: root package would expose optional skills automatically`);
+}
+if (existsSync(join(root, 'packages', 'qodo', 'skills', 'qodo-get-rules'))) {
+  fail('qodo-get-rules must not be present in the default core package');
+}
+if (!existsSync(join(root, 'packages', 'qodo-standards', 'skills', 'qodo-get-rules', 'SKILL.md'))) {
+  fail('qodo-get-rules must be present in the optional standards package');
 }
 
 const release = json(`releases/v${packageVersion}.json`);

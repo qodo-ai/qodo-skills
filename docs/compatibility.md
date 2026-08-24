@@ -4,11 +4,11 @@
 
 | Surface | Manifest | Skill location | Update owner |
 |---|---|---|---|
-| Codex | `.codex-plugin/plugin.json` | `skills/` | Existing Codex marketplace listing, repointed to this repository |
-| Claude Code | `.claude-plugin/plugin.json` | `skills/` | Claude marketplace |
-| Kiro / Agent Plugins 1.0 | `kiro-power/plugin.json` | `kiro-power/skills/` | Existing Kiro Powers listing |
-| Cursor / Agent Plugins 1.0 | `plugin.json` | `skills/` | Cursor Marketplace after provider acceptance; direct connection until then |
-| Gemini CLI | `gemini-extension.json` | `skills/` | Gemini extension manager |
+| Codex | `packages/<name>/.codex-plugin/plugin.json` | `packages/<name>/skills/` | Codex marketplace, one entry per install package |
+| Claude Code | `packages/<name>/.claude-plugin/plugin.json` | `packages/<name>/skills/` | Claude marketplace, one entry per install package |
+| Kiro / Agent Plugins 1.0 | `kiro-power*/plugin.json` | `kiro-power*/skills/` | Separate core and standards Powers |
+| Cursor / Agent Plugins 1.0 | `packages/<name>/plugin.json` | `packages/<name>/skills/` | Cursor Marketplace after provider acceptance; direct connection until then |
+| Gemini CLI | `packages/<name>/gemini-extension.json` | `packages/<name>/skills/` | Gemini extension manager |
 | Direct-connect agents | `distribution/qodo-skills-direct.json` | Agent-owned skills directory | Verified Qodo direct-connect updater |
 
 The package is skills-only. There is no `mcp.json`, `.mcp.json`, or hosted tool server.
@@ -36,6 +36,8 @@ Unchanged skills keep their skill version. The release tag is `v<package-version
 6. No adapter may contain a second copy of a `SKILL.md` body.
 7. Source installs track the repository; stable marketplace listings should track releases.
 8. Direct-connect installs consume only the immutable release artifact and its published SHA-256.
+9. The core package contains only skills assigned to the single default install package; optional
+   skills require a distinct marketplace package or explicit direct-channel selection.
 
 ## Support tiers
 

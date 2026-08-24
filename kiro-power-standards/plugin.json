@@ -1,7 +1,8 @@
 {
-  "name": "qodo",
-  "version": "1.0.0",
-  "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "qodo-standards",
+  "version": "1.0.1",
+  "description": "Optional Qodo rules discovery and standards administration workflows.",
   "author": {
     "name": "Qodo",
     "email": "support@qodo.ai",

@@ -73,6 +73,13 @@ try {
   const directChecksum = readFileSync(`${directBundlePath}.sha256`, 'utf8').match(/^[a-f0-9]{64}/)?.[0];
   assert.equal(createHash('sha256').update(directBundleText).digest('hex'), directChecksum);
   const contentDigest = createHash('sha256');
+  for (const installPackage of directBundle.packages) {
+    contentDigest
+      .update('package').update('\0')
+      .update(installPackage.name).update('\0')
+      .update(installPackage.default ? 'default' : 'optional').update('\0');
+    for (const skillName of installPackage.skills) contentDigest.update(skillName).update('\0');
+  }
   for (const skill of directBundle.skills) {
     for (const file of skill.files) {
       const fileDigest = createHash('sha256').update(file.content).digest('hex');

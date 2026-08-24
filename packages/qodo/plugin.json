@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qodo",
-  "version": "1.0.0",
-  "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
+  "version": "1.0.1",
+  "description": "Qodo setup, code intelligence, and review workflows.",
   "author": {
     "name": "Qodo",
     "email": "support@qodo.ai",

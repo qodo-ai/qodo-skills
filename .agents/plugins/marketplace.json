@@ -8,7 +8,19 @@
       "name": "qodo",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./packages/qodo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "qodo-standards",
+      "source": {
+        "source": "local",
+        "path": "./packages/qodo-standards"
       },
       "policy": {
         "installation": "AVAILABLE",

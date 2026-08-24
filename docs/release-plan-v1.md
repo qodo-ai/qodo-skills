@@ -8,10 +8,11 @@ and an evidence gate. The invariant is:
 ## Stage 0 — production prerequisites (no user-visible change)
 
 - Confirm the existing identities and source paths in the provider consoles:
-  - Claude: `qodo@claude-plugins-official` → `qodo-ai/qodo-skills` root.
+  - Claude: `qodo@claude-plugins-official` → current source, then generated `packages/qodo/`.
   - Kiro: Qodo Power → `qodo-ai/qodo-skills/kiro-power`.
   - Codex: existing Qodo entry, currently sourced from `qodo-in-harness/codex-qodo`.
-- Confirm the provider can repoint that existing Codex entry to `qodo-ai/qodo-skills` without
+- Confirm the provider can repoint that existing Codex entry to `qodo-ai/qodo-skills/packages/qodo`
+  without
   creating a new plugin identity.
 - Record the last known-good provider versions, source SHAs, artifacts, and reinstall steps.
 
@@ -39,23 +40,26 @@ marketplace status outcomes pass on macOS, Linux, and Windows. Do not remove leg
 
 ## Stage 2 — publish canonical skills and cut Claude/Kiro over in place
 
-Merge and publish `qodo-skills` v1.0.0 only after Stage 1 is available:
+Merge and publish `qodo-skills` v1.0.1 only after Stage 1 is available:
 
 - canonical skills remain under `skills/`;
-- Claude continues using the existing repository root and official plugin ID;
+- Claude preserves its official core plugin ID while repointing to `packages/qodo/`;
 - Kiro continues using the existing `kiro-power/` source path, now a generated Agent Plugins 1.0
   projection;
-- the same release contains the direct Codex manifest, but the Codex listing remains unchanged
+- `qodo-standards` is submitted as a separate optional Claude plugin and Kiro Power sourced from
+  `packages/qodo-standards/` and `kiro-power-standards/`;
+- the same release contains package-local Codex manifests, but the Codex listing remains unchanged
   until Stage 3.
 
-Update Claude and Kiro source SHAs through their existing listings. Do not create new listings.
+Update Claude and Kiro core source SHAs through their existing listings. Do not create replacement
+core listings; the optional standards capability has its own explicit identity.
 
 **Gate per provider:** provider-visible version/source SHA, fresh install, upgrade of an existing
 0.x install, `qodo-setup`, one read-only workflow, one approval-gated write workflow, and host-owned
 update replacement. Restart the host where required.
 
 **Rollback:** publish a new canonical patch restoring the last good behavior and repoint the
-provider to that immutable patch. Never move v1.0.0 or mutate a cached package.
+provider to that immutable patch. Never move v1.0.1 or mutate a cached package.
 
 ## Stage 2B — enable direct connections for agents without a marketplace
 
@@ -66,6 +70,9 @@ After Stage 1's CLI is available and the Stage 2 release exists, validate the di
   release workflow proves the published release's `immutable` API field is true;
 - setup detects only installed agents without an official Qodo marketplace path;
 - consent says “Connect Qodo to <agent>?” and explains automatic official-skill updates;
+- interactive setup locks the four-skill core and offers `qodo-standards`; non-interactive setup
+  installs only core;
+- selected package IDs persist per target; updates never add a newly published optional package;
 - the CLI verifies the release checksum, every safe relative path, each file digest, and the
   aggregate content digest before writing;
 - the complete release is staged and swapped under a per-root recovery journal into only the
@@ -92,11 +99,13 @@ Do not mutate an existing release asset or fall back to the CLI's embedded compa
 ## Stage 3 — repoint the existing Codex listing and deprecate the old repository
 
 Repoint the existing Codex listing from `qodo-in-harness/codex-qodo` to the exact released
-`qodo-skills` commit. Do not submit a second plugin. Verify:
+`qodo-skills` commit at `packages/qodo/`. Do not submit a replacement core plugin. Publish
+`qodo-standards` only as a distinct optional entry. Verify:
 
 - the provider-visible plugin ID is unchanged;
 - the provider-visible source commit is the approved `qodo-skills` release;
-- the six canonical skills load and no embedded runtime is present;
+- exactly the four core skills load and no embedded runtime is present;
+- `qodo-get-rules` is absent until the optional Qodo Standards package is explicitly installed;
 - a fresh install works;
 - an existing 0.1.4 installation upgrades in place rather than creating a duplicate.
 
@@ -105,7 +114,7 @@ known-good artifact and history available for the rollback window; disable new r
 the repository archived only after two successful normal release cycles.
 
 **Gate:** official marketplace shows the released version; fresh install and upgrade from 0.1.4
-both load the six canonical skills; the separately installed CLI logs in and updates normally.
+both load only their declared package skills; the separately installed CLI logs in and updates normally.
 
 **Rollback:** repoint the existing listing to the last known-good harness source while the rollback
 window is open, or to a new canonical patch after the source move is stable. Never create a second
@@ -113,8 +122,8 @@ listing or mutate an old tag.
 
 ## Stage 3B — add Cursor's native marketplace without dual ownership
 
-Cursor accepts the root Agent Plugins 1.0 package already generated by this repository. Submit the
-released repository through Cursor's reviewed marketplace flow. Until the listing is provider-visible,
+Cursor accepts generated Agent Plugins 1.0 packages. Submit `packages/qodo/` and, separately,
+`packages/qodo-standards/` through Cursor's reviewed marketplace flow. Until the core listing is provider-visible,
 Cursor remains on the generic direct channel; repository readiness is not listing acceptance.
 
 **Gate:** provider-visible Qodo listing, exact released source/version, clean install, native skill

@@ -21,11 +21,12 @@ This separates three lifecycles that otherwise fight each other:
 `skills/<name>/SKILL.md` is canonical product content. The distribution catalog is the
 canonical package and presentation metadata. `npm run adapters` renders the catalog into:
 
-- `plugin.json` for Agent Plugins 1.0 hosts;
-- `kiro-power/` as the generated Agent Plugins projection at Kiro's existing listing path;
-- `.codex-plugin/plugin.json` and `.agents/plugins/marketplace.json` for Codex;
-- `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` for Claude Code;
-- `gemini-extension.json` for Gemini CLI;
+- `packages/qodo/` for the existing four-skill core identity and
+  `packages/qodo-standards/` for the optional rules capability;
+- `kiro-power/` as the generated core projection at Kiro's existing listing path and
+  `kiro-power-standards/` as its separately installed optional Power;
+- package-local Codex, Claude Code, Agent Plugins, and Gemini manifests;
+- root Codex and Claude marketplace catalogs that list the two atomic packages;
 - `skills/*/agents/openai.yaml` for Codex skill presentation;
 - `distribution/qodo-skills-direct.json` and its SHA-256 for agents without a marketplace.
 
@@ -38,8 +39,9 @@ a verified project or global skills directory and does not declare an official Q
 channel. Adding a compatible agent therefore changes only the CLI registry; routine skill releases
 remain unchanged.
 
-Claude and Codex consume this repository root through their existing official `qodo` listing
-identities. Kiro consumes `kiro-power/`. Cursor can consume the root Agent Plugins package after
+Claude and Codex preserve their existing official `qodo` identities while repointing them to
+`packages/qodo/`; `qodo-standards` is a distinct optional listing. Kiro consumes `kiro-power/` for
+core and `kiro-power-standards/` for the optional Power. Cursor can consume the generated package after
 its marketplace submission is accepted; until then it remains direct-connected. The Codex listing
 must be repointed from the deprecated `qodo-in-harness/codex-qodo` source only after an
 existing-install upgrade test proves the provider preserves the plugin identity. No marketplace
@@ -69,11 +71,15 @@ poor security boundary. The universal setup skill makes first use consistent wit
 pretending those systems are one updater.
 
 For a detected agent without an official Qodo marketplace path, setup instead asks “Connect Qodo
-to <agent>?”, explains that Qodo will add its official skills and keep them updated, and downloads
+to <agent>?”, selects the core package, offers optional capabilities, and downloads
 the immutable direct-connect artifact. The CLI verifies both the published artifact checksum and
 every file digest, records the installed paths and hashes, and checks for new releases in a
 detached process at most once per day. A changed, removed, additional, or symlinked file pauses
 updates for that target rather than overwriting it.
+
+Package selections are persisted per target. Automatic updates replace only the selected package
+contents; newly published optional packages are never installed implicitly. A legacy direct target
+without package state is migrated by preserving every package represented by its owned files.
 
 ## Runtime contract
 

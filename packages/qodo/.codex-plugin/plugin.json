@@ -1,0 +1,42 @@
+{
+  "name": "qodo",
+  "version": "1.0.1",
+  "description": "Qodo setup, code intelligence, and review workflows.",
+  "author": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "homepage": "https://www.qodo.ai",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT",
+  "keywords": [
+    "qodo",
+    "code-review",
+    "code-intelligence",
+    "standards",
+    "coding-agents"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Qodo",
+    "shortDescription": "Qodo setup, code intelligence, and review workflows.",
+    "longDescription": "Qodo setup, code intelligence, and review workflows.",
+    "developerName": "Qodo",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Set up Qodo",
+      "Qodo Codebase Wisdom",
+      "Qodo Local Review",
+      "Qodo Review Resolver"
+    ],
+    "websiteURL": "https://www.qodo.ai",
+    "brandColor": "#6D4AFF",
+    "defaultPrompt": [
+      "Use $qodo-setup to connect my Qodo account and verify this coding agent.",
+      "Use $qodo-codebase-wisdom to explain how this code works and cite the evidence.",
+      "Use $qodo-review to review my local changes before I push them.",
+      "Use $qodo-review-resolver to show me the current Qodo review findings."
+    ]
+  }
+}

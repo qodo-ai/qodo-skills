@@ -29,9 +29,9 @@ before login, but the operational skills stay unusable until authentication succ
 | Codex | Install **Qodo** from the official Codex marketplace |
 | Claude Code | `claude plugin install qodo@claude-plugins-official --scope user` |
 | Cursor | Use `qodo setup` until the Qodo Agent Plugin is accepted into Cursor Marketplace |
-| Gemini CLI | `gemini extensions install https://github.com/qodo-ai/qodo-skills --auto-update` |
+| Gemini CLI | Install the generated **Qodo** package through its accepted extension entry |
 | Kiro | Install **Qodo** from the curated Powers marketplace |
-| Agent Plugins hosts | Import the repository URL through the host's plugin UI |
+| Agent Plugins hosts | Import the generated `packages/qodo/` package through the host's plugin UI |
 
 These source-install commands are immediately usable after the branch is published.
 Official marketplace listings are separate release operations; see
@@ -47,15 +47,20 @@ a binary during marketplace installation.
 |---|---|:---:|
 | `qodo-setup` | Connect the runtime and verify readiness | ✓ |
 | `qodo-codebase-wisdom` | Understand current code, history, and cross-repo impact | ✓ |
-| `qodo-get-rules` | Load the Qodo standards relevant to a coding task | ✓ |
+| `qodo-get-rules` | Load the Qodo standards relevant to a coding task | Optional quality hold |
 | `qodo-review` | Review local changes before opening a pull request | ✓ |
 | `qodo-review-resolver` | Read and resolve Qodo pull-request findings | ✓ |
-| `qodo-manage-standards` | Create and administer Qodo Review Standards | Optional |
+| `qodo-manage-standards` | Create and administer Qodo Review Standards | Optional standards package |
 
 The skill instructions under [`skills/`](skills/) are the product source. Host-specific
 files are generated from [`distribution/catalog.json`](distribution/catalog.json). The direct
 bundle is agent-neutral: any CLI-recognized host with a verified project or global skills directory
 and no official Qodo marketplace path can consume it without a host-specific package change.
+
+The existing **Qodo** marketplace identity contains only the four default skills. Rules discovery
+and standards administration are generated into the separately installed **Qodo Standards**
+package. `qodo-get-rules` remains optional until its quality gate is explicitly reopened; publishing
+a new optional package never adds it to an existing installation.
 
 ## The ownership boundary
 

@@ -46,6 +46,8 @@ The `Release skills` workflow performs the GitHub-side publication:
 3. Render the immutable release record into a GitHub Release.
 4. Attach `qodo-skills-direct.json` and its SHA-256 for agents without a marketplace.
 5. Refresh or submit each official marketplace listing according to that host's process.
+   Preserve the existing `qodo` core identity and treat `qodo-standards` as a separate optional
+   listing/Power; never fold its skills back into core discovery.
 6. Verify the marketplace-visible version and perform a fresh install—repository and CI
    success are not proof of listing acceptance.
 7. Upgrade an existing installation and verify that the host, not the CLI, replaced it.
@@ -72,6 +74,9 @@ never a hidden side effect of this repository's release workflow.
 | Gemini CLI | Automatic when installed with `--auto-update`, or `gemini extensions update qodo` |
 | Kiro | Power → Check for updates → Install updates |
 | Direct-connect agent | Qodo checks the immutable release feed in the background and applies the verified bundle for the next agent session |
+
+Marketplace and direct updates replace only packages already installed or selected. A newly
+published optional package is discoverable, not automatically installed.
 
 The `qodo` runtime updates on its own channel with `qodo update`; a plugin update must never
 overwrite it.
