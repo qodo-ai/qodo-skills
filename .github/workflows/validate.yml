@@ -42,7 +42,12 @@ jobs:
 
       - name: Validate Claude marketplace JSON
         run: |
-          jq -e '.name == "qodo" and (.plugins | length == 1) and .plugins[0].source == "./" and (.plugins[0] | has("version") | not)' \
+          jq -e '.name == "qodo" and (.plugins | length == 2) and
+            ([.plugins[] | .name] | sort) == ["qodo", "qodo-standards"] and
+            (.plugins[] | select(.name == "qodo") | .source) == "./packages/qodo" and
+            (.plugins[] | select(.name == "qodo-standards") | .source) == "./packages/qodo-standards" and
+            (all(.plugins[]; has("version") | not))' \
             .claude-plugin/marketplace.json
-          test "$(jq -r '.version' .claude-plugin/plugin.json)" = \
-            "$(jq -r '.metadata.version' .claude-plugin/marketplace.json)"
+          MARKETPLACE_VERSION="$(jq -r '.metadata.version' .claude-plugin/marketplace.json)"
+          test "$(jq -r '.version' packages/qodo/.claude-plugin/plugin.json)" = "${MARKETPLACE_VERSION}"
+          test "$(jq -r '.version' packages/qodo-standards/.claude-plugin/plugin.json)" = "${MARKETPLACE_VERSION}"
