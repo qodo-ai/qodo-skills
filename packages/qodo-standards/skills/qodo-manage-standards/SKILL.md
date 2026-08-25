@@ -1,7 +1,7 @@
 ---
 name: qodo-manage-standards
-description: >-
-  Create, edit, and administer Qodo Review Standards from conversation — capture a convention just discussed as a new rule, change or deactivate an existing one, re-scope rules to a repo, and triage pending suggestions (accept/reject) — using the qodo CLI's managed rules tools. Use on "make this a rule", "make a rule for this repo", "deactivate/disable the X rule", "change the X rule to an error", "re-scope the X rule to this repo", "show pending suggestions", "let's triage suggestions", "accept/reject this suggestion", "bulk deactivate rules". Skip for reading or applying rules (use qodo-get-rules) and for anything that isn't a rules-entity change.
+description: Create, edit, and administer Qodo Review Standards from conversation — capture a convention just discussed as a new rule, change or deactivate an existing one, re-scope rules to a repo, and triage pending suggestions (accept/reject) — using the qodo CLI's managed rules tools. Use on "make this a rule", "make a rule for this repo", "deactivate/disable the X rule", "change the X rule to an error", "re-scope the X rule to this repo", "show pending suggestions", "let's triage suggestions", "accept/reject this suggestion", or "bulk deactivate rules"; skip reading or applying rules (use qodo-get-rules) and anything that isn't a rules-entity change.
+owner: Qodo
 metadata:
   vendor: qodo
   version: "1.0.1"
@@ -13,12 +13,25 @@ metadata:
 
 # Manage Review Standards
 
+## Description
+
 Use the `qodo` CLI to **administer** the workspace's Review Standards: capture a convention as a
 new rule, edit or retire an existing one, re-scope it to a repo, or triage the pending
 suggestions queue. Review Standards is Qodo's umbrella term for rules and suggestions. This is
 the **write** counterpart to `qodo-get-rules` (which only
 reads and applies rules) — every command here changes workspace state, so confirm with the user
 before calling anything, and run bulk operations as a dry run first.
+
+## Prerequisites
+
+- The optional Qodo Standards package is installed and loaded explicitly.
+- The Qodo CLI is authenticated and exposes the requested standards write tool.
+- The exact rule, scope, and intended mutation are known; the user can approve every write.
+
+## Instructions
+
+Follow the detailed workflow below: preserve update notices, verify the live schema, resolve the
+target, preview destructive or bulk work, obtain confirmation, mutate once, and verify the result.
 
 ## Handle a skill update notice
 
@@ -46,7 +59,7 @@ qodo rules list --state pending --json                                # suggesti
 qodo rules bulk --operation accept_activate --rule-ids 10,11 --json
 qodo rules bulk --operation reject --rule-ids 12 --dry-run --json     # PERMANENT delete — dry run first
 qodo rules get --rule-id 123 --json                                   # current form before editing
-qodo rules --help                                                     # exact flags (renders offline)
+qodo tools help rules --json                                          # exact flags (renders offline)
 ```
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents run
@@ -64,8 +77,8 @@ applies only to this single diagnostic retry: do not reuse it, request persisten
 later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
 per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
 
-Add `--json` to everything you parse. **Confirm the exact tool names and flags with
-`qodo rules --help`** (renders offline from the cached catalog) — the commands above are
+Add `--json` to everything you parse. **Confirm the exact tool names, flags, and write status with
+`qodo tools help rules [<tool>] --json`** (renders offline from the cached catalog) — the commands above are
 illustrative, not guaranteed current; a stale catalog after a fresh install shows as `unknown
 command`/`unknown option` on `rules` while `whoami` still succeeds — run `qodo tools --refresh`
 and retry before assuming the tool doesn't exist.
@@ -190,7 +203,13 @@ response into a stronger claim. Render the block once per user-requested operati
 the confirmation gate and not for auth, permission, validation, or transport failures. Put rule
 names, ids, before/after fields, dry-run details, and skipped items below it.
 
-## Handling errors
+## Configuration
+
+Use `--json`, explicit rule ids and scopes, and the CLI's current metadata before constructing a
+write. Stamp skill/version/distribution provenance on the first Qodo call. Keep Standards separate
+from the default Qodo package and never infer admin authority from installation.
+
+## Error Handling
 
 - **Permission denied (admin required)** — writes other than a non-admin's own pending-create
   are admin-gated. Explain plainly: *"This requires admin permission in your workspace — ask an

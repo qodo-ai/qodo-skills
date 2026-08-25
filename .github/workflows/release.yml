@@ -1,11 +1,6 @@
 name: Release skills
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - distribution/catalog.json
-      - releases/**
   workflow_dispatch:
 
 permissions:
@@ -30,50 +25,38 @@ jobs:
         with:
           node-version: 22
 
+      - name: Validate release tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tool in gh git node npm mktemp sha256sum cmp rm; do
+            command -v "${tool}" >/dev/null 2>&1 || {
+              echo "Release requires '${tool}', but it is not available on this runner." >&2
+              exit 1
+            }
+          done
+
+      - name: Require the exact merged main commit
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo 'Refusing to publish: GITHUB_SHA is not the current merged main commit.' >&2
+            exit 1
+          fi
+
+      - name: Install locked validation dependencies
+        run: npm ci
+
       - name: Verify the release package
         run: npm test
+
+      - name: Verify immutable releases are enabled
+        env:
+          GH_TOKEN: ${{ secrets.QODO_RELEASE_ADMIN_TOKEN }}
+        run: scripts/verify-release-prerequisites.sh
 
       - name: Publish the immutable tag and GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          VERSION="$(node -p "require('./distribution/catalog.json').package.version")"
-          TAG="v${VERSION}"
-          NOTES="${RUNNER_TEMP}/qodo-release-notes.md"
-          node scripts/release-notes.mjs "${NOTES}"
-
-          if gh release view "${TAG}" >/dev/null 2>&1; then
-            test "$(git rev-list -n 1 "${TAG}")" = "${GITHUB_SHA}"
-            test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" = 'true'
-            test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
-              'qodo-skills-index.json qodo-skills-index.json.sha256'
-            exit 0
-          fi
-
-          if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" --jq '.enabled')" != 'true' ]]; then
-            echo 'Release immutability is disabled. Enable it before creating a tag or release.' >&2
-            exit 1
-          fi
-
-          if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
-            if [[ "$(git rev-list -n 1 "${TAG}")" != "${GITHUB_SHA}" ]]; then
-              echo "${TAG} already points to a different commit; refusing to publish." >&2
-              exit 1
-            fi
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag -a "${TAG}" -m "Qodo skills ${TAG}"
-            git push origin "${TAG}"
-          fi
-
-          gh release create "${TAG}" --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}" \
-            distribution/qodo-skills-index.json \
-            distribution/qodo-skills-index.json.sha256
-          if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" != 'true' ]]; then
-            echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
-            exit 1
-          fi
-          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
-            'qodo-skills-index.json qodo-skills-index.json.sha256'
+        run: scripts/publish-release.sh

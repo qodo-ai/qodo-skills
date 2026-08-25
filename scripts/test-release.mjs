@@ -31,6 +31,12 @@ try {
     if (name === '.git' || name === 'node_modules') continue;
     cpSync(join(root, name), join(repositoryRoot, name), { recursive: true });
   }
+  execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', [
+    'ci',
+    '--ignore-scripts',
+    '--no-audit',
+    '--no-fund',
+  ], { cwd: repositoryRoot, stdio: 'pipe' });
   const reviewPath = join(repositoryRoot, 'skills', 'qodo-review', 'SKILL.md');
   writeFileSync(reviewPath, readFileSync(reviewPath, 'utf8').replace(/\r?\n/g, '\r\n'));
   execFileSync('git', ['init', '--quiet'], { cwd: repositoryRoot });
@@ -96,6 +102,40 @@ try {
     cwd: repositoryRoot,
     stdio: 'pipe',
   });
+
+  const catalogPath = join(repositoryRoot, 'distribution', 'catalog.json');
+  const validCatalogText = readFileSync(catalogPath, 'utf8');
+  const schemaInvalidCatalog = JSON.parse(validCatalogText);
+  delete schemaInvalidCatalog.package.description;
+  writeFileSync(catalogPath, `${JSON.stringify(schemaInvalidCatalog, null, 2)}\n`);
+  assert.throws(
+    () => execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'validate.mjs')], {
+      cwd: repositoryRoot,
+      stdio: 'pipe',
+    }),
+    (error) => {
+      assert.match(String(error.stderr), /catalog\.json: JSON Schema validation failed/);
+      return true;
+    },
+  );
+  writeFileSync(catalogPath, validCatalogText);
+
+  for (const invalidVersion of ['01.0.3', '1.0.3-01']) {
+    const invalidVersionCatalog = JSON.parse(validCatalogText);
+    invalidVersionCatalog.package.version = invalidVersion;
+    writeFileSync(catalogPath, `${JSON.stringify(invalidVersionCatalog, null, 2)}\n`);
+    assert.throws(
+      () => execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'validate.mjs')], {
+        cwd: repositoryRoot,
+        stdio: 'pipe',
+      }),
+      (error) => {
+        assert.match(String(error.stderr), /catalog\.json: JSON Schema validation failed/);
+        return true;
+      },
+    );
+  }
+  writeFileSync(catalogPath, validCatalogText);
 
   const releaseCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
     cwd: repositoryRoot,

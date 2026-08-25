@@ -8,11 +8,13 @@ import {
 } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import { stampSkillProvenance } from './skill-provenance.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const errors = [];
-const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
 const valueMomentHeadings = new Map([
   ['qodo-setup', '# ✅ Qodo Ready'],
   ['qodo-codebase-wisdom', '# 🧭 Qodo Codebase Insight'],
@@ -80,6 +82,25 @@ function frontmatter(path) {
 const catalog = json('distribution/catalog.json');
 const marketplaces = json('distribution/marketplaces.json');
 const codexSubmissions = json('distribution/codex-submissions.json');
+const schemaValidator = new Ajv2020({ allErrors: true, strict: true });
+addFormats(schemaValidator);
+for (const [documentPath, schemaPath, document] of [
+  ['distribution/catalog.json', 'distribution/catalog.schema.json', catalog],
+  ['distribution/marketplaces.json', 'distribution/marketplaces.schema.json', marketplaces],
+  ['distribution/codex-submissions.json', 'distribution/codex-submissions.schema.json', codexSubmissions],
+]) {
+  try {
+    const validate = schemaValidator.compile(json(schemaPath));
+    if (!validate(document)) {
+      fail(`${documentPath}: JSON Schema validation failed: ${schemaValidator.errorsText(
+        validate.errors,
+        { separator: '; ' },
+      )}`);
+    }
+  } catch (error) {
+    fail(`${schemaPath}: could not compile JSON Schema: ${error.message}`);
+  }
+}
 const packageVersion = catalog.package?.version;
 if (!semver.test(packageVersion ?? '')) fail('catalog package.version must be semantic version');
 if (catalog.instructionMode !== 'embedded') fail('catalog instructionMode must be embedded');
@@ -187,6 +208,7 @@ for (const skill of catalog.skills ?? []) {
   }
   const meta = frontmatter(skillPath);
   if (meta.name !== skill.name) fail(`${skill.name}: frontmatter name differs from catalog`);
+  if (meta.owner !== 'Qodo') fail(`${skill.name}: frontmatter owner must be Qodo`);
   if (meta.metadata.vendor !== 'qodo') fail(`${skill.name}: frontmatter metadata.vendor must be qodo`);
   if (meta.metadata.version !== skill.version) fail(`${skill.name}: frontmatter version differs from catalog`);
   const recommended = meta.metadata.recommended === undefined ? true : meta.metadata.recommended === 'true';
@@ -202,7 +224,15 @@ for (const skill of catalog.skills ?? []) {
     fail(`${skill.name}: recommended must match install package ${installPackage.name} default state`);
   }
   const expectedHeading = valueMomentHeadings.get(skill.name);
-  const skillText = readFileSync(skillPath, 'utf8');
+  const skillText = readFileSync(skillPath, 'utf8').replace(/\r\n/g, '\n');
+  const frontmatterText = skillText.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
+  if (!/^description: [^\n]+$/m.test(frontmatterText)) {
+    fail(`${skill.name}: frontmatter description must be a single-line scalar`);
+  }
+  for (const heading of ['Description', 'Prerequisites', 'Instructions', 'Configuration', 'Error Handling']) {
+    const count = skillText.split(`## ${heading}\n`).length - 1;
+    if (count !== 1) fail(`${skill.name}: expected exactly one ## ${heading} section`);
+  }
   const provenance = `--skill ${skill.name} --skill-version ${skill.version} --distribution skills-sh`;
   if (!skillText.includes(provenance)) fail(`${skill.name}: missing canonical provenance invocation`);
   const headingCount = expectedHeading ? skillText.split(expectedHeading).length - 1 : 0;

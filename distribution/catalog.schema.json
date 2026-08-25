@@ -16,7 +16,7 @@
       "properties": {
         "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
         "displayName": { "type": "string", "minLength": 1 },
-        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$" },
+        "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$" },
         "description": { "type": "string", "minLength": 1 },
         "repository": { "type": "string", "format": "uri" },
         "homepage": { "type": "string", "format": "uri" },
@@ -67,7 +67,7 @@
         "required": ["name", "version", "recommended", "displayName", "shortDescription", "defaultPrompt"],
         "properties": {
           "name": { "type": "string", "pattern": "^qodo-[a-z0-9-]+$" },
-          "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$" },
+          "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$" },
           "recommended": { "type": "boolean" },
           "displayName": { "type": "string", "minLength": 1 },
           "shortDescription": { "type": "string", "minLength": 1, "maxLength": 80 },

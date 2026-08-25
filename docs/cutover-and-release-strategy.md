@@ -56,6 +56,11 @@ rollback.
 - Create protected GitHub environments `marketplace-claude`, `marketplace-kiro`, and
   `marketplace-codex` with required release-owner reviewers.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
+- Configure `QODO_RELEASE_ADMIN_TOKEN` with repository `Administration: read` only. The workflow
+  uses it solely to verify immutability; normal `GITHUB_TOKEN` remains the publication credential.
+- Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
+  `refs/tags/v*`; tag creation is allowed, but updates and deletion are blocked. Release preflight
+  searches every ruleset page and rejects duplicate matches or a creation restriction.
 
 Gate: every item is verified from provider/repository state. A source manifest is not evidence of
 a live marketplace listing.
@@ -66,7 +71,9 @@ Ship the CLI that:
 
 - logs in before it offers skill guidance;
 - reports official marketplace state for Claude, Codex, and Kiro;
-- detects skills.sh-compatible local agents and supports multiple selection;
+- detects known skills.sh-compatible local agents and supports multiple selection;
+- when none is detected, reads the current skills.sh agent catalog, excludes marketplace-owned
+  IDs, and preserves each selected agent's supported project/global scope;
 - prints exact core and optional-package commands without executing them;
 - has no `qodo skills install`, no direct updater, and no task-time workflow endpoint;
 - refreshes only the checksummed compact skill index and emits non-fatal stale notices;
@@ -81,8 +88,13 @@ Rollback: roll back only the runtime. Existing skills remain owned by their curr
 ### 2. Publish the canonical skills release
 
 - Merge the atomic qodo-skills PR with canonical version bumps and generated provider packages.
-- Run **Release skills** and verify the tag, release SHA, immutability, and exact two-asset index
-  inventory.
+- After the compatible CLI is live, dispatch **Release skills** manually from current `main`; the
+  workflow verifies the selected SHA is current before and after validation, pushes a protected
+  annotated tag, verifies its peeled remote SHA, creates or resumes a draft, verifies both assets
+  before publication, and then re-verifies the immutable tag and assets after publication.
+- CI executes those checked-in preflight and publication programs with a stateful fake GitHub CLI,
+  including credential/ruleset failures, corrupted draft rejection and resume, successful
+  publication, and idempotent immutable verification.
 - Smoke-test skills.sh core installation on representative non-marketplace agents before provider
   promotion.
 
@@ -133,7 +145,8 @@ or ship a new canonical patch. Never create a second core listing.
 
 - If the official plugin is installed, ask for a new session and verify Qodo.
 - If a listing is visible, direct the user to the host’s install action.
-- If no listing exists, print the exact skills.sh command for all selected detected agents.
+- If no listing exists, use detected agents or the current read-only skills.sh catalog to select
+  one or more non-marketplace agents, then print exact scope-preserving commands.
 - Install Qodo Standards only after an explicit selection.
 - Remove retired CLI copies only after the new owner works in a fresh session.
 
@@ -158,7 +171,7 @@ optional skills are discoverable but never auto-installed.
 | Gate | Evidence required | Blocks |
 |---|---|---|
 | Source | exact merged heads, full CI, generated-drift checks | GitHub release |
-| Repository | immutable releases enabled and published release immutable | all promotion |
+| Repository | admin-read preflight credential, immutable releases enabled, no-bypass `v*` tag update/deletion ruleset, protected tag SHA, and post-publication immutable asset bytes | all promotion |
 | Claude | official catalog exact SHA/path | Claude completion |
 | Kiro | live Power exact repository/branch/path | Kiro completion |
 | Codex | portal review + publish + protected attestation | Codex completion and old-repo deprecation |
@@ -168,12 +181,17 @@ optional skills are discoverable but never auto-installed.
 No gate is satisfied by an announcement, packet, or green workflow that does not prove the named
 external state.
 
+The generic-agent acceptance fixture must also add a synthetic agent that is absent from the
+bundled CLI snapshot but present in the live catalog, then prove it is selectable, retains its
+declared scope, and cannot route a marketplace-owned ID through skills.sh.
+
 ## Go/no-go
 
 Go only when:
 
 - CLI and skills PR heads are independently green and review-clean;
-- release immutability and all three marketplace environment protections are configured;
+- release immutability, its admin-read preflight credential, and all three marketplace environment
+  protections are configured;
 - rollback identities/artifacts are recorded;
 - selected provider publication owners are available;
 - fresh-install and upgrade fixtures are ready.

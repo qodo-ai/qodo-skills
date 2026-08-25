@@ -1,7 +1,7 @@
 ---
 name: qodo-setup
-description: >-
-  Connect Qodo to the current local coding agent — verify the Qodo CLI, guide a secure installation when it is missing, complete browser login, and confirm managed tools are ready. Use after installing the Qodo plugin, when the user asks to set up or connect Qodo, or when another Qodo skill reports that the CLI is missing or logged out.
+description: Connect Qodo to the current local coding agent — verify the Qodo CLI, guide a secure installation when it is missing, complete browser login, and confirm managed tools are ready. Use after installing the Qodo plugin, when the user asks to set up or connect Qodo, or when another Qodo skill reports that the CLI is missing or logged out.
+owner: Qodo
 metadata:
   vendor: qodo
   version: "1.0.3"
@@ -13,9 +13,22 @@ metadata:
 
 # Set up Qodo
 
+## Description
+
 Turn a marketplace install into one guided first-use flow: find the local runtime,
 authenticate the human through Qodo's browser login, and verify that this agent can use
 the managed tools. Never ask the user to paste credentials into chat.
+
+## Prerequisites
+
+- The Qodo plugin or skills.sh package is installed for the current coding agent.
+- The user is present to approve a checksum-verified CLI install and complete browser login.
+- No credential, token, or invented installer checksum is copied into the conversation.
+
+## Instructions
+
+Follow the four-stage workflow below: preserve lifecycle notices, resolve the runtime, authenticate
+the user, verify identity and tool readiness, then show the branded handoff exactly once.
 
 ## Handle a skill update notice
 
@@ -37,10 +50,17 @@ Run:
 qodo --version --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code
 ```
 
-If the shell reports `qodo: command not found`, retry the standard user-scoped location:
+If a POSIX shell reports `qodo: command not found`, retry the standard user-scoped location:
 
 ```sh
 "${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code
+```
+
+In Windows PowerShell, use the native launcher:
+
+```powershell
+$qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
+& (Join-Path $qodoHome 'bin/qodo.cmd') --version --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code
 ```
 
 Keep the working command for every later step. Do not rewrite PATH automatically.
@@ -57,8 +77,14 @@ an unofficial registry, or install software without the user's approval.
 
 Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code`.
 
+In a sandboxed environment, any failed `whoami` can be a blocked keychain rather than a logged-out
+user. Ask for approval to retry that exact read-only command once outside the sandbox. The approval
+applies only to that diagnostic retry. If it succeeds, continue normally; only treat the user as
+logged out when the approved retry also fails.
+
 - Success and an identified account: continue to verification.
-- `Not logged in`, missing credentials, or a non-zero authentication result: run
+- After the sandbox diagnostic above when applicable, `Not logged in`, missing credentials, or a
+  non-zero authentication result: run
   `<qodo> login`. This is the only supported login path.
 - An `unknown command` for `whoami` means the runtime is too old; ask the user to update it
   from the same official installer source, then stop.
@@ -88,6 +114,18 @@ If catalog refresh fails while `whoami` succeeds, report that authentication is 
 but managed tools are not ready, including the returned error and the safe retry
 `qodo tools --refresh`. Do not send the user through login again unless `whoami` fails.
 
+## Configuration
+
+Keep the first working Qodo executable path and any explicit `--auth-url` for the entire setup.
+Stamp exact skill/version/distribution provenance on the first Qodo call. Marketplace or skills.sh
+owns this skill package; the CLI owns login, runtime, and tool-catalog refresh.
+
+## Error Handling
+
+Stop on missing runtime, canceled login, failed identity, or unavailable tools and report the exact
+safe next action. Never convert a browser opening, process launch, or partial catalog refresh into a
+successful readiness claim.
+
 ## 4. Hand off
 
 When both checks pass, show this once using counts from the refreshed catalog:
@@ -108,8 +146,8 @@ when the tool count is unknown. Then offer the shortest relevant next action:
 - “Review my local changes” → `qodo-review`
 - “Load our coding standards” → use `qodo-get-rules` only when it is available. Otherwise,
   explain that it belongs to the optional **Qodo Standards** add-on; install that add-on through
-  the current agent marketplace, or use `qodo agents install --standards` to print the exact
-  skills.sh command for an agent without a Qodo listing.
+  the current agent marketplace, or use `qodo agents install --standards --json` to detect local
+  compatible agents and print their separate exact skills.sh commands without installing anything.
 - “Explain this codebase” → `qodo-codebase-wisdom`
 - “Show the Qodo findings on this PR” → `qodo-review-resolver`
 

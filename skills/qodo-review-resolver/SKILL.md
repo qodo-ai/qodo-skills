@@ -1,7 +1,7 @@
 ---
 name: qodo-review-resolver
-description: >-
-  Read or resolve a pull request's Qodo review with the qodo CLI. Fetch the structured review — status, the reviewed commit SHA, and every finding with its status — for ANY PR (yours or someone else's) as JSON, then optionally resolve the open findings in code and record the outcome on each one (mark implemented, or dismiss with a reason), once or in a watch loop until it comes back clean. Use this — never `gh`/`curl` scraping of the PR's review comments — whenever you need to know where a review stands or what it flagged: "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "what did Qodo flag on that PR", "is this PR's review up to date with head", "check the review before merging", plus "resolve my PR review", "fix the review findings", "address Qodo's findings", "babysit / watch this PR until it's clean".
+description: Read or resolve a pull request's Qodo review with the qodo CLI — fetch the structured status, reviewed commit SHA, and findings for ANY PR as JSON, then optionally resolve open findings in code and record each outcome, once or in a watch loop until clean. Use this — never `gh`/`curl` scraping of review comments — for "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "what did Qodo flag", "is this review up to date with head", "check before merging", "resolve my PR review", "fix the review findings", or "babysit this PR until it's clean".
+owner: Qodo
 when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
   vendor: qodo
@@ -17,6 +17,8 @@ arguments:
 
 # Read & Resolve Findings
 
+## Description
+
 Use the `qodo` CLI to read a pull request's **review session** — its status, the commit that
 was reviewed, and every finding with its resolution status — for **any** PR (yours or someone
 else's). Reading alone is a valid use: stop after the read to report where a review stands or
@@ -31,6 +33,17 @@ the review stays red until a human clicks through the PR. You still never post t
 yourself: the status tools write Qodo's review DB and Qodo reconciles the PR comments. (Plain
 git/forge *metadata* reads — `git rev-parse HEAD`, `gh pr view --json headRefOid` — are fine and in
 fact required for the freshness check below; the "don't scrape" rule is about qodo, not your shell.)
+
+## Prerequisites
+
+- The Qodo CLI is authenticated and exposes the structured PR-review session tools.
+- The exact PR URL and its current head SHA can be resolved without scraping review comments.
+- Any write to a finding has the user's explicit authority or the skill's explicit `autofix` scope.
+
+## Instructions
+
+Follow the detailed workflow below: fetch structured state, require a completed exact-head review,
+present open findings, apply only approved fixes, and record only outcomes actually settled.
 
 > To check a review's status or findings, always run the `qodo` read command below — do **not**
 > fetch the rendered PR review **comments** with `gh`/`curl`. The comment UI is lossy, provider-
@@ -60,12 +73,12 @@ qodo whoami --json --skill qodo-review-resolver --skill-version 1.4.2 --distribu
 qodo pr-review-session findings --pr-url <PR_URL> --json            # the review session for a PR
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
 qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explanation "..." --json
-qodo pr-review-session --help                                       # exact tools + flags (offline)
+qodo tools help pr-review-session --json                            # exact tools + flags (offline)
 ```
 
 Add `--json` to anything you parse. **Confirm the exact tool names, flags, and read/write status
-with `qodo pr-review-session --help`** (renders offline) — the names above are illustrative, not
-guaranteed current.
+with `qodo tools help pr-review-session [<tool>] --json`** (renders offline) — the names above
+are illustrative, not guaranteed current.
 
 `unknown command` on `dismiss`/`mark-implemented` after authentication may be a stale local tool
 catalog — refresh once as described below. If the commands are still absent, the workspace does
@@ -94,7 +107,7 @@ per-command permission checks. If it still fails, follow the normal auth trouble
    *after* login, so treat `Not logged in` or `No
    tool catalog cached` as "run `qodo login`", and don't retry before they have.
    **An `unknown command`/`unknown option` while `whoami` SUCCEEDED is not an auth failure.** Run
-   `qodo tools --refresh` once and re-check `qodo pr-review-session --help`. If the write command
+   `qodo tools --refresh` once and re-check `qodo tools help pr-review-session --json`. If the write command
    remains absent, report that this account/workspace currently has read-only review capability;
    do not re-login, retry indefinitely, or substitute a forge comment for the structured write.
 2. **Resolve the PR.** Use the PR URL the user gives. If they don't name one and you're inside
@@ -311,6 +324,18 @@ qodo pr-review-session dismiss --finding-ids <id>,<id> --reason <reason> --expla
    (parameterized the query in `db/orders.py`). Skipped the timeout one — already set upstream — and 1
    informational (out of scope). Push and I'll re-check, or say 'watch' to loop until the review is clean."
    (Had the user said `resolve … autofix`, I'd have applied the recommended fix directly, no prompt.)
+
+## Configuration
+
+Use `--json`, compare `review_session.commit_sha` with forge head metadata, and stamp the exact
+skill/version/distribution provenance on the first Qodo call. Read and write capabilities are
+discovered from the installed CLI catalog; rendered forge comments are never the data source.
+
+## Error Handling
+
+Treat null sessions, in-progress or stale commits, missing write capabilities, rate limits, and
+tool-loop errors as explicit states. Preserve them in the report and never close a finding merely
+to make the review appear clean.
 
 ## Guardrails
 

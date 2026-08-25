@@ -27,6 +27,12 @@ Canonical skills live in `skills/<name>/`. `distribution/catalog.json` defines t
 - `qodo`: the four core workflows, installed by default;
 - `qodo-standards`: the two standards workflows, always optional.
 
+Every canonical `SKILL.md` carries a named Qodo owner, a single-line discovery description, and
+the standard Description, Prerequisites, Instructions, Configuration, and Error Handling sections.
+Validation enforces this authoring contract before generating any provider package. The catalog,
+marketplace contract, and Codex submission metadata are also compiled against their checked-in JSON
+Schemas rather than relying only on partial hand-written checks.
+
 `npm run adapters` generates the provider roots:
 
 | Provider | Generated root | Provenance |
@@ -67,11 +73,13 @@ supported hosts; it is not a hidden fallback in this design.
 
 ## New agents
 
-The generic path is capability-based. The CLI registry tracks compatible skills directories and
-detection signals. A new agent with no accepted Qodo marketplace listing is eligible for skills.sh
-guidance automatically; adding a marketplace listing changes its lifecycle owner to marketplace
-and excludes it from skills.sh suggestions. Production-usage data prioritizes smoke testing but
-does not define an allowlist.
+The generic path is capability-based. The CLI detects known compatible skill directories; when no
+agent is detected, it reads and strictly parses skills.sh's current public supported-agent table at
+runtime. That makes a newly supported agent selectable without waiting for a Qodo CLI release,
+while a bounded bundled snapshot keeps setup usable offline. Marketplace-owned IDs and the shared
+`universal` alias are excluded so the fallback cannot create a second owner for Claude Code, Codex,
+or Kiro. Adding a Qodo marketplace listing changes that agent's lifecycle owner to marketplace.
+Production-usage data prioritizes smoke testing but does not define an allowlist.
 
 ## Security boundaries
 

@@ -1,7 +1,7 @@
 ---
 name: qodo-get-rules
-description: >-
-  Load the coding rules from Qodo most relevant to the current coding task, using the qodo CLI's managed rules search — generate structured semantic queries from the assignment, retrieve the workspace's matching rules ranked by relevance, and apply them while writing the code. Use when the user asks to write, edit, refactor, or review code, when starting implementation planning, or on "get rules", "load qodo rules", "fetch coding rules", "relevant rules", "search rules". Skip if rules are already loaded in this conversation.
+description: Load the coding rules from Qodo most relevant to the current coding task, using the qodo CLI's managed rules search — generate structured semantic queries from the assignment, retrieve the workspace's matching rules ranked by relevance, and apply them while writing the code. Use when the user asks to write, edit, refactor, or review code, when starting implementation planning, or on "get rules", "load qodo rules", "fetch coding rules", "relevant rules", "search rules"; skip if rules are already loaded in this conversation.
+owner: Qodo
 metadata:
   vendor: qodo
   version: "1.1.1"
@@ -13,10 +13,23 @@ metadata:
 
 # Get Rules
 
+## Description
+
 Use the `qodo` CLI to fetch the workspace's coding rules most relevant to the task at
 hand, then **apply them while producing the code**. Retrieval is semantic — the quality
 of what comes back is decided by how you write the query, so follow the query format
 below exactly.
+
+## Prerequisites
+
+- The optional Qodo Standards package is installed and loaded explicitly.
+- The Qodo CLI is installed, authenticated, and exposes the read-only rules search tool.
+- The task is concrete enough to form semantic queries; already-loaded rules are reused.
+
+## Instructions
+
+Follow the detailed workflow below: preserve update notices, verify the current tool contract,
+build focused semantic queries, merge ranked results, print the Qodo rules block, then apply it.
 
 ## Handle a skill update notice
 
@@ -37,7 +50,7 @@ qodo whoami --json --skill qodo-get-rules --skill-version 1.1.1 --distribution k
 qodo rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json
-qodo rules --help                                         # exact flags (renders offline)
+qodo tools help rules --json                              # exact flags (renders offline)
 ```
 
 The newlines inside the quoted `--query` value are literal — a multi-line double-quoted
@@ -107,11 +120,16 @@ Content: <1-2 sentences describing what should be checked or enforced; mention t
 ## Search and merge
 
 Run `qodo rules search` **once per query** (in parallel when you can), each with
-`--top-k 20`, plus `--scopes` when detected, always `--json`:
+`--top-k 20` and `--json`. Add `--scopes "$SCOPE"` only when detection produced a scope:
 
 ```
+# With a detected scope:
 qodo rules search --query "$TOPIC_QUERY" --top-k 20 --scopes "$SCOPE" --json
 qodo rules search --query "$CROSS_QUERY" --top-k 20 --scopes "$SCOPE" --json
+
+# Without a detected scope, omit both the flag and its value:
+qodo rules search --query "$TOPIC_QUERY" --top-k 20 --json
+qodo rules search --query "$CROSS_QUERY" --top-k 20 --json
 ```
 
 Merge: topic results first (in order), then cross-cutting results not already present —
@@ -152,6 +170,18 @@ carries a severity:
 
 After the code is written, report which rules were applied and which WARNING rules were
 skipped and why. If none applied, say "No Qodo rules were applicable to this code change."
+
+## Configuration
+
+Use `--json`, the exact scopes relevant to the task, and the current CLI-provided rules schema.
+Stamp the skill/version/distribution provenance on the first Qodo call. This optional skill is
+never installed or updated implicitly with the default Qodo package.
+
+## Error Handling
+
+An empty result is valid. Preserve authentication, capability, validation, and rate-limit errors;
+follow the bounded recovery above and continue without invented rules when retrieval cannot
+safely succeed.
 
 ## Guardrails
 

@@ -1,7 +1,7 @@
 ---
 name: qodo-codebase-wisdom
-description: >-
-  Understand how code works, how a change was done before, and which repos are coupled — to answer a question, plan a code change, debug a regression, or scope a fix, using the qodo CLI's managed tools. Use when a task needs to understand a codebase, its history, or how its repos relate — especially for a repo you don't have checked out or work spanning repos — "how does X work", "where is X defined", "who changed X", "explain this service", "plan the change for X", "what would changing X affect", "which repos depend on X", "why did X regress / when did it break", "has this been fixed before", "how did we solve X".
+description: Understand how code works, how a change was done before, and which repos are coupled — to answer a question, plan a code change, debug a regression, or scope a fix, using the qodo CLI's managed tools. Use when a task needs to understand a codebase, its history, or how its repos relate — especially for a repo you don't have checked out or work spanning repos — "how does X work", "where is X defined", "who changed X", "explain this service", "plan the change for X", "what would changing X affect", "which repos depend on X", "why did X regress / when did it break", "has this been fixed before", "how did we solve X".
+owner: Qodo
 metadata:
   vendor: qodo
   version: "1.1.1"
@@ -12,10 +12,23 @@ metadata:
 
 # Codebase Wisdom
 
+## Description
+
 Use the `qodo` CLI to learn how code works, how a change was done before, and how repos
 are coupled — then hand back **cited findings**. This feeds answering a question, planning
 a change, debugging a regression, or scoping a fix. It reaches repos you don't have on disk
 and spans repo boundaries. You drive qodo's **read** tools only; you never post to the forge.
+
+## Prerequisites
+
+- The Qodo CLI is installed and the user can authenticate with `qodo login`.
+- The workspace exposes the required read-only Codebase, pull-request, or cross-repo tools.
+- The current provider-owned Qodo skill package is loaded in this agent session.
+
+## Instructions
+
+Follow the detailed workflow below in order: preserve update notices, confirm the live tool
+contract, resolve the repository, narrow the search, and return only evidence-backed findings.
 
 ## Handle a skill update notice
 
@@ -39,12 +52,12 @@ qodo codebase read-file --repo owner/repo --path src/pay.py --json
 qodo codebase blame --repo owner/repo --path src/pay.py --json
 qodo pull-request similar --repo owner/repo --query "retry failed charge" --json
 qodo cross-repo relations --repo owner/repo --json
-qodo codebase --help                                      # a group's tools + exact flags (offline)
+qodo tools help codebase --json                           # a group's tools + exact flags (offline)
 ```
 
 Add `--json` to anything you parse. **Before calling a tool, confirm its exact name, flags,
-and read/write status with `qodo <group> --help` / `qodo <group> <tool> --help`** (renders
-offline) — the tool names below are illustrative, not guaranteed current.
+and read/write status with `qodo tools help <group> [<tool>] --json`** (renders offline) —
+the tool names below are illustrative, not guaranteed current.
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
 the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
@@ -78,7 +91,7 @@ per-command permission checks. If it still fails, follow the normal auth trouble
 
 ## Route to a tool group
 
-| The task needs… | Group | Representative tools (verify via --help) |
+| The task needs… | Group | Representative tools (verify via `qodo tools help`) |
 |---|---|---|
 | **Current code** — where/what/how it works now | `qodo codebase` | search-repos, grep, find, ls, read-file, blame, list-commits, get-commit, list-prs, get-pr, list-issues, get-issue, search-issues |
 | **History / prior art** — how a change was done, a file's PR history, past review feedback | `qodo pull-request` | stats, similar, by-file, details, patch |
@@ -139,9 +152,21 @@ Do not show it for auth/tool failures or use it to decorate an uncertain answer.
 - Freshness caveats: `pull-request` = merged PRs only (no open/draft); `cross-repo` edges may be
   `pending` (analysis running) or `not_found` (checked, no coupling).
 
+## Configuration
+
+Use `--json` for parsed output and stamp the exact skill/version/distribution provenance on the
+first Qodo call. Tool names and schemas come from the installed CLI catalog, never from hardcoded
+skill assumptions. The marketplace or skills.sh owns this skill; the CLI owns only runtime access.
+
+## Error Handling
+
+Preserve the returned error code and message. Treat authentication, unavailable-tool, rate-limit,
+and loop-protection responses as explicit stop or recovery conditions described above; never
+replace them with guessed repository facts or broader authority.
+
 ## Guardrails
 
-- Only call tools you've confirmed **read-only** via `--help`. The write tools — `approve`,
+- Only call tools you've confirmed **read-only** via `qodo tools help`. The write tools — `approve`,
   `post-comment`, `post-inline-comment(s)`, `set-labels`, `update-description` (non-exhaustive) —
   post to the forge; **don't call them** while investigating. (Editing local code as part of a
   fix is your normal work — that's not these tools.)

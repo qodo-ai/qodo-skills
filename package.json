@@ -15,5 +15,9 @@
     "check": "node scripts/validate.mjs && node scripts/build-release-index.mjs --check",
     "test": "npm run check && node scripts/test-release.mjs && node scripts/test-release-workflow.mjs && node scripts/test-marketplace-release.mjs"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
+  }
 }

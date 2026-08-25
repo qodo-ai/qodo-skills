@@ -7,7 +7,7 @@ The migration changes the skill lifecycle owner without changing the Qodo accoun
 | Starting state | Action | Safe completion |
 |---|---|---|
 | CLI only, official listing available | Install Qodo from the host marketplace | New session loads the four core skills |
-| CLI only, no listing | Run the exact skills.sh command printed by `qodo agents install` | New session loads the selected core skills |
+| CLI only, no listing | Select detected agents, or choose current IDs from `qodo agents catalog`, then run the exact skills.sh command printed by `qodo agents install` | New session loads the selected core skills |
 | Plugin first, CLI missing | Follow `qodo-setup` to the checksum-verified CLI installer | `qodo whoami` and tool refresh succeed |
 | Plugin first, CLI logged out | Run `qodo login` | Identity and tool catalog verify |
 | Older CLI-managed copy plus marketplace plugin | Verify the plugin in a new session, then run explicit cleanup | Only byte-identical retired copies are removed |

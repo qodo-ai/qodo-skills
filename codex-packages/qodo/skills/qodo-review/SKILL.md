@@ -1,7 +1,7 @@
 ---
 name: qodo-review
-description: >-
-  Review your LOCAL changes before opening a pull request, using the qodo CLI — send your uncommitted/unpushed diff to Qodo's review engine along with the coding-session context (what you changed and why, plus links to the ticket/spec/design that drove it) that a forge-based reviewer can never see, then evaluate the findings and apply the fixes you approve (or pass `autofix` to apply directly). Use when asked to "review my changes before I push", "pre-PR review", "check this before I open a PR", "review my local diff", or "run qodo review".
+description: Review your LOCAL changes before opening a pull request, using the qodo CLI — send your uncommitted/unpushed diff to Qodo's review engine along with the coding-session context (what you changed and why, plus links to the ticket/spec/design that drove it) that a forge-based reviewer can never see, then evaluate the findings and apply the fixes you approve (or pass `autofix` to apply directly). Use when asked to "review my changes before I push", "pre-PR review", "check this before I open a PR", "review my local diff", or "run qodo review".
+owner: Qodo
 metadata:
   vendor: qodo
   version: "1.9.1"
@@ -13,6 +13,8 @@ metadata:
 
 # Pre-PR Review
 
+## Description
+
 Use the `qodo` CLI to review **local changes before you open a pull request**. `qodo review`
 diffs your working tree against a base branch, includes new/untracked files, and sends the diff —
 plus any **coding-session context** you supply — to Qodo's review engine. It returns structured
@@ -22,6 +24,17 @@ clones it).
 
 This is the **pre-PR** half of the review loop. After the PR exists, switch to resolving the PR's
 review findings instead.
+
+## Prerequisites
+
+- The Qodo CLI is installed and authenticated, and the review capability is enabled.
+- The comparison base exists on the remote; local changes and context need not be pushed.
+- The coding-session context and any ticket or design references are ready to attach.
+
+## Instructions
+
+Follow the detailed workflow below: preserve update notices, attach self-contained context, run
+with visible progress and a suitable timeout, read the structured result, and act on findings.
 
 ## Handle a skill update notice
 
@@ -439,6 +452,18 @@ On `closed_preview`:
    within ~10 minutes; no re-login needed).
 
 Only the review itself is gated — auth (`qodo whoami`) and the other qodo commands are unaffected.
+
+## Configuration
+
+Use `--json --progress` for observable foreground runs, `--async` only for deliberate detached
+runs, and an explicit `--base` when origin/main is not correct. Stamp exact skill/version/
+distribution provenance on the first Qodo call and keep session context out of the reviewed diff.
+
+## Error Handling
+
+Read the structured result even after a non-zero command. Preserve closed-preview, cancellation,
+rate-limit, connection, and tool-loop states; follow the bounded recovery above and never discard
+context or widen authority merely to obtain a green result.
 
 ## Guardrails
 

@@ -26,17 +26,40 @@ The pull request must state:
 ## 2. Publish an immutable GitHub release
 
 The repository administrator must enable GitHub release immutability before the first release.
-After merge, run **Release skills** for the prepared version. The workflow:
+Configure repository secret `QODO_RELEASE_ADMIN_TOKEN` with only repository
+`Administration: read`; `GITHUB_TOKEN` cannot read this setting. The workflow uses the admin token
+only for the immutable-release preflight and keeps the normal contents-write token for publication.
+Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
+`refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
+paginates the complete repository ruleset collection before resolving that exact ruleset and
+explicitly rejects a `creation` restriction. The workflow invokes the same checked-in preflight
+and publication shell programs that CI executes against a stateful fake GitHub CLI: success,
+missing credentials, disabled immutability, duplicate/invalid rulesets, forbidden creation rules,
+draft corruption, draft resume, publication, and immutable retry are covered behaviorally.
+After the compatible CLI release is live and the skills PR is merged, a release owner dispatches
+**Release skills** from the current `main` head. Rerunning it is idempotent. The workflow:
 
-1. validates the exact merged commit;
-2. requires the repository immutability setting;
-3. creates annotated tag `v<package-version>`;
-4. creates the GitHub release;
-5. uploads only `qodo-skills-index.json` and its SHA-256;
-6. verifies the published release is immutable and has the exact asset inventory.
+1. requires the dispatched SHA to be the exact `main` head before and after validation; a merge
+   after that final check does not change the validated release SHA;
+2. installs the lockfile-pinned validation dependencies and validates the release package;
+3. requires the repository immutability setting;
+4. creates annotated tag `v<package-version>`, pushes it without force, and verifies the protected
+   remote tag peels to the validated SHA immediately before publication;
+5. creates or resumes a draft release, uploads only `qodo-skills-index.json` and its SHA-256, and
+   verifies their checksum and bytes before publication;
+6. publishes the verified draft, which makes the release immutable;
+7. verifies the published release is immutable, the protected tag is unchanged, and both published
+   assets still match the validated checkout byte-for-byte;
+8. on an idempotent rerun, downloads both existing assets, verifies their checksum, and compares
+   them byte-for-byte with the validated checkout before reporting success.
 
 The index is metadata for stale-version notices. It contains no workflow body and grants no write
 authority. GitHub release publication does not publish the Qodo CLI.
+
+GitHub drafts are mutable by trusted repository release writers until publication. The protected
+tag prevents commit drift; the second post-publication download detects any draft-asset race before
+marketplace promotion. A mismatch burns that version and requires incident handling plus a new
+patch release; it is never accepted as a successful release.
 
 ## 3. Ship selected marketplaces
 

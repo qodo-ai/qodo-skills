@@ -48,12 +48,19 @@ npx skills add https://github.com/qodo-ai/qodo-skills \
   --yes
 ```
 
-The CLI can detect supported local agents and print the exact command without running it:
+The CLI detects supported local agents and prints the exact command without running it. If none is
+detected, it reads skills.sh's current supported-agent catalog, excludes the marketplace-owned
+Claude Code, Codex, and Kiro IDs, and offers the remaining agents as a multi-select. The bundled
+catalog remains a read-only offline fallback:
 
 ```sh
 qodo agents status --json
+qodo agents catalog --json
 qodo agents install --agent cursor,gemini-cli --json
+qodo agents install --agent cursor --standards --json
 ```
+
+`--standards` adds a separate Qodo Standards command; it never broadens the core package.
 
 ## Update
 
