@@ -1,9 +1,9 @@
 ---
 name: "qodo"
-displayName: "Qodo"
-description: "Consolidated Kiro power for Qodo developer workflows. It routes each request to one Qodo CLI capability: get-rules (load relevant coding rules), pr-resolver (read Qodo PR findings and, only when requested, prepare local fixes), pre-pr-review (review local changes before a PR), and codebase-wisdom (understand code, history, and cross-repo coupling). One steering file per capability, loaded only when its intent matches."
+displayName: "Qodo AI Code Review and Governance"
+description: "AI code review inside Kiro. Catches bugs, cross-repo breakages, and standards gaps in local changes before a PR is opened, then resolves findings on PRs already in flight with fix suggestions you apply in Kiro. Shorter review cycles, fewer issues reaching main."
 keywords: ["qodo rules", "get qodo rules", "qodo get rules", "get rules", "load qodo rules", "load rules", "fetch qodo rules", "activate qodo rules", "qodo coding rules", "resolve qodo pr", "qodo pr findings", "fix qodo review findings", "qodo review comments", "qodo pre-pr review", "qodo review my changes", "review local changes with qodo", "qodo codebase", "ask qodo about the code", "qodo cross-repo", "qodo understand code"]
-author: "Qodo Team"
+author: "Qodo"
 ---
 
 # Qodo
