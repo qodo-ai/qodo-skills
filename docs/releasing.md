@@ -46,13 +46,16 @@ one artifact per selected provider.
 
 | Provider | Automation | Completion evidence |
 |---|---|---|
-| Claude Code | packet generation plus official catalog source verification | both selected listings expose the released commit/path |
+| Claude Code | packet generation, protected submission pause, then official catalog verification | both selected listings expose the released commit/path |
 | Codex | exact portal packet plus protected release-owner gate | portal review/publish completed, then protected environment approved |
-| Kiro | packet generation plus live Git-backed directory verification | selected Powers expose the expected repository, branch, and paths |
+| Kiro | packet generation, protected submission pause, then live directory verification | selected Powers expose the expected repository, branch, and paths |
 
-Codex stays human-gated because its documented flow requires portal submission, review, and
-explicit publication. The `marketplace-codex` environment must require reviewers; approval is an
-attestation after provider publication, not a substitute for it.
+The action prepares every selected packet first. Claude and Kiro verification jobs then wait in
+`marketplace-claude` and `marketplace-kiro` so a release owner can complete any provider submission
+without starting a second workflow; after approval, the job verifies the live listing and fails if
+it is not the selected release. Codex stays human-gated because its documented flow requires portal
+submission, review, and explicit publication. Its `marketplace-codex` approval is an attestation
+after provider publication, not a substitute for it. All three environments require reviewers.
 
 Core listing identity remains `qodo`. Qodo Standards uses `qodo-standards` and is selected/released
 separately. Never create a replacement core listing to perform a source migration.

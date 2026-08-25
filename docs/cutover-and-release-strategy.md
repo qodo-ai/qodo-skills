@@ -53,7 +53,8 @@ rollback.
 - Record each current version, source commit/path, and reinstall/rollback procedure.
 - Confirm Codex can update the existing listing from `qodo-in-harness` to the released
   `qodo-skills/codex-packages/qodo` snapshot without a new identity.
-- Create protected GitHub environment `marketplace-codex` with required release-owner reviewers.
+- Create protected GitHub environments `marketplace-claude`, `marketplace-kiro`, and
+  `marketplace-codex` with required release-owner reviewers.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
 
 Gate: every item is verified from provider/repository state. A source manifest is not evidence of
@@ -93,7 +94,10 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 
 ### 3. Promote Claude and Kiro
 
-Run **Ship marketplaces** with Claude and Kiro selected.
+Run **Ship marketplaces** with Claude and Kiro selected. The action prepares both packets, then
+pauses each provider verification in its protected environment while the release owner completes
+any provider submission. Approve a provider only when its listing is expected to be visible; the
+resumed job verifies the exact release and fails closed otherwise.
 
 - Preserve the existing `qodo` listing identity and repoint it to the generated core path.
 - Publish `qodo-standards` only as a separate optional listing.
@@ -169,7 +173,7 @@ external state.
 Go only when:
 
 - CLI and skills PR heads are independently green and review-clean;
-- release immutability and Codex environment protection are configured;
+- release immutability and all three marketplace environment protections are configured;
 - rollback identities/artifacts are recorded;
 - selected provider publication owners are available;
 - fresh-install and upgrade fixtures are ready.

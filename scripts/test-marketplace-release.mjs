@@ -138,6 +138,7 @@ for (const input of ['all', 'claude', 'codex', 'kiro']) {
 assert.ok((workflow.match(/type: boolean/g) ?? []).length >= 4);
 assert.match(workflow, /fromJSON\(needs\.plan\.outputs\.matrix\)/);
 assert.match(workflow, /name: marketplace-codex/);
+assert.match(workflow, /name: marketplace-\$\{\{ matrix\.provider \}\}/);
 assert.match(workflow, /required_reviewers/);
 assert.match(workflow, /verify-provider-visible/);
 assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY/);
