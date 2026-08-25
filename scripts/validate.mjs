@@ -77,10 +77,17 @@ function frontmatter(path) {
 }
 
 const catalog = json('distribution/catalog.json');
+const marketplaces = json('distribution/marketplaces.json');
+const codexSubmissions = json('distribution/codex-submissions.json');
 const packageVersion = catalog.package?.version;
 if (!semver.test(packageVersion ?? '')) fail('catalog package.version must be semantic version');
 if (catalog.runtime?.command !== 'qodo') fail('runtime command must remain qodo');
 if (catalog.runtime?.loginCommand !== 'qodo login') fail('runtime login must remain qodo login');
+for (const field of ['repository', 'homepage', 'supportUrl', 'privacyPolicyUrl', 'termsOfServiceUrl']) {
+  if (!String(catalog.package?.[field] ?? '').startsWith('https://')) {
+    fail(`catalog package.${field} must be an HTTPS URL`);
+  }
+}
 
 const skillsRoot = join(root, 'skills');
 const diskSkills = readdirSync(skillsRoot)
@@ -120,6 +127,49 @@ for (const skillName of catalogSkills) {
 }
 for (const skillName of packagedSkills.keys()) {
   if (!catalogSkills.includes(skillName)) fail(`${skillName}: install package references unknown skill`);
+}
+
+const expectedProviders = ['claude', 'codex', 'kiro'];
+const providerIds = (marketplaces.providers ?? []).map((entry) => entry.id).sort();
+if (JSON.stringify(providerIds) !== JSON.stringify(expectedProviders)) {
+  fail(`marketplace providers must be exactly ${expectedProviders.join(', ')}`);
+}
+for (const provider of marketplaces.providers ?? []) {
+  const listingPackages = (provider.listings ?? []).map((entry) => entry.package).sort();
+  if (JSON.stringify(listingPackages) !== JSON.stringify([...installPackageNames].sort())) {
+    fail(`${provider.id}: listings must cover every install package exactly once`);
+  }
+  if (![provider.submissionUrl, provider.directoryUrl].every((url) => String(url).startsWith('https://'))) {
+    fail(`${provider.id}: release URLs must use HTTPS`);
+  }
+}
+
+const codexProvider = marketplaces.providers?.find((entry) => entry.id === 'codex');
+const codexSubmissionPackages = (codexSubmissions.listings ?? []).map((entry) => entry.package).sort();
+const codexListingPackages = (codexProvider?.listings ?? []).map((entry) => entry.package).sort();
+if (JSON.stringify(codexSubmissionPackages) !== JSON.stringify(codexListingPackages)) {
+  fail('Codex submission metadata must cover every Codex listing exactly once');
+}
+for (const submission of codexSubmissions.listings ?? []) {
+  if ((submission.positiveTests ?? []).length < 5) {
+    fail(`${submission.package}: Codex submission requires at least five positive tests`);
+  }
+  if ((submission.negativeTests ?? []).length < 3) {
+    fail(`${submission.package}: Codex submission requires at least three negative tests`);
+  }
+  if (!['initial', 'update'].includes(submission.releaseType)) {
+    fail(`${submission.package}: invalid Codex release type`);
+  }
+  for (const test of submission.positiveTests ?? []) {
+    for (const field of ['prompt', 'expectedBehavior', 'expectedResultShape', 'fixtureData']) {
+      if (!String(test[field] ?? '').trim()) fail(`${submission.package}: positive test missing ${field}`);
+    }
+  }
+  for (const test of submission.negativeTests ?? []) {
+    for (const field of ['scenario', 'expectedSafeBehavior', 'reason']) {
+      if (!String(test[field] ?? '').trim()) fail(`${submission.package}: negative test missing ${field}`);
+    }
+  }
 }
 
 for (const skill of catalog.skills ?? []) {
@@ -202,14 +252,22 @@ if (codexStandards?.source?.path !== './packages/qodo-standards') {
 }
 
 const claudeMarketplace = json('.claude-plugin/marketplace.json');
+const claudeProvider = marketplaces.providers?.find((entry) => entry.id === 'claude');
+const claudeCoreId = claudeProvider?.listings?.find((entry) => entry.package === 'qodo')?.id;
 if ((claudeMarketplace.plugins ?? []).some((entry) => 'version' in entry)) {
   fail('Claude plugin versions must come only from package-local .claude-plugin/plugin.json files');
 }
-if (claudeMarketplace.plugins?.find((entry) => entry.name === 'qodo')?.source !== './packages/qodo') {
-  fail('Claude marketplace must package the generated core root');
+if (claudeCoreId !== 'qodo') {
+  fail('Claude core listing must preserve the existing qodo identity');
+}
+if (claudeMarketplace.plugins?.find((entry) => entry.name === claudeCoreId)?.source !== './packages/qodo') {
+  fail('Claude marketplace must preserve qodo while packaging the generated core root');
 }
 if (claudeMarketplace.plugins?.find((entry) => entry.name === 'qodo-standards')?.source !== './packages/qodo-standards') {
   fail('Claude marketplace must expose standards as a separate optional plugin');
+}
+if (json('packages/qodo/.claude-plugin/plugin.json').name !== claudeCoreId) {
+  fail('Claude core package manifest must preserve the qodo identity');
 }
 
 for (const unsafeRoot of ['plugin.json', '.codex-plugin/plugin.json', '.claude-plugin/plugin.json', 'gemini-extension.json']) {

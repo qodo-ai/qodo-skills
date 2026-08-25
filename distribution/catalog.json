@@ -8,6 +8,9 @@
     "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "homepage": "https://www.qodo.ai",
+    "supportUrl": "https://help.qodo.ai/hc/en-us/requests/new",
+    "privacyPolicyUrl": "https://www.qodo.ai/privacy-policy/",
+    "termsOfServiceUrl": "https://www.qodo.ai/terms/",
     "license": "MIT",
     "brandColor": "#6D4AFF"
   },

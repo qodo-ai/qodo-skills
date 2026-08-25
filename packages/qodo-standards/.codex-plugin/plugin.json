@@ -29,6 +29,8 @@
       "Qodo Standards Manager"
     ],
     "websiteURL": "https://www.qodo.ai",
+    "privacyPolicyURL": "https://www.qodo.ai/privacy-policy/",
+    "termsOfServiceURL": "https://www.qodo.ai/terms/",
     "brandColor": "#6D4AFF",
     "defaultPrompt": [
       "Use $qodo-get-rules to load the Qodo standards relevant to this task.",

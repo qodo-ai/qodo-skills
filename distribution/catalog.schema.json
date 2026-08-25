@@ -11,7 +11,7 @@
     "package": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "displayName", "version", "description", "repository", "homepage", "license", "brandColor"],
+      "required": ["name", "displayName", "version", "description", "repository", "homepage", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl", "license", "brandColor"],
       "properties": {
         "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
         "displayName": { "type": "string", "minLength": 1 },
@@ -19,6 +19,9 @@
         "description": { "type": "string", "minLength": 1 },
         "repository": { "type": "string", "format": "uri" },
         "homepage": { "type": "string", "format": "uri" },
+        "supportUrl": { "type": "string", "format": "uri" },
+        "privacyPolicyUrl": { "type": "string", "format": "uri" },
+        "termsOfServiceUrl": { "type": "string", "format": "uri" },
         "license": { "type": "string", "minLength": 1 },
         "brandColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
       }

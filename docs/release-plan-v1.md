@@ -5,16 +5,31 @@ and an evidence gate. The invariant is:
 
 > Qodo authors skills once; marketplaces update plugins; the CLI updates the runtime.
 
+Marketplace promotion uses the `Ship marketplaces` GitHub Action after an immutable skills release.
+The action accepts any combination of Claude, Codex, and Kiro, or `all`; it prepares exact provider
+packets and fails closed until the provider-specific completion condition is satisfied. Kiro is
+Git-backed, Claude is provider-SHA-pinned, and Codex is a reviewed portal snapshot with a protected
+release-owner attestation. These are three release adapters, not one invented common API.
+Codex packets include listing copy, legal links, starter prompts, and the required five positive
+plus three negative reviewer cases for each listing. Reviewer credentials remain a private portal
+input and are never stored in release artifacts.
+
 ## Stage 0 — production prerequisites (no user-visible change)
 
-- Confirm the existing identities and source paths in the provider consoles:
-  - Claude: `qodo@claude-plugins-official` → current source, then generated `packages/qodo/`.
-  - Kiro: Qodo Power → `qodo-ai/qodo-skills/kiro-power`.
-  - Codex: existing Qodo entry, currently sourced from `qodo-in-harness/codex-qodo`.
+- Confirm the existing identities and source paths in provider-visible state:
+  - Claude: `qodo@claude-plugins-official` is currently SHA-pinned to the legacy repo-root plugin,
+    and Anthropic's directory maps the former `qodo-skills` slug to `qodo`. Preserve `qodo` while
+    moving its source path to `packages/qodo/`.
+  - Kiro: the official `qodo` Power already follows `qodo-ai/qodo-skills`, branch `main`, path
+    `kiro-power`; the separate `qodo-standards` Power still needs acceptance.
+  - Codex: preserve the existing `qodo` entry while replacing the reviewed snapshot sourced from
+    `qodo-in-harness/codex-qodo` with `packages/qodo/`.
 - Confirm the provider can repoint that existing Codex entry to `qodo-ai/qodo-skills/packages/qodo`
   without
   creating a new plugin identity.
 - Record the last known-good provider versions, source SHAs, artifacts, and reinstall steps.
+- Configure a protected `marketplace-codex` GitHub environment with required release-owner
+  reviewers. Without it, selected Codex promotion fails before any attestation can be recorded.
 
 **Gate:** all three listing identities and rollback artifacts are confirmed from provider-visible
 state. Repository configuration alone is not evidence.
@@ -52,8 +67,10 @@ Merge and publish `qodo-skills` v1.0.2 only after Stage 1 is available:
 - the same release contains package-local Codex manifests, but the Codex listing remains unchanged
   until Stage 3.
 
-Update Claude and Kiro core source SHAs through their existing listings. Do not create replacement
-core listings; the optional standards capability has its own explicit identity.
+Run `Ship marketplaces` for Claude and Kiro. Claude turns green only after the official catalog
+contains both expected generated paths at the selected commit. Kiro turns green only after both
+Power records expose the expected repository, branch, and paths. Do not create replacement core
+listings; the optional standards capability has its own explicit identity.
 
 **Gate per provider:** provider-visible version/source SHA, fresh install, upgrade of an existing
 0.x install, `qodo-setup`, one read-only workflow, one approval-gated write workflow, and host-owned
@@ -99,9 +116,11 @@ Do not mutate an existing release asset or fall back to the CLI's embedded compa
 
 ## Stage 3 — repoint the existing Codex listing and deprecate the old repository
 
-Repoint the existing Codex listing from `qodo-in-harness/codex-qodo` to the exact released
-`qodo-skills` commit at `packages/qodo/`. Do not submit a replacement core plugin. Publish
-`qodo-standards` only as a distinct optional entry. Verify:
+Run `Ship marketplaces` with Codex selected. Download its exact release packet, update the existing
+Codex listing through the OpenAI plugin portal, wait for review, publish the approved snapshot, and
+only then approve the protected `marketplace-codex` environment. Repoint the existing listing from
+`qodo-in-harness/codex-qodo` to the exact released `qodo-skills` commit at `packages/qodo/`. Do not
+submit a replacement core plugin. Publish `qodo-standards` only as a distinct optional entry. Verify:
 
 - the provider-visible plugin ID is unchanged;
 - the provider-visible source commit is the approved `qodo-skills` release;

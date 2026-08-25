@@ -29,8 +29,9 @@ generated fallback snapshot, but it must never become a second editable source.
 
 ## Existing listing cutover
 
-- Claude: preserve the official plugin id `qodo@claude-plugins-official`; update its pinned source
-  SHA and repoint it to `packages/qodo/` only after the canonical release passes validation.
+- Claude: preserve the official plugin id `qodo@claude-plugins-official`; Anthropic's directory
+  already migrates the former `qodo-skills` identity to `qodo`. Update its pinned source SHA and
+  repoint it to `packages/qodo/` only after the canonical release passes validation.
 - Kiro: preserve the listing's `kiro-power/` source path. That directory is now a generated Agent
   Plugins 1.0 adapter, so existing installs can upgrade without a registry path migration.
 - Codex: preserve the existing official plugin identity while repointing its source from

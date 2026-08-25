@@ -1,0 +1,193 @@
+name: Ship marketplaces
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Immutable qodo-skills release tag (for example v1.0.2)
+        required: true
+        type: string
+      all:
+        description: Ship to every configured marketplace
+        required: false
+        default: false
+        type: boolean
+      claude:
+        description: Ship to the official Claude Code directory
+        required: false
+        default: false
+        type: boolean
+      codex:
+        description: Prepare and gate the Codex portal release
+        required: false
+        default: false
+        type: boolean
+      kiro:
+        description: Ship to the Kiro Powers directory
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: qodo-marketplaces-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.repository == 'qodo-ai/qodo-skills'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      verifiable_matrix: ${{ steps.plan.outputs.verifiable_matrix }}
+      selected: ${{ steps.plan.outputs.selected }}
+      claude: ${{ steps.plan.outputs.claude }}
+      codex: ${{ steps.plan.outputs.codex }}
+      kiro: ${{ steps.plan.outputs.kiro }}
+    steps:
+      - name: Check out release automation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Resolve selected marketplaces
+        id: plan
+        run: >-
+          node scripts/marketplace-release.mjs plan
+          --all "${{ inputs.all }}"
+          --claude "${{ inputs.claude }}"
+          --codex "${{ inputs.codex }}"
+          --kiro "${{ inputs.kiro }}"
+
+  prepare:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the immutable release
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Verify immutable release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          test "$(git describe --tags --exact-match HEAD)" = "${RELEASE_TAG}"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')" = 'true'
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.tag_name')" = "${RELEASE_TAG}"
+
+      - name: Validate canonical source and generated adapters
+        run: npm test
+
+      - name: Prepare exact provider artifact
+        id: prepare
+        env:
+          PROVIDER: ${{ matrix.provider }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          OUTPUT="${RUNNER_TEMP}/marketplace-${PROVIDER}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node scripts/marketplace-release.mjs prepare \
+            --provider "${PROVIDER}" \
+            --tag "${RELEASE_TAG}" \
+            --commit "${RELEASE_SHA}" \
+            --output "${OUTPUT}"
+
+      - name: Upload provider release packet
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: marketplace-${{ matrix.provider }}-${{ inputs.release_tag }}
+          path: ${{ steps.prepare.outputs.output }}
+          if-no-files-found: error
+          retention-days: 30
+
+  verify-provider-visible:
+    needs: [plan, prepare]
+    if: needs.plan.outputs.verifiable_matrix != '{"include":[]}'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.verifiable_matrix) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the immutable release
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Require exact provider-visible source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PROVIDER: ${{ matrix.provider }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          node scripts/marketplace-release.mjs verify \
+            --provider "${PROVIDER}" \
+            --tag "${RELEASE_TAG}" \
+            --commit "$(git rev-parse HEAD)"
+
+  codex-gate:
+    needs: [plan, prepare]
+    if: needs.plan.outputs.codex == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a protected Codex release-owner environment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-codex" \
+            --jq 'any(.protection_rules[]?; .type == "required_reviewers")' | grep -qx true
+
+      - name: Explain the external publication gate
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          {
+            echo '## Codex portal publication required'
+            echo
+            echo "Download \`marketplace-codex-${RELEASE_TAG}\`, upload the two listing packets through the OpenAI plugin portal, wait for review, and publish the approved version."
+            echo 'Approve the protected `marketplace-codex` environment only after that external step is complete.'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  codex-release-owner-attestation:
+    needs: [plan, prepare, codex-gate]
+    if: needs.plan.outputs.codex == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: marketplace-codex
+      url: https://platform.openai.com/plugins
+    steps:
+      - name: Check out the immutable release
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Record the protected release-owner attestation
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: >-
+          node scripts/marketplace-release.mjs attest
+          --provider codex
+          --tag "${RELEASE_TAG}"
+          --commit "$(git rev-parse HEAD)"

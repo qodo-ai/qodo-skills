@@ -48,17 +48,37 @@ The `Release skills` workflow performs the GitHub-side publication:
 3. Render the immutable release record into a GitHub Release.
 4. Attach `qodo-skills-index.json` and its SHA-256 for metadata-only version checks. During the
    migration window, also attach `qodo-skills-direct.json` and its SHA-256 for direct-connected agents.
-5. Refresh or submit each official marketplace listing according to that host's process.
-   Preserve the existing `qodo` core identity and treat `qodo-standards` as a separate optional
-   listing/Power; never fold its skills back into core discovery.
-6. Verify the marketplace-visible version and perform a fresh install—repository and CI
-   success are not proof of listing acceptance.
-7. Upgrade an existing installation and verify that the host, not the CLI, replaced it.
+5. Stop. Marketplace promotion is a separate, selectable operation so one provider delay cannot
+   silently change another provider's release state.
 
-The workflow cannot alter marketplace accounts or publish the Qodo runtime. Official marketplace
-submission and provider-visible verification remain explicit release gates. The
-`qodo-in-harness` deprecation is a later, separately reviewed operation after the Codex listing
-source cutover passes both install tests.
+## Ship selected marketplaces
+
+After the immutable GitHub Release exists, run **Actions → Ship marketplaces → Run workflow**.
+Enter the exact release tag and check any combination of Claude, Codex, and Kiro, or check **all**.
+The workflow reads [`distribution/marketplaces.json`](../distribution/marketplaces.json), prepares
+one exact packet per provider, and will not accept an untagged, mutable, or version-mismatched
+release.
+
+| Provider | What the action can do | Green completion condition |
+|---|---|---|
+| Claude Code | Generate the two directory entries and inspect Anthropic's official SHA-pinned catalog | `qodo` and `qodo-standards` point to the selected commit and paths, and the legacy `qodo-skills` rename remains intact |
+| Codex | Generate two portal packets with starter prompts and five positive plus three negative reviewer tests per listing | A required reviewer approves the protected `marketplace-codex` environment only after OpenAI review and portal publication |
+| Kiro | Inspect Kiro's live Git-backed directory | `qodo` and `qodo-standards` expose the expected paths and repository `main` still equals the selected release commit |
+
+Before selecting Codex, a repository administrator must create the `marketplace-codex` GitHub
+environment with required reviewers. The workflow checks that protection rule before entering the
+environment. OpenAI's documented public flow is portal submission, review, and an explicit publish
+action; there is no documented publishing API, so the environment approval is deliberately a named
+human attestation rather than a fake API success.
+Supply reviewer credentials privately in the portal; artifacts contain only account requirements
+and fixture descriptions, never secrets. Preserve the current brand assets for the core update and
+use brand-approved assets for the new optional listing.
+
+The core slug is `qodo` on Claude, Codex, and Kiro; Anthropic's directory maps the former
+`qodo-skills` slug to `qodo`. `qodo-standards` is a separate optional listing everywhere and never
+becomes part of a core update. Provider-visible
+completion is still followed by a fresh install and an in-place upgrade acceptance test. The
+`qodo-in-harness` deprecation remains blocked until the Codex source cutover passes both tests.
 
 ## CLI fallback cadence
 

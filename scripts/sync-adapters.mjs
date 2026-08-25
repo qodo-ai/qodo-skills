@@ -16,6 +16,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const check = process.argv.includes('--check');
 const stale = [];
 const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json'), 'utf8'));
+const marketplaces = JSON.parse(readFileSync(join(root, 'distribution', 'marketplaces.json'), 'utf8'));
 const pkg = catalog.package;
 const author = {
   name: 'Qodo',
@@ -23,6 +24,18 @@ const author = {
   url: 'https://www.qodo.ai',
 };
 const keywords = ['qodo', 'code-review', 'code-intelligence', 'standards', 'coding-agents'];
+
+function provider(id) {
+  const value = marketplaces.providers.find((entry) => entry.id === id);
+  if (!value) throw new Error(`Unknown marketplace provider: ${id}`);
+  return value;
+}
+
+function listing(providerId, packageName) {
+  const value = provider(providerId).listings.find((entry) => entry.package === packageName);
+  if (!value) throw new Error(`${providerId}: no listing for ${packageName}`);
+  return value;
+}
 
 function writeText(path, content) {
   const target = join(root, path);
@@ -116,6 +129,8 @@ function codexManifest(value) {
       category: 'Developer Tools',
       capabilities: value.skills.map((name) => catalog.skills.find((skill) => skill.name === name).displayName),
       websiteURL: pkg.homepage,
+      privacyPolicyURL: pkg.privacyPolicyUrl,
+      termsOfServiceURL: pkg.termsOfServiceUrl,
       brandColor: pkg.brandColor,
       defaultPrompt: value.skills.map((name) => catalog.skills.find((skill) => skill.name === name).defaultPrompt),
     },
@@ -129,7 +144,7 @@ function generatedPackageFiles(value, adapterSet = 'all') {
   if (adapterSet === 'all') {
     files.set('.codex-plugin/plugin.json', `${JSON.stringify(codexManifest(value), null, 2)}\n`);
     files.set('.claude-plugin/plugin.json', `${JSON.stringify({
-      name: value.name,
+      name: listing('claude', value.name).id,
       version: pkg.version,
       description: value.description,
       author,
@@ -150,6 +165,10 @@ function generatedPackageFiles(value, adapterSet = 'all') {
       'Generated from the canonical skills in `../skills/`.',
       `Install or update ${value.displayName} through the Kiro Powers marketplace.`,
       'The Qodo CLI remains a separate runtime and is never bundled here.',
+      '',
+      `- Privacy: ${pkg.privacyPolicyUrl}`,
+      `- Support: ${pkg.supportUrl}`,
+      `- Terms: ${pkg.termsOfServiceUrl}`,
       '',
     ].join('\n'));
   }
@@ -229,7 +248,7 @@ writeJson('.claude-plugin/marketplace.json', {
   owner: author,
   metadata: { description: pkg.description, version: pkg.version },
   plugins: catalog.installPackages.map((value) => ({
-    name: value.name,
+    name: listing('claude', value.name).id,
     source: `./packages/${value.name}`,
     description: value.description,
     author,

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/qodo-ai/qodo-skills/blob/main/distribution/codex-submissions.schema.json",
+  "title": "Qodo Codex marketplace submission metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "listings"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "listings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["package", "releaseType", "releaseNotes", "testAccountRequirements", "positiveTests", "negativeTests"],
+        "properties": {
+          "package": { "type": "string", "pattern": "^qodo(?:-[a-z0-9-]+)?$" },
+          "releaseType": { "enum": ["initial", "update"] },
+          "releaseNotes": { "type": "string", "minLength": 1 },
+          "testAccountRequirements": { "type": "string", "minLength": 1 },
+          "positiveTests": {
+            "type": "array",
+            "minItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["prompt", "expectedBehavior", "expectedResultShape", "fixtureData"],
+              "properties": {
+                "prompt": { "type": "string", "minLength": 1 },
+                "expectedBehavior": { "type": "string", "minLength": 1 },
+                "expectedResultShape": { "type": "string", "minLength": 1 },
+                "fixtureData": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          "negativeTests": {
+            "type": "array",
+            "minItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["scenario", "expectedSafeBehavior", "reason"],
+              "properties": {
+                "scenario": { "type": "string", "minLength": 1 },
+                "expectedSafeBehavior": { "type": "string", "minLength": 1 },
+                "reason": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

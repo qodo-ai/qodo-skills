@@ -31,6 +31,8 @@
       "Qodo Review Resolver"
     ],
     "websiteURL": "https://www.qodo.ai",
+    "privacyPolicyURL": "https://www.qodo.ai/privacy-policy/",
+    "termsOfServiceURL": "https://www.qodo.ai/terms/",
     "brandColor": "#6D4AFF",
     "defaultPrompt": [
       "Use $qodo-setup to connect my Qodo account and verify this coding agent.",

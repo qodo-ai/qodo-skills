@@ -1,0 +1,64 @@
+{
+  "$schema": "./marketplaces.schema.json",
+  "schemaVersion": 1,
+  "providers": [
+    {
+      "id": "claude",
+      "displayName": "Claude Code",
+      "mode": "provider-pinned-git",
+      "submissionUrl": "https://clau.de/plugin-directory-submission",
+      "directoryUrl": "https://github.com/anthropics/claude-plugins-official",
+      "directoryManifestUrl": "https://raw.githubusercontent.com/anthropics/claude-plugins-official/main/.claude-plugin/marketplace.json",
+      "listings": [
+        {
+          "package": "qodo",
+          "id": "qodo",
+          "sourcePath": "packages/qodo"
+        },
+        {
+          "package": "qodo-standards",
+          "id": "qodo-standards",
+          "sourcePath": "packages/qodo-standards"
+        }
+      ]
+    },
+    {
+      "id": "codex",
+      "displayName": "Codex",
+      "mode": "reviewed-portal-snapshot",
+      "submissionUrl": "https://platform.openai.com/plugins",
+      "directoryUrl": "https://learn.chatgpt.com/docs/plugins",
+      "listings": [
+        {
+          "package": "qodo",
+          "id": "qodo",
+          "sourcePath": "packages/qodo"
+        },
+        {
+          "package": "qodo-standards",
+          "id": "qodo-standards",
+          "sourcePath": "packages/qodo-standards"
+        }
+      ]
+    },
+    {
+      "id": "kiro",
+      "displayName": "Kiro",
+      "mode": "live-git-directory",
+      "submissionUrl": "https://kiro.dev/powers/submit/",
+      "directoryUrl": "https://kiro.dev/fr/powers/",
+      "listings": [
+        {
+          "package": "qodo",
+          "id": "qodo",
+          "sourcePath": "kiro-power"
+        },
+        {
+          "package": "qodo-standards",
+          "id": "qodo-standards",
+          "sourcePath": "kiro-power-standards"
+        }
+      ]
+    }
+  ]
+}
