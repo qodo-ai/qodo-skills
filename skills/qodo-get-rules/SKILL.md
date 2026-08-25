@@ -51,11 +51,20 @@ actually not installed; tell the user to obtain a checksum-pinned installer comm
 Qodo or their organization's administrator. Installers are served from https://get.qodo.ai,
 but never invent a digest or pipe an installer directly into a shell.
 
+**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo whoami` fails for any reason
+(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo whoami`
+outside the sandbox before recommending login or refreshing tools. Keychain failures can be
+reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
+applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
+later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
+per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
+
 ## Preflight
 
 1. **Already loaded?** If "Qodo Rules Loaded" appears earlier in this conversation, skip
    straight to applying those rules — don't re-fetch.
-2. **Auth.** `qodo whoami` — non-zero exit → tell the user to run `qodo login`, then stop.
+2. **Auth.** Run `qodo whoami`. After the sandbox retry above when applicable, a non-zero exit →
+   tell the user to run `qodo login`, then stop.
    `Not logged in` / `No tool catalog cached` → not logged in. An `unknown command` on
    `qodo rules` while `whoami` SUCCEEDS is a different failure: the cached catalog predates
    the rules tool — run `qodo tools --refresh` and retry; only ask for `qodo login` when

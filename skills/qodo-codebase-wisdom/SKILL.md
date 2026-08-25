@@ -54,10 +54,19 @@ user to obtain a checksum-pinned installer command from Qodo or their organizati
 administrator. Installers are served from https://get.qodo.ai, but never invent a digest
 or pipe an installer directly into a shell.
 
+**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo whoami` fails for any reason
+(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo whoami`
+outside the sandbox before recommending login or refreshing tools. Keychain failures can be
+reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
+applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
+later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
+per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
+
 ## Preflight
 
-1. **Auth first.** Run `qodo whoami` — non-zero exit → tell the user to run `qodo login`, then
-   stop. Never guess creds. `Not logged in` / `No tool catalog cached` are authentication setup
+1. **Auth first.** Run `qodo whoami`. After the sandbox retry above when applicable, a non-zero
+   exit → tell the user to run `qodo login`, then stop. Never guess creds. `Not logged in` /
+   `No tool catalog cached` are authentication setup
    failures. If `whoami` succeeds but a group is unknown, run `qodo tools --refresh` once. If the
    CLI reports `tool_unavailable` or says Codebase tools are unavailable for the account/workspace,
    stop and explain that a workspace admin must enable access; do not send an authenticated user
