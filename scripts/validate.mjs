@@ -307,6 +307,18 @@ for (const installPackage of catalog.installPackages ?? []) {
       if (!text.includes('may be\n  newer than this discovery bootstrap')) {
         fail(`${path}: bootstrap incorrectly pins routine playbook updates to its own version`);
       }
+      if (!text.includes('`integrity.cache: verified-cache`')) {
+        fail(`${path}: bootstrap accepts a non-cache playbook source`);
+      }
+      if (!text.includes('`fresh` or `last-known-good`')) {
+        fail(`${path}: bootstrap does not constrain verified-cache provenance state`);
+      }
+      if (!text.includes('An\n`embedded-fallback` response is compatible CLI help')) {
+        fail(`${path}: bootstrap does not reject embedded fallback for marketplace execution`);
+      }
+      if (!text.includes('retry the exact loader once with `--refresh`')) {
+        fail(`${path}: bootstrap lacks bounded initial-cache recovery`);
+      }
       if (text.includes('## Handle a skill update notice')) fail(`${path}: marketplace adapter contains the full canonical playbook`);
     }
   }

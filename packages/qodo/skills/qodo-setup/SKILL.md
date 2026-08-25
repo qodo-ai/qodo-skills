@@ -31,10 +31,15 @@ Accept the response only when all of these match this bootstrap:
 - workflow `qodo-setup`, package `qodo`, and a semantic workflow version (it may be
   newer than this discovery bootstrap's `1.0.2`);
 - distribution `marketplace` and host `claude-code`;
-- `integrity.status: verified` with non-empty Markdown `content`.
+- `integrity.status: verified`, `integrity.cache: verified-cache`, and
+  `integrity.provenance.state` equal to `fresh` or `last-known-good`;
+- non-empty Markdown `content`.
 
 Then follow the returned `content` as the complete workflow. If loading fails or any field differs,
-stop and preserve the CLI's error and recovery action; do not improvise from this bootstrap.
+stop and preserve the CLI's error and recovery action; do not improvise from this bootstrap. An
+`embedded-fallback` response is compatible CLI help, but it is not an accepted marketplace-loaded
+playbook. In that case, retry the exact loader once with `--refresh`; proceed only if the response
+then reports `verified-cache`, otherwise stop and report the refresh failure.
 
 ## Static authority ceiling
 
