@@ -46,6 +46,8 @@ jobs:
           if gh release view "${TAG}" >/dev/null 2>&1; then
             test "$(git rev-list -n 1 "${TAG}")" = "${GITHUB_SHA}"
             test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" = 'true'
+            test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
+              'qodo-skills-direct.json qodo-skills-direct.json.sha256 qodo-skills-index.json qodo-skills-index.json.sha256'
             exit 0
           fi
 
