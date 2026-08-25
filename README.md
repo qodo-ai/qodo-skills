@@ -1,108 +1,97 @@
-# Qodo for coding agents
+# Qodo skills
 
-Qodo's code intelligence, review, and organizational standards—packaged once for the
-local coding agents developers already use.
+The canonical, provider-neutral source for Qodo’s local coding-agent skills.
 
-> **Qodo authors skills once; marketplaces update plugins; the CLI updates the runtime.**
+> Qodo authors skills once; marketplaces update plugins; the CLI updates the runtime.
 
-This repository is both the canonical source for Qodo's agent workflows and the release source
-for Codex, Claude Code, Kiro, and portable Agent Skills installations. It contains no MCP server
-and no copied credentials. Every workflow calls the local
-`qodo` runtime, which owns login, tool discovery, compatibility, and updates.
+Every distributed skill contains its complete reviewed workflow. Coding agents do not fetch task
+instructions from the Qodo CLI. The CLI provides authentication, managed tools, offline tool help,
+runtime updates, and a compact stale-skill notice; it never installs or rewrites skills.
 
-## Start here
+## Packages
 
-Install the Qodo plugin from your coding agent, then ask:
+| Package | Installed by default | Skills |
+|---|---:|---|
+| `qodo` | Yes | setup, codebase wisdom, local review, PR review resolver |
+| `qodo-standards` | No | rules discovery and standards administration |
 
-```text
-Set up Qodo
-```
+Qodo Standards stays a separate opt-in package. Updating the core package never installs it.
 
-The `qodo-setup` skill verifies the runtime, opens `qodo login` when needed, confirms the
-managed-tool catalog, and tells you when the agent is ready. The plugin can be installed
-before login, but the operational skills stay unusable until authentication succeeds.
+## Install
 
-### Install from this repository
+Use the official Qodo listing in Claude Code, Codex, or Kiro. The marketplace owns installation
+and updates; install the Qodo CLI separately and complete `qodo login` on first use.
 
-| Host | Install |
-|---|---|
-| Codex | Install **Qodo** from the official Codex marketplace |
-| Claude Code | `claude plugin install qodo@claude-plugins-official --scope user` |
-| Cursor | Use `qodo setup` until the Qodo Agent Plugin is accepted into Cursor Marketplace |
-| Kiro | Install **Qodo** from the curated Powers marketplace |
-| Other compatible agents | Install from `qodo-ai/qodo-skills` with skills.sh; the Qodo CLI never guesses a host marketplace |
-
-These source-install commands are immediately usable after the branch is published.
-Official marketplace listings are separate release operations; see
-[Releasing](docs/releasing.md).
-
-If the runtime is missing, `qodo-setup` routes the user to the checksum-verified installer
-at [get.qodo.ai](https://get.qodo.ai). The plugin deliberately does not download or execute
-a binary during marketplace installation.
-
-## Skills
-
-| Skill | Purpose | Default pack |
-|---|---|:---:|
-| `qodo-setup` | Connect the runtime and verify readiness | ✓ |
-| `qodo-codebase-wisdom` | Understand current code, history, and cross-repo impact | ✓ |
-| `qodo-get-rules` | Load the Qodo standards relevant to a coding task | Optional quality hold |
-| `qodo-review` | Review local changes before opening a pull request | ✓ |
-| `qodo-review-resolver` | Read and resolve Qodo pull-request findings | ✓ |
-| `qodo-manage-standards` | Create and administer Qodo Review Standards | Optional standards package |
-
-The complete workflow instructions under [`skills/`](skills/) are the product source. Host-specific
-discovery bootstraps are generated from [`distribution/catalog.json`](distribution/catalog.json):
-Claude uses `packages/`, Codex release packets use `codex-packages/`, and Kiro keeps its stable
-`kiro-power*` paths. The direct
-bundle is agent-neutral: any CLI-recognized host with a verified project or global skills directory
-and no official Qodo marketplace path can consume it without a host-specific package change.
-
-The existing **Qodo** marketplace identity contains only the four default skills. Rules discovery
-and standards administration are generated into the separately installed **Qodo Standards**
-package. `qodo-get-rules` remains optional until its quality gate is explicitly reopened; publishing
-a new optional package never adds it to an existing installation.
-
-## The ownership boundary
-
-```text
-qodo-skills repository          coding-agent marketplace       qodo CLI
-┌──────────────────────┐       ┌────────────────────────┐      ┌────────────────────┐
-│ canonical playbooks  │──────▶│ install + update plugin│      │ login + credentials│
-│ generated bootstraps │       │ discover + invoke skill│─────▶│ verified playbooks  │
-└──────────────────────┘       └────────────────────────┘      └────────────────────┘
-```
-
-- A workflow-body change ships in this repository's checksummed playbook asset, independent of a
-  marketplace review or CLI release.
-- A runtime change ships through the CLI updater, independent of marketplace review.
-- Marketplaces own installed plugin copies. The CLI does not rewrite them on launch.
-- Skills never read secret files or call Qodo endpoints directly; they invoke `qodo`.
-- Canonical skills stamp `skills-sh`; generated marketplace and Kiro bootstraps stamp both their
-  lifecycle owner and exact host. Unsupported lifecycle/host pairs fail closed. A skills.sh copy
-  remains owned by skills.sh even when it runs inside Claude Code or Codex.
-
-The detailed contracts are in [Architecture](docs/architecture.md),
-[Compatibility](docs/compatibility.md), and [Releasing](docs/releasing.md). The ordered first
-migration, provider gates, acceptance matrix, and rollback path are in
-[Marketplace migration and release plan](docs/release-plan-v1.md).
-
-## Development
-
-Node 20.6 or newer is the only validation dependency.
+For a compatible local agent without an official Qodo listing, use skills.sh. One command can
+target multiple agents:
 
 ```sh
-npm run adapters   # regenerate every host manifest from the catalog
-npm test           # validate skills, versions, security boundaries, and adapters
-npm run release:prepare -- --summary "What changed" --skill qodo-review=patch
+npx skills add https://github.com/qodo-ai/qodo-skills \
+  --skill qodo-setup \
+  --skill qodo-codebase-wisdom \
+  --skill qodo-review \
+  --skill qodo-review-resolver \
+  --agent cursor \
+  --agent gemini-cli \
+  --global \
+  --yes
 ```
 
-Also run the native validators for any host you have installed:
+Install Qodo Standards only when requested:
 
 ```sh
-claude plugin validate .
-gemini extensions validate .
+npx skills add https://github.com/qodo-ai/qodo-skills \
+  --skill qodo-get-rules \
+  --skill qodo-manage-standards \
+  --agent cursor \
+  --global \
+  --yes
 ```
 
-See [Contributing](CONTRIBUTING.md) before changing a skill. No push, tag, marketplace
-submission, or release is performed by these scripts.
+The CLI can detect supported local agents and print the exact command without running it:
+
+```sh
+qodo agents status --json
+qodo agents install --agent cursor,gemini-cli --json
+```
+
+## Update
+
+- Marketplace install: apply the Qodo update in that host, then start a new session.
+- skills.sh install: inventory the installed scope with `npx skills list --json` and
+  `npx skills list -g --json`, then run a scope-preserving skills.sh update/re-add command.
+- Qodo CLI: updates independently through `qodo update` and its background runtime updater.
+
+When a skill is stale, a successful Qodo command may emit a structured `QODO_NOTICE` on stderr.
+The loaded skill finishes the current task, inventories its lifecycle owner, shows the exact
+scoped update action, and asks before any mutation.
+
+## Repository layout
+
+```text
+skills/                         canonical authored skills
+packages/                       generated Claude packages
+codex-packages/                 generated Codex packages
+kiro-power*/                    generated Kiro Powers
+distribution/catalog.json      package membership and discovery metadata
+distribution/marketplaces.json provider release adapters
+distribution/qodo-skills-index.json  compact stale-version index
+releases/                       immutable release records
+scripts/                        generation, validation, and release automation
+```
+
+Generated provider roots are byte-equivalent projections of the canonical skill with only
+distribution and host provenance stamped into commands/frontmatter. `npm test` rejects drift,
+thin loaders, missing workflows, package leakage, unsafe paths, and inconsistent versions.
+
+## Maintainers
+
+Start with [architecture](docs/architecture.md), [releasing](docs/releasing.md), and the
+[cutover and release strategy](docs/cutover-and-release-strategy.md).
+
+```sh
+npm run release:prepare -- --summary "Improve review guidance" --skill qodo-review=patch
+npm test
+```
+
+Do not edit generated provider packages by hand.

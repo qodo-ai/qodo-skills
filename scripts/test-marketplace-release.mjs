@@ -104,16 +104,17 @@ try {
     JSON.parse(readFileSync(join(prepared.output, 'listings', 'qodo', '.codex-plugin', 'plugin.json'), 'utf8')).name,
     'qodo',
   );
-  const codexBootstrap = readFileSync(
+  const codexSkill = readFileSync(
     join(prepared.output, 'listings', 'qodo', 'skills', 'qodo-codebase-wisdom', 'SKILL.md'),
     'utf8',
   );
   assert.match(
-    codexBootstrap,
-    /qodo help workflow qodo-codebase-wisdom --distribution marketplace --host codex --json/,
+    codexSkill,
+    /--skill qodo-codebase-wisdom --skill-version 1\.1\.1 --distribution marketplace --host codex/,
   );
-  assert.doesNotMatch(codexBootstrap, /## Handle a skill update notice/);
-  assert.match(codexBootstrap, /## Static authority ceiling/);
+  assert.match(codexSkill, /instruction_mode: "embedded"/);
+  assert.match(codexSkill, /## Handle a skill update notice/);
+  assert.doesNotMatch(codexSkill, /qodo help workflow/);
   const coreSubmission = JSON.parse(readFileSync(join(prepared.output, 'submissions', 'qodo.json'), 'utf8'));
   const standardsSubmission = JSON.parse(readFileSync(join(prepared.output, 'submissions', 'qodo-standards.json'), 'utf8'));
   assert.equal(coreSubmission.releaseType, 'update');

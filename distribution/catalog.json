@@ -1,10 +1,11 @@
 {
   "$schema": "./catalog.schema.json",
   "schemaVersion": 1,
+  "instructionMode": "embedded",
   "package": {
     "name": "qodo",
     "displayName": "Qodo for coding agents",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "homepage": "https://www.qodo.ai",
@@ -46,7 +47,7 @@
   "skills": [
     {
       "name": "qodo-setup",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "recommended": true,
       "displayName": "Set up Qodo",
       "shortDescription": "Connect the Qodo runtime and verify this agent is ready.",

@@ -1,0 +1,15 @@
+{
+  "version": "1.0.3",
+  "summary": "Ship complete embedded marketplace skills and skills.sh lifecycle guidance.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.3",
+      "change": "patch"
+    }
+  ]
+}

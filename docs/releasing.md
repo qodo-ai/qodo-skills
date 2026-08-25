@@ -1,121 +1,89 @@
-# Releasing
+# Releasing Qodo skills
 
-Releases publish workflow bodies through the verified playbook feed and bootstrap changes through
-marketplaces; they never publish or update the `qodo` binary.
+## 1. Prepare one atomic pull request
 
-## One pull request
+Edit only canonical files under `skills/` and catalog metadata, then run:
 
-1. Edit canonical `SKILL.md` files.
-2. Run the release preparation command once, naming every affected skill:
+```sh
+npm run release:prepare -- \
+  --summary "Improve local review guidance" \
+  --skill qodo-review=patch
+npm test
+```
 
-   ```sh
-   npm run release:prepare -- \
-     --summary "Improve local review guidance." \
-     --skill qodo-review=patch
-   ```
+`release:prepare` increments the affected skill and package versions, regenerates Claude, Codex,
+Kiro, and release-index artifacts, and writes `releases/v<version>.json`. CI rejects a changed
+workflow without a version bump, generated drift, a thin loader, package leakage, or an incomplete
+release record.
 
-3. Review the atomic version changes, generated adapters, and
-   `releases/v<package-version>.json`.
-4. Run `npm test` and all available native host validators.
-5. Test a source install in each supported host and run “Set up Qodo”.
-6. Confirm login, a read-only skill, and the approval gate of one write-capable skill.
+The pull request must state:
 
-The release pull request must include the compatibility impact, hosts actually tested, and
-any package-ready-but-unvalidated surface. Generated changes should be reviewable as a pure
-projection of the catalog.
+- user-visible behavior and compatibility impact;
+- canonical skills and packages changed;
+- native hosts actually tested;
+- any provider acceptance still pending.
 
-There is no second human-authored release pull request. `main` must remain releasable, so the
-version, notes, and generated package travel with the skill change that needs them. Pull-request
-CI compares the branch with its base and rejects changed skill bodies without corresponding skill
-and package version increments.
+## 2. Publish an immutable GitHub release
 
-Use `--skill <name>=initial` when introducing a new skill at its authored starting version. The
-package receives at least a minor increment; `initial` is rejected for a skill that already exists
-on the base branch.
+The repository administrator must enable GitHub release immutability before the first release.
+After merge, run **Release skills** for the prepared version. The workflow:
 
-## Publish after merge
+1. validates the exact merged commit;
+2. requires the repository immutability setting;
+3. creates annotated tag `v<package-version>`;
+4. creates the GitHub release;
+5. uploads only `qodo-skills-index.json` and its SHA-256;
+6. verifies the published release is immutable and has the exact asset inventory.
 
-Before the first release, a repository administrator must enable **Settings → Releases →
-Enable release immutability**. GitHub applies this only to future releases. The release workflow
-checks the repository setting before creating a tag or release, then checks the published release's
-`immutable` API field and expected asset inventory. It fails closed before publication when
-immutability is disabled.
-This makes the tag and attached direct-connect artifact non-replaceable after publication.
+The index is metadata for stale-version notices. It contains no workflow body and grants no write
+authority. GitHub release publication does not publish the Qodo CLI.
 
-The `Release skills` workflow performs the GitHub-side publication:
+## 3. Ship selected marketplaces
 
-1. Re-run the complete validation suite on the merged commit.
-2. Create an annotated `v<package-version>` tag on that exact commit.
-3. Render the immutable release record into a GitHub Release.
-4. Attach `qodo-skills-index.json` and its SHA-256 for metadata-only version checks,
-   `qodo-playbooks.json` and its SHA-256 for the CLI's verified playbook cache, and—during the
-   migration window—`qodo-skills-direct.json` and its SHA-256 for direct-connected agents.
-5. Stop. Marketplace promotion is a separate, selectable operation so one provider delay cannot
-   silently change another provider's release state.
+Run **Ship marketplaces** with the immutable tag and any combination of `claude`, `codex`, `kiro`,
+or `all`. The action validates the tag/version, regenerates the exact provider packet, and uploads
+one artifact per selected provider.
 
-## Ship selected marketplaces
-
-After the immutable GitHub Release exists, run **Actions → Ship marketplaces → Run workflow**.
-Enter the exact release tag and check any combination of Claude, Codex, and Kiro, or check **all**.
-The workflow reads [`distribution/marketplaces.json`](../distribution/marketplaces.json), prepares
-one exact packet per provider, and will not accept an untagged, mutable, or version-mismatched
-release.
-
-| Provider | What the action can do | Green completion condition |
+| Provider | Automation | Completion evidence |
 |---|---|---|
-| Claude Code | Generate the two directory entries and inspect Anthropic's official SHA-pinned catalog | `qodo` and `qodo-standards` point to the selected commit and paths, and the legacy `qodo-skills` rename remains intact |
-| Codex | Generate two portal packets with starter prompts and five positive plus three negative reviewer tests per listing | A required reviewer approves the protected `marketplace-codex` environment only after OpenAI review and portal publication |
-| Kiro | Inspect Kiro's live Git-backed directory | `qodo` and `qodo-standards` expose the expected paths and repository `main` still equals the selected release commit |
+| Claude Code | packet generation plus official catalog source verification | both selected listings expose the released commit/path |
+| Codex | exact portal packet plus protected release-owner gate | portal review/publish completed, then protected environment approved |
+| Kiro | packet generation plus live Git-backed directory verification | selected Powers expose the expected repository, branch, and paths |
 
-Before selecting Codex, a repository administrator must create the `marketplace-codex` GitHub
-environment with required reviewers. The workflow checks that protection rule before entering the
-environment. OpenAI's documented public flow is portal submission, review, and an explicit publish
-action; there is no documented publishing API, so the environment approval is deliberately a named
-human attestation rather than a fake API success.
-Supply reviewer credentials privately in the portal; artifacts contain only account requirements
-and fixture descriptions, never secrets. Preserve the current brand assets for the core update and
-use brand-approved assets for the new optional listing.
+Codex stays human-gated because its documented flow requires portal submission, review, and
+explicit publication. The `marketplace-codex` environment must require reviewers; approval is an
+attestation after provider publication, not a substitute for it.
 
-The core slug is `qodo` on Claude, Codex, and Kiro; Anthropic's directory maps the former
-`qodo-skills` slug to `qodo`. `qodo-standards` is a separate optional listing everywhere and never
-becomes part of a core update. Provider-visible
-completion is still followed by a fresh install and an in-place upgrade acceptance test. The
-`qodo-in-harness` deprecation remains blocked until the Codex source cutover passes both tests.
+Core listing identity remains `qodo`. Qodo Standards uses `qodo-standards` and is selected/released
+separately. Never create a replacement core listing to perform a source migration.
 
-## CLI fallback cadence
+## 4. Provider acceptance
 
-Do not export the CLI fallback for routine skill improvements. Sync it only for a new fallback
-skill, a critical or security correction that must reach offline users, or an explicit
-compatibility-baseline update. The CLI snapshot is a separately reviewed runtime release artifact,
-never a hidden side effect of this repository's release workflow.
+For every selected provider, record:
 
-## Update behavior users should see
+1. provider-visible exact commit/path and version;
+2. fresh core install with exactly four skills;
+3. upgrade from the currently published version without duplicates;
+4. Qodo Standards absent until explicitly installed;
+5. `qodo-setup`, one read workflow, and one approval-gated write workflow;
+6. host-owned update and new-session activation.
 
-| Host | Source refresh |
-|---|---|
-| Codex | Install the update offered by the official Codex marketplace and restart when prompted |
-| Claude Code | `claude plugin update qodo@claude-plugins-official` |
-| Other compatible agents | skills.sh-scoped update, or the verified direct connection before a native cutover |
-| Kiro | Power → Check for updates → Install updates |
-| Direct-connect agent | Qodo checks the immutable release feed in the background and applies the verified bundle for the next agent session |
+Source CI or packet creation alone is not release completion.
 
-Marketplace and direct updates replace only packages already installed or selected. A newly
-published optional package is discoverable, not automatically installed.
+## 5. skills.sh channel
 
-Ordinary workflow wording does not wait for those host updates: the next invocation loads the
-new checksummed playbook after the CLI refreshes its bounded cache. A marketplace release is still
-required when triggers, package membership, loader protocol/host identity, the static authority
-ceiling, manifests, or listing metadata changes.
-
-The `qodo` runtime updates on its own channel with `qodo update`; a plugin update must never
-overwrite it.
+No publication API is required: skills.sh installs from this repository. After the immutable tag
+and provider projections are validated, smoke-test a core install and update on representative
+non-marketplace agents, including multi-agent and project/global scope. Use explicit `--skill`
+selection so the optional package cannot appear by accident.
 
 ## Rollback
 
-- Marketplace regression: publish a new patch that restores the last good content. Tags and
-  release records are immutable; never repoint them. Do not downgrade the runtime unless the
-  runtime itself is faulty.
-- Runtime regression: use the CLI channel/rollback process; do not mutate skill packages to
-  smuggle a binary fix.
-- Compatibility break: restore the last compatible skill release first, then repair and
-  release the runtime contract in the correct order.
+- Skill regression: prepare and publish a new patch restoring the last-good behavior, then ship
+  that patch through the affected lifecycle owners.
+- Provider packaging regression: keep the existing listing identity and repoint only through the
+  provider’s supported reviewed update flow.
+- Runtime regression: use the independent Qodo CLI rollback; do not smuggle a binary change into a
+  skill release.
+
+Never mutate a published tag, release asset, or provider cache in place.

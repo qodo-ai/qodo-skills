@@ -4,7 +4,7 @@ description: >-
   Connect Qodo to the current local coding agent — verify the Qodo CLI, guide a secure installation when it is missing, complete browser login, and confirm managed tools are ready. Use after installing the Qodo plugin, when the user asks to set up or connect Qodo, or when another Qodo skill reports that the CLI is missing or logged out.
 metadata:
   vendor: qodo
-  version: "1.0.2"
+  version: "1.0.3"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -33,13 +33,13 @@ session may still have the old skill loaded.
 Run:
 
 ```sh
-qodo --version --skill qodo-setup --skill-version 1.0.2 --distribution skills-sh
+qodo --version --skill qodo-setup --skill-version 1.0.3 --distribution skills-sh
 ```
 
 If the shell reports `qodo: command not found`, retry the standard user-scoped location:
 
 ```sh
-"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version --skill qodo-setup --skill-version 1.0.2 --distribution skills-sh
+"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version --skill qodo-setup --skill-version 1.0.3 --distribution skills-sh
 ```
 
 Keep the working command for every later step. Do not rewrite PATH automatically.
@@ -54,7 +54,7 @@ an unofficial registry, or install software without the user's approval.
 
 ## 2. Check authentication
 
-Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.2 --distribution skills-sh`.
+Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.3 --distribution skills-sh`.
 
 - Success and an identified account: continue to verification.
 - `Not logged in`, missing credentials, or a non-zero authentication result: run
@@ -76,8 +76,8 @@ with cloud defaults.
 After login, run both:
 
 ```sh
-<qodo> whoami --json --skill qodo-setup --skill-version 1.0.2 --distribution skills-sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.2 --distribution skills-sh
+<qodo> whoami --json --skill qodo-setup --skill-version 1.0.3 --distribution skills-sh
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.3 --distribution skills-sh
 ```
 
 Read the structured results. Readiness requires both a successful authenticated identity
@@ -107,8 +107,8 @@ when the tool count is unknown. Then offer the shortest relevant next action:
 - “Review my local changes” → `qodo-review`
 - “Load our coding standards” → use `qodo-get-rules` only when it is available. Otherwise,
   explain that it belongs to the optional **Qodo Standards** add-on; install that add-on through
-  the current agent marketplace, or use `qodo agents install --package qodo-standards` for a
-  CLI-managed direct connection.
+  the current agent marketplace, or use `qodo agents install --standards` to print the exact
+  skills.sh command for an agent without a Qodo listing.
 - “Explain this codebase” → `qodo-codebase-wisdom`
 - “Show the Qodo findings on this PR” → `qodo-review-resolver`
 

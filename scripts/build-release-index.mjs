@@ -22,6 +22,7 @@ const skills = Object.fromEntries(catalog.skills.map((skill) => {
 }));
 const index = {
   schemaVersion: 1,
+  instructionMode: catalog.instructionMode,
   packageVersion: catalog.package.version,
   repository: catalog.package.repository,
   skills,

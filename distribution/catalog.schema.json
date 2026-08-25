@@ -4,10 +4,11 @@
   "title": "Qodo skills distribution catalog",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "package", "runtime", "installPackages", "skills"],
+  "required": ["schemaVersion", "instructionMode", "package", "runtime", "installPackages", "skills"],
   "properties": {
     "$schema": { "type": "string" },
     "schemaVersion": { "const": 1 },
+    "instructionMode": { "const": "embedded" },
     "package": {
       "type": "object",
       "additionalProperties": false,

@@ -8,6 +8,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stampSkillProvenance } from './skill-provenance.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const errors = [];
@@ -81,6 +82,7 @@ const marketplaces = json('distribution/marketplaces.json');
 const codexSubmissions = json('distribution/codex-submissions.json');
 const packageVersion = catalog.package?.version;
 if (!semver.test(packageVersion ?? '')) fail('catalog package.version must be semantic version');
+if (catalog.instructionMode !== 'embedded') fail('catalog instructionMode must be embedded');
 if (catalog.runtime?.command !== 'qodo') fail('runtime command must remain qodo');
 if (catalog.runtime?.loginCommand !== 'qodo login') fail('runtime login must remain qodo login');
 for (const field of ['repository', 'homepage', 'supportUrl', 'privacyPolicyUrl', 'termsOfServiceUrl']) {
@@ -297,29 +299,24 @@ for (const installPackage of catalog.installPackages ?? []) {
       if (meta.metadata.package !== installPackage.name || meta.metadata.distribution !== distribution) {
         fail(`${path}: generated provenance differs from catalog`);
       }
+      if (meta.metadata.instruction_mode !== 'embedded') {
+        fail(`${path}: generated instruction_mode must be embedded`);
+      }
       const text = readFileSync(join(root, path), 'utf8');
-      const loader = `qodo help workflow ${skillName} --distribution ${distribution} --host ${host} --json`;
-      if (!text.includes(loader)) fail(`${path}: missing exact host-scoped playbook loader`);
-      if ((text.match(/qodo help workflow /g) ?? []).length !== 1) {
-        fail(`${path}: bootstrap must contain exactly one playbook loader`);
+      const canonical = readFileSync(join(skillsRoot, skillName, 'SKILL.md'), 'utf8');
+      const expected = stampSkillProvenance(canonical, {
+        name: skillName,
+        version: skill.version,
+        packageName: installPackage.name,
+        distribution,
+        host,
+      });
+      if (text !== expected) fail(`${path}: generated skill differs from the canonical embedded playbook`);
+      if (text.includes('qodo help workflow ')) fail(`${path}: released skill must not load instructions at runtime`);
+      if (!text.includes('## Handle a skill update notice')) fail(`${path}: embedded playbook is incomplete`);
+      if (!text.includes(`--distribution ${distribution} --host ${host}`)) {
+        fail(`${path}: missing exact lifecycle and host provenance`);
       }
-      if (!text.includes('## Static authority ceiling')) fail(`${path}: missing static authority ceiling`);
-      if (!text.includes('may be\n  newer than this discovery bootstrap')) {
-        fail(`${path}: bootstrap incorrectly pins routine playbook updates to its own version`);
-      }
-      if (!text.includes('`integrity.cache: verified-cache`')) {
-        fail(`${path}: bootstrap accepts a non-cache playbook source`);
-      }
-      if (!text.includes('`fresh` or `last-known-good`')) {
-        fail(`${path}: bootstrap does not constrain verified-cache provenance state`);
-      }
-      if (!text.includes('An\n`embedded-fallback` response is compatible CLI help')) {
-        fail(`${path}: bootstrap does not reject embedded fallback for marketplace execution`);
-      }
-      if (!text.includes('retry the exact loader once with `--refresh`')) {
-        fail(`${path}: bootstrap lacks bounded initial-cache recovery`);
-      }
-      if (text.includes('## Handle a skill update notice')) fail(`${path}: marketplace adapter contains the full canonical playbook`);
     }
   }
 }

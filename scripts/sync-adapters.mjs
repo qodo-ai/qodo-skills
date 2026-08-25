@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildMarketplaceBootstrap } from './skill-provenance.mjs';
+import { stampSkillProvenance } from './skill-provenance.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const check = process.argv.includes('--check');
@@ -158,7 +158,7 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
     files.set('README.md', [
       `# ${value.displayName} for Kiro`,
       '',
-      'Generated discovery bootstraps load verified playbooks from the separately installed Qodo CLI.',
+      'Generated skills contain the complete reviewed Qodo playbooks for this release.',
       `Install or update ${value.displayName} through the Kiro Powers marketplace.`,
       'The Qodo CLI remains a separate runtime and is never bundled here.',
       '',
@@ -178,7 +178,7 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       files.set(
         `skills/${skillName}/${path}`,
         path === 'SKILL.md'
-          ? buildMarketplaceBootstrap(content, {
+          ? stampSkillProvenance(content, {
             name: skillName,
             version: skill.version,
             packageName: value.name,

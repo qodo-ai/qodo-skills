@@ -1,60 +1,47 @@
-# Migration from CLI-managed skills
+# User migration
 
-The previous design bundled editable skill sources in the CLI, copied them into every agent
-directory, and refreshed those copies on ordinary CLI launches. That made the CLI a shadow
-marketplace and coupled skill delivery to runtime releases.
+The migration changes the skill lifecycle owner without changing the Qodo account or runtime.
 
-## Initial import provenance
+## User states
 
-The canonical marketplace package was seeded from the newer skill implementations in
-`qodo-ai/qodo-in-cli@4970ea83ae9d247c474215fa05648c899799f977`, not from the legacy
-copies previously held in this repository. The five imported `SKILL.md` bodies and their
-discovery descriptions are preserved verbatim. Only unsupported frontmatter fields were
-normalized into portable Agent Skills metadata. `qodo-setup` is the one newly authored skill.
+| Starting state | Action | Safe completion |
+|---|---|---|
+| CLI only, official listing available | Install Qodo from the host marketplace | New session loads the four core skills |
+| CLI only, no listing | Run the exact skills.sh command printed by `qodo agents install` | New session loads the selected core skills |
+| Plugin first, CLI missing | Follow `qodo-setup` to the checksum-verified CLI installer | `qodo whoami` and tool refresh succeed |
+| Plugin first, CLI logged out | Run `qodo login` | Identity and tool catalog verify |
+| Older CLI-managed copy plus marketplace plugin | Verify the plugin in a new session, then run explicit cleanup | Only byte-identical retired copies are removed |
+| Older CLI-managed copy with edits | Keep it; decide manually | Cleanup reports no removal |
 
-After this import, skill behavior is authored only in this repository. The CLI may consume a
-generated fallback snapshot, but it must never become a second editable source.
+## Cleanup
 
-## Target behavior
+The retired CLI installer is not an update path. Its only remaining command is migration cleanup:
 
-1. New users install the plugin through their agent and run `qodo-setup`.
-2. Agents without an official Qodo marketplace path receive a consented direct connection from
-   the immutable release artifact and automatic, conflict-safe updates.
-3. Existing CLI-installed users receive an explicit migration notice with host-specific
-   marketplace instructions.
-4. The CLI keeps an explicit offline fallback for a bounded compatibility window.
-5. Normal CLI startup stops refreshing, adding, or deleting unregistered skill copies.
-6. After adoption and rollback gates are met, remove the fallback command and generated
-   snapshot in a separate CLI release.
+```sh
+qodo skills cleanup --agent claude-code --global
+```
 
-## Existing listing cutover
+Shared roots such as `.agents/skills` require explicit acknowledgement after every consumer has
+migrated:
 
-- Claude: preserve the official plugin id `qodo@claude-plugins-official`; Anthropic's directory
-  already migrates the former `qodo-skills` identity to `qodo`. Update its pinned source SHA and
-  repoint it to `packages/qodo/` only after the canonical release passes validation.
-- Kiro: preserve the listing's `kiro-power/` source path. That directory is now a generated Agent
-  Plugins 1.0 adapter, so existing installs can upgrade without a registry path migration.
-- Codex: preserve the existing official plugin identity while replacing the snapshot sourced from
-  `qodo-in-harness/codex-qodo` with the reviewed packet generated from this repository's
-  `codex-packages/qodo/` at the exact release commit.
-  Do not merge the harness
-  deprecation PR until fresh-install and existing-install upgrade verification passes.
-- Treat `qodo-standards` as a new optional capability identity, never as a replacement for a core
-  listing. Existing users do not receive it unless they install it explicitly.
+```sh
+qodo skills cleanup --agent codex --global --force-shared
+```
 
-## Safety rules
+Cleanup verifies the full historical file set and SHA-256 fingerprints before an atomic
+quarantine-and-delete. It does not delete a modified file, symlink, unexpected file, or current
+marketplace/skills.sh package.
 
-- Never delete a skill directory merely because its contents differ; it may be user-owned.
-- Never overwrite a marketplace cache or host settings from the CLI.
-- For direct connections, update only paths recorded in the direct-connect manifest and only
-  while every installed file still matches its recorded digest.
-- Detect legacy Qodo-managed copies using their existing provenance marker and report them.
-- Require a successful marketplace install before offering removal of a legacy copy.
-- Preserve project-scoped skills unless the user explicitly chooses to migrate that project.
-- Keep uninstall reversible or provide the exact recovery path.
+## Update notices
 
-## Exit gate for the fallback
+The CLI refreshes only a compact checksummed version index. When a loaded skill is older, the
+command still succeeds and emits `QODO_NOTICE`. The skill must:
 
-Remove the legacy fallback installer only after all supported hosts have a validated update path, the
-official listings are accepted where applicable, migration telemetry is healthy, and the
-support team has a tested rollback runbook. A merged manifest is not enough.
+1. keep the successful result and finish the task;
+2. inventory the lifecycle owner read-only;
+3. preserve package, agent, and project/global scope;
+4. show a fully resolved update command or host UI action;
+5. ask once before mutation;
+6. request a new agent session after update.
+
+Declining an update leaves the current skill usable. The CLI never silently performs the update.

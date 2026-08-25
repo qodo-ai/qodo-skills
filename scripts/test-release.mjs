@@ -58,87 +58,24 @@ try {
     'utf8',
   ));
   const claudeMarketplace = JSON.parse(readFileSync(join(repositoryRoot, '.claude-plugin', 'marketplace.json'), 'utf8'));
-  const directBundlePath = join(repositoryRoot, 'distribution', 'qodo-skills-direct.json');
-  const directBundleText = readFileSync(directBundlePath, 'utf8');
-  const directBundle = JSON.parse(directBundleText);
   assert.equal(catalog.package.version, expectedPackageVersion);
+  assert.equal(catalog.instructionMode, 'embedded');
   assert.equal(review.version, expectedReviewVersion);
   assert.equal(release.skills[0].version, expectedReviewVersion);
   assert.equal('version' in claudeMarketplace.plugins[0], false);
-  assert.equal(directBundle.package.version, expectedPackageVersion);
-  assert.equal(
-    directBundle.skills.find((skill) => skill.name === 'qodo-review').version,
-    expectedReviewVersion,
+  const generatedReview = readFileSync(
+    join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-review', 'SKILL.md'),
+    'utf8',
   );
-  const directChecksum = readFileSync(`${directBundlePath}.sha256`, 'utf8').match(/^[a-f0-9]{64}/)?.[0];
-  assert.equal(createHash('sha256').update(directBundleText).digest('hex'), directChecksum);
-  const contentDigest = createHash('sha256');
-  for (const installPackage of directBundle.packages) {
-    contentDigest
-      .update('package').update('\0')
-      .update(installPackage.name).update('\0')
-      .update(installPackage.default ? 'default' : 'optional').update('\0');
-    for (const skillName of installPackage.skills) contentDigest.update(skillName).update('\0');
-  }
-  for (const skill of directBundle.skills) {
-    for (const file of skill.files) {
-      const fileDigest = createHash('sha256').update(file.content).digest('hex');
-      assert.equal(fileDigest, file.sha256);
-      contentDigest
-        .update(skill.name).update('\0')
-        .update(skill.version).update('\0')
-        .update(file.path).update('\0')
-        .update(file.sha256).update('\0');
-    }
-  }
-  assert.equal(contentDigest.digest('hex'), directBundle.package.contentSha256);
-  const playbookPath = join(repositoryRoot, 'distribution', 'qodo-playbooks.json');
-  const playbookText = readFileSync(playbookPath, 'utf8');
-  const playbookBundle = JSON.parse(playbookText);
-  const playbookChecksum = readFileSync(`${playbookPath}.sha256`, 'utf8').match(/^[a-f0-9]{64}/)?.[0];
-  assert.equal(createHash('sha256').update(playbookText).digest('hex'), playbookChecksum);
-  assert.equal(playbookBundle.schemaVersion, 1);
-  assert.equal(playbookBundle.package.version, expectedPackageVersion);
-  assert.deepEqual(playbookBundle.packages, catalog.installPackages.map((entry) => ({
-    name: entry.name,
-    default: entry.default,
-    skills: entry.skills,
-  })));
-  assert.equal(playbookBundle.workflows.length, catalog.skills.length);
-  for (const workflow of playbookBundle.workflows) {
-    const catalogSkill = catalog.skills.find((skill) => skill.name === workflow.name);
-    assert.ok(catalogSkill, `${workflow.name}: missing from catalog`);
-    assert.equal(workflow.version, catalogSkill.version);
-    assert.equal(createHash('sha256').update(workflow.content).digest('hex'), workflow.contentSha256);
-    assert.equal(
-      workflow.content.startsWith('---\n'),
-      false,
-      `${workflow.name}: playbook must not start with SKILL.md frontmatter`,
-    );
-    assert.match(workflow.content, /^#\s+/m, `${workflow.name}: playbook must contain a heading`);
-  }
-  const cliBundlePath = join(repositoryRoot, 'distribution', 'bundled-skills.generated.ts');
-  execFileSync(process.execPath, [
-    join(repositoryRoot, 'scripts', 'export-cli-bundle.mjs'),
-    cliBundlePath,
-  ], { cwd: repositoryRoot, stdio: 'pipe' });
-  const cliBundle = readFileSync(cliBundlePath, 'utf8');
-  assert.match(cliBundle, /distribution: \\"qodo-direct\\"/);
-  assert.doesNotMatch(cliBundle, /distribution: \\"skills-sh\\"/);
-  assert.match(cliBundle, new RegExp(directBundle.package.contentSha256));
-  for (const installPackage of directBundle.packages) {
-    for (const skillName of installPackage.skills) {
-      assert.match(
-        cliBundle,
-        new RegExp(`\\"name\\": \\"${skillName}\\",\\n\\s+\\"package\\": \\"${installPackage.name}\\"`),
-      );
-    }
-  }
-  rmSync(cliBundlePath);
+  assert.match(generatedReview, /instruction_mode: "embedded"/);
+  assert.match(generatedReview, /## Handle a skill update notice/);
+  assert.doesNotMatch(generatedReview, /qodo help workflow/);
+  assert.match(generatedReview, /--distribution marketplace --host claude-code/);
   const releaseIndexPath = join(repositoryRoot, 'distribution', 'qodo-skills-index.json');
   const releaseIndexText = readFileSync(releaseIndexPath, 'utf8');
   const releaseIndex = JSON.parse(releaseIndexText);
   assert.equal(releaseIndex.packageVersion, expectedPackageVersion);
+  assert.equal(releaseIndex.instructionMode, 'embedded');
   assert.deepEqual(releaseIndex.skills['qodo-review'], {
     version: expectedReviewVersion,
     package: 'qodo',
