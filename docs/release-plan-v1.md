@@ -23,10 +23,11 @@ state. Repository configuration alone is not evidence.
 
 Release the `qodo-in-cli` change before changing any listing:
 
-- `qodo setup` authenticates, discovers installed local agents, and offers official marketplace
-  installs only when the provider snapshot exposes Qodo.
+- `qodo setup` authenticates, discovers installed local agents, and reports official marketplace
+  state and native next steps only when the provider snapshot exposes Qodo.
 - `qodo agents status --json` reports installed, available, not listed, action required, or error.
-- `qodo agents install` is idempotent and never invents a marketplace ID.
+- `qodo agents install` is idempotent, never invents a marketplace ID, and never mutates a
+  marketplace-owned plugin or cache.
 - Kiro remains a provider-UI step because the curated install is owned by Kiro.
 - ordinary startup no longer writes marketplace-managed skills;
 - `qodo skills install` remains the explicit offline fallback;
@@ -40,7 +41,7 @@ marketplace status outcomes pass on macOS, Linux, and Windows. Do not remove leg
 
 ## Stage 2 — publish canonical skills and cut Claude/Kiro over in place
 
-Merge and publish `qodo-skills` v1.0.1 only after Stage 1 is available:
+Merge and publish `qodo-skills` v1.0.2 only after Stage 1 is available:
 
 - canonical skills remain under `skills/`;
 - Claude preserves its official core plugin ID while repointing to `packages/qodo/`;
@@ -59,7 +60,7 @@ core listings; the optional standards capability has its own explicit identity.
 update replacement. Restart the host where required.
 
 **Rollback:** publish a new canonical patch restoring the last good behavior and repoint the
-provider to that immutable patch. Never move v1.0.1 or mutate a cached package.
+provider to that immutable patch. Never move v1.0.2 or mutate a cached package.
 
 ## Stage 2B — enable direct connections for agents without a marketplace
 
@@ -71,7 +72,7 @@ After Stage 1's CLI is available and the Stage 2 release exists, validate the di
 - setup detects only installed agents without an official Qodo marketplace path;
 - consent says “Connect Qodo to <agent>?” and explains automatic official-skill updates;
 - interactive setup locks the four-skill core and offers `qodo-standards`; non-interactive setup
-  installs only core;
+  never manufactures consent or writes a direct skill root;
 - selected package IDs persist per target; updates never add a newly published optional package;
 - the CLI verifies the release checksum, every safe relative path, each file digest, and the
   aggregate content digest before writing;
@@ -166,8 +167,8 @@ Keep the fallback for at least two normal CLI release cycles. Remove it only whe
 | Scenario | Expected result |
 |---|---|
 | CLI first, no agents | Login succeeds; no plugin success is claimed |
-| CLI first, Claude listing visible | Exact official ID installs at user scope |
-| CLI first, Codex listing visible under any marketplace name | Discovered plugin ID installs |
+| CLI first, Claude listing visible | Exact official ID and native user-scope install step are reported; Claude owns installation |
+| CLI first, Codex listing visible under any marketplace name | Discovered plugin ID and marketplace are reported; Codex owns installation |
 | CLI first, listing rollout incomplete | `not_listed`; fallback remains untouched |
 | Plugin first, CLI missing | `qodo-setup` points to the verified CLI installer and stops |
 | Plugin first, CLI logged out | `qodo-setup` runs the one supported login flow |

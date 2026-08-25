@@ -44,11 +44,22 @@ jobs:
           node scripts/release-notes.mjs "${NOTES}"
 
           if gh release view "${TAG}" >/dev/null 2>&1; then
+            test "$(git rev-list -n 1 "${TAG}")" = "${GITHUB_SHA}"
             test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" = 'true'
             exit 0
           fi
 
-          if ! git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+          if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" --jq '.enabled')" != 'true' ]]; then
+            echo 'Release immutability is disabled. Enable it before creating a tag or release.' >&2
+            exit 1
+          fi
+
+          if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+            if [[ "$(git rev-list -n 1 "${TAG}")" != "${GITHUB_SHA}" ]]; then
+              echo "${TAG} already points to a different commit; refusing to publish." >&2
+              exit 1
+            fi
+          else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git tag -a "${TAG}" -m "Qodo skills ${TAG}"
@@ -64,3 +75,5 @@ jobs:
             echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
             exit 1
           fi
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
+            'qodo-skills-direct.json qodo-skills-direct.json.sha256 qodo-skills-index.json qodo-skills-index.json.sha256'

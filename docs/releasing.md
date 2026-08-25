@@ -36,7 +36,9 @@ on the base branch.
 
 Before the first release, a repository administrator must enable **Settings → Releases →
 Enable release immutability**. GitHub applies this only to future releases. The release workflow
-checks the published release's `immutable` API field and fails the release job unless it is true.
+checks the repository setting before creating a tag or release, then checks the published release's
+`immutable` API field and expected asset inventory. It fails closed before publication when
+immutability is disabled.
 This makes the tag and attached direct-connect artifact non-replaceable after publication.
 
 The `Release skills` workflow performs the GitHub-side publication:
