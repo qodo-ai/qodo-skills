@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "qodo-standards",
+  "version": "1.0.2",
+  "description": "Optional Qodo rules discovery and standards administration workflows.",
+  "author": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "homepage": "https://www.qodo.ai",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT",
+  "keywords": [
+    "qodo",
+    "code-review",
+    "code-intelligence",
+    "standards",
+    "coding-agents"
+  ]
+}

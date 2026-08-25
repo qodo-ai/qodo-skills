@@ -127,6 +127,10 @@ export function prepareRelease(argv, repositoryRoot = root) {
     cwd: repositoryRoot,
     stdio: 'inherit',
   });
+  execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'build-playbook-bundle.mjs')], {
+    cwd: repositoryRoot,
+    stdio: 'inherit',
+  });
   execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'build-release-index.mjs')], {
     cwd: repositoryRoot,
     stdio: 'inherit',

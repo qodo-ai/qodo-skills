@@ -4,11 +4,10 @@
 
 | Surface | Manifest | Skill location | Update owner |
 |---|---|---|---|
-| Codex | `packages/<name>/.codex-plugin/plugin.json` | `packages/<name>/skills/` | Codex marketplace, one entry per install package |
+| Codex | `codex-packages/<name>/.codex-plugin/plugin.json` | `codex-packages/<name>/skills/` | Codex marketplace, one entry per install package |
 | Claude Code | `packages/<name>/.claude-plugin/plugin.json` | `packages/<name>/skills/` | Claude marketplace, one entry per install package |
 | Kiro / Agent Plugins 1.0 | `kiro-power*/plugin.json` | `kiro-power*/skills/` | Separate core and standards Powers |
-| Cursor / Agent Plugins 1.0 | `packages/<name>/plugin.json` | `packages/<name>/skills/` | Cursor Marketplace after provider acceptance; direct connection until then |
-| Gemini CLI | `packages/<name>/gemini-extension.json` | `packages/<name>/skills/` | Gemini extension manager |
+| Portable Agent Skills | canonical `skills/<name>/SKILL.md` | skills.sh project/global scope | skills.sh |
 | Direct-connect agents | `distribution/qodo-skills-direct.json` | Agent-owned skills directory | Verified Qodo direct-connect updater |
 
 The package is skills-only. There is no `mcp.json`, `.mcp.json`, or hosted tool server.
@@ -32,8 +31,9 @@ Unchanged skills keep their skill version. The release tag is `v<package-version
    migration.
 3. Release runtime support before releasing a skill that depends on it.
 4. A skill detects missing login separately from a stale or missing catalog.
-5. Host-only metadata may differ, but it must not change workflow semantics.
-6. No adapter may contain a second copy of a `SKILL.md` body.
+5. Host-only frontmatter and loader identity may differ, but the verified playbook body must not.
+6. Marketplace adapters contain only triggers, exact loader validation, and the static authority
+   ceiling; they never contain a second full copy of a canonical workflow body.
 7. Source installs track the repository; stable marketplace listings should track releases.
 8. Direct-connect installs consume only the immutable release artifact and its published SHA-256.
 9. The core package contains only skills assigned to the single default install package; optional

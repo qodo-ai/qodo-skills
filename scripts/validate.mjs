@@ -212,16 +212,16 @@ for (const skill of catalog.skills ?? []) {
 const expectedVersions = [
   ['package.json', json('package.json').version],
   ['packages/qodo/plugin.json', json('packages/qodo/plugin.json').version],
-  ['packages/qodo/.codex-plugin/plugin.json', json('packages/qodo/.codex-plugin/plugin.json').version],
+  ['codex-packages/qodo/plugin.json', json('codex-packages/qodo/plugin.json').version],
+  ['codex-packages/qodo/.codex-plugin/plugin.json', json('codex-packages/qodo/.codex-plugin/plugin.json').version],
   ['packages/qodo-standards/plugin.json', json('packages/qodo-standards/plugin.json').version],
-  ['packages/qodo-standards/.codex-plugin/plugin.json', json('packages/qodo-standards/.codex-plugin/plugin.json').version],
+  ['codex-packages/qodo-standards/plugin.json', json('codex-packages/qodo-standards/plugin.json').version],
+  ['codex-packages/qodo-standards/.codex-plugin/plugin.json', json('codex-packages/qodo-standards/.codex-plugin/plugin.json').version],
   ['kiro-power/plugin.json', json('kiro-power/plugin.json').version],
   ['kiro-power-standards/plugin.json', json('kiro-power-standards/plugin.json').version],
   ['packages/qodo/.claude-plugin/plugin.json', json('packages/qodo/.claude-plugin/plugin.json').version],
   ['packages/qodo-standards/.claude-plugin/plugin.json', json('packages/qodo-standards/.claude-plugin/plugin.json').version],
   ['.claude-plugin/marketplace.json metadata', json('.claude-plugin/marketplace.json').metadata?.version],
-  ['packages/qodo/gemini-extension.json', json('packages/qodo/gemini-extension.json').version],
-  ['packages/qodo-standards/gemini-extension.json', json('packages/qodo-standards/gemini-extension.json').version],
 ];
 for (const [path, version] of expectedVersions) {
   if (version !== packageVersion) fail(`${path}: version ${version ?? '<missing>'} != ${packageVersion}`);
@@ -242,12 +242,12 @@ for (const field of Object.keys(agentPlugin)) {
 const codexMarketplace = json('.agents/plugins/marketplace.json');
 const codexEntry = codexMarketplace.plugins?.find((entry) => entry.name === catalog.package?.name);
 if (codexMarketplace.name !== 'qodo' || !codexEntry) fail('Codex marketplace must expose qodo');
-if (codexEntry?.source?.path !== './packages/qodo') fail('Codex marketplace must package the generated core root');
+if (codexEntry?.source?.path !== './codex-packages/qodo') fail('Codex marketplace must package the host-specific generated core root');
 if (codexEntry?.policy?.authentication !== 'ON_USE') {
   fail('Codex marketplace authentication must happen on first use');
 }
 const codexStandards = codexMarketplace.plugins?.find((entry) => entry.name === 'qodo-standards');
-if (codexStandards?.source?.path !== './packages/qodo-standards') {
+if (codexStandards?.source?.path !== './codex-packages/qodo-standards') {
   fail('Codex marketplace must expose standards as a separate optional plugin');
 }
 
@@ -284,20 +284,30 @@ for (const installPackage of catalog.installPackages ?? []) {
   for (const skillName of installPackage.skills) {
     const skill = catalog.skills.find((entry) => entry.name === skillName);
     const generated = [
-      [`packages/${installPackage.name}/skills/${skillName}/SKILL.md`, 'marketplace'],
+      [`packages/${installPackage.name}/skills/${skillName}/SKILL.md`, 'marketplace', 'claude-code'],
+      [`codex-packages/${installPackage.name}/skills/${skillName}/SKILL.md`, 'marketplace', 'codex'],
       [
         `${installPackage.name === catalog.package.name ? 'kiro-power' : 'kiro-power-standards'}/skills/${skillName}/SKILL.md`,
         'kiro-power',
+        'kiro',
       ],
     ];
-    for (const [path, distribution] of generated) {
+    for (const [path, distribution, host] of generated) {
       const meta = frontmatter(join(root, path));
       if (meta.metadata.package !== installPackage.name || meta.metadata.distribution !== distribution) {
         fail(`${path}: generated provenance differs from catalog`);
       }
       const text = readFileSync(join(root, path), 'utf8');
-      const marker = `--skill ${skillName} --skill-version ${skill.version} --distribution ${distribution}`;
-      if (!text.includes(marker)) fail(`${path}: missing generated provenance invocation`);
+      const loader = `qodo help workflow ${skillName} --distribution ${distribution} --host ${host} --json`;
+      if (!text.includes(loader)) fail(`${path}: missing exact host-scoped playbook loader`);
+      if ((text.match(/qodo help workflow /g) ?? []).length !== 1) {
+        fail(`${path}: bootstrap must contain exactly one playbook loader`);
+      }
+      if (!text.includes('## Static authority ceiling')) fail(`${path}: missing static authority ceiling`);
+      if (!text.includes('may be\n  newer than this discovery bootstrap')) {
+        fail(`${path}: bootstrap incorrectly pins routine playbook updates to its own version`);
+      }
+      if (text.includes('## Handle a skill update notice')) fail(`${path}: marketplace adapter contains the full canonical playbook`);
     }
   }
 }

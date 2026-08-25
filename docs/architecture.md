@@ -2,43 +2,46 @@
 
 ## The invariant
 
-Qodo authors each skill once in this repository. Marketplaces distribute and update plugins;
-agents without an official marketplace path consume the immutable direct-connect release.
-The `qodo` CLI supplies the authenticated, evolving runtime and acts only as the verified
-transport for direct-connect artifacts.
+Qodo authors each complete workflow once in this repository. Marketplaces distribute and update
+small discovery bootstraps; agents without an official marketplace path consume the immutable
+portable/direct release. The `qodo` CLI supplies the authenticated runtime and serves the latest
+checksummed playbook from a bounded last-known-good cache.
 
 This separates three lifecycles that otherwise fight each other:
 
 | Layer | Owns | Must not own |
 |---|---|---|
-| `qodo-skills` | Skill instructions, discovery copy, package version, host adapters | Credentials, API transport, binary updates |
+| `qodo-skills` | Canonical workflow bodies, discovery copy, package version, host adapters and playbook releases | Credentials, API transport, binary updates |
 | Marketplace host | Plugin install, cache, enablement, update UX | Qodo authentication or tool semantics |
 | Direct-connect channel | Immutable release bundle, published checksum, agent skill-directory update | Authored skill copies, marketplace caches, user-owned files |
-| `qodo` CLI | Login, credential storage, tool catalog, API compatibility, runtime update, verified direct-connect transport | Rewriting marketplace-managed plugin files or embedding direct-connect skill content |
+| `qodo` CLI | Login, credential storage, tool catalog, API compatibility, runtime update, verified playbook cache and direct-connect transport | Rewriting marketplace-managed plugin files or caches |
 
 ## Repository model
 
 `skills/<name>/SKILL.md` is canonical product content. The distribution catalog is the
 canonical package and presentation metadata. `npm run adapters` renders the catalog into:
 
-- `packages/qodo/` for the existing four-skill core identity and
-  `packages/qodo-standards/` for the optional rules capability;
+- `packages/qodo/` and `packages/qodo-standards/` for Claude's exact host bootstraps;
+- `codex-packages/qodo/` and `codex-packages/qodo-standards/` for Codex release packets;
 - `kiro-power/` as the generated core projection at Kiro's existing listing path and
   `kiro-power-standards/` as its separately installed optional Power;
-- package-local Codex, Claude Code, Agent Plugins, and Gemini manifests;
+- provider-local Codex, Claude Code, and Agent Plugins manifests;
 - root Codex and Claude marketplace catalogs that list the two atomic packages;
 - `skills/*/agents/openai.yaml` for Codex skill presentation;
 - `distribution/qodo-skills-direct.json` and its SHA-256 for agents without a marketplace.
+- `distribution/qodo-playbooks.json` and its SHA-256 for the CLI's bounded, verified
+  last-known-good playbook cache. It contains canonical workflow bodies only; marketplace
+  frontmatter, semantic triggers, package membership, and authority ceilings remain static.
 
 Generated adapters are committed because hosts read the repository directly. They are
 never edited by hand; CI rejects drift from the catalog.
 
-Every skill invocation carries `--skill`, `--skill-version`, and `--distribution`. Canonical
-`skills/` sources use `skills-sh`; universal Agent Plugin packages use `marketplace`; Kiro
-projections use `kiro-power`; the temporary migration artifact uses `qodo-direct`. The universal
-marketplace package intentionally does not hard-code Claude, Codex, or Cursor: the CLI combines
-the package provenance with the runtime host signal. Distribution wins over host identity, so a
-skills.sh-installed skill running inside Claude Code remains owned by skills.sh.
+Canonical `skills/` sources use `skills-sh`; Claude and Codex bootstraps use `marketplace` plus an
+exact `claude-code` or `codex` host; Kiro projections use `kiro-power` plus `kiro`; the temporary
+migration artifact uses `qodo-direct`. Distribution wins over host identity, so a skills.sh-installed
+skill running inside Claude Code remains owned by skills.sh. A marketplace bootstrap loads exactly
+one workflow with `qodo help workflow <name> --distribution <lifecycle> --host <host> --json` and
+fails closed on a mismatched verified envelope.
 
 The direct artifact has no agent allowlist, install path, or host adapter. Eligibility is
 capability-based in the CLI: a recognized host is direct-connectable when its registry entry has
@@ -46,8 +49,9 @@ a verified project or global skills directory and does not declare an official Q
 channel. Adding a compatible agent therefore changes only the CLI registry; routine skill releases
 remain unchanged.
 
-Claude and Codex preserve their existing official `qodo` identities while repointing them to
-`packages/qodo/`; `qodo-standards` is a distinct optional listing. Kiro consumes `kiro-power/` for
+Claude preserves its existing official `qodo` identity at `packages/qodo/`; Codex preserves its
+identity using the reviewed snapshot generated from `codex-packages/qodo/`; `qodo-standards` is a
+distinct optional listing. Kiro consumes `kiro-power/` for
 core and `kiro-power-standards/` for the optional Power. Cursor can consume the generated package after
 its marketplace submission is accepted; until then it remains direct-connected. The Codex listing
 must be repointed from the deprecated `qodo-in-harness/codex-qodo` source only after an

@@ -34,8 +34,9 @@ generated fallback snapshot, but it must never become a second editable source.
   repoint it to `packages/qodo/` only after the canonical release passes validation.
 - Kiro: preserve the listing's `kiro-power/` source path. That directory is now a generated Agent
   Plugins 1.0 adapter, so existing installs can upgrade without a registry path migration.
-- Codex: preserve the existing official plugin identity while repointing its source from
-  `qodo-in-harness/codex-qodo` to this repository's `packages/qodo/` at the exact release commit.
+- Codex: preserve the existing official plugin identity while replacing the snapshot sourced from
+  `qodo-in-harness/codex-qodo` with the reviewed packet generated from this repository's
+  `codex-packages/qodo/` at the exact release commit.
   Do not merge the harness
   deprecation PR until fresh-install and existing-install upgrade verification passes.
 - Treat `qodo-standards` as a new optional capability identity, never as a replacement for a core

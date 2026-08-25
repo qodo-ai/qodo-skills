@@ -47,7 +47,7 @@ jobs:
             test "$(git rev-list -n 1 "${TAG}")" = "${GITHUB_SHA}"
             test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" = 'true'
             test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
-              'qodo-skills-direct.json qodo-skills-direct.json.sha256 qodo-skills-index.json qodo-skills-index.json.sha256'
+              'qodo-playbooks.json qodo-playbooks.json.sha256 qodo-skills-direct.json qodo-skills-direct.json.sha256 qodo-skills-index.json qodo-skills-index.json.sha256'
             exit 0
           fi
 
@@ -69,6 +69,8 @@ jobs:
           fi
 
           gh release create "${TAG}" --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}" \
+            distribution/qodo-playbooks.json \
+            distribution/qodo-playbooks.json.sha256 \
             distribution/qodo-skills-direct.json \
             distribution/qodo-skills-direct.json.sha256 \
             distribution/qodo-skills-index.json \
@@ -78,4 +80,4 @@ jobs:
             exit 1
           fi
           test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
-            'qodo-skills-direct.json qodo-skills-direct.json.sha256 qodo-skills-index.json qodo-skills-index.json.sha256'
+            'qodo-playbooks.json qodo-playbooks.json.sha256 qodo-skills-direct.json qodo-skills-direct.json.sha256 qodo-skills-index.json qodo-skills-index.json.sha256'

@@ -1,6 +1,7 @@
 # Releasing
 
-Releases update skills through marketplaces; they never publish or update the `qodo` binary.
+Releases publish workflow bodies through the verified playbook feed and bootstrap changes through
+marketplaces; they never publish or update the `qodo` binary.
 
 ## One pull request
 
@@ -46,8 +47,9 @@ The `Release skills` workflow performs the GitHub-side publication:
 1. Re-run the complete validation suite on the merged commit.
 2. Create an annotated `v<package-version>` tag on that exact commit.
 3. Render the immutable release record into a GitHub Release.
-4. Attach `qodo-skills-index.json` and its SHA-256 for metadata-only version checks. During the
-   migration window, also attach `qodo-skills-direct.json` and its SHA-256 for direct-connected agents.
+4. Attach `qodo-skills-index.json` and its SHA-256 for metadata-only version checks,
+   `qodo-playbooks.json` and its SHA-256 for the CLI's verified playbook cache, and—during the
+   migration window—`qodo-skills-direct.json` and its SHA-256 for direct-connected agents.
 5. Stop. Marketplace promotion is a separate, selectable operation so one provider delay cannot
    silently change another provider's release state.
 
@@ -93,13 +95,17 @@ never a hidden side effect of this repository's release workflow.
 |---|---|
 | Codex | Install the update offered by the official Codex marketplace and restart when prompted |
 | Claude Code | `claude plugin update qodo@claude-plugins-official` |
-| Cursor | Cursor Marketplace after listing acceptance; verified direct connection before cutover |
-| Gemini CLI | Automatic when installed with `--auto-update`, or `gemini extensions update qodo` |
+| Other compatible agents | skills.sh-scoped update, or the verified direct connection before a native cutover |
 | Kiro | Power → Check for updates → Install updates |
 | Direct-connect agent | Qodo checks the immutable release feed in the background and applies the verified bundle for the next agent session |
 
 Marketplace and direct updates replace only packages already installed or selected. A newly
 published optional package is discoverable, not automatically installed.
+
+Ordinary workflow wording does not wait for those host updates: the next invocation loads the
+new checksummed playbook after the CLI refreshes its bounded cache. A marketplace release is still
+required when triggers, package membership, loader protocol/host identity, the static authority
+ceiling, manifests, or listing metadata changes.
 
 The `qodo` runtime updates on its own channel with `qodo update`; a plugin update must never
 overwrite it.

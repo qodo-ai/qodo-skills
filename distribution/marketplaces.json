@@ -32,12 +32,12 @@
         {
           "package": "qodo",
           "id": "qodo",
-          "sourcePath": "packages/qodo"
+          "sourcePath": "codex-packages/qodo"
         },
         {
           "package": "qodo-standards",
           "id": "qodo-standards",
-          "sourcePath": "packages/qodo-standards"
+          "sourcePath": "codex-packages/qodo-standards"
         }
       ]
     },

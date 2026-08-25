@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { stampSkillProvenance } from './skill-provenance.mjs';
+import { buildMarketplaceBootstrap } from './skill-provenance.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const check = process.argv.includes('--check');
@@ -137,12 +137,13 @@ function codexManifest(value) {
   };
 }
 
-function generatedPackageFiles(value, adapterSet = 'all') {
+function generatedPackageFiles(value, adapterSet = 'claude') {
   const files = new Map([
     ['plugin.json', `${JSON.stringify(pluginManifest(value), null, 2)}\n`],
   ]);
-  if (adapterSet === 'all') {
+  if (adapterSet === 'codex') {
     files.set('.codex-plugin/plugin.json', `${JSON.stringify(codexManifest(value), null, 2)}\n`);
+  } else if (adapterSet === 'claude') {
     files.set('.claude-plugin/plugin.json', `${JSON.stringify({
       name: listing('claude', value.name).id,
       version: pkg.version,
@@ -153,16 +154,11 @@ function generatedPackageFiles(value, adapterSet = 'all') {
       license: pkg.license,
       keywords,
     }, null, 2)}\n`);
-    files.set('gemini-extension.json', `${JSON.stringify({
-      name: value.name,
-      version: pkg.version,
-      description: value.description,
-    }, null, 2)}\n`);
   } else {
     files.set('README.md', [
       `# ${value.displayName} for Kiro`,
       '',
-      'Generated from the canonical skills in `../skills/`.',
+      'Generated discovery bootstraps load verified playbooks from the separately installed Qodo CLI.',
       `Install or update ${value.displayName} through the Kiro Powers marketplace.`,
       'The Qodo CLI remains a separate runtime and is never bundled here.',
       '',
@@ -176,16 +172,18 @@ function generatedPackageFiles(value, adapterSet = 'all') {
     const sourceRoot = join(root, 'skills', skillName);
     const skill = catalog.skills.find((entry) => entry.name === skillName);
     const distribution = adapterSet === 'kiro' ? 'kiro-power' : 'marketplace';
+    const host = adapterSet === 'kiro' ? 'kiro' : adapterSet === 'codex' ? 'codex' : 'claude-code';
     for (const path of collectFiles(sourceRoot)) {
       const content = readFileSync(join(sourceRoot, path), 'utf8');
       files.set(
         `skills/${skillName}/${path}`,
         path === 'SKILL.md'
-          ? stampSkillProvenance(content, {
+          ? buildMarketplaceBootstrap(content, {
             name: skillName,
             version: skill.version,
             packageName: value.name,
             distribution,
+            host,
           })
           : content,
       );
@@ -237,7 +235,7 @@ writeJson('.agents/plugins/marketplace.json', {
   interface: { displayName: 'Qodo' },
   plugins: catalog.installPackages.map((value) => ({
     name: value.name,
-    source: { source: 'local', path: `./packages/${value.name}` },
+    source: { source: 'local', path: `./codex-packages/${value.name}` },
     policy: { installation: 'AVAILABLE', authentication: 'ON_USE' },
     category: 'Developer Tools',
   })),
@@ -260,7 +258,8 @@ writeJson('.claude-plugin/marketplace.json', {
 });
 
 for (const value of catalog.installPackages) {
-  syncGeneratedDirectory(`packages/${value.name}`, generatedPackageFiles(value));
+  syncGeneratedDirectory(`packages/${value.name}`, generatedPackageFiles(value, 'claude'));
+  syncGeneratedDirectory(`codex-packages/${value.name}`, generatedPackageFiles(value, 'codex'));
 }
 
 // Keep the existing Kiro core source path stable. Optional capabilities are a

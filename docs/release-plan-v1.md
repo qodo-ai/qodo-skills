@@ -23,8 +23,9 @@ input and are never stored in release artifacts.
   - Kiro: the official `qodo` Power already follows `qodo-ai/qodo-skills`, branch `main`, path
     `kiro-power`; the separate `qodo-standards` Power still needs acceptance.
   - Codex: preserve the existing `qodo` entry while replacing the reviewed snapshot sourced from
-    `qodo-in-harness/codex-qodo` with `packages/qodo/`.
-- Confirm the provider can repoint that existing Codex entry to `qodo-ai/qodo-skills/packages/qodo`
+    `qodo-in-harness/codex-qodo` with the packet generated from `codex-packages/qodo/`.
+- Confirm the provider can repoint that existing Codex entry to the approved
+  `qodo-ai/qodo-skills/codex-packages/qodo` release snapshot
   without
   creating a new plugin identity.
 - Record the last known-good provider versions, source SHAs, artifacts, and reinstall steps.
@@ -64,7 +65,7 @@ Merge and publish `qodo-skills` v1.0.2 only after Stage 1 is available:
   projection;
 - `qodo-standards` is submitted as a separate optional Claude plugin and Kiro Power sourced from
   `packages/qodo-standards/` and `kiro-power-standards/`;
-- the same release contains package-local Codex manifests, but the Codex listing remains unchanged
+- the same release contains separate `codex-packages/` bootstraps, but the Codex listing remains unchanged
   until Stage 3.
 
 Run `Ship marketplaces` for Claude and Kiro. Claude turns green only after the official catalog
@@ -81,7 +82,10 @@ provider to that immutable patch. Never move v1.0.2 or mutate a cached package.
 
 ## Stage 2B — enable direct connections for agents without a marketplace
 
-The same immutable `qodo-skills` release publishes `qodo-skills-direct.json` and its SHA-256.
+The same immutable `qodo-skills` release publishes `qodo-playbooks.json` plus its SHA-256 for
+the CLI-managed verified playbook cache, and `qodo-skills-direct.json` plus its SHA-256 for
+direct-connected agents. These are separate lifecycle surfaces: the playbook artifact never writes
+an agent skill root, while the direct artifact is used only after explicit connection consent.
 After Stage 1's CLI is available and the Stage 2 release exists, validate the direct channel:
 
 - a repository administrator enables GitHub immutable releases before publication, and the
@@ -119,7 +123,7 @@ Do not mutate an existing release asset or fall back to the CLI's embedded compa
 Run `Ship marketplaces` with Codex selected. Download its exact release packet, update the existing
 Codex listing through the OpenAI plugin portal, wait for review, publish the approved snapshot, and
 only then approve the protected `marketplace-codex` environment. Repoint the existing listing from
-`qodo-in-harness/codex-qodo` to the exact released `qodo-skills` commit at `packages/qodo/`. Do not
+`qodo-in-harness/codex-qodo` to the exact released snapshot generated from `codex-packages/qodo/`. Do not
 submit a replacement core plugin. Publish `qodo-standards` only as a distinct optional entry. Verify:
 
 - the provider-visible plugin ID is unchanged;
@@ -142,8 +146,9 @@ listing or mutate an old tag.
 
 ## Stage 3B — add Cursor's native marketplace without dual ownership
 
-Cursor accepts generated Agent Plugins 1.0 packages. Submit `packages/qodo/` and, separately,
-`packages/qodo-standards/` through Cursor's reviewed marketplace flow. Until the core listing is provider-visible,
+When Cursor accepts the provider contract, add generated Cursor-specific core and standards roots
+with `--host cursor`; never reuse Claude's `packages/` bootstrap. Submit those roots through
+Cursor's reviewed marketplace flow. Until the core listing is provider-visible,
 Cursor remains on the generic direct channel; repository readiness is not listing acceptance.
 
 **Gate:** provider-visible Qodo listing, exact released source/version, clean install, native skill

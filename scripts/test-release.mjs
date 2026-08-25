@@ -92,6 +92,31 @@ try {
     }
   }
   assert.equal(contentDigest.digest('hex'), directBundle.package.contentSha256);
+  const playbookPath = join(repositoryRoot, 'distribution', 'qodo-playbooks.json');
+  const playbookText = readFileSync(playbookPath, 'utf8');
+  const playbookBundle = JSON.parse(playbookText);
+  const playbookChecksum = readFileSync(`${playbookPath}.sha256`, 'utf8').match(/^[a-f0-9]{64}/)?.[0];
+  assert.equal(createHash('sha256').update(playbookText).digest('hex'), playbookChecksum);
+  assert.equal(playbookBundle.schemaVersion, 1);
+  assert.equal(playbookBundle.package.version, expectedPackageVersion);
+  assert.deepEqual(playbookBundle.packages, catalog.installPackages.map((entry) => ({
+    name: entry.name,
+    default: entry.default,
+    skills: entry.skills,
+  })));
+  assert.equal(playbookBundle.workflows.length, catalog.skills.length);
+  for (const workflow of playbookBundle.workflows) {
+    const catalogSkill = catalog.skills.find((skill) => skill.name === workflow.name);
+    assert.ok(catalogSkill, `${workflow.name}: missing from catalog`);
+    assert.equal(workflow.version, catalogSkill.version);
+    assert.equal(createHash('sha256').update(workflow.content).digest('hex'), workflow.contentSha256);
+    assert.equal(
+      workflow.content.startsWith('---\n'),
+      false,
+      `${workflow.name}: playbook must not start with SKILL.md frontmatter`,
+    );
+    assert.match(workflow.content, /^#\s+/m, `${workflow.name}: playbook must contain a heading`);
+  }
   const cliBundlePath = join(repositoryRoot, 'distribution', 'bundled-skills.generated.ts');
   execFileSync(process.execPath, [
     join(repositoryRoot, 'scripts', 'export-cli-bundle.mjs'),

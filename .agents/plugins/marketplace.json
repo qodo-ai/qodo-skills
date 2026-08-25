@@ -8,7 +8,7 @@
       "name": "qodo",
       "source": {
         "source": "local",
-        "path": "./packages/qodo"
+        "path": "./codex-packages/qodo"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -20,7 +20,7 @@
       "name": "qodo-standards",
       "source": {
         "source": "local",
-        "path": "./packages/qodo-standards"
+        "path": "./codex-packages/qodo-standards"
       },
       "policy": {
         "installation": "AVAILABLE",

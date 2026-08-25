@@ -5,9 +5,9 @@ local coding agents developers already use.
 
 > **Qodo authors skills once; marketplaces update plugins; the CLI updates the runtime.**
 
-This repository is both the canonical source for Qodo's agent skills and a native package
-for Codex, Claude Code, Kiro, Gemini CLI, and hosts that implement the Agent Plugins 1.0
-format. It contains no MCP server and no copied credentials. Every skill calls the local
+This repository is both the canonical source for Qodo's agent workflows and the release source
+for Codex, Claude Code, Kiro, and portable Agent Skills installations. It contains no MCP server
+and no copied credentials. Every workflow calls the local
 `qodo` runtime, which owns login, tool discovery, compatibility, and updates.
 
 ## Start here
@@ -29,9 +29,8 @@ before login, but the operational skills stay unusable until authentication succ
 | Codex | Install **Qodo** from the official Codex marketplace |
 | Claude Code | `claude plugin install qodo@claude-plugins-official --scope user` |
 | Cursor | Use `qodo setup` until the Qodo Agent Plugin is accepted into Cursor Marketplace |
-| Gemini CLI | Install the generated **Qodo** package through its accepted extension entry |
 | Kiro | Install **Qodo** from the curated Powers marketplace |
-| Agent Plugins hosts | Import the generated `packages/qodo/` package through the host's plugin UI |
+| Other compatible agents | Install from `qodo-ai/qodo-skills` with skills.sh; the Qodo CLI never guesses a host marketplace |
 
 These source-install commands are immediately usable after the branch is published.
 Official marketplace listings are separate release operations; see
@@ -52,8 +51,10 @@ a binary during marketplace installation.
 | `qodo-review-resolver` | Read and resolve Qodo pull-request findings | ✓ |
 | `qodo-manage-standards` | Create and administer Qodo Review Standards | Optional standards package |
 
-The skill instructions under [`skills/`](skills/) are the product source. Host-specific
-files are generated from [`distribution/catalog.json`](distribution/catalog.json). The direct
+The complete workflow instructions under [`skills/`](skills/) are the product source. Host-specific
+discovery bootstraps are generated from [`distribution/catalog.json`](distribution/catalog.json):
+Claude uses `packages/`, Codex release packets use `codex-packages/`, and Kiro keeps its stable
+`kiro-power*` paths. The direct
 bundle is agent-neutral: any CLI-recognized host with a verified project or global skills directory
 and no official Qodo marketplace path can consume it without a host-specific package change.
 
@@ -67,18 +68,19 @@ a new optional package never adds it to an existing installation.
 ```text
 qodo-skills repository          coding-agent marketplace       qodo CLI
 ┌──────────────────────┐       ┌────────────────────────┐      ┌────────────────────┐
-│ canonical SKILL.md   │──────▶│ install + update plugin│      │ login + credentials│
-│ catalog + adapters   │       │ discover + invoke skill│─────▶│ tools + auto-update│
+│ canonical playbooks  │──────▶│ install + update plugin│      │ login + credentials│
+│ generated bootstraps │       │ discover + invoke skill│─────▶│ verified playbooks  │
 └──────────────────────┘       └────────────────────────┘      └────────────────────┘
 ```
 
-- A skill change ships by releasing this repository, independent of a CLI release.
+- A workflow-body change ships in this repository's checksummed playbook asset, independent of a
+  marketplace review or CLI release.
 - A runtime change ships through the CLI updater, independent of marketplace review.
 - Marketplaces own installed plugin copies. The CLI does not rewrite them on launch.
 - Skills never read secret files or call Qodo endpoints directly; they invoke `qodo`.
-- Canonical skills stamp `skills-sh`; generated marketplace and Kiro copies stamp their lifecycle
-  owner. The runtime combines a generic marketplace stamp with the detected host, so Claude,
-  Codex, and Cursor receive native update guidance while a skills.sh copy stays on skills.sh.
+- Canonical skills stamp `skills-sh`; generated marketplace and Kiro bootstraps stamp both their
+  lifecycle owner and exact host. Unsupported lifecycle/host pairs fail closed. A skills.sh copy
+  remains owned by skills.sh even when it runs inside Claude Code or Codex.
 
 The detailed contracts are in [Architecture](docs/architecture.md),
 [Compatibility](docs/compatibility.md), and [Releasing](docs/releasing.md). The ordered first

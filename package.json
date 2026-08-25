@@ -10,11 +10,12 @@
   "scripts": {
     "adapters": "node scripts/sync-adapters.mjs",
     "direct:build": "node scripts/build-direct-bundle.mjs",
+    "playbooks:build": "node scripts/build-playbook-bundle.mjs",
     "index:build": "node scripts/build-release-index.mjs",
     "export:cli": "node scripts/export-cli-bundle.mjs",
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:notes": "node scripts/release-notes.mjs",
-    "check": "node scripts/validate.mjs && node scripts/build-direct-bundle.mjs --check && node scripts/build-release-index.mjs --check",
+    "check": "node scripts/validate.mjs && node scripts/build-direct-bundle.mjs --check && node scripts/build-playbook-bundle.mjs --check && node scripts/build-release-index.mjs --check",
     "test": "npm run check && node scripts/test-direct-portability.mjs && node scripts/test-release.mjs && node scripts/test-release-workflow.mjs && node scripts/test-marketplace-release.mjs"
   },
   "license": "MIT"
