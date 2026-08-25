@@ -126,6 +126,14 @@ try {
   assert.match(cliBundle, /distribution: \\"qodo-direct\\"/);
   assert.doesNotMatch(cliBundle, /distribution: \\"skills-sh\\"/);
   assert.match(cliBundle, new RegExp(directBundle.package.contentSha256));
+  for (const installPackage of directBundle.packages) {
+    for (const skillName of installPackage.skills) {
+      assert.match(
+        cliBundle,
+        new RegExp(`\\"name\\": \\"${skillName}\\",\\n\\s+\\"package\\": \\"${installPackage.name}\\"`),
+      );
+    }
+  }
   rmSync(cliBundlePath);
   const releaseIndexPath = join(repositoryRoot, 'distribution', 'qodo-skills-index.json');
   const releaseIndexText = readFileSync(releaseIndexPath, 'utf8');

@@ -13,11 +13,18 @@ const output = isAbsolute(outputArg) ? outputArg : resolve(process.cwd(), output
 const bundle = JSON.parse(
   readFileSync(join(root, 'distribution', 'qodo-skills-direct.json'), 'utf8'),
 );
+const packageBySkill = new Map(
+  bundle.packages.flatMap((entry) => entry.skills.map((name) => [name, entry.name])),
+);
 const skills = bundle.skills.map((entry) => ({
   name: entry.name,
+  package: packageBySkill.get(entry.name),
   recommended: entry.recommended,
   files: entry.files.map(({ path, content }) => ({ path, content })),
 }));
+if (skills.some((entry) => !entry.package)) {
+  throw new Error('Every exported skill must belong to an install package');
+}
 
 const provenance = {
   repository: bundle.package.repository,
@@ -33,6 +40,7 @@ export interface BundledSkillFile {
 }
 export interface BundledSkill {
   readonly name: string;
+  readonly package: string;
   /** Included in the legacy/offline fallback's default selection. */
   readonly recommended: boolean;
   readonly files: readonly BundledSkillFile[];
