@@ -387,10 +387,11 @@ for (const change of Array.isArray(release.skills) ? release.skills : []) {
 for (const file of walk(root)) {
   const path = relative(root, file);
   if (/\.(md|mjs|json|ya?ml)$/.test(path)) {
-    const lines = readFileSync(file, 'utf8').split('\n').length;
+    const text = readFileSync(file, 'utf8');
+    const lines = text.endsWith('\n') ? text.slice(0, -1).split('\n').length : text.split('\n').length;
     if (lines > 500) fail(`${path}: ${lines} lines exceeds the 500-line limit`);
   }
-  if (/\.(md|mjs|json|ya?ml)$/.test(path)) {
+  if (/\.(?:cmd|json|md|mjs|sh|ya?ml)$/.test(path)) {
     const text = readFileSync(file, 'utf8');
     if (forbiddenRuntimeBypass.test(text)) {
       fail(`${path}: bypasses the qodo runtime credential boundary`);

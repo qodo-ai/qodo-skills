@@ -12,6 +12,24 @@ function git(...args) {
   return execFileSync('git', args, { encoding: 'utf8' }).trim();
 }
 
+function gitRaw(...args) {
+  return execFileSync('git', args, { encoding: 'utf8' });
+}
+
+function nameStatusRecords(raw) {
+  const tokens = raw.split('\0');
+  if (tokens.at(-1) === '') tokens.pop();
+  const records = [];
+  for (let index = 0; index < tokens.length;) {
+    const status = tokens[index++];
+    const sourcePath = /^[RC]/.test(status) ? tokens[index++] : undefined;
+    const path = tokens[index++];
+    if (!path) throw new Error(`Malformed NUL-delimited git status record: ${status}`);
+    records.push({ status, path, sourcePath });
+  }
+  return records;
+}
+
 function stableVersion(version) {
   const match = version?.match(/^(\d+)\.(\d+)\.(\d+)$/);
   return match ? match.slice(1).map(Number) : null;
@@ -64,11 +82,8 @@ try {
 }
 
 const catalog = JSON.parse(readFileSync('distribution/catalog.json', 'utf8'));
-const files = git('diff', '--name-only', `${base}...HEAD`).split('\n').filter(Boolean);
-const statuses = git('diff', '--name-status', `${base}...HEAD`)
-  .split('\n')
-  .filter(Boolean)
-  .map((line) => line.split('\t'));
+const files = gitRaw('diff', '--name-only', '-z', `${base}...HEAD`).split('\0').filter(Boolean);
+const statuses = nameStatusRecords(gitRaw('diff', '--name-status', '-z', `${base}...HEAD`));
 const changedSkills = new Set(
   files.flatMap((path) => {
     const match = path.match(/^skills\/([^/]+)\/(.+)$/);
@@ -92,7 +107,9 @@ for (const [name, current] of currentSkills) {
   ) changedSkills.add(name);
 }
 const catalogChanged = files.includes('distribution/catalog.json');
-const changedReleaseRecords = statuses.filter(([, path]) => path?.startsWith('releases/'));
+const changedReleaseRecords = statuses.flatMap(({ status, path, sourcePath }) =>
+  [sourcePath, path].filter((candidate) => candidate?.startsWith('releases/'))
+    .map((candidate) => [status, candidate]));
 const versionedPackagePaths = [
   /^\.github\/workflows\/(?:release|ship-marketplaces)\.yml$/,
   /^\.agents\/plugins\//,
@@ -132,7 +149,7 @@ for (const [status, path] of changedReleaseRecords) {
     errors.push(`release records are immutable; only add ${expectedReleasePath}`);
   }
 }
-if (!statuses.some(([status, path]) => status === 'A' && path === expectedReleasePath)) {
+if (!statuses.some(({ status, path }) => status === 'A' && path === expectedReleasePath)) {
   errors.push(`${expectedReleasePath} must be added with this release`);
 }
 const packageChange = changeLevel(catalog.package.version, baseCatalog.package.version);

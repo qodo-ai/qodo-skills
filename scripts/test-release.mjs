@@ -429,9 +429,9 @@ try {
     },
   );
   resetToRelease();
-  appendFileSync(join(repositoryRoot, 'skills', 'qodo-review', 'agents', 'openai.yaml'),
-    '\n# unversioned shipped agent change\n');
-  commitScenario('unversioned agent definition change');
+  writeFileSync(join(repositoryRoot, 'skills', 'qodo-review', 'agents', 'openai\tvariant.yaml'),
+    '# unversioned shipped agent change with a quoted Git pathname\n');
+  commitScenario('unversioned quoted agent definition change');
   expectDiffFailure(new RegExp(`qodo-review version must increase from ${expectedReviewVersion.replaceAll('.', '\\.')}`));
   resetToRelease();
   appendFileSync(join(repositoryRoot, 'scripts', 'sync-adapters.mjs'), '\n// packaging change\n');
