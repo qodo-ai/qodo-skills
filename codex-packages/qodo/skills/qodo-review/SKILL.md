@@ -64,7 +64,7 @@ qodo review --ticket <TICKET_URL> ...        # add a ticket URL (repeatable)
 qodo review --json ...                       # machine-readable findings
 qodo review src/ test/ ...                    # limit to paths (git pathspecs)
 qodo review --base origin/develop ...        # diff against a different base
-qodo review --deep | --fast                  # depth for this run
+qodo review --deep                           # thorough; use `qodo review --fast` instead for speed
 qodo review                                  # BARE — only when there is truly nothing to say (rare)
 qodo review --async ...                      # submit, print an operation id, exit 0 — result kept ~1h
 qodo review status <operation-id>            # collect an --async result (exit 2 = still running)

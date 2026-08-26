@@ -263,6 +263,14 @@ try {
   expectDiffFailure(new RegExp(`qodo-review must appear in the v${expectedPackageVersion.replaceAll('.', '\\.')} release record`));
 
   resetToRelease();
+  const metadataOnlyChange = JSON.parse(readFileSync(catalogPath, 'utf8'));
+  const metadataOnlyReview = metadataOnlyChange.skills.find((skill) => skill.name === 'qodo-review');
+  metadataOnlyReview.shortDescription = `${metadataOnlyReview.shortDescription} Updated.`;
+  writeFileSync(catalogPath, `${JSON.stringify(metadataOnlyChange, null, 2)}\n`);
+  commitScenario('unversioned skill metadata change');
+  expectDiffFailure(new RegExp(`qodo-review version must increase from ${expectedReviewVersion.replaceAll('.', '\\.')}`));
+
+  resetToRelease();
   execFileSync(process.execPath, [
     join(repositoryRoot, 'scripts', 'prepare-release.mjs'),
     '--summary', 'Exercise semantic change validation.',

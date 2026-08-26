@@ -77,9 +77,19 @@ const changedSkills = new Set(
 );
 const currentSkills = new Map((catalog.skills ?? []).map((skill) => [skill.name, skill]));
 const priorSkills = new Map((baseCatalog.skills ?? []).map((skill) => [skill.name, skill]));
+const publishedSkillMetadata = (skill) => JSON.stringify({
+  recommended: skill?.recommended,
+  displayName: skill?.displayName,
+  shortDescription: skill?.shortDescription,
+  defaultPrompt: skill?.defaultPrompt,
+});
 for (const [name, current] of currentSkills) {
   const prior = priorSkills.get(name);
-  if (!prior || current.version !== prior.version) changedSkills.add(name);
+  if (
+    !prior
+    || current.version !== prior.version
+    || publishedSkillMetadata(current) !== publishedSkillMetadata(prior)
+  ) changedSkills.add(name);
 }
 const catalogChanged = files.includes('distribution/catalog.json');
 const changedReleaseRecords = statuses.filter(([, path]) => path?.startsWith('releases/'));

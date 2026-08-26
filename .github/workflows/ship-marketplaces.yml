@@ -102,6 +102,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install locked validation dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Verify immutable release identity
         env:
           GH_TOKEN: ${{ github.token }}
