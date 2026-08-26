@@ -25,7 +25,7 @@ const valueMomentHeadings = new Map([
 ]);
 const forbiddenRuntimeBypass = new RegExp([
   ['QODO', '_', 'API', '_KEY'].join(''), '|',
-  ['API', '_KEY'].join(''), '\\s*[":=]', '|',
+  ['\\bAPI', '_KEY\\b'].join(''), '|',
   'qodo-platform\\.', '[^\\s]+', '\\/rules\\/v1',
 ].join(''), 'i');
 

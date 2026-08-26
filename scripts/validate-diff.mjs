@@ -32,7 +32,13 @@ function nameStatusRecords(raw) {
 
 function parsedVersion(version) {
   const match = version?.match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/);
-  return match ? { core: match.slice(1, 4).map(Number), prerelease: match[4]?.split('.') ?? [] } : null;
+  return match ? { core: match.slice(1, 4), prerelease: match[4]?.split('.') ?? [] } : null;
+}
+
+function compareNumericIdentifiers(left, right) {
+  if (left.length !== right.length) return left.length > right.length ? 1 : -1;
+  if (left === right) return 0;
+  return left > right ? 1 : -1;
 }
 
 function compareVersions(current, prior) {
@@ -40,7 +46,8 @@ function compareVersions(current, prior) {
   const right = parsedVersion(prior);
   if (!left || !right) return null;
   for (let index = 0; index < left.core.length; index += 1) {
-    if (left.core[index] !== right.core[index]) return left.core[index] > right.core[index] ? 1 : -1;
+    const precedence = compareNumericIdentifiers(left.core[index], right.core[index]);
+    if (precedence) return precedence;
   }
   if (!left.prerelease.length || !right.prerelease.length) {
     return left.prerelease.length === right.prerelease.length ? 0 : left.prerelease.length ? -1 : 1;
@@ -52,7 +59,7 @@ function compareVersions(current, prior) {
     if (leftPart === rightPart) continue;
     const leftNumeric = /^\d+$/.test(leftPart);
     const rightNumeric = /^\d+$/.test(rightPart);
-    if (leftNumeric && rightNumeric) return Number(leftPart) > Number(rightPart) ? 1 : -1;
+    if (leftNumeric && rightNumeric) return compareNumericIdentifiers(leftPart, rightPart);
     if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
     return leftPart > rightPart ? 1 : -1;
   }
