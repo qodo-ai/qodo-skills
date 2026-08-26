@@ -80,6 +80,8 @@ function frontmatter(path) {
 }
 
 const catalog = json('distribution/catalog.json');
+const packageJson = json('package.json');
+const packageLock = json('package-lock.json');
 const marketplaces = json('distribution/marketplaces.json');
 const codexSubmissions = json('distribution/codex-submissions.json');
 const schemaValidator = new Ajv2020({ allErrors: true, strict: true });
@@ -103,6 +105,10 @@ for (const [documentPath, schemaPath, document] of [
 }
 const packageVersion = catalog.package?.version;
 if (!semver.test(packageVersion ?? '')) fail('catalog package.version must be semantic version');
+if (packageJson.version !== packageVersion) fail('package.json version must match catalog package.version');
+if (packageLock.version !== packageVersion || packageLock.packages?.['']?.version !== packageVersion) {
+  fail('package-lock.json root versions must match catalog package.version');
+}
 if (catalog.instructionMode !== 'embedded') fail('catalog instructionMode must be embedded');
 if (catalog.runtime?.command !== 'qodo') fail('runtime command must remain qodo');
 if (catalog.runtime?.loginCommand !== 'qodo login') fail('runtime login must remain qodo login');

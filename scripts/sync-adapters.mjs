@@ -200,8 +200,9 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       .replace(/^name:\s*qodo-review-resolver$/m, 'name: qodo-pr-resolver')
       .replace(
         /^description:.*$/m,
-        'description: Compatibility alias for explicit qodo-pr-resolver requests. Follow the complete Qodo PR review workflow embedded here; use qodo-review-resolver for new invocations.',
-      );
+        'description: Compatibility alias for explicit qodo-pr-resolver requests. Follow the complete Qodo PR review workflow embedded here and use qodo-review-resolver for new invocations; lifecycle update provenance intentionally uses the canonical qodo-review-resolver release-index identity.',
+      )
+      .replace(/^metadata:$/m, 'metadata:\n  alias_for: "qodo-review-resolver"');
     files.set('skills/qodo-pr-resolver/SKILL.md', compatibilityAlias);
   }
   return files;

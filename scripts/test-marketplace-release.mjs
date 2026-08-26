@@ -1,7 +1,8 @@
 /** Test marketplace selection, packaging, provider verification, and workflow gates. */
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { delimiter, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -150,13 +151,21 @@ assert.match(workflow, /required_reviewers/);
 assert.match(workflow, /verify-provider-visible/);
 assert.match(workflow, /group: qodo-marketplace-provider-\$\{\{ matrix\.provider \}\}/);
 assert.match(workflow, /group: qodo-marketplace-provider-[\s\S]*?cancel-in-progress: false/);
+assert.match(workflow, /group: qodo-marketplaces-\$\{\{ inputs\.release_tag \}\}/);
+assert.match(workflow, /run-name: Ship marketplaces \$\{\{ inputs\.release_tag \}\}/);
+assert.match(workflow, /marketplace-release-lock\.mjs acquire/);
+assert.match(workflow, /marketplace-release-lock\.mjs release/);
+assert.match(workflow, /if: always\(\) && github\.repository/);
 assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY/);
+const trustedCheckout = workflow.indexOf('Check out trusted release automation');
+const lockAcquisition = workflow.indexOf('Acquire the cross-tag marketplace release lock');
 const preflight = workflow.indexOf('Verify immutable release before executing release code');
-const releaseCheckout = workflow.indexOf('Check out release automation');
+const releaseCheckout = workflow.indexOf('Check out immutable release automation');
 const preparationCheckout = workflow.indexOf('Check out the immutable release');
 const validationInstall = workflow.indexOf('Install locked validation dependencies', preparationCheckout);
 const canonicalValidation = workflow.indexOf('Validate canonical source and generated adapters', preparationCheckout);
-assert.ok(preflight >= 0 && releaseCheckout > preflight);
+assert.ok(trustedCheckout >= 0 && lockAcquisition > trustedCheckout && preflight > lockAcquisition);
+assert.ok(releaseCheckout > preflight);
 assert.ok(validationInstall > preparationCheckout && canonicalValidation > validationInstall);
 assert.match(workflow, /npm ci --ignore-scripts --no-audit --no-fund/);
 const preparationToolCheck = workflow.indexOf('Verify required preparation tools');
@@ -179,6 +188,82 @@ assert.match(kiroSourcePreflight, /gh api user --jq '\.id'/);
 assert.match(kiroSourcePreflight, /include == \["refs\/heads\/marketplace-kiro"\]/);
 assert.match(kiroSourcePreflight, /contains\(\["update", "deletion", "non_fast_forward"\]\)/);
 assert.match(kiroSourcePreflight, /length == 1/);
-assert.match(kiroSourcePreflight, /actor_id == '"\$\{RELEASE_ACTOR_ID\}"'/);
+assert.match(kiroSourcePreflight, /jq --argjson release_actor_id "\$\{RELEASE_ACTOR_ID\}"/);
+assert.match(kiroSourcePreflight, /actor_type == "User"/);
+assert.match(kiroSourcePreflight, /actor_id == \$release_actor_id/);
+assert.match(kiroSourcePreflight, /Administration:write so GitHub returns ruleset bypass actors/);
+
+if (process.platform !== 'win32') {
+  const bashProbe = spawnSync('bash', ['--version'], { encoding: 'utf8', timeout: 5_000 });
+  const jqProbe = spawnSync('jq', ['--version'], { encoding: 'utf8', timeout: 5_000 });
+  for (const probe of [bashProbe, jqProbe]) {
+    if (probe.error && probe.error.code !== 'ENOENT') throw probe.error;
+  }
+  if (!bashProbe.error && !jqProbe.error) {
+    const preflightFixture = mkdtempSync(join(tmpdir(), 'qodo-kiro-preflight-'));
+    try {
+      const bin = join(preflightFixture, 'bin');
+      mkdirSync(bin);
+      const ghStub = join(bin, 'gh');
+      writeFileSync(ghStub, `#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$*" == "api user --jq .id" ]]; then
+  printf '%s\\n' 12345
+elif [[ "$*" == *"rulesets?per_page=100"* ]]; then
+  printf '%s\\n' 77
+elif [[ "$*" == "api repos/qodo-ai/qodo-skills/rulesets/77" ]]; then
+  if [[ "\${QODO_TEST_OMIT_BYPASS:-}" == 1 ]]; then
+    printf '{"conditions":{"ref_name":{"include":["refs/heads/marketplace-kiro"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}]}\\n'
+  else
+    printf '{"conditions":{"ref_name":{"include":["refs/heads/marketplace-kiro"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}],"bypass_actors":[{"bypass_mode":"always","actor_type":"%s","actor_id":%s}]}\\n' "\${QODO_TEST_RULESET_ACTOR_TYPE:-User}" "\${QODO_TEST_RULESET_ACTOR_ID:-12345}"
+  fi
+else
+  printf 'unexpected gh invocation: %s\\n' "$*" >&2
+  exit 2
+fi
+`);
+      chmodSync(ghStub, 0o755);
+      const preflightEnvironment = {
+        ...process.env,
+        PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
+        GH_TOKEN: 'test-token',
+        GITHUB_REPOSITORY: 'qodo-ai/qodo-skills',
+      };
+      const validPreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
+        encoding: 'utf8',
+        env: preflightEnvironment,
+        timeout: 5_000,
+      });
+      assert.equal(validPreflight.error, undefined, validPreflight.error?.message);
+      assert.equal(validPreflight.status, 0, validPreflight.stderr);
+      const mismatchedPreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
+        encoding: 'utf8',
+        env: { ...preflightEnvironment, QODO_TEST_RULESET_ACTOR_ID: '54321' },
+        timeout: 5_000,
+      });
+      assert.equal(mismatchedPreflight.error, undefined, mismatchedPreflight.error?.message);
+      assert.equal(mismatchedPreflight.status, 1, mismatchedPreflight.stderr);
+      assert.match(mismatchedPreflight.stderr, /exactly one always-bypass User release identity/);
+      const wrongTypePreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
+        encoding: 'utf8',
+        env: { ...preflightEnvironment, QODO_TEST_RULESET_ACTOR_TYPE: 'Team' },
+        timeout: 5_000,
+      });
+      assert.equal(wrongTypePreflight.error, undefined, wrongTypePreflight.error?.message);
+      assert.equal(wrongTypePreflight.status, 1, wrongTypePreflight.stderr);
+      assert.match(wrongTypePreflight.stderr, /exactly one always-bypass User release identity/);
+      const hiddenBypassPreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
+        encoding: 'utf8',
+        env: { ...preflightEnvironment, QODO_TEST_OMIT_BYPASS: '1' },
+        timeout: 5_000,
+      });
+      assert.equal(hiddenBypassPreflight.error, undefined, hiddenBypassPreflight.error?.message);
+      assert.equal(hiddenBypassPreflight.status, 1, hiddenBypassPreflight.stderr);
+      assert.match(hiddenBypassPreflight.stderr, /Administration:write/);
+    } finally {
+      rmSync(preflightFixture, { recursive: true, force: true });
+    }
+  }
+}
 
 console.log('Marketplace release workflow tests passed.');

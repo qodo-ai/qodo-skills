@@ -27,7 +27,8 @@ The pull request must state:
 
 The repository administrator must enable GitHub release immutability before the first release.
 Configure repository secret `QODO_RELEASE_ADMIN_TOKEN` with only repository
-`Administration: read` and `Contents: read/write`; `GITHUB_TOKEN` cannot read the repository setting
+`Administration: write` and `Contents: read/write`; GitHub exposes ruleset bypass actors only to
+callers with ruleset write access, and `GITHUB_TOKEN` cannot read the repository setting
 or advance the protected Kiro source. The workflow uses this token only for immutable-release
 preflight and the non-force `marketplace-kiro` advance; normal release publication uses its scoped
 workflow token.
@@ -69,6 +70,15 @@ Run **Ship marketplaces** with the immutable tag and any combination of `claude`
 or `all`. The action validates the tag/version, regenerates the exact provider packet, and uploads
 one artifact per selected provider.
 
+Only one release tag may be active across providers. Same-tag retries are grouped idempotently; any
+attempt atomically advances `refs/heads/qodo-marketplace-release-lock` to an owner commit before
+preparation and holds it through provider approval. Every acquire/release is an append-only,
+non-force fast-forward from the exact commit observed, so concurrent stale-owner recovery or cleanup
+cannot remove a replacement lock. An active owner blocks every other tag; after cancellation or
+runner loss, the next dispatch may advance the chain only when the Actions API reports the owner run
+completed. This avoids GitHub's lossy single-pending concurrency slot and cannot admit simultaneous
+cross-tag releases.
+
 | Provider | Automation | Completion evidence |
 |---|---|---|
 | Claude Code | packet generation, protected submission pause, then official catalog verification | both selected listings expose the released commit/path |
@@ -89,6 +99,7 @@ Before any branch mutation, a checked-in preflight requires exactly one active *
 release** branch ruleset with update/deletion/force-push protection, no exclusions, and exactly one
 always-bypass release identity. It resolves the user behind the release token and requires that
 actor id to be the sole bypass, while rejecting any branch pattern broader than the Kiro source.
+The bypass entry must be an always-bypass `User` matching the token's `/user` identity.
 
 Core listing identity remains `qodo`; Qodo Standards remains the separately installable
 `qodo-standards` listing. **Ship marketplaces** selects providers, not individual listings, and

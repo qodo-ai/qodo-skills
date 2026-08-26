@@ -1,9 +1,10 @@
 ---
 name: qodo-pr-resolver
-description: Compatibility alias for explicit qodo-pr-resolver requests. Follow the complete Qodo PR review workflow embedded here; use qodo-review-resolver for new invocations.
+description: Compatibility alias for explicit qodo-pr-resolver requests. Follow the complete Qodo PR review workflow embedded here and use qodo-review-resolver for new invocations; lifecycle update provenance intentionally uses the canonical qodo-review-resolver release-index identity.
 owner: Qodo
 when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
+  alias_for: "qodo-review-resolver"
   vendor: qodo
   version: "1.4.2"
   recommended: "true"

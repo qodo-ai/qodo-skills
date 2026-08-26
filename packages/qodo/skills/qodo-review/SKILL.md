@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening a pull request, using the 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.9.2"
+  version: "1.9.3"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -53,7 +53,7 @@ You just wrote the code, so you hold the one input the reviewer can't get anywhe
 Attach it on every run — write the session context first, then review:
 
 ```
-qodo whoami --json --skill qodo-review --skill-version 1.9.2 --distribution marketplace --host claude-code
+qodo whoami --json --skill qodo-review --skill-version 1.9.3 --distribution marketplace --host claude-code
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -89,16 +89,16 @@ the progress one:
 ```
 QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
 qodo_review_pid=; qodo_review_pending_status=; cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "${QODO_REVIEW_TMP}" ] && rm -r -- "${QODO_REVIEW_TMP}"; }
-stop_qodo_review() { qodo_review_status=$1; if [ -z "${qodo_review_pid}" ]; then qodo_review_pending_status=${qodo_review_status}; return; fi; trap '' INT TERM; kill -TERM "${qodo_review_pid}" 2>/dev/null || :; sleep 1; kill -KILL "${qodo_review_pid}" 2>/dev/null || :; wait "${qodo_review_pid}" 2>/dev/null || :; exit "${qodo_review_status}"; }
+stop_qodo_review() { qodo_review_status=$1; if [ -z "${qodo_review_pid}" ]; then qodo_review_pending_status=${qodo_review_status}; return; fi; trap '' INT TERM; if jobs -p | grep -Fxq "${qodo_review_pid}"; then kill -TERM "${qodo_review_pid}" 2>/dev/null || :; sleep 1; kill -KILL "${qodo_review_pid}" 2>/dev/null || :; wait "${qodo_review_pid}" 2>/dev/null || :; fi; exit "${qodo_review_status}"; }
 trap cleanup_qodo_review EXIT; trap 'stop_qodo_review 130' INT; trap 'stop_qodo_review 143' TERM
 qodo review --json --progress [--deep|--fast] [--ticket <URL> …] [<pathspec>…] \
   >"${QODO_REVIEW_TMP}/result.json" 2>"${QODO_REVIEW_TMP}/progress.ndjson" &
 qodo_review_pid=$!; [ -z "${qodo_review_pending_status}" ] || stop_qodo_review "${qodo_review_pending_status}"
 tail -n +1 --pid="${qodo_review_pid}" -f "${QODO_REVIEW_TMP}/progress.ndjson" # GNU tail: follows, then STOPS when the review exits
-if wait "${qodo_review_pid}"; then status=0; else status=$?; fi               # capture exit — but do NOT abort on non-zero
-# ALWAYS read "${QODO_REVIEW_TMP}/result.json" now (even if status != 0): it carries the
-# error envelope (code/message/hint, incl. closed_preview). Then act on the captured status.
-# After parsing it, remove only "${QODO_REVIEW_TMP}"; never delete a shared path.
+if wait "${qodo_review_pid}"; then status=0; else status=$?; fi # capture exit — but do NOT abort on non-zero
+qodo_review_pid=; trap - INT TERM                              # disarm the reaped PID before parsing
+# ALWAYS read "${QODO_REVIEW_TMP}/result.json" now: it carries the error envelope (incl. closed_preview).
+# Act on the captured status; after parsing, remove only "${QODO_REVIEW_TMP}", never a shared path.
 ```
 
 **This is a POSIX example, and the real follow mechanism is your runtime's, not a literal `tail`.**

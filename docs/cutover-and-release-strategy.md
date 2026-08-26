@@ -56,8 +56,9 @@ rollback.
 - Create protected GitHub environments `marketplace-claude`, `marketplace-kiro`, and
   `marketplace-codex` with required release-owner reviewers.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
-- Configure `QODO_RELEASE_ADMIN_TOKEN` with repository `Administration: read` and `Contents:
-  read/write`. It verifies release controls and advances only the protected `marketplace-kiro`
+- Configure `QODO_RELEASE_ADMIN_TOKEN` with repository `Administration: write` and `Contents:
+  read/write`. GitHub requires ruleset write access to return bypass actors; the token verifies
+  release controls and advances only the protected `marketplace-kiro`
   source branch; normal `GITHUB_TOKEN` remains read-only.
 - Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
   `refs/tags/v*`; tag creation is allowed, but updates and deletion are blocked. Release preflight
@@ -122,6 +123,12 @@ ships every configured listing for each selected provider, including both `qodo`
 installable `qodo-standards`. It then pauses each provider verification in its protected environment
 while the release owner completes any provider submission. Approve a provider only when its listing
 is expected to be visible; the resumed job verifies the exact release and fails closed otherwise.
+Only one release tag may be active across providers: any attempt fails visibly while a different
+tag owns the atomic `refs/heads/qodo-marketplace-release-lock`. The owner holds it through provider
+approval. Acquire, stale recovery, and release append commits with non-force fast-forward updates,
+so a contender can advance only the exact owner commit it inspected and cleanup cannot remove a
+replacement. A later dispatch may supersede a stale owner only after GitHub marks its run completed.
+This avoids GitHub's lossy single-pending queue, launch races, and old-tag rerun semantics.
 
 - Preserve the existing `qodo` listing identity and repoint it to the generated core path.
 - Publish `qodo-standards` only as a separate optional listing.

@@ -7,8 +7,12 @@ command -v gh >/dev/null 2>&1 || {
   echo "Kiro release-source preflight requires 'gh', but it is not available." >&2
   exit 1
 }
+command -v jq >/dev/null 2>&1 || {
+  echo "Kiro release-source preflight requires 'jq', but it is not available." >&2
+  exit 1
+}
 if [[ -z "${GH_TOKEN:-}" ]]; then
-  echo 'QODO_RELEASE_ADMIN_TOKEN is required with repository Administration:read and Contents:read/write.' >&2
+  echo 'QODO_RELEASE_ADMIN_TOKEN is required with repository Administration:write and Contents:read/write.' >&2
   exit 1
 fi
 
@@ -34,15 +38,22 @@ if [[ "${RULESET_COUNT}" -ne 1 ]]; then
   exit 1
 fi
 
-if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/rulesets/${RULESET_ID}" --jq '
+RULESET_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets/${RULESET_ID}")"
+if [[ "$(jq 'has("bypass_actors")' <<< "${RULESET_JSON}")" != 'true' ]]; then
+  echo 'QODO_RELEASE_ADMIN_TOKEN must have repository Administration:write so GitHub returns ruleset bypass actors.' >&2
+  exit 1
+fi
+
+if [[ "$(jq --argjson release_actor_id "${RELEASE_ACTOR_ID}" '
   (.conditions.ref_name.include == ["refs/heads/marketplace-kiro"]) and
   (.conditions.ref_name.exclude | type == "array" and length == 0) and
   ([.rules[].type] | contains(["update", "deletion", "non_fast_forward"])) and
   ([.rules[].type] | index("creation")) == null and
   (.bypass_actors | type == "array" and length == 1) and
   (.bypass_actors[0].bypass_mode == "always") and
-  (.bypass_actors[0].actor_id == '"${RELEASE_ACTOR_ID}"')
-')" != 'true' ]]; then
-  echo 'Kiro marketplace release ruleset must protect update/deletion/force-push, permit creation, cover only refs/heads/marketplace-kiro, and have exactly one always-bypass release identity.' >&2
+  (.bypass_actors[0].actor_type == "User") and
+  (.bypass_actors[0].actor_id == $release_actor_id)
+' <<< "${RULESET_JSON}")" != 'true' ]]; then
+  echo 'Kiro marketplace release ruleset must protect update/deletion/force-push, permit creation, cover only refs/heads/marketplace-kiro, and have exactly one always-bypass User release identity.' >&2
   exit 1
 fi

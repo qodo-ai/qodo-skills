@@ -101,6 +101,35 @@ try {
       return true;
     },
   );
+  const resolverSource = join(repositoryRoot, 'skills', 'qodo-review-resolver');
+  const resolverBackup = join(temporaryRoot, 'qodo-review-resolver-backup');
+  cpSync(resolverSource, resolverBackup, { recursive: true });
+  rmSync(resolverSource, { recursive: true });
+  const statusBeforeFailedRelease = execFileSync(
+    'git', ['status', '--short', '--untracked-files=all'],
+    { cwd: repositoryRoot, encoding: 'utf8' },
+  );
+  assert.throws(
+    () => execFileSync(process.execPath, [
+      join(repositoryRoot, 'scripts', 'prepare-release.mjs'),
+      '--summary', 'Force a downstream adapter failure.',
+      '--skill', 'qodo-review=patch',
+    ], { cwd: repositoryRoot, stdio: 'pipe' }),
+    (error) => {
+      assert.match(String(error.stderr), /missing qodo-review-resolver compatibility source/);
+      return true;
+    },
+  );
+  assert.equal(
+    execFileSync('git', ['status', '--short', '--untracked-files=all'], {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+    }),
+    statusBeforeFailedRelease,
+    'a failed release must restore the exact pre-command repository state',
+  );
+  assert.equal(existsSync(join(repositoryRoot, 'releases', `v${expectedPackageVersion}.json`)), false);
+  cpSync(resolverBackup, resolverSource, { recursive: true });
   execFileSync(process.execPath, [
     join(repositoryRoot, 'scripts', 'prepare-release.mjs'),
     '--summary', 'Exercise the release pipeline.',
@@ -108,6 +137,7 @@ try {
   ], { cwd: repositoryRoot, stdio: 'pipe' });
 
   const catalog = JSON.parse(readFileSync(join(repositoryRoot, 'distribution', 'catalog.json'), 'utf8'));
+  const packageLock = JSON.parse(readFileSync(join(repositoryRoot, 'package-lock.json'), 'utf8'));
   const review = catalog.skills.find((skill) => skill.name === 'qodo-review');
   const release = JSON.parse(readFileSync(
     join(repositoryRoot, 'releases', `v${expectedPackageVersion}.json`),
@@ -115,6 +145,8 @@ try {
   ));
   const claudeMarketplace = JSON.parse(readFileSync(join(repositoryRoot, '.claude-plugin', 'marketplace.json'), 'utf8'));
   assert.equal(catalog.package.version, expectedPackageVersion);
+  assert.equal(packageLock.version, expectedPackageVersion);
+  assert.equal(packageLock.packages[''].version, expectedPackageVersion);
   assert.equal(catalog.instructionMode, 'embedded');
   assert.equal(review.version, expectedReviewVersion);
   assert.equal(release.skills[0].version, expectedReviewVersion);
@@ -130,53 +162,95 @@ try {
   assert.match(generatedReview, /stop_qodo_review\(\)/);
   assert.match(generatedReview, /qodo_review_pid=;/);
   assert.match(generatedReview, /trap '' INT TERM/);
+  assert.match(generatedReview, /jobs -p \| grep -Fxq "\$\{qodo_review_pid\}"/);
   assert.match(generatedReview, /kill -TERM "\$\{qodo_review_pid\}"/);
   assert.match(generatedReview, /kill -KILL "\$\{qodo_review_pid\}"/);
   assert.match(generatedReview, /wait "\$\{qodo_review_pid\}"/);
   assert.match(generatedReview, /if wait "\$\{qodo_review_pid\}"; then status=0; else status=\$\?; fi/);
+  assert.match(generatedReview, /^qodo_review_pid=; trap - INT TERM/m);
   const reviewLines = generatedReview.split('\n');
   const handlerStart = reviewLines.findIndex((line) => line.startsWith('qodo_review_pid=;'));
   const reviewLaunch = reviewLines.findIndex((line) => line.startsWith('qodo review --json --progress'));
   const pidAssignment = reviewLines.findIndex((line) => line.startsWith('qodo_review_pid=$!;'));
   const waitCapture = reviewLines.find((line) => line.startsWith('if wait "${qodo_review_pid}";'));
-  assert.ok(handlerStart >= 0 && reviewLaunch > handlerStart && pidAssignment > reviewLaunch && waitCapture);
+  const disarmHandler = reviewLines.find((line) => line.startsWith('qodo_review_pid=; trap - INT TERM'));
+  assert.ok(
+    handlerStart >= 0 && reviewLaunch > handlerStart && pidAssignment > reviewLaunch
+      && waitCapture && disarmHandler,
+  );
   if (process.platform !== 'win32') {
-    const interruptDirectory = join(repositoryRoot, 'interrupted-review-output');
-    const interruptMarker = join(repositoryRoot, 'interrupted-review-launched');
-    mkdirSync(interruptDirectory);
-    const interruptFixture = [
-      ...reviewLines.slice(handlerStart, reviewLaunch),
-      'stop_qodo_review 130',
-      'qodo_review_test_wrapper_pid=$$; (sleep 0.2; kill -TERM "${qodo_review_test_wrapper_pid}") &',
-      'printf "launched\\n" > "${QODO_REVIEW_TEST_MARKER}"',
-      'sleep 30 &',
-      reviewLines[pidAssignment],
-    ].join('\n');
-    const interruptedReview = spawnSync('bash', ['-c', interruptFixture], {
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        QODO_REVIEW_TEST_MARKER: interruptMarker,
-        QODO_REVIEW_TMP: interruptDirectory,
-      },
-      timeout: 5_000,
-    });
-    assert.equal(interruptedReview.error, undefined, interruptedReview.error?.message);
-    assert.equal(interruptedReview.signal, null, interruptedReview.stderr);
-    assert.equal(interruptedReview.status, 130, interruptedReview.stderr);
-    assert.equal(readFileSync(interruptMarker, 'utf8'), 'launched\n');
-    assert.equal(existsSync(interruptDirectory), false, 'cleanup must run only after the child is reaped');
-    const failedReview = spawnSync('bash', ['-c', [
-      'set -e',
-      '(exit 7) &',
-      'qodo_review_pid=$!',
-      waitCapture,
-      'printf "%s\\n" "${status}"',
-    ].join('\n')], { encoding: 'utf8', timeout: 5_000 });
-    assert.equal(failedReview.error, undefined, failedReview.error?.message);
-    assert.equal(failedReview.signal, null, failedReview.stderr);
-    assert.equal(failedReview.status, 0, failedReview.stderr);
-    assert.equal(failedReview.stdout, '7\n');
+    const bashProbe = spawnSync('bash', ['--version'], { encoding: 'utf8', timeout: 5_000 });
+    if (bashProbe.error && bashProbe.error.code !== 'ENOENT') throw bashProbe.error;
+    if (!bashProbe.error) {
+      assert.equal(bashProbe.signal, null, bashProbe.stderr);
+      assert.equal(bashProbe.status, 0, bashProbe.stderr);
+      const interruptDirectory = join(repositoryRoot, 'interrupted-review-output');
+      const interruptMarker = join(repositoryRoot, 'interrupted-review-launched');
+      mkdirSync(interruptDirectory);
+      const interruptFixture = [
+        ...reviewLines.slice(handlerStart, reviewLaunch),
+        'stop_qodo_review 130',
+        'qodo_review_test_wrapper_pid=$$; (sleep 0.2; kill -TERM "${qodo_review_test_wrapper_pid}") &',
+        'printf "launched\\n" > "${QODO_REVIEW_TEST_MARKER}"',
+        'sleep 30 &',
+        reviewLines[pidAssignment],
+      ].join('\n');
+      const interruptedReview = spawnSync('bash', ['-c', interruptFixture], {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          QODO_REVIEW_TEST_MARKER: interruptMarker,
+          QODO_REVIEW_TMP: interruptDirectory,
+        },
+        timeout: 5_000,
+      });
+      assert.equal(interruptedReview.error, undefined, interruptedReview.error?.message);
+      assert.equal(interruptedReview.signal, null, interruptedReview.stderr);
+      assert.equal(interruptedReview.status, 130, interruptedReview.stderr);
+      assert.equal(readFileSync(interruptMarker, 'utf8'), 'launched\n');
+      assert.equal(existsSync(interruptDirectory), false, 'cleanup must run only after the child is reaped');
+      const failedReview = spawnSync('bash', ['-c', [
+        'set -e',
+        '(exit 7) &',
+        'qodo_review_pid=$!',
+        waitCapture,
+        disarmHandler,
+        'printf "%s\\n" "${status}"',
+      ].join('\n')], { encoding: 'utf8', timeout: 5_000 });
+      assert.equal(failedReview.error, undefined, failedReview.error?.message);
+      assert.equal(failedReview.signal, null, failedReview.stderr);
+      assert.equal(failedReview.status, 0, failedReview.stderr);
+      assert.equal(failedReview.stdout, '7\n');
+      const completionBoundaryMarker = join(repositoryRoot, 'completion-boundary-signalled');
+      const completionBoundary = spawnSync('bash', ['-c', [
+        ...reviewLines.slice(handlerStart, reviewLaunch),
+        'kill() { printf "unexpected\\n" > "${QODO_REVIEW_TEST_MARKER}"; }',
+        '(exit 0) &',
+        'qodo_review_pid=$!',
+        waitCapture,
+        'stop_qodo_review 143',
+      ].join('\n')], {
+        encoding: 'utf8',
+        env: { ...process.env, QODO_REVIEW_TEST_MARKER: completionBoundaryMarker },
+        timeout: 5_000,
+      });
+      assert.equal(completionBoundary.error, undefined, completionBoundary.error?.message);
+      assert.equal(completionBoundary.signal, null, completionBoundary.stderr);
+      assert.equal(completionBoundary.status, 143, completionBoundary.stderr);
+      assert.equal(existsSync(completionBoundaryMarker), false, 'a reaped PID must never be signalled');
+      const completedReview = spawnSync('bash', ['-c', [
+        "trap 'exit 99' INT TERM",
+        '(exit 0) &',
+        'qodo_review_pid=$!',
+        waitCapture,
+        disarmHandler,
+        'kill -TERM "$$"',
+        'exit 98',
+      ].join('\n')], { encoding: 'utf8', timeout: 5_000 });
+      assert.equal(completedReview.error, undefined, completedReview.error?.message);
+      assert.equal(completedReview.signal, 'SIGTERM', completedReview.stderr);
+      assert.equal(completedReview.status, null, completedReview.stderr);
+    }
   }
   const legacyResolver = readFileSync(
     join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-pr-resolver', 'SKILL.md'),
@@ -184,6 +258,8 @@ try {
   );
   assert.match(legacyResolver, /^name: qodo-pr-resolver$/m);
   assert.match(legacyResolver, /Compatibility alias for explicit qodo-pr-resolver requests/);
+  assert.match(legacyResolver, /alias_for: "qodo-review-resolver"/);
+  assert.match(legacyResolver, /canonical qodo-review-resolver release-index identity/);
   assert.match(legacyResolver, /--skill qodo-review-resolver .*--distribution marketplace --host claude-code/);
   const releaseIndexPath = join(repositoryRoot, 'distribution', 'qodo-skills-index.json');
   const releaseIndexText = readFileSync(releaseIndexPath, 'utf8');

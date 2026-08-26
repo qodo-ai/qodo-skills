@@ -1,6 +1,16 @@
 /** Prepare one atomic Qodo skills release in the current pull request. */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -77,12 +87,60 @@ function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+const releaseMutationPaths = [
+  '.agents/plugins',
+  '.claude-plugin',
+  '.codex-plugin',
+  'codex-packages',
+  'distribution',
+  'gemini-extension.json',
+  'kiro-power',
+  'kiro-power-standards',
+  'package-lock.json',
+  'package.json',
+  'packages',
+  'plugin.json',
+  'releases',
+  'skills',
+];
+
+function releaseTransaction(repositoryRoot) {
+  const backupRoot = mkdtempSync(join(tmpdir(), 'qodo-skills-release-transaction-'));
+  const states = releaseMutationPaths.map((relativePath, index) => {
+    const source = join(repositoryRoot, relativePath);
+    const backup = join(backupRoot, String(index));
+    const existed = existsSync(source);
+    if (existed) {
+      mkdirSync(dirname(backup), { recursive: true });
+      cpSync(source, backup, { recursive: true, verbatimSymlinks: true });
+    }
+    return { relativePath, backup, existed };
+  });
+  return {
+    rollback() {
+      for (const { relativePath, backup, existed } of states) {
+        const target = join(repositoryRoot, relativePath);
+        rmSync(target, { recursive: true, force: true });
+        if (existed) {
+          mkdirSync(dirname(target), { recursive: true });
+          cpSync(backup, target, { recursive: true, verbatimSymlinks: true });
+        }
+      }
+    },
+    close() {
+      rmSync(backupRoot, { recursive: true, force: true });
+    },
+  };
+}
+
 export function prepareRelease(argv, repositoryRoot = root) {
   const options = parseArguments(argv);
   const catalogPath = join(repositoryRoot, 'distribution', 'catalog.json');
   const packagePath = join(repositoryRoot, 'package.json');
+  const lockPath = join(repositoryRoot, 'package-lock.json');
   const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
   const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+  const packageLock = existsSync(lockPath) ? JSON.parse(readFileSync(lockPath, 'utf8')) : undefined;
   let packageBump = options.packageBump ?? 'patch';
   for (const bump of options.skills.values()) {
     packageBump = strongerBump(packageBump, bump === 'initial' ? 'minor' : bump);
@@ -137,38 +195,58 @@ export function prepareRelease(argv, repositoryRoot = root) {
     }
   }
 
-  const changes = [];
-  for (const skill of catalog.skills) {
-    const bump = options.skills.get(skill.name);
-    if (!bump) continue;
-    const version = bump === 'initial' ? skill.version : incrementVersion(skill.version, bump);
-    const skillPath = join(repositoryRoot, 'skills', skill.name, 'SKILL.md');
-    skill.version = version;
-    changes.push({ name: skill.name, version, change: bump });
-    writeFileSync(skillPath, updateFrontmatterVersion(skillPath, version));
+  const transaction = releaseTransaction(repositoryRoot);
+  try {
+    const changes = [];
+    for (const skill of catalog.skills) {
+      const bump = options.skills.get(skill.name);
+      if (!bump) continue;
+      const version = bump === 'initial' ? skill.version : incrementVersion(skill.version, bump);
+      const skillPath = join(repositoryRoot, 'skills', skill.name, 'SKILL.md');
+      skill.version = version;
+      changes.push({ name: skill.name, version, change: bump });
+      writeFileSync(skillPath, updateFrontmatterVersion(skillPath, version));
+    }
+
+    catalog.package.version = nextPackageVersion;
+    packageJson.version = nextPackageVersion;
+    if (packageLock) {
+      packageLock.version = nextPackageVersion;
+      if (packageLock.packages?.['']) packageLock.packages[''].version = nextPackageVersion;
+    }
+    writeJson(catalogPath, catalog);
+    writeJson(packagePath, packageJson);
+    if (packageLock) writeJson(lockPath, packageLock);
+    writeJson(releasePath, {
+      version: nextPackageVersion,
+      summary: options.summary,
+      package: { change: packageBump },
+      runtimeProtocolVersion: catalog.runtime.protocolVersion,
+      skills: changes,
+    });
+
+    execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'sync-adapters.mjs')], {
+      cwd: repositoryRoot,
+      stdio: 'inherit',
+    });
+    execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'build-release-index.mjs')], {
+      cwd: repositoryRoot,
+      stdio: 'inherit',
+    });
+    return { version: nextPackageVersion, changes };
+  } catch (error) {
+    try {
+      transaction.rollback();
+    } catch (rollbackError) {
+      throw new AggregateError(
+        [error, rollbackError],
+        `Release preparation failed and rollback was incomplete: ${rollbackError.message}`,
+      );
+    }
+    throw error;
+  } finally {
+    transaction.close();
   }
-
-  catalog.package.version = nextPackageVersion;
-  packageJson.version = nextPackageVersion;
-  writeJson(catalogPath, catalog);
-  writeJson(packagePath, packageJson);
-  writeJson(releasePath, {
-    version: nextPackageVersion,
-    summary: options.summary,
-    package: { change: packageBump },
-    runtimeProtocolVersion: catalog.runtime.protocolVersion,
-    skills: changes,
-  });
-
-  execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'sync-adapters.mjs')], {
-    cwd: repositoryRoot,
-    stdio: 'inherit',
-  });
-  execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'build-release-index.mjs')], {
-    cwd: repositoryRoot,
-    stdio: 'inherit',
-  });
-  return { version: nextPackageVersion, changes };
 }
 
 if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {

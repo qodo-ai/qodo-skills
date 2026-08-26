@@ -1,6 +1,6 @@
 {
   "name": "@qodo/agent-skills",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "description": "Canonical Qodo skills and local coding-agent marketplace adapters.",
   "type": "module",
@@ -13,7 +13,7 @@
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:notes": "node scripts/release-notes.mjs",
     "check": "node scripts/validate.mjs && node scripts/build-release-index.mjs --check",
-    "test": "npm run check && node scripts/test-release.mjs && node scripts/test-release-workflow.mjs && node scripts/test-marketplace-release.mjs"
+    "test": "npm run check && node scripts/test-release.mjs && node scripts/test-release-workflow.mjs && node scripts/test-marketplace-release.mjs && node scripts/test-marketplace-release-lock.mjs"
   },
   "license": "MIT",
   "devDependencies": {
