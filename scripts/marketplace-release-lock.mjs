@@ -113,7 +113,7 @@ async function advanceLock(context, api, observed, owner) {
       });
     }
   } catch (error) {
-    if (error.status !== 422) throw error;
+    if (![409, 422].includes(error.status)) throw error;
     return { advanced: false, current: await readLock(context, api).catch(() => undefined) };
   }
   return { advanced: true };
@@ -123,11 +123,16 @@ export async function acquireReleaseLock(context, api, now = new Date()) {
   const existing = await readLock(context, api);
   if (owns(existing?.owner, context)) return existing.owner;
   if (existing?.owner?.state === 'active') {
-    const ownerRun = await api({
-      method: 'GET',
-      path: apiPath(context, `/actions/runs/${existing.owner.runId}`),
-    });
-    if (ownerRun.status !== 'completed') {
+    let ownerRun;
+    try {
+      ownerRun = await api({
+        method: 'GET',
+        path: apiPath(context, `/actions/runs/${existing.owner.runId}`),
+      });
+    } catch (error) {
+      if (error.status !== 404) throw error;
+    }
+    if (ownerRun && ownerRun.status !== 'completed') {
       throw new Error(
         `Marketplace release ${existing.owner.releaseTag} is still active: ${ownerRun.html_url ?? `run ${existing.owner.runId}`}`,
       );

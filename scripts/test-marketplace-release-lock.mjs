@@ -26,6 +26,7 @@ function fakeGitHub() {
     }]]),
     runs: new Map(),
     nextCommit: 1,
+    conflictStatus: 422,
   };
   const api = async ({ method, path, body }) => {
     if (method === 'GET' && path === lockRefPath) {
@@ -50,7 +51,7 @@ function fakeGitHub() {
       return value;
     }
     if (method === 'POST' && path === `/repos/${repository}/git/refs`) {
-      if (state.ref) throw Object.assign(new Error('already exists'), { status: 422 });
+      if (state.ref) throw Object.assign(new Error('already exists'), { status: state.conflictStatus });
       assert.equal(body.ref, 'refs/heads/qodo-marketplace-release-lock');
       state.ref = body.sha;
       return {};
@@ -59,7 +60,7 @@ function fakeGitHub() {
       assert.equal(body.force, false);
       const candidate = state.commits.get(body.sha);
       if (!candidate || candidate.parents[0]?.sha !== state.ref) {
-        throw Object.assign(new Error('not a fast forward'), { status: 422 });
+        throw Object.assign(new Error('not a fast forward'), { status: state.conflictStatus });
       }
       state.ref = body.sha;
       return {};
@@ -112,8 +113,25 @@ const replacement = await acquireReleaseLock(context('22', 'v1.0.6'), stale.api)
 assert.equal(replacement.runId, '22');
 assert.equal(currentOwner(stale).releaseTag, 'v1.0.6');
 
+// A deleted owner run is stale; authorization and transport failures still fail closed.
+const deletedOwner = fakeGitHub();
+await acquireReleaseLock(context('23', 'v1.0.5'), deletedOwner.api);
+const deletedReplacement = await acquireReleaseLock(context('24', 'v1.0.6'), deletedOwner.api);
+assert.equal(deletedReplacement.runId, '24');
+assert.equal(currentOwner(deletedOwner).releaseTag, 'v1.0.6');
+const lookupFailure = fakeGitHub();
+await acquireReleaseLock(context('25', 'v1.0.5'), lookupFailure.api);
+const lookupFailureApi = async (request) => {
+  if (request.method === 'GET' && request.path.endsWith('/actions/runs/25')) {
+    throw Object.assign(new Error('forbidden'), { status: 403 });
+  }
+  return lookupFailure.api(request);
+};
+await assert.rejects(acquireReleaseLock(context('26', 'v1.0.6'), lookupFailureApi), /forbidden/);
+
 // Initial creation is atomic: a contender that loses POST /git/refs never proceeds.
 const creationRace = fakeGitHub();
+creationRace.state.conflictStatus = 409;
 const creationApi = creationRace.api;
 let injectInitialWinner = true;
 const racingCreationApi = async (request) => {
