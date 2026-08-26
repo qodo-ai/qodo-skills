@@ -127,8 +127,8 @@ try {
   assert.doesNotMatch(generatedReview, /qodo help workflow/);
   assert.match(generatedReview, /--distribution marketplace --host claude-code/);
   assert.match(generatedReview, /stop_qodo_review\(\)/);
-  assert.match(generatedReview, /kill -"\$qodo_review_signal" "\$pid"/);
-  assert.match(generatedReview, /wait "\$pid"/);
+  assert.match(generatedReview, /kill -"\$\{qodo_review_signal\}" "\$\{pid\}"/);
+  assert.match(generatedReview, /wait "\$\{pid\}"/);
   const legacyResolver = readFileSync(
     join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-pr-resolver', 'SKILL.md'),
     'utf8',

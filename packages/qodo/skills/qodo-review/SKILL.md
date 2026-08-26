@@ -88,8 +88,8 @@ progress events to **stderr** (`--progress` requires `--json`). Split the two in
 the progress one:
 ```
 QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
-cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
-stop_qodo_review() { qodo_review_signal=$1; qodo_review_status=$2; if [ -n "${pid:-}" ]; then kill -"$qodo_review_signal" "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :; fi; exit "$qodo_review_status"; }
+cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "${QODO_REVIEW_TMP}" ] && rm -r -- "${QODO_REVIEW_TMP}"; }
+stop_qodo_review() { qodo_review_signal=$1; qodo_review_status=$2; if [ -n "${pid:-}" ]; then kill -"${qodo_review_signal}" "${pid}" 2>/dev/null || :; wait "${pid}" 2>/dev/null || :; fi; exit "${qodo_review_status}"; }
 trap cleanup_qodo_review EXIT; trap 'stop_qodo_review INT 130' INT; trap 'stop_qodo_review TERM 143' TERM
 qodo review --json --progress [--deep|--fast] [--ticket <URL> …] [<pathspec>…] \
   >"$QODO_REVIEW_TMP/result.json" 2>"$QODO_REVIEW_TMP/progress.ndjson" &
