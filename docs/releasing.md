@@ -112,9 +112,9 @@ Source CI or packet creation alone is not release completion.
 ## 5. skills.sh channel
 
 No publication API is required: skills.sh installs from this repository. After the immutable tag
-and provider projections are validated, smoke-test a core install and update on representative
-non-marketplace agents, including multi-agent and project/global scope. Use explicit `--skill`
-selection so the optional package cannot appear by accident.
+is validated and **before any provider promotion**, smoke-test a core install and update on
+representative non-marketplace agents, including multi-agent and project/global scope. Use explicit
+`--skill` selection so the optional package cannot appear by accident.
 
 ## Rollback
 
