@@ -101,6 +101,16 @@ try {
   assert.equal(standards.default, false);
   assert.ok(!core.skills.includes('qodo-get-rules'));
   assert.deepEqual(standards.skills.sort(), ['qodo-get-rules', 'qodo-manage-standards']);
+  assert.deepEqual(core.projectionSkills.portable, core.skills);
+  for (const provider of ['claude', 'codex', 'kiro']) {
+    assert.deepEqual(
+      core.projectionSkills[provider],
+      [...core.skills, 'qodo-pr-resolver'].sort(),
+    );
+  }
+  for (const provider of ['claude', 'codex', 'kiro', 'portable']) {
+    assert.deepEqual(standards.projectionSkills[provider], standards.skills);
+  }
 
   const skillFiles = [...files].filter(([path]) => path.endsWith('/SKILL.md'));
   assert.ok(skillFiles.length > 0);

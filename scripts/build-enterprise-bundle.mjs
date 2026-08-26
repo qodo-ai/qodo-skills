@@ -143,6 +143,13 @@ function packageRoots(name) {
   };
 }
 
+function packagedSkills(packageRoot) {
+  return readdirSync(join(packageRoot, 'skills'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort(bytewisePathCompare);
+}
+
 function bundleReadme(version) {
   return `# Qodo enterprise skills ${version}
 
@@ -193,12 +200,25 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
         files,
       );
     }
+    const projectionSkills = {
+      ...Object.fromEntries(
+        Object.entries(sources).map(([provider, source]) => [provider, packagedSkills(source)]),
+      ),
+      portable: [...installPackage.skills],
+    };
+    for (const [provider, skills] of Object.entries(projectionSkills)) {
+      const missing = installPackage.skills.filter((skill) => !skills.includes(skill));
+      if (missing.length > 0) {
+        throw new Error(`${installPackage.name}: ${provider} projection is missing ${missing.join(', ')}`);
+      }
+    }
     return {
       name: installPackage.name,
       displayName: installPackage.displayName,
       description: installPackage.description,
       default: installPackage.default,
       skills: installPackage.skills,
+      projectionSkills,
       roots,
     };
   });
