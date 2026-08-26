@@ -87,14 +87,14 @@ progress events to **stderr** (`--progress` requires `--json`). Split the two in
 the progress one:
 ```
 QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
-qodo_review_pending_status=; cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "${QODO_REVIEW_TMP}" ] && rm -r -- "${QODO_REVIEW_TMP}"; }
-stop_qodo_review() { qodo_review_status=$1; if [ -z "${pid:-}" ]; then qodo_review_pending_status=${qodo_review_status}; return; fi; trap - INT TERM; kill -TERM "${pid}" 2>/dev/null || :; sleep 1; kill -KILL "${pid}" 2>/dev/null || :; wait "${pid}" 2>/dev/null || :; exit "${qodo_review_status}"; }
+qodo_review_pid=; qodo_review_pending_status=; cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "${QODO_REVIEW_TMP}" ] && rm -r -- "${QODO_REVIEW_TMP}"; }
+stop_qodo_review() { qodo_review_status=$1; if [ -z "${qodo_review_pid}" ]; then qodo_review_pending_status=${qodo_review_status}; return; fi; trap '' INT TERM; kill -TERM "${qodo_review_pid}" 2>/dev/null || :; sleep 1; kill -KILL "${qodo_review_pid}" 2>/dev/null || :; wait "${qodo_review_pid}" 2>/dev/null || :; exit "${qodo_review_status}"; }
 trap cleanup_qodo_review EXIT; trap 'stop_qodo_review 130' INT; trap 'stop_qodo_review 143' TERM
 qodo review --json --progress [--deep|--fast] [--ticket <URL> …] [<pathspec>…] \
   >"$QODO_REVIEW_TMP/result.json" 2>"$QODO_REVIEW_TMP/progress.ndjson" &
-pid=$!; [ -z "${qodo_review_pending_status}" ] || stop_qodo_review "${qodo_review_pending_status}"
-tail -n +1 --pid="$pid" -f "$QODO_REVIEW_TMP/progress.ndjson" # GNU tail: follows, then STOPS when the review exits
-wait "$pid"; status=$?                                         # capture exit — but do NOT abort on non-zero
+qodo_review_pid=$!; [ -z "${qodo_review_pending_status}" ] || stop_qodo_review "${qodo_review_pending_status}"
+tail -n +1 --pid="${qodo_review_pid}" -f "$QODO_REVIEW_TMP/progress.ndjson" # GNU tail: follows, then STOPS when the review exits
+wait "${qodo_review_pid}"; status=$?                                         # capture exit — but do NOT abort on non-zero
 # ALWAYS read "$QODO_REVIEW_TMP/result.json" now (even if status != 0): it carries the
 # error envelope (code/message/hint, incl. closed_preview). Then act on $status.
 # After parsing it, remove only "$QODO_REVIEW_TMP"; never delete a shared path.

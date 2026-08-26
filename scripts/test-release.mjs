@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import {
   appendFileSync,
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -127,30 +128,43 @@ try {
   assert.doesNotMatch(generatedReview, /qodo help workflow/);
   assert.match(generatedReview, /--distribution marketplace --host claude-code/);
   assert.match(generatedReview, /stop_qodo_review\(\)/);
-  assert.match(generatedReview, /kill -TERM "\$\{pid\}"/);
-  assert.match(generatedReview, /kill -KILL "\$\{pid\}"/);
-  assert.match(generatedReview, /wait "\$\{pid\}"/);
+  assert.match(generatedReview, /qodo_review_pid=;/);
+  assert.match(generatedReview, /trap '' INT TERM/);
+  assert.match(generatedReview, /kill -TERM "\$\{qodo_review_pid\}"/);
+  assert.match(generatedReview, /kill -KILL "\$\{qodo_review_pid\}"/);
+  assert.match(generatedReview, /wait "\$\{qodo_review_pid\}"/);
   const reviewLines = generatedReview.split('\n');
-  const handlerStart = reviewLines.findIndex((line) => line.startsWith('qodo_review_pending_status='));
+  const handlerStart = reviewLines.findIndex((line) => line.startsWith('qodo_review_pid=;'));
   const reviewLaunch = reviewLines.findIndex((line) => line.startsWith('qodo review --json --progress'));
-  const pidAssignment = reviewLines.findIndex((line) => line.startsWith('pid=$!;'));
+  const pidAssignment = reviewLines.findIndex((line) => line.startsWith('qodo_review_pid=$!;'));
   assert.ok(handlerStart >= 0 && reviewLaunch > handlerStart && pidAssignment > reviewLaunch);
-  const interruptMarker = join(repositoryRoot, 'interrupted-review-launched');
-  const interruptFixture = [
-    ...reviewLines.slice(handlerStart, reviewLaunch),
-    'stop_qodo_review 130',
-    'printf "launched\\n" > "${QODO_REVIEW_TEST_MARKER}"',
-    'sleep 30 &',
-    reviewLines[pidAssignment],
-  ].join('\n');
-  const interruptedReview = spawnSync('bash', ['-c', interruptFixture], {
-    encoding: 'utf8',
-    env: { ...process.env, QODO_REVIEW_TEST_MARKER: interruptMarker },
-    timeout: 5_000,
-  });
-  assert.equal(interruptedReview.signal, null, interruptedReview.stderr);
-  assert.equal(interruptedReview.status, 130, interruptedReview.stderr);
-  assert.equal(readFileSync(interruptMarker, 'utf8'), 'launched\n');
+  if (process.platform !== 'win32') {
+    const interruptDirectory = join(repositoryRoot, 'interrupted-review-output');
+    const interruptMarker = join(repositoryRoot, 'interrupted-review-launched');
+    mkdirSync(interruptDirectory);
+    const interruptFixture = [
+      ...reviewLines.slice(handlerStart, reviewLaunch),
+      'stop_qodo_review 130',
+      'qodo_review_test_wrapper_pid=$$; (sleep 0.2; kill -TERM "${qodo_review_test_wrapper_pid}") &',
+      'printf "launched\\n" > "${QODO_REVIEW_TEST_MARKER}"',
+      'sleep 30 &',
+      reviewLines[pidAssignment],
+    ].join('\n');
+    const interruptedReview = spawnSync('bash', ['-c', interruptFixture], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        QODO_REVIEW_TEST_MARKER: interruptMarker,
+        QODO_REVIEW_TMP: interruptDirectory,
+      },
+      timeout: 5_000,
+    });
+    assert.equal(interruptedReview.error, undefined, interruptedReview.error?.message);
+    assert.equal(interruptedReview.signal, null, interruptedReview.stderr);
+    assert.equal(interruptedReview.status, 130, interruptedReview.stderr);
+    assert.equal(readFileSync(interruptMarker, 'utf8'), 'launched\n');
+    assert.equal(existsSync(interruptDirectory), false, 'cleanup must run only after the child is reaped');
+  }
   const legacyResolver = readFileSync(
     join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-pr-resolver', 'SKILL.md'),
     'utf8',
