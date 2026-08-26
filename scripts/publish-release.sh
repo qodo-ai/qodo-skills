@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Create or resume a verified draft, then publish and re-verify immutable bytes.
-# Usage: GH_TOKEN=<contents-write-token> GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> RUNNER_TEMP=<dir> scripts/publish-release.sh
+# Usage: GH_TOKEN=<contents-write-token> GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> \
+#   RUNNER_TEMP=<dir> QODO_ENTERPRISE_RELEASE_DIR=<prepared-assets-dir> scripts/publish-release.sh
 set -euo pipefail
 
 for tool in gh git node mktemp cmp grep cat rm; do
@@ -24,7 +25,6 @@ TAG="v${VERSION}"
 NOTES="${RUNNER_TEMP}/qodo-release-notes.md"
 ENTERPRISE_DIR="${QODO_ENTERPRISE_RELEASE_DIR:?QODO_ENTERPRISE_RELEASE_DIR is required}"
 ARCHIVE_NAME="qodo-enterprise-bundle-v${VERSION}.tar.gz"
-EXPECTED_ASSETS="${ARCHIVE_NAME} ${ARCHIVE_NAME}.sha256 qodo-enterprise-manifest.json qodo-enterprise-manifest.json.sha256 qodo-skills-index.json qodo-skills-index.json.sha256"
 RELEASE_ASSETS=(
   "${ENTERPRISE_DIR}/${ARCHIVE_NAME}"
   "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
@@ -33,6 +33,9 @@ RELEASE_ASSETS=(
   distribution/qodo-skills-index.json
   distribution/qodo-skills-index.json.sha256
 )
+EXPECTED_ASSETS="$(node -e \
+  'console.log(process.argv.slice(1).map((asset) => require("node:path").basename(asset)).sort().join(" "))' \
+  "${RELEASE_ASSETS[@]}")"
 node scripts/release-notes.mjs "${NOTES}"
 
 for asset in "${RELEASE_ASSETS[@]}"; do

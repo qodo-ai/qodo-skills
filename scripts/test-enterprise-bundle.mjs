@@ -35,6 +35,16 @@ function tarFiles(archive) {
   return files;
 }
 
+function assertNoPrivateKeys(files) {
+  for (const [path, payload] of files) {
+    assert.doesNotMatch(
+      payload.toString(),
+      /BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY/,
+      `${path}: enterprise archives must not contain private keys`,
+    );
+  }
+}
+
 const firstRoot = mkdtempSync(join(tmpdir(), 'qodo-enterprise-first-'));
 const secondRoot = mkdtempSync(join(tmpdir(), 'qodo-enterprise-second-'));
 try {
@@ -75,7 +85,11 @@ try {
   assert.match(files.get('qodo-enterprise/README.md').toString(), /DO_NOT_TRACK=1/);
   assert.ok(files.has('qodo-enterprise/bundle.json'));
   assert.ok(![...files.keys()].some((path) => path.endsWith('/qodo.mjs')), 'CLI bytes must remain a separate release');
-  assert.doesNotMatch(firstArchive.toString(), /BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY/);
+  assertNoPrivateKeys(files);
+  assert.throws(
+    () => assertNoPrivateKeys(new Map([['qodo-enterprise/private.pem', Buffer.from('-----BEGIN PRIVATE KEY-----')]])),
+    /private\.pem: enterprise archives must not contain private keys/,
+  );
   for (const provider of ['claude', 'codex', 'kiro', 'portable']) {
     assert.ok([...files.keys()].some((path) => path.startsWith(`qodo-enterprise/${provider}/qodo/`)));
     assert.ok([...files.keys()].some((path) => path.startsWith(`qodo-enterprise/${provider}/qodo-standards/`)));

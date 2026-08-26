@@ -46,8 +46,13 @@ function enterpriseSkill(text, sourcePath) {
     .replace(calls, `--distribution ${DISTRIBUTION}`);
 }
 
+function bytewisePathCompare(left, right) {
+  return Buffer.compare(Buffer.from(left), Buffer.from(right));
+}
+
 function collectTree(sourceRoot, archiveRoot, files) {
-  for (const entry of readdirSync(sourceRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const entry of readdirSync(sourceRoot, { withFileTypes: true })
+    .sort((left, right) => bytewisePathCompare(left.name, right.name))) {
     if (entry.name === '.DS_Store') continue;
     const source = join(sourceRoot, entry.name);
     const target = posix.join(archiveRoot, entry.name);
@@ -112,7 +117,7 @@ function tarHeader(path, size) {
 
 function tar(files) {
   const parts = [];
-  for (const file of [...files].sort((left, right) => left.path.localeCompare(right.path))) {
+  for (const file of [...files].sort((left, right) => bytewisePathCompare(left.path, right.path))) {
     assertArchivePath(file.path);
     parts.push(tarHeader(file.path, file.payload.length), file.payload);
     const padding = (512 - (file.payload.length % 512)) % 512;
