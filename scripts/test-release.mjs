@@ -133,11 +133,13 @@ try {
   assert.match(generatedReview, /kill -TERM "\$\{qodo_review_pid\}"/);
   assert.match(generatedReview, /kill -KILL "\$\{qodo_review_pid\}"/);
   assert.match(generatedReview, /wait "\$\{qodo_review_pid\}"/);
+  assert.match(generatedReview, /if wait "\$\{qodo_review_pid\}"; then status=0; else status=\$\?; fi/);
   const reviewLines = generatedReview.split('\n');
   const handlerStart = reviewLines.findIndex((line) => line.startsWith('qodo_review_pid=;'));
   const reviewLaunch = reviewLines.findIndex((line) => line.startsWith('qodo review --json --progress'));
   const pidAssignment = reviewLines.findIndex((line) => line.startsWith('qodo_review_pid=$!;'));
-  assert.ok(handlerStart >= 0 && reviewLaunch > handlerStart && pidAssignment > reviewLaunch);
+  const waitCapture = reviewLines.find((line) => line.startsWith('if wait "${qodo_review_pid}";'));
+  assert.ok(handlerStart >= 0 && reviewLaunch > handlerStart && pidAssignment > reviewLaunch && waitCapture);
   if (process.platform !== 'win32') {
     const interruptDirectory = join(repositoryRoot, 'interrupted-review-output');
     const interruptMarker = join(repositoryRoot, 'interrupted-review-launched');
@@ -164,6 +166,17 @@ try {
     assert.equal(interruptedReview.status, 130, interruptedReview.stderr);
     assert.equal(readFileSync(interruptMarker, 'utf8'), 'launched\n');
     assert.equal(existsSync(interruptDirectory), false, 'cleanup must run only after the child is reaped');
+    const failedReview = spawnSync('bash', ['-c', [
+      'set -e',
+      '(exit 7) &',
+      'qodo_review_pid=$!',
+      waitCapture,
+      'printf "%s\\n" "${status}"',
+    ].join('\n')], { encoding: 'utf8', timeout: 5_000 });
+    assert.equal(failedReview.error, undefined, failedReview.error?.message);
+    assert.equal(failedReview.signal, null, failedReview.stderr);
+    assert.equal(failedReview.status, 0, failedReview.stderr);
+    assert.equal(failedReview.stdout, '7\n');
   }
   const legacyResolver = readFileSync(
     join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-pr-resolver', 'SKILL.md'),
