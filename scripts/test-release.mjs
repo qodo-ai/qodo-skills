@@ -433,7 +433,7 @@ try {
     '# unversioned shipped agent change with a quoted Git pathname\n');
   commitScenario('unversioned quoted agent definition change');
   expectDiffFailure(new RegExp(`qodo-review version must increase from ${expectedReviewVersion.replaceAll('.', '\\.')}`));
-  for (const schema of ['catalog.schema.json', 'codex-submissions.schema.json']) {
+  for (const schema of ['catalog.schema.json', 'codex-submissions.schema.json', 'marketplaces.schema.json']) {
     resetToRelease();
     appendFileSync(join(repositoryRoot, 'distribution', schema), '\n');
     commitScenario(`unversioned ${schema} change`);
