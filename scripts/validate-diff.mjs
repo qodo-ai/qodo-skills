@@ -30,24 +30,42 @@ function nameStatusRecords(raw) {
   return records;
 }
 
-function stableVersion(version) {
-  const match = version?.match(/^(\d+)\.(\d+)\.(\d+)$/);
-  return match ? match.slice(1).map(Number) : null;
+function parsedVersion(version) {
+  const match = version?.match(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/);
+  return match ? { core: match.slice(1, 4).map(Number), prerelease: match[4]?.split('.') ?? [] } : null;
+}
+
+function compareVersions(current, prior) {
+  const left = parsedVersion(current);
+  const right = parsedVersion(prior);
+  if (!left || !right) return null;
+  for (let index = 0; index < left.core.length; index += 1) {
+    if (left.core[index] !== right.core[index]) return left.core[index] > right.core[index] ? 1 : -1;
+  }
+  if (!left.prerelease.length || !right.prerelease.length) {
+    return left.prerelease.length === right.prerelease.length ? 0 : left.prerelease.length ? -1 : 1;
+  }
+  for (let index = 0; index < Math.max(left.prerelease.length, right.prerelease.length); index += 1) {
+    const leftPart = left.prerelease[index];
+    const rightPart = right.prerelease[index];
+    if (leftPart === undefined || rightPart === undefined) return leftPart === undefined ? -1 : 1;
+    if (leftPart === rightPart) continue;
+    const leftNumeric = /^\d+$/.test(leftPart);
+    const rightNumeric = /^\d+$/.test(rightPart);
+    if (leftNumeric && rightNumeric) return Number(leftPart) > Number(rightPart) ? 1 : -1;
+    if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
+    return leftPart > rightPart ? 1 : -1;
+  }
+  return 0;
 }
 
 function isGreater(current, prior) {
-  const left = stableVersion(current);
-  const right = stableVersion(prior);
-  if (!left || !right) return false;
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) return left[index] > right[index];
-  }
-  return false;
+  return compareVersions(current, prior) === 1;
 }
 
 function changeLevel(current, prior) {
-  const left = stableVersion(current);
-  const right = stableVersion(prior);
+  const left = parsedVersion(current)?.core;
+  const right = parsedVersion(prior)?.core;
   if (!left || !right || !isGreater(current, prior)) return null;
   if (left[0] !== right[0]) return 'major';
   if (left[1] !== right[1]) return 'minor';

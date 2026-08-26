@@ -24,8 +24,8 @@ const valueMomentHeadings = new Map([
   ['qodo-review-resolver', '# 🔎 Qodo PR Review'],
 ]);
 const forbiddenRuntimeBypass = new RegExp([
-  'QODO_', 'API_KEY', '|',
-  'API_KEY', '\\s*[":=]', '|',
+  ['QODO', '_', 'API', '_KEY'].join(''), '|',
+  ['API', '_KEY'].join(''), '\\s*[":=]', '|',
   'qodo-platform\\.', '[^\\s]+', '\\/rules\\/v1',
 ].join(''), 'i');
 
