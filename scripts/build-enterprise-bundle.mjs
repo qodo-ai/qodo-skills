@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DISTRIBUTION = 'enterprise-bundle';
 const PREFIX = 'qodo-enterprise';
-const PRIVATE_KEY_PEM = /-----BEGIN (?:[A-Z0-9][A-Z0-9 -]* )?PRIVATE KEY-----/;
+const PRIVATE_KEY_PEM = /-----BEGIN (?:[A-Z0-9][A-Z0-9 -]* )?PRIVATE KEY(?: BLOCK)?-----/;
 
 function sha256(payload) {
   return createHash('sha256').update(payload).digest('hex');

@@ -84,6 +84,7 @@ try {
     '-----BEGIN ENCRYPTED PRIVATE KEY-----',
     '-----BEGIN DSA PRIVATE KEY-----',
     '-----BEGIN OPENSSH PRIVATE KEY-----',
+    '-----BEGIN PGP PRIVATE KEY BLOCK-----',
   ]) {
     assert.throws(
       () => assertNoPrivateKeyPayload(Buffer.from(marker), 'qodo-enterprise/private.pem'),
