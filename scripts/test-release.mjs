@@ -239,6 +239,11 @@ try {
   expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
 
   resetToRelease();
+  appendFileSync(join(repositoryRoot, 'scripts', 'prepare-release.mjs'), '\n// release generator change\n');
+  commitScenario('unversioned release generator change');
+  expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
+
+  resetToRelease();
   appendFileSync(join(repositoryRoot, '.github', 'workflows', 'ship-marketplaces.yml'), '\n# release workflow change\n');
   commitScenario('unversioned marketplace workflow change');
   expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));

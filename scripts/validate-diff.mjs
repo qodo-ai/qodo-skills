@@ -94,15 +94,15 @@ for (const [name, current] of currentSkills) {
 const catalogChanged = files.includes('distribution/catalog.json');
 const changedReleaseRecords = statuses.filter(([, path]) => path?.startsWith('releases/'));
 const versionedPackagePaths = [
-  /^\.github\/workflows\/ship-marketplaces\.yml$/,
+  /^\.github\/workflows\/(?:release|ship-marketplaces)\.yml$/,
   /^\.agents\/plugins\//,
   /^\.claude-plugin\//,
   /^codex-packages\//,
   /^kiro-power(?:-standards)?\//,
   /^packages\//,
   /^distribution\/(?:codex-submissions|marketplaces)(?:\.schema)?\.json$/,
-  /^scripts\/(?:build-release-index|marketplace-release|skill-provenance|sync-adapters)\.mjs$/,
-  /^scripts\/verify-kiro-release-source\.sh$/,
+  /^scripts\/(?:build-release-index|marketplace-release|prepare-release|release-notes|skill-provenance|sync-adapters)\.mjs$/,
+  /^scripts\/(?:publish-release|verify-kiro-release-source|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 const packagingChanged = files.some((path) => versionedPackagePaths.some((pattern) => pattern.test(path)));
 if (!changedSkills.size && !catalogChanged && !changedReleaseRecords.length && !packagingChanged) {

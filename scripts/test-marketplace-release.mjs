@@ -148,6 +148,8 @@ assert.match(workflow, /name: marketplace-codex/);
 assert.match(workflow, /name: marketplace-\$\{\{ matrix\.provider \}\}/);
 assert.match(workflow, /required_reviewers/);
 assert.match(workflow, /verify-provider-visible/);
+assert.match(workflow, /group: qodo-marketplace-provider-\$\{\{ matrix\.provider \}\}/);
+assert.match(workflow, /group: qodo-marketplace-provider-[\s\S]*?cancel-in-progress: false/);
 assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY/);
 const preflight = workflow.indexOf('Verify immutable release before executing release code');
 const releaseCheckout = workflow.indexOf('Check out release automation');

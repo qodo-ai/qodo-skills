@@ -171,6 +171,9 @@ jobs:
   verify-provider-visible:
     needs: [plan, prepare, verify-provider-environment]
     if: needs.plan.outputs.has_verifiable == 'true'
+    concurrency:
+      group: qodo-marketplace-provider-${{ matrix.provider }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.verifiable_matrix) }}
