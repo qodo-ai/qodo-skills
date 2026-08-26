@@ -49,7 +49,6 @@ implicitly. After an approved update, ask for the host restart named by the noti
 session may still have the old skill loaded.
 
 ## Quick start
-
 You just wrote the code, so you hold the one input the reviewer can't get anywhere else: **why**.
 Attach it on every run — write the session context first, then review:
 
@@ -66,7 +65,7 @@ qodo review src/ test/ ...                    # limit to paths (git pathspecs)
 qodo review --base origin/develop ...        # diff against a different base
 qodo review --deep                           # thorough; use `qodo review --fast` instead for speed
 qodo review                                  # BARE — only when there is truly nothing to say (rare)
-qodo review --async ...                      # submit, print an operation id, exit 0 — result kept ~1h
+qodo review --context-file ctx.json --async  # submit with context, print an operation id, exit 0
 qodo review status <operation-id>            # collect an --async result (exit 2 = still running)
 qodo review --help                           # exact flags (renders offline)
 ```
@@ -75,7 +74,6 @@ You can also keep `.qodo/session-context.json` (same JSON shape) updated at the 
 auto-attached to every run, so even a bare `qodo review` carries your context. An explicit
 `--context-file` overrides it; the file itself is never part of the reviewed diff. Don't commit it
 (add `.qodo/` to `.gitignore` or `.git/info/exclude`).
-
 Add `--json` to anything you parse, and a **long shell timeout** — runs take minutes (see below).
 **Confirm the exact flags with `qodo review --help`** (offline) — the examples here are illustrative.
 
@@ -187,7 +185,9 @@ is alive; you collect the result later with `qodo review status <operation-id>`.
 
 ```
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'This async recipe requires jq; install it or use the live qodo review flow.' >&2; exit 1; }
-if ! submission="$(qodo review --async --json --deep)"; then printf '%s\n' "$submission" >&2; exit 1; fi
+QODO_REVIEW_CONTEXT="${QODO_REVIEW_CONTEXT:-.qodo/session-context.json}"
+[ -f "$QODO_REVIEW_CONTEXT" ] || { printf '%s\n' "Write the required review context to $QODO_REVIEW_CONTEXT (or set QODO_REVIEW_CONTEXT to its path)." >&2; exit 1; }
+if ! submission="$(qodo review --context-file "$QODO_REVIEW_CONTEXT" --async --json --deep)"; then printf '%s\n' "$submission" >&2; exit 1; fi
 if ! id="$(printf '%s\n' "$submission" | jq -er '.operation_id | select(type == "string" and length > 0)')"; then printf '%s\n' "$submission" >&2; exit 1; fi
 qodo review status "$id" --json                                # collect it
 ```
