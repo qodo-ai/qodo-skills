@@ -142,7 +142,7 @@ const versionedPackagePaths = [
   /^codex-packages\//,
   /^kiro-power(?:-standards)?\//,
   /^packages\//,
-  /^distribution\/(?:codex-submissions|marketplaces)(?:\.schema)?\.json$/,
+  /^distribution\/(?:catalog\.schema|codex-submissions|marketplaces(?:\.schema)?)\.json$/,
   /^scripts\/(?:build-release-index|marketplace-release(?:-lock)?|prepare-release|release-notes|skill-provenance|sync-adapters)\.mjs$/,
   /^scripts\/(?:publish-release|verify-kiro-release-source|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];

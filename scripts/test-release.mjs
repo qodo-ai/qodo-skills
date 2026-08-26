@@ -434,8 +434,8 @@ try {
   commitScenario('unversioned quoted agent definition change');
   expectDiffFailure(new RegExp(`qodo-review version must increase from ${expectedReviewVersion.replaceAll('.', '\\.')}`));
   resetToRelease();
-  appendFileSync(join(repositoryRoot, 'scripts', 'sync-adapters.mjs'), '\n// packaging change\n');
-  commitScenario('unversioned packaging change');
+  appendFileSync(join(repositoryRoot, 'distribution', 'catalog.schema.json'), '\n');
+  commitScenario('unversioned catalog schema change');
   expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
   resetToRelease();
   const missingSkillsDiffRelease = JSON.parse(readFileSync(releaseRecordPath, 'utf8'));
