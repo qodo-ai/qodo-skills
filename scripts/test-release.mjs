@@ -292,5 +292,5 @@ try {
 
   console.log('Release preparation test passed.');
 } finally {
-  rmSync(temporaryRoot, { recursive: true, force: true });
+  rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 }
