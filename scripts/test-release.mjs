@@ -24,6 +24,8 @@ const sourceCatalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalo
 const expectedPackageVersion = incrementVersion(sourceCatalog.package.version, 'patch');
 const sourceReview = sourceCatalog.skills.find((skill) => skill.name === 'qodo-review');
 const expectedReviewVersion = incrementVersion(sourceReview.version, 'patch');
+const npmCli = process.env.npm_execpath;
+if (!npmCli) throw new Error('npm_execpath is unavailable; run this release test through npm test');
 
 try {
   mkdirSync(repositoryRoot);
@@ -31,7 +33,12 @@ try {
     if (name === '.git' || name === 'node_modules') continue;
     cpSync(join(root, name), join(repositoryRoot, name), { recursive: true });
   }
-  execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', [
+  // Invoke npm's JavaScript entry point through Node. Spawning `npm.cmd`
+  // directly is EINVAL on current Windows Node runners unless a shell is
+  // enabled; avoiding the command wrapper is cross-platform and keeps shell
+  // interpolation out of this isolated lockfile-install check.
+  execFileSync(process.execPath, [
+    npmCli,
     'ci',
     '--ignore-scripts',
     '--no-audit',
@@ -144,11 +151,20 @@ try {
   appendFileSync(reviewPath, '\r\nUnversioned change.\r\n');
   execFileSync('git', ['add', '.'], { cwd: repositoryRoot });
   execFileSync('git', ['commit', '--quiet', '-m', 'invalid change'], { cwd: repositoryRoot });
-  assert.throws(() => execFileSync(
-    process.execPath,
-    [join(repositoryRoot, 'scripts', 'validate-diff.mjs'), releaseCommit],
-    { cwd: repositoryRoot, stdio: 'pipe' },
-  ));
+  assert.throws(
+    () => execFileSync(
+      process.execPath,
+      [join(repositoryRoot, 'scripts', 'validate-diff.mjs'), releaseCommit],
+      { cwd: repositoryRoot, stdio: 'pipe' },
+    ),
+    (error) => {
+      const lines = String(error.stderr).split(/\r?\n/).map((line) => line.trim());
+      assert.ok(lines.includes(
+        `- qodo-review version must increase from ${expectedReviewVersion}`,
+      ));
+      return true;
+    },
+  );
   console.log('Release preparation test passed.');
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
