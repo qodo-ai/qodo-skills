@@ -102,6 +102,13 @@ jobs:
         with:
           node-version: 22
 
+      - name: Verify required preparation tools
+        run: |
+          set -euo pipefail
+          for tool in git gh node npm; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Marketplace preparation requires ${tool}." >&2; exit 1; }
+          done
+
       - name: Install locked validation dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
 
@@ -111,15 +118,9 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
-          for tool in git gh; do
-            command -v "${tool}" >/dev/null 2>&1 || { echo "Marketplace preparation requires ${tool}." >&2; exit 1; }
-          done
           test "$(git describe --tags --exact-match HEAD)" = "${RELEASE_TAG}"
           test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')" = 'true'
           test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.tag_name')" = "${RELEASE_TAG}"
-
-      - name: Install locked validation dependencies
-        run: npm ci
 
       - name: Validate canonical source and generated adapters
         run: npm test

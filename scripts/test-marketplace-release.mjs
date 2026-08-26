@@ -157,6 +157,13 @@ const canonicalValidation = workflow.indexOf('Validate canonical source and gene
 assert.ok(preflight >= 0 && releaseCheckout > preflight);
 assert.ok(validationInstall > preparationCheckout && canonicalValidation > validationInstall);
 assert.match(workflow, /npm ci --ignore-scripts --no-audit --no-fund/);
+const preparationToolCheck = workflow.indexOf('Verify required preparation tools');
+const preparationInstall = workflow.indexOf('npm ci --ignore-scripts --no-audit --no-fund');
+assert.ok(
+  preparationToolCheck >= 0 && preparationToolCheck < preparationInstall,
+  'marketplace preparation must verify required tools before invoking npm',
+);
+assert.match(workflow, /for tool in git gh node npm; do/);
 assert.match(workflow, /\.immutable'\)" = 'true'/);
 assert.match(workflow, /release_tag must be an exact stable semver tag/);
 assert.match(workflow, /SOURCE_REF: marketplace-kiro/);

@@ -62,12 +62,19 @@ qodo rules get --rule-id 123 --json                                   # current 
 qodo tools help rules --json                                          # exact flags (renders offline)
 ```
 
-**`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents run
-shells with a minimal PATH. Retry with the absolute path `~/.qodo/bin/qodo` (or
-`$QODO_HOME/bin/qodo` if set) and keep using it for every command here. Only if that file is
-missing too is qodo actually not installed; tell the user to obtain a checksum-pinned installer
-command from Qodo or their organization's administrator. Installers are served from
-https://get.qodo.ai, but never invent a digest or pipe an installer directly into a shell.
+**`qodo: command not found`?** That's usually PATH, not a missing install: GUI-launched agents
+run shells with a minimal PATH. On POSIX, retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`. In
+Windows PowerShell, retry:
+
+```powershell
+$qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
+& (Join-Path $qodoHome 'bin/qodo.cmd')
+```
+
+Keep using the resolved launcher for every Qodo command here. Only if it is missing is Qodo
+actually not installed; tell the user to obtain a checksum-pinned installer command from Qodo or
+their organization's administrator. Installers are served from https://get.qodo.ai, but never
+invent a digest or pipe an installer directly into a shell.
 
 **Sandbox auth diagnostic.** In a sandboxed environment, if `qodo whoami` fails for any reason
 (including `Not logged in`), ask the user to approve one exact read-only retry of `qodo whoami`
@@ -85,11 +92,12 @@ and retry before assuming the tool doesn't exist.
 
 ## Preflight
 
-1. **Auth first.** Run `qodo whoami`. After the sandbox retry above when applicable, a non-zero
-   exit → tell the user to run `qodo login`, then stop.
-   `Not logged in` / `No tool catalog cached` → not logged in; an `unknown command`/`unknown
-   option` on `rules` while `whoami` succeeds means a stale cached catalog — `qodo tools
-   --refresh` and retry, don't ask for `qodo login` in that case.
+1. **Auth first.** Run `qodo whoami`. After the sandbox retry above when applicable, tell the user
+   to run `qodo login` only when the result explicitly says `Not logged in`, then stop. `No tool
+   catalog cached` is a catalog failure, not proof of missing credentials: run `qodo tools
+   --refresh` once, then retry `whoami`. If either command still fails, report that exact failure
+   and stop instead of sending the user through login. An `unknown command`/`unknown option` on
+   `rules` while `whoami` succeeds also means a stale cached catalog — refresh once and retry.
 2. **Never guess the target.** Resolve which rule or suggestion the user means (by id from a
    prior `qodo-get-rules`/`qodo rules list` result, or by asking) before calling a write
    command. Never invent a `rule_id`.
