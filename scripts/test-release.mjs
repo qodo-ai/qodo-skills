@@ -1,5 +1,5 @@
 /** Exercise release preparation in an isolated repository copy. */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   appendFileSync,
@@ -127,8 +127,30 @@ try {
   assert.doesNotMatch(generatedReview, /qodo help workflow/);
   assert.match(generatedReview, /--distribution marketplace --host claude-code/);
   assert.match(generatedReview, /stop_qodo_review\(\)/);
-  assert.match(generatedReview, /kill -"\$\{qodo_review_signal\}" "\$\{pid\}"/);
+  assert.match(generatedReview, /kill -TERM "\$\{pid\}"/);
+  assert.match(generatedReview, /kill -KILL "\$\{pid\}"/);
   assert.match(generatedReview, /wait "\$\{pid\}"/);
+  const reviewLines = generatedReview.split('\n');
+  const handlerStart = reviewLines.findIndex((line) => line.startsWith('qodo_review_pending_status='));
+  const reviewLaunch = reviewLines.findIndex((line) => line.startsWith('qodo review --json --progress'));
+  const pidAssignment = reviewLines.findIndex((line) => line.startsWith('pid=$!;'));
+  assert.ok(handlerStart >= 0 && reviewLaunch > handlerStart && pidAssignment > reviewLaunch);
+  const interruptMarker = join(repositoryRoot, 'interrupted-review-launched');
+  const interruptFixture = [
+    ...reviewLines.slice(handlerStart, reviewLaunch),
+    'stop_qodo_review 130',
+    'printf "launched\\n" > "${QODO_REVIEW_TEST_MARKER}"',
+    'sleep 30 &',
+    reviewLines[pidAssignment],
+  ].join('\n');
+  const interruptedReview = spawnSync('bash', ['-c', interruptFixture], {
+    encoding: 'utf8',
+    env: { ...process.env, QODO_REVIEW_TEST_MARKER: interruptMarker },
+    timeout: 5_000,
+  });
+  assert.equal(interruptedReview.signal, null, interruptedReview.stderr);
+  assert.equal(interruptedReview.status, 130, interruptedReview.stderr);
+  assert.equal(readFileSync(interruptMarker, 'utf8'), 'launched\n');
   const legacyResolver = readFileSync(
     join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-pr-resolver', 'SKILL.md'),
     'utf8',
