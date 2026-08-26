@@ -45,17 +45,26 @@ const tagPush = releaseSource.indexOf('git push origin "refs/tags/${TAG}:refs/ta
 const releaseAdminTokenCheck = releaseSource.indexOf('QODO_RELEASE_ADMIN_TOKEN is required');
 const tagRulesetCheck = releaseSource.indexOf('Immutable release tags ruleset is required');
 const releaseDownload = releaseSource.indexOf('gh release download');
-const downloadedChecksum = releaseSource.indexOf('sha256sum --check');
+const downloadedChecksum = releaseSource.indexOf(
+  'verify_sha256 qodo-skills-index.json.sha256',
+  releaseDownload,
+);
 const localByteComparison = releaseSource.indexOf('cmp --silent');
 const draftCreation = releaseSource.indexOf('gh release create "${TAG}" --draft');
 const draftPublish = releaseSource.indexOf('gh release edit "${TAG}" --draft=false');
 const draftAssetCheck = releaseSource.indexOf('.assets[].name', draftCreation);
 const draftDownload = releaseSource.indexOf('gh release download', draftCreation);
-const draftChecksum = releaseSource.indexOf('sha256sum --check', draftCreation);
+const draftChecksum = releaseSource.indexOf(
+  'verify_sha256 qodo-skills-index.json.sha256',
+  draftDownload,
+);
 const draftByteComparison = releaseSource.indexOf('cmp --silent', draftCreation);
 const remoteTagCheck = releaseSource.indexOf('Remote ${TAG} no longer resolves', draftCreation);
 const publishedDownload = releaseSource.indexOf('gh release download', draftPublish);
-const publishedChecksum = releaseSource.indexOf('sha256sum --check', draftPublish);
+const publishedChecksum = releaseSource.indexOf(
+  'verify_sha256 qodo-skills-index.json.sha256',
+  publishedDownload,
+);
 const publishedByteComparison = releaseSource.indexOf('cmp --silent', draftPublish);
 
 assert.ok(immutabilityPreflight >= 0, 'release workflow must check repository immutability');
@@ -71,6 +80,10 @@ assert.ok(finalMainGuard > validationRun && finalMainGuard < existingReleaseBran
 assert.ok(toolChecks >= 0 && toolChecks < exactMainGuard,
   'external release tools must be checked before their first use');
 assert.match(releaseSource, /command -v "\$\{tool\}"/);
+assert.match(publisher, /command -v sha256sum/);
+assert.match(publisher, /command -v shasum/);
+assert.match(publisher, /shasum -a 256 --check/);
+assert.match(publisher, /verify_sha256 qodo-skills-index\.json\.sha256/g);
 assert.doesNotMatch(releaseSource, /"\$GITHUB_SHA"/,
   'scalar shell variables must use braced expansion');
 assert.ok(tagCreation > immutabilityPreflight, 'immutability must be checked before creating a tag');
@@ -139,7 +152,9 @@ const run = (cwd, command, args = [], env = {}) => execFileSync(command, args, {
 });
 const runShell = (cwd, script, env = {}) => process.platform === 'win32'
   ? run(cwd, process.env.ComSpec ?? 'cmd.exe', [
-    '/d', '/s', '/c', `"${script.replace(/\.sh$/, '.cmd')}"`,
+    // `call` is cmd.exe's batch-file primitive. Without `/s`, cmd preserves the
+    // one quote pair Node adds when serializing the space-containing path arg.
+    '/d', '/c', 'call', script.replace(/\.sh$/, '.cmd'),
   ], env)
   : run(cwd, script, [], env);
 
@@ -261,6 +276,50 @@ try {
   assert.equal(rejectedDraft.edits, 0);
   runShell(checkout, publishPath, publishEnv);
   assert.equal(JSON.parse(readFileSync(fakeGhState, 'utf8')).immutable, true);
+
+  // Publication is not success until GitHub reports the release immutable.
+  writeFileSync(fakeGhState, `${JSON.stringify({
+    exists: true,
+    draft: true,
+    immutable: false,
+    assets: ['qodo-skills-index.json', 'qodo-skills-index.json.sha256'],
+    downloads: 0,
+    edits: 0,
+  })}\n`);
+  assert.throws(() => runShell(checkout, publishPath, {
+    ...publishEnv,
+    FAKE_PUBLISHED_MUTABLE: 'true',
+  }), /Published release is mutable/);
+  const rejectedMutable = JSON.parse(readFileSync(fakeGhState, 'utf8'));
+  assert.deepEqual(
+    { draft: rejectedMutable.draft, immutable: rejectedMutable.immutable, edits: rejectedMutable.edits },
+    { draft: false, immutable: false, edits: 1 },
+  );
+
+  // The final public download is independently verified after publication.
+  // A mismatch burns this immutable version and must still fail the workflow.
+  writeFileSync(fakeGhState, `${JSON.stringify({
+    exists: true,
+    draft: true,
+    immutable: false,
+    assets: ['qodo-skills-index.json', 'qodo-skills-index.json.sha256'],
+    downloads: 0,
+    edits: 0,
+  })}\n`);
+  assert.throws(() => runShell(checkout, publishPath, {
+    ...publishEnv,
+    FAKE_CORRUPT_DOWNLOAD: 'published',
+  }));
+  const rejectedPublicBytes = JSON.parse(readFileSync(fakeGhState, 'utf8'));
+  assert.deepEqual(
+    {
+      draft: rejectedPublicBytes.draft,
+      immutable: rejectedPublicBytes.immutable,
+      edits: rejectedPublicBytes.edits,
+      downloads: rejectedPublicBytes.downloads,
+    },
+    { draft: false, immutable: true, edits: 1, downloads: 2 },
+  );
 } finally {
   rmSync(harness, { recursive: true, force: true });
 }
