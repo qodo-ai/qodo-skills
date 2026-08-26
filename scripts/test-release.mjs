@@ -446,6 +446,11 @@ try {
   commitScenario('release record without skills array');
   expectDiffFailure(/skills must be an array/);
   resetToRelease();
+  appendFileSync(join(repositoryRoot, 'scripts', 'build-enterprise-bundle.mjs'), '\n// enterprise packaging change\n');
+  commitScenario('unversioned enterprise bundle change');
+  expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
+
+  resetToRelease();
   appendFileSync(join(repositoryRoot, 'scripts', 'prepare-release.mjs'), '\n// release generator change\n');
   commitScenario('unversioned release generator change');
   expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
