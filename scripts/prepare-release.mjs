@@ -7,6 +7,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -105,39 +106,110 @@ const releaseMutationPaths = [
   'skills',
 ];
 
-function releaseTransaction(repositoryRoot) {
-  const backupRoot = mkdtempSync(join(tmpdir(), 'qodo-skills-release-transaction-'));
-  const states = releaseMutationPaths.map((relativePath, index) => {
-    const source = join(repositoryRoot, relativePath);
-    const backup = join(backupRoot, String(index));
-    let existed = false;
+function assertNoSymlinks(path, relativePath) {
+  let stat;
+  try {
+    stat = lstatSync(path);
+  } catch (error) {
+    if (error.code === 'ENOENT') return;
+    throw error;
+  }
+  if (stat.isSymbolicLink()) {
+    throw new Error(`Release mutation path must not be a symlink: ${relativePath}`);
+  }
+  if (!stat.isDirectory()) return;
+  for (const entry of readdirSync(path)) {
+    assertNoSymlinks(join(path, entry), join(relativePath, entry));
+  }
+}
+
+export function releaseTransaction(repositoryRoot, options = {}) {
+  const copy = options.copy ?? cpSync;
+  const remove = options.remove ?? rmSync;
+  for (const relativePath of releaseMutationPaths) {
+    assertNoSymlinks(join(repositoryRoot, relativePath), relativePath);
+  }
+  const backupRoot = mkdtempSync(join(options.backupParent ?? tmpdir(), 'qodo-skills-release-transaction-'));
+  let states;
+  try {
+    states = releaseMutationPaths.map((relativePath, index) => {
+      const source = join(repositoryRoot, relativePath);
+      const backup = join(backupRoot, String(index));
+      let existed = false;
+      try {
+        lstatSync(source);
+        existed = true;
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+      if (existed) {
+        mkdirSync(dirname(backup), { recursive: true });
+        copy(source, backup, { recursive: true, verbatimSymlinks: true });
+      }
+      return { relativePath, backup, existed };
+    });
+  } catch (error) {
     try {
-      lstatSync(source);
-      existed = true;
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
+      remove(backupRoot, { recursive: true, force: true });
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        `Release snapshot failed and its partial backup remains at ${backupRoot}: ${cleanupError.message}`,
+      );
     }
-    if (existed) {
-      mkdirSync(dirname(backup), { recursive: true });
-      cpSync(source, backup, { recursive: true, verbatimSymlinks: true });
-    }
-    return { relativePath, backup, existed };
-  });
+    throw error;
+  }
   return {
+    backupRoot,
     rollback() {
       for (const { relativePath, backup, existed } of states) {
         const target = join(repositoryRoot, relativePath);
-        rmSync(target, { recursive: true, force: true });
+        remove(target, { recursive: true, force: true });
         if (existed) {
           mkdirSync(dirname(target), { recursive: true });
-          cpSync(backup, target, { recursive: true, verbatimSymlinks: true });
+          copy(backup, target, { recursive: true, verbatimSymlinks: true });
         }
       }
     },
     close() {
-      rmSync(backupRoot, { recursive: true, force: true });
+      remove(backupRoot, { recursive: true, force: true });
     },
   };
+}
+
+export function executeReleaseTransaction(repositoryRoot, operation, options) {
+  const transaction = releaseTransaction(repositoryRoot, options);
+  let result;
+  try {
+    result = operation();
+  } catch (error) {
+    try {
+      transaction.rollback();
+    } catch (rollbackError) {
+      throw new AggregateError(
+        [error, rollbackError],
+        `Release preparation failed and rollback was incomplete; recovery backup retained at ${transaction.backupRoot}: ${rollbackError.message}`,
+      );
+    }
+    try {
+      transaction.close();
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [error, cleanupError],
+        `Release preparation failed; repository state was restored but backup cleanup failed at ${transaction.backupRoot}: ${cleanupError.message}`,
+      );
+    }
+    throw error;
+  }
+  try {
+    transaction.close();
+  } catch (cleanupError) {
+    throw new Error(
+      `Release preparation succeeded but backup cleanup failed at ${transaction.backupRoot}: ${cleanupError.message}`,
+      { cause: cleanupError },
+    );
+  }
+  return result;
 }
 
 export function prepareRelease(argv, repositoryRoot = root) {
@@ -202,8 +274,7 @@ export function prepareRelease(argv, repositoryRoot = root) {
     }
   }
 
-  const transaction = releaseTransaction(repositoryRoot);
-  try {
+  return executeReleaseTransaction(repositoryRoot, () => {
     const changes = [];
     for (const skill of catalog.skills) {
       const bump = options.skills.get(skill.name);
@@ -241,19 +312,7 @@ export function prepareRelease(argv, repositoryRoot = root) {
       stdio: 'inherit',
     });
     return { version: nextPackageVersion, changes };
-  } catch (error) {
-    try {
-      transaction.rollback();
-    } catch (rollbackError) {
-      throw new AggregateError(
-        [error, rollbackError],
-        `Release preparation failed and rollback was incomplete: ${rollbackError.message}`,
-      );
-    }
-    throw error;
-  } finally {
-    transaction.close();
-  }
+  });
 }
 
 if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {

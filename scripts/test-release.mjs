@@ -106,6 +106,29 @@ try {
     },
   );
   if (process.platform !== 'win32') {
+    const lockPath = join(repositoryRoot, 'package-lock.json');
+    const lockBackup = join(temporaryRoot, 'package-lock-backup.json');
+    const externalLock = join(temporaryRoot, 'external-package-lock.json');
+    renameSync(lockPath, lockBackup);
+    cpSync(lockBackup, externalLock);
+    const externalLockBefore = readFileSync(externalLock, 'utf8');
+    symlinkSync(externalLock, lockPath, 'file');
+    assert.throws(
+      () => execFileSync(process.execPath, [
+        join(repositoryRoot, 'scripts', 'prepare-release.mjs'),
+        '--summary', 'Reject a symlinked mutation target.',
+        '--package', 'patch',
+      ], { cwd: repositoryRoot, stdio: 'pipe' }),
+      (error) => {
+        assert.match(String(error.stderr), /Release mutation path must not be a symlink: package-lock\.json/);
+        return true;
+      },
+    );
+    assert.equal(readFileSync(externalLock, 'utf8'), externalLockBefore);
+    assert.ok(lstatSync(lockPath).isSymbolicLink());
+    rmSync(lockPath, { force: true });
+    renameSync(lockBackup, lockPath);
+
     const releasesPath = join(repositoryRoot, 'releases');
     const releasesBackup = join(temporaryRoot, 'releases-backup');
     renameSync(releasesPath, releasesBackup);
