@@ -39,7 +39,9 @@ concurrency:
 
 jobs:
   plan:
-    if: github.repository == 'qodo-ai/qodo-skills'
+    if: >-
+      github.repository == 'qodo-ai/qodo-skills' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     permissions:
       actions: read
       contents: write
@@ -305,7 +307,9 @@ jobs:
       - verify-provider-visible
       - codex-gate
       - codex-release-owner-attestation
-    if: always() && github.repository == 'qodo-ai/qodo-skills'
+    if: >-
+      always() && github.repository == 'qodo-ai/qodo-skills' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     permissions:
       actions: read
       contents: write

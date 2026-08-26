@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import {
   cpSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -109,7 +110,13 @@ function releaseTransaction(repositoryRoot) {
   const states = releaseMutationPaths.map((relativePath, index) => {
     const source = join(repositoryRoot, relativePath);
     const backup = join(backupRoot, String(index));
-    const existed = existsSync(source);
+    let existed = false;
+    try {
+      lstatSync(source);
+      existed = true;
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
     if (existed) {
       mkdirSync(dirname(backup), { recursive: true });
       cpSync(source, backup, { recursive: true, verbatimSymlinks: true });

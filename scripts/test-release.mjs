@@ -7,9 +7,13 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  lstatSync,
+  readlinkSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -101,6 +105,35 @@ try {
       return true;
     },
   );
+  if (process.platform !== 'win32') {
+    const releasesPath = join(repositoryRoot, 'releases');
+    const releasesBackup = join(temporaryRoot, 'releases-backup');
+    renameSync(releasesPath, releasesBackup);
+    symlinkSync('missing-releases-target', releasesPath, 'dir');
+    const danglingStatus = execFileSync('git', ['status', '--short', '--untracked-files=all'], {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+    });
+    assert.throws(
+      () => execFileSync(process.execPath, [
+        join(repositoryRoot, 'scripts', 'prepare-release.mjs'),
+        '--summary', 'Exercise dangling symlink rollback.',
+        '--package', 'patch',
+      ], { cwd: repositoryRoot, stdio: 'pipe' }),
+    );
+    assert.ok(lstatSync(releasesPath).isSymbolicLink());
+    assert.equal(readlinkSync(releasesPath), 'missing-releases-target');
+    assert.equal(
+      execFileSync('git', ['status', '--short', '--untracked-files=all'], {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+      }),
+      danglingStatus,
+      'rollback must preserve a preexisting dangling symlink',
+    );
+    rmSync(releasesPath, { force: true });
+    renameSync(releasesBackup, releasesPath);
+  }
   const resolverSource = join(repositoryRoot, 'skills', 'qodo-review-resolver');
   const resolverBackup = join(temporaryRoot, 'qodo-review-resolver-backup');
   cpSync(resolverSource, resolverBackup, { recursive: true });

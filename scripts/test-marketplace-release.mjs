@@ -155,7 +155,12 @@ assert.match(workflow, /group: qodo-marketplaces-\$\{\{ inputs\.release_tag \}\}
 assert.match(workflow, /run-name: Ship marketplaces \$\{\{ inputs\.release_tag \}\}/);
 assert.match(workflow, /marketplace-release-lock\.mjs acquire/);
 assert.match(workflow, /marketplace-release-lock\.mjs release/);
-assert.match(workflow, /if: always\(\) && github\.repository/);
+assert.equal(
+  (workflow.match(/github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/g) ?? []).length,
+  2,
+  'both write-scoped lock jobs must reject workflow dispatches from mutable non-default refs',
+);
+assert.match(workflow, /always\(\)[\s\S]*?github\.repository[\s\S]*?github\.ref == format/);
 assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY/);
 const trustedCheckout = workflow.indexOf('Check out trusted release automation');
 const lockAcquisition = workflow.indexOf('Acquire the cross-tag marketplace release lock');
