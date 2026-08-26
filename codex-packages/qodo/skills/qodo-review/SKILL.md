@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening a pull request, using the 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.9.1"
+  version: "1.9.2"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -53,7 +53,7 @@ You just wrote the code, so you hold the one input the reviewer can't get anywhe
 Attach it on every run — write the session context first, then review:
 
 ```
-qodo whoami --json --skill qodo-review --skill-version 1.9.1 --distribution marketplace --host codex
+qodo whoami --json --skill qodo-review --skill-version 1.9.2 --distribution marketplace --host codex
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -86,11 +86,11 @@ until it finishes — the user just watches a spinner. Instead, run it in the **
 `qodo review --json --progress` writes the single JSON result to **stdout** and a stream of NDJSON
 progress events to **stderr** (`--progress` requires `--json`). Split the two into files and follow
 the progress one:
-
 ```
 QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
 cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
-trap cleanup_qodo_review EXIT; trap 'exit 130' INT; trap 'exit 143' TERM
+stop_qodo_review() { qodo_review_signal=$1; qodo_review_status=$2; if [ -n "${pid:-}" ]; then kill -"$qodo_review_signal" "$pid" 2>/dev/null || :; wait "$pid" 2>/dev/null || :; fi; exit "$qodo_review_status"; }
+trap cleanup_qodo_review EXIT; trap 'stop_qodo_review INT 130' INT; trap 'stop_qodo_review TERM 143' TERM
 qodo review --json --progress [--deep|--fast] [--ticket <URL> …] [<pathspec>…] \
   >"$QODO_REVIEW_TMP/result.json" 2>"$QODO_REVIEW_TMP/progress.ndjson" &
 pid=$!

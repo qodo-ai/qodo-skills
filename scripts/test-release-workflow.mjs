@@ -19,6 +19,11 @@ const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'),
 const preflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
 const publisher = readFileSync(join(root, 'scripts', 'publish-release.sh'), 'utf8');
 const releaseSource = `${workflow}\n${preflight}\n${publisher}`;
+const packageVersion = JSON.parse(
+  readFileSync(join(root, 'package.json'), 'utf8'),
+).version;
+const releaseTag = `v${packageVersion}`;
+const escapedReleaseTag = releaseTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 assert.doesNotMatch(releaseSource, /^\s+push:/m,
   'source merge must not bypass the CLI-first release order or an unmet credential gate');
@@ -216,7 +221,7 @@ try {
   for (const file of ['catalog.json', 'qodo-skills-index.json', 'qodo-skills-index.json.sha256']) {
     copyFileSync(join(root, 'distribution', file), join(checkout, 'distribution', file));
   }
-  copyFileSync(join(root, 'releases', 'v1.0.3.json'), join(checkout, 'releases', 'v1.0.3.json'));
+  copyFileSync(join(root, 'releases', `${releaseTag}.json`), join(checkout, 'releases', `${releaseTag}.json`));
   copyFileSync(join(root, 'scripts', 'release-notes.mjs'), join(checkout, 'scripts', 'release-notes.mjs'));
   copyFileSync(join(root, 'scripts', 'publish-release.sh'), join(checkout, 'scripts', 'publish-release.sh'));
   copyFileSync(join(root, 'scripts', 'publish-release.cmd'), join(checkout, 'scripts', 'publish-release.cmd'));
@@ -241,12 +246,12 @@ try {
   assert.throws(() => runShell(checkout, publishPath, {
     ...publishEnv,
     FAKE_RELEASE_LOOKUP_ERROR: 'true',
-  }), /Could not determine whether v1\.0\.3 already exists/);
-  assert.equal(run(checkout, 'git', ['ls-remote', '--tags', 'origin', 'v1.0.3']).trim(), '');
+  }), new RegExp(`Could not determine whether ${escapedReleaseTag} already exists`));
+  assert.equal(run(checkout, 'git', ['ls-remote', '--tags', 'origin', releaseTag]).trim(), '');
   run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'stale checkout']);
   assert.notEqual(run(checkout, 'git', ['rev-parse', 'HEAD']).trim(), releaseSha);
   runShell(checkout, publishPath, publishEnv);
-  assert.equal(run(checkout, 'git', ['rev-list', '-n', '1', 'v1.0.3']).trim(), releaseSha);
+  assert.equal(run(checkout, 'git', ['rev-list', '-n', '1', releaseTag]).trim(), releaseSha);
   const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
@@ -257,10 +262,10 @@ try {
   run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'drift fixture']);
   const driftSha = run(checkout, 'git', ['rev-parse', 'HEAD']).trim();
   run(checkout, 'git', ['reset', '--hard', releaseSha]);
-  run(checkout, 'git', ['push', '--force', 'origin', `${driftSha}:refs/tags/v1.0.3`]);
+  run(checkout, 'git', ['push', '--force', 'origin', `${driftSha}:refs/tags/${releaseTag}`]);
   assert.throws(() => runShell(checkout, publishPath, publishEnv));
-  run(checkout, 'git', ['-c', 'tag.gpgSign=false', 'tag', '-f', '-a', 'v1.0.3', '-m', 'restore v1.0.3', releaseSha]);
-  run(checkout, 'git', ['push', '--force', 'origin', 'refs/tags/v1.0.3:refs/tags/v1.0.3']);
+  run(checkout, 'git', ['-c', 'tag.gpgSign=false', 'tag', '-f', '-a', releaseTag, '-m', `restore ${releaseTag}`, releaseSha]);
+  run(checkout, 'git', ['push', '--force', 'origin', `refs/tags/${releaseTag}:refs/tags/${releaseTag}`]);
 
   // A public immutable retry is verification-only; it must not republish.
   runShell(checkout, publishPath, publishEnv);
