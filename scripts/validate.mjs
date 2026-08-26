@@ -371,7 +371,8 @@ if (release.runtimeProtocolVersion !== catalog.runtime?.protocolVersion) {
   fail('release runtimeProtocolVersion must match the catalog');
 }
 const releaseSkillNames = new Set();
-for (const change of release.skills ?? []) {
+if (!Array.isArray(release.skills)) fail('release skills must be an array');
+for (const change of Array.isArray(release.skills) ? release.skills : []) {
   if (releaseSkillNames.has(change.name)) fail(`release repeats skill ${change.name}`);
   releaseSkillNames.add(change.name);
   if (!semver.test(change.version ?? '')) fail(`release ${change.name}: invalid version`);

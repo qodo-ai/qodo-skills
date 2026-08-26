@@ -72,7 +72,7 @@ const statuses = git('diff', '--name-status', `${base}...HEAD`)
 const changedSkills = new Set(
   files.flatMap((path) => {
     const match = path.match(/^skills\/([^/]+)\/(.+)$/);
-    return match && !match[2].startsWith('agents/') ? match[1] : [];
+    return match ? match[1] : [];
   }),
 );
 const currentSkills = new Map((catalog.skills ?? []).map((skill) => [skill.name, skill]));
@@ -125,6 +125,8 @@ try {
 } catch (error) {
   errors.push(`${expectedReleasePath} must exist and contain valid JSON: ${error.message}`);
 }
+const releaseSkills = Array.isArray(release.skills) ? release.skills : [];
+if (!Array.isArray(release.skills)) errors.push(`${expectedReleasePath}: skills must be an array`);
 for (const [status, path] of changedReleaseRecords) {
   if (status !== 'A' || path !== expectedReleasePath) {
     errors.push(`release records are immutable; only add ${expectedReleasePath}`);
@@ -144,7 +146,7 @@ for (const name of changedSkills) {
   if (prior && !isGreater(current.version, prior.version)) {
     errors.push(`${name} version must increase from ${prior.version}`);
   }
-  const releaseEntry = release.skills?.find((skill) => skill.name === name);
+  const releaseEntry = releaseSkills.find((skill) => skill.name === name);
   if (!releaseEntry || releaseEntry.version !== current.version) {
     errors.push(`${name} must appear in the v${catalog.package.version} release record`);
     continue;
@@ -154,7 +156,7 @@ for (const name of changedSkills) {
     errors.push(`${name} release change must be ${expectedChange} for ${prior?.version ?? '<new>'} -> ${current.version}`);
   }
 }
-for (const releaseEntry of release.skills ?? []) {
+for (const releaseEntry of releaseSkills) {
   if (!changedSkills.has(releaseEntry.name)) {
     errors.push(`${releaseEntry.name} appears in the release record without a skill version change`);
   }

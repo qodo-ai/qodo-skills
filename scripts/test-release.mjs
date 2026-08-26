@@ -342,7 +342,6 @@ try {
     cwd: repositoryRoot,
     stdio: 'pipe',
   });
-
   const catalogPath = join(repositoryRoot, 'distribution', 'catalog.json');
   const validCatalogText = readFileSync(catalogPath, 'utf8');
   const schemaInvalidCatalog = JSON.parse(validCatalogText);
@@ -359,7 +358,20 @@ try {
     },
   );
   writeFileSync(catalogPath, validCatalogText);
-
+  const releaseRecordPath = join(repositoryRoot, 'releases', `v${expectedPackageVersion}.json`);
+  const validReleaseText = readFileSync(releaseRecordPath, 'utf8');
+  const missingSkillsRelease = JSON.parse(validReleaseText);
+  delete missingSkillsRelease.skills;
+  writeFileSync(releaseRecordPath, `${JSON.stringify(missingSkillsRelease, null, 2)}\n`);
+  assert.throws(() => execFileSync(
+    process.execPath,
+    [join(repositoryRoot, 'scripts', 'validate.mjs')],
+    { cwd: repositoryRoot, stdio: 'pipe' },
+  ), (error) => {
+    assert.match(String(error.stderr), /release skills must be an array/);
+    return true;
+  });
+  writeFileSync(releaseRecordPath, validReleaseText);
   for (const invalidVersion of ['01.0.3', '1.0.3-01']) {
     const invalidVersionCatalog = JSON.parse(validCatalogText);
     invalidVersionCatalog.package.version = invalidVersion;
@@ -376,7 +388,6 @@ try {
     );
   }
   writeFileSync(catalogPath, validCatalogText);
-
   const releaseCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
     cwd: repositoryRoot,
     encoding: 'utf8',
@@ -398,7 +409,6 @@ try {
       return true;
     },
   );
-
   const resetToRelease = () => {
     execFileSync('git', ['reset', '--hard', releaseCommit], { cwd: repositoryRoot, stdio: 'pipe' });
     execFileSync('git', ['clean', '-fd'], { cwd: repositoryRoot, stdio: 'pipe' });
@@ -418,22 +428,29 @@ try {
       return true;
     },
   );
-
+  resetToRelease();
+  appendFileSync(join(repositoryRoot, 'skills', 'qodo-review', 'agents', 'openai.yaml'),
+    '\n# unversioned shipped agent change\n');
+  commitScenario('unversioned agent definition change');
+  expectDiffFailure(new RegExp(`qodo-review version must increase from ${expectedReviewVersion.replaceAll('.', '\\.')}`));
   resetToRelease();
   appendFileSync(join(repositoryRoot, 'scripts', 'sync-adapters.mjs'), '\n// packaging change\n');
   commitScenario('unversioned packaging change');
   expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
-
+  resetToRelease();
+  const missingSkillsDiffRelease = JSON.parse(readFileSync(releaseRecordPath, 'utf8'));
+  delete missingSkillsDiffRelease.skills;
+  writeFileSync(releaseRecordPath, `${JSON.stringify(missingSkillsDiffRelease, null, 2)}\n`);
+  commitScenario('release record without skills array');
+  expectDiffFailure(/skills must be an array/);
   resetToRelease();
   appendFileSync(join(repositoryRoot, 'scripts', 'prepare-release.mjs'), '\n// release generator change\n');
   commitScenario('unversioned release generator change');
   expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
-
   resetToRelease();
   appendFileSync(join(repositoryRoot, '.github', 'workflows', 'ship-marketplaces.yml'), '\n# release workflow change\n');
   commitScenario('unversioned marketplace workflow change');
   expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
-
   resetToRelease();
   const deletionCatalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
   deletionCatalog.skills = deletionCatalog.skills.filter((skill) => skill.name !== 'qodo-review');
@@ -444,7 +461,6 @@ try {
   rmSync(join(repositoryRoot, 'skills', 'qodo-review'), { recursive: true, force: true });
   commitScenario('unsupported skill removal');
   expectDiffFailure(/qodo-review was removed without a supported immutable removal record/);
-
   resetToRelease();
   const catalogOnlyBump = JSON.parse(readFileSync(catalogPath, 'utf8'));
   const catalogOnlyReview = catalogOnlyBump.skills.find((skill) => skill.name === 'qodo-review');
