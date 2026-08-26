@@ -10,7 +10,7 @@ Qodo moves skill ownership out of the CLI without creating a second architecture
 - Compatible agents without a Qodo listing use skills.sh.
 - `qodo-standards` remains a separate optional package everywhere.
 - The CLI authenticates and runs tools, updates itself, prints lifecycle guidance, emits stale-skill
-  notices, and performs only hash-exact cleanup of its retired copies.
+  notices, and retires only hash-exact shipped copies into recoverable hidden quarantines.
 - No task-time playbook loader and no CLI skill installer/updater ship in the cutover.
 
 ## Why this design
@@ -84,7 +84,8 @@ Ship the CLI that:
 - prints exact core and optional-package commands without executing them;
 - has no `qodo skills install`, no direct updater, and no task-time workflow endpoint;
 - refreshes only the checksummed compact skill index and emits non-fatal stale notices;
-- retains explicit, hash-exact `qodo skills cleanup` for migration.
+- retains explicit `qodo skills cleanup` for migration: it holds a validated root identity and
+  atomically quarantines exact immutable-release copies without recursively deleting bytes.
 
 Gate: clean install and upgrade on macOS/Linux/Windows; login; catalog refresh; machine-readable
 help; marketplace status outcomes; multi-agent skills.sh command; optional package isolation; no
@@ -173,11 +174,13 @@ or ship a new canonical patch. Never create a second core listing.
 - If no listing exists, use detected agents or the current read-only skills.sh catalog to select
   one or more non-marketplace agents, then print exact scope-preserving commands.
 - Install Qodo Standards only after an explicit selection.
-- Remove retired CLI copies only after the new owner works in a fresh session.
+- Retire exact CLI copies only after the new owner works in a fresh session.
 
-Claude’s dedicated root can be cleaned normally. Shared `.agents/skills` roots require
-`--force-shared` only after every consumer has migrated. Any edit, symlink, extra file, or hash
-mismatch is preserved.
+Claude’s dedicated root can be retired normally. Codex checks both the current shared root and the
+historical `$CODEX_HOME/skills` root. Shared `.agents/skills` roots require `--force-shared` only
+after every consumer has migrated. Any edit, symlink, extra file, unknown version, or hash mismatch
+is preserved; an exact shipped copy is moved to a recoverable hidden quarantine, never recursively
+deleted.
 
 ## Update experience after cutover
 

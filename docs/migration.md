@@ -10,8 +10,8 @@ The migration changes the skill lifecycle owner without changing the Qodo accoun
 | CLI only, no listing | Select detected agents, or choose current IDs from `qodo agents catalog`, then run the exact skills.sh command printed by `qodo agents install` | New session loads the selected core skills |
 | Plugin first, CLI missing | Follow `qodo-setup` to the checksum-verified CLI installer | `qodo whoami` and tool refresh succeed |
 | Plugin first, CLI logged out | Run `qodo login` | Identity and tool catalog verify |
-| Older CLI-managed copy plus marketplace plugin | Verify the plugin in a new session, then run explicit cleanup | Only byte-identical retired copies are removed |
-| Older CLI-managed copy with edits | Keep it; decide manually | Cleanup reports no removal |
+| Older CLI-managed copy plus marketplace plugin | Verify the plugin in a new session, then run explicit cleanup | Only byte-identical shipped copies are moved to recoverable hidden quarantine |
+| Older CLI-managed copy with edits | Keep it; decide manually | Cleanup reports no retirement |
 
 ## Cleanup
 
@@ -28,9 +28,12 @@ migrated:
 qodo skills cleanup --agent codex --global --force-shared
 ```
 
-Cleanup verifies the full historical file set and SHA-256 fingerprints before an atomic
-quarantine-and-delete. It does not delete a modified file, symlink, unexpected file, or current
-marketplace/skills.sh package.
+Cleanup verifies the immutable CLI-release file set and SHA-256 fingerprints, holds a validated
+root identity, then atomically moves the exact copy out of the host skill name. The bytes remain in
+a recoverable hidden quarantine because recursively deleting after verification cannot be race-safe.
+It never touches a modified file, symlink, unexpected file, unknown version, or current
+marketplace/skills.sh package. Codex discovery checks both its current shared root and its historical
+`$CODEX_HOME/skills` root.
 
 ## Update notices
 

@@ -16,9 +16,10 @@ lifecycle UI—not in workflow content or authority.
 | skills.sh | install, link/copy, scope, update, and removal for agents without a Qodo listing | Qodo runtime binary or login |
 | Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices | skill installation, task-time playbooks, marketplace caches |
 
-The CLI may remove only byte-identical copies produced by its retired installer, after an explicit
-migration command. It preserves edits, symlinks, extra files, and shared roots unless the user
-acknowledges the shared ownership.
+After an explicit migration command, the CLI may retire only byte-identical copies produced by a
+shipped CLI release. It atomically moves them out of the host skill name into a recoverable hidden
+quarantine; it never recursively deletes their bytes. Edits, symlinks, extra files, unknown
+versions, and shared roots remain untouched unless the user acknowledges shared ownership.
 
 ## Author once, generate everywhere
 
