@@ -36,11 +36,22 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
   } else if (!state.exists) process.exit(1);
   else if (query === '.draft') process.stdout.write(`${state.draft}\n`);
   else if (query === '.immutable') process.stdout.write(`${state.immutable}\n`);
+  else if (query === '.assets[].name') process.stdout.write(`${state.assets.join('\n')}\n`);
   else if (query.includes('.assets[].name')) process.stdout.write(`${[...state.assets].sort().join(' ')}\n`);
   else throw new Error(`Unsupported release query: ${query}`);
 } else if (args[0] === 'release' && args[1] === 'view') {
   if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '')) throw new Error('Invalid release view tag');
   process.exit(readState().exists ? 0 : 1);
+} else if (args[0] === 'release' && args[1] === 'delete-asset') {
+  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || !args[3] || !args.includes('--yes')) {
+    throw new Error('Release asset deletion must specify a valid tag, asset, and --yes');
+  }
+  const state = readState();
+  writeState({
+    ...state,
+    assets: state.assets.filter((asset) => asset !== args[3]),
+    deletedAssets: [...(state.deletedAssets ?? []), args[3]],
+  });
 } else if (args[0] === 'release' && (args[1] === 'create' || args[1] === 'upload')) {
   if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '')) throw new Error('Invalid release mutation tag');
   if (args[1] === 'create' && (!args.includes('--draft') || !args.includes('--verify-tag'))) {
@@ -54,12 +65,16 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
   const assetPaths = args.filter((arg) => assetPattern.test(arg));
   mkdirSync(process.env.FAKE_GH_ASSETS, { recursive: true });
   for (const path of assetPaths) copyFileSync(path, join(process.env.FAKE_GH_ASSETS, basename(path)));
+  const uploadedAssets = assetPaths.map((path) => basename(path));
+  const retainedAssets = args[1] === 'upload'
+    ? state.assets.filter((asset) => !uploadedAssets.includes(asset))
+    : [];
   writeState({
     ...state,
     exists: true,
     draft: true,
     immutable: false,
-    assets: assetPaths.map((path) => basename(path)),
+    assets: [...retainedAssets, ...uploadedAssets],
   });
 } else if (args[0] === 'release' && args[1] === 'download') {
   if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || args[args.indexOf('--pattern') + 1] !== 'qodo-*') {

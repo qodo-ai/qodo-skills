@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DISTRIBUTION = 'enterprise-bundle';
 const PREFIX = 'qodo-enterprise';
+const PRIVATE_KEY_PEM = /-----BEGIN (?:[A-Z0-9][A-Z0-9 -]* )?PRIVATE KEY-----/;
 
 function sha256(payload) {
   return createHash('sha256').update(payload).digest('hex');
@@ -48,6 +49,12 @@ function enterpriseSkill(text, sourcePath) {
 
 function bytewisePathCompare(left, right) {
   return Buffer.compare(Buffer.from(left), Buffer.from(right));
+}
+
+export function assertNoPrivateKeyPayload(payload, sourcePath) {
+  if (PRIVATE_KEY_PEM.test(payload.toString())) {
+    throw new Error(`${sourcePath}: enterprise bundles must not contain private keys`);
+  }
 }
 
 function collectTree(sourceRoot, archiveRoot, files) {
@@ -208,6 +215,7 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
     { path: `${PREFIX}/README.md`, payload: Buffer.from(bundleReadme(version)) },
     { path: `${PREFIX}/bundle.json`, payload: Buffer.from(`${JSON.stringify(bundle, null, 2)}\n`) },
   );
+  for (const file of files) assertNoPrivateKeyPayload(file.payload, file.path);
 
   const outputDir = resolve(repositoryRoot, output);
   mkdirSync(outputDir, { recursive: true });

@@ -5,7 +5,10 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { buildEnterpriseBundle } from './build-enterprise-bundle.mjs';
+import {
+  assertNoPrivateKeyPayload,
+  buildEnterpriseBundle,
+} from './build-enterprise-bundle.mjs';
 
 const commit = '0123456789abcdef0123456789abcdef01234567';
 
@@ -33,16 +36,6 @@ function tarFiles(archive) {
     offset = start + Math.ceil(size / 512) * 512;
   }
   return files;
-}
-
-function assertNoPrivateKeys(files) {
-  for (const [path, payload] of files) {
-    assert.doesNotMatch(
-      payload.toString(),
-      /BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY/,
-      `${path}: enterprise archives must not contain private keys`,
-    );
-  }
 }
 
 const firstRoot = mkdtempSync(join(tmpdir(), 'qodo-enterprise-first-'));
@@ -85,11 +78,18 @@ try {
   assert.match(files.get('qodo-enterprise/README.md').toString(), /DO_NOT_TRACK=1/);
   assert.ok(files.has('qodo-enterprise/bundle.json'));
   assert.ok(![...files.keys()].some((path) => path.endsWith('/qodo.mjs')), 'CLI bytes must remain a separate release');
-  assertNoPrivateKeys(files);
-  assert.throws(
-    () => assertNoPrivateKeys(new Map([['qodo-enterprise/private.pem', Buffer.from('-----BEGIN PRIVATE KEY-----')]])),
-    /private\.pem: enterprise archives must not contain private keys/,
-  );
+  for (const [path, payload] of files) assertNoPrivateKeyPayload(payload, path);
+  for (const marker of [
+    '-----BEGIN PRIVATE KEY-----',
+    '-----BEGIN ENCRYPTED PRIVATE KEY-----',
+    '-----BEGIN DSA PRIVATE KEY-----',
+    '-----BEGIN OPENSSH PRIVATE KEY-----',
+  ]) {
+    assert.throws(
+      () => assertNoPrivateKeyPayload(Buffer.from(marker), 'qodo-enterprise/private.pem'),
+      /private\.pem: enterprise bundles must not contain private keys/,
+    );
+  }
   for (const provider of ['claude', 'codex', 'kiro', 'portable']) {
     assert.ok([...files.keys()].some((path) => path.startsWith(`qodo-enterprise/${provider}/qodo/`)));
     assert.ok([...files.keys()].some((path) => path.startsWith(`qodo-enterprise/${provider}/qodo-standards/`)));

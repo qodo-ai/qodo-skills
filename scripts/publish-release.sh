@@ -4,7 +4,7 @@
 #   RUNNER_TEMP=<dir> QODO_ENTERPRISE_RELEASE_DIR=<prepared-assets-dir> scripts/publish-release.sh
 set -euo pipefail
 
-for tool in gh git node mktemp cmp grep cat rm; do
+for tool in gh git node mktemp cmp grep cat rm basename; do
   command -v "${tool}" >/dev/null 2>&1 || {
     echo "Release publication requires '${tool}', but it is not available." >&2
     exit 1
@@ -104,6 +104,18 @@ fi
 git push origin "refs/tags/${TAG}:refs/tags/${TAG}"
 
 if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
+  while IFS= read -r existing_asset; do
+    expected=false
+    for release_asset in "${RELEASE_ASSETS[@]}"; do
+      if [[ "$(basename "${release_asset}")" == "${existing_asset}" ]]; then
+        expected=true
+        break
+      fi
+    done
+    if [[ "${expected}" == 'false' ]]; then
+      gh release delete-asset "${TAG}" "${existing_asset}" --yes
+    fi
+  done < <(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.assets[].name')
   gh release upload "${TAG}" --clobber "${RELEASE_ASSETS[@]}"
 else
   gh release create "${TAG}" --draft --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}" \

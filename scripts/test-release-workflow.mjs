@@ -134,6 +134,8 @@ assert.match(releaseSource, /gh api --include/);
 assert.match(releaseSource, /HTTP\/\[0-9\.\]\+ 404/);
 assert.match(releaseSource, /gh release upload "\$\{TAG\}" --clobber "\$\{RELEASE_ASSETS\[@\]\}"/,
   'a failed draft publication must be resumable without abandoning the version');
+assert.match(releaseSource, /gh release delete-asset "\$\{TAG\}" "\$\{existing_asset\}" --yes/,
+  'a resumed draft must remove assets outside the exact release inventory');
 assert.match(releaseSource, /--jq '\.draft'/);
 assert.match(releaseSource, /"refs\/tags\/\$\{TAG\}:refs\/tags\/\$\{TAG\}"/);
 assert.match(releaseSource, /git rev-list -n 1 \"\$\{TAG\}\"/);
@@ -265,6 +267,20 @@ try {
   const verifiedRetry = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.equal(verifiedRetry.edits, 1);
   assert.equal(verifiedRetry.downloads, 3);
+
+  // A resumed draft removes stale assets before uploading the exact inventory.
+  writeFileSync(fakeGhState, `${JSON.stringify({
+    exists: true,
+    draft: true,
+    immutable: false,
+    assets: ['qodo-skills-index.json', 'qodo-skills-index.json.sha256', 'stale-release.zip'],
+    downloads: 0,
+    edits: 0,
+  })}\n`);
+  runShell(checkout, publishPath, publishEnv);
+  const cleanedDraft = JSON.parse(readFileSync(fakeGhState, 'utf8'));
+  assert.deepEqual(cleanedDraft.deletedAssets, ['stale-release.zip']);
+  assert.ok(!cleanedDraft.assets.includes('stale-release.zip'));
 
   // A mismatched draft asset fails before publication and remains resumable.
   writeFileSync(fakeGhState, `${JSON.stringify({
