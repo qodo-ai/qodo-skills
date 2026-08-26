@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fail closed before a release tag or draft can be created.
-# Usage: GH_TOKEN=<admin-read-token> GITHUB_REPOSITORY=owner/repo scripts/verify-release-prerequisites.sh
+# Usage: GH_TOKEN=<release-token> GITHUB_REPOSITORY=owner/repo scripts/verify-release-prerequisites.sh
 set -euo pipefail
 
 command -v gh >/dev/null 2>&1 || {
@@ -9,7 +9,7 @@ command -v gh >/dev/null 2>&1 || {
 }
 
 if [[ -z "${GH_TOKEN:-}" ]]; then
-  echo 'QODO_RELEASE_ADMIN_TOKEN is required with repository Administration:read.' >&2
+  echo 'QODO_RELEASE_ADMIN_TOKEN is required with repository Administration:read and Contents:read/write.' >&2
   exit 1
 fi
 

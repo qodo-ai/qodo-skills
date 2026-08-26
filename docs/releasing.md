@@ -27,8 +27,10 @@ The pull request must state:
 
 The repository administrator must enable GitHub release immutability before the first release.
 Configure repository secret `QODO_RELEASE_ADMIN_TOKEN` with only repository
-`Administration: read`; `GITHUB_TOKEN` cannot read this setting. The workflow uses the admin token
-only for the immutable-release preflight and keeps the normal contents-write token for publication.
+`Administration: read` and `Contents: read/write`; `GITHUB_TOKEN` cannot read the repository setting
+or advance the protected Kiro source. The workflow uses this token only for immutable-release
+preflight and the non-force `marketplace-kiro` advance; normal release publication uses its scoped
+workflow token.
 Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
 `refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
 paginates the complete repository ruleset collection before resolving that exact ruleset and
@@ -71,7 +73,7 @@ one artifact per selected provider.
 |---|---|---|
 | Claude Code | packet generation, protected submission pause, then official catalog verification | both selected listings expose the released commit/path |
 | Codex | exact portal packet plus protected release-owner gate | portal review/publish completed, then protected environment approved |
-| Kiro | packet generation, protected submission pause, then live directory verification | selected Powers expose the expected repository, branch, and paths |
+| Kiro | packet generation, protected release-branch promotion, then live directory verification | selected Powers expose `marketplace-kiro` at the released commit and paths |
 
 The action prepares every selected packet first. Claude and Kiro verification jobs then wait in
 `marketplace-claude` and `marketplace-kiro` so a release owner can complete any provider submission
@@ -80,15 +82,26 @@ it is not the selected release. Codex stays human-gated because its documented f
 submission, review, and explicit publication. Its `marketplace-codex` approval is an attestation
 after provider publication, not a substitute for it. All three environments require reviewers.
 
-Core listing identity remains `qodo`. Qodo Standards uses `qodo-standards` and is selected/released
-separately. Never create a replacement core listing to perform a source migration.
+Kiro's provider listing must point to `marketplace-kiro`, not `main`. After protected-environment
+approval, the workflow advances that protected branch without force to the immutable release SHA
+using `QODO_RELEASE_ADMIN_TOKEN`, then requires the live directory and branch head to match exactly.
+Before any branch mutation, a checked-in preflight requires exactly one active **Kiro marketplace
+release** branch ruleset with update/deletion/force-push protection, no exclusions, and exactly one
+always-bypass release identity. It resolves the user behind the release token and requires that
+actor id to be the sole bypass, while rejecting any branch pattern broader than the Kiro source.
+
+Core listing identity remains `qodo`; Qodo Standards remains the separately installable
+`qodo-standards` listing. **Ship marketplaces** selects providers, not individual listings, and
+ships every configured listing for each selected provider together. Optionality is an installation
+choice, not a separate release selector. Never replace the core listing during a source migration.
 
 ## 4. Provider acceptance
 
 For every selected provider, record:
 
 1. provider-visible exact commit/path and version;
-2. fresh core install with exactly four skills;
+2. fresh core install with four canonical capabilities plus the expected `qodo-pr-resolver`
+   compatibility alias (five installed skill entries total);
 3. upgrade from the currently published version without duplicates;
 4. Qodo Standards absent until explicitly installed;
 5. `qodo-setup`, one read workflow, and one approval-gated write workflow;
@@ -107,8 +120,9 @@ selection so the optional package cannot appear by accident.
 
 - Skill regression: prepare and publish a new patch restoring the last-good behavior, then ship
   that patch through the affected lifecycle owners.
-- Provider packaging regression: keep the existing listing identity and repoint only through the
-  provider’s supported reviewed update flow.
+- Provider packaging regression: publish a new immutable patch containing the last-good packaging,
+  then promote that patch through the provider's supported reviewed update flow. This forward-only
+  rule is mandatory for Kiro because its protected release branch cannot be rewound.
 - Runtime regression: use the independent Qodo CLI rollback; do not smuggle a binary change into a
   skill release.
 

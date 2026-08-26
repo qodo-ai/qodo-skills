@@ -73,21 +73,21 @@ const kiroDocument = JSON.stringify({
   powers: [
     {
       name: 'qodo',
-      repositoryUrl: 'https://github.com/qodo-ai/qodo-skills/tree/main/kiro-power',
+      repositoryUrl: 'https://github.com/qodo-ai/qodo-skills/tree/marketplace-kiro/kiro-power',
       pathInRepo: 'kiro-power',
-      repositoryBranch: 'main',
+      repositoryBranch: 'marketplace-kiro',
     },
     {
       name: 'qodo-standards',
-      repositoryUrl: 'https://github.com/qodo-ai/qodo-skills/tree/main/kiro-power-standards',
+      repositoryUrl: 'https://github.com/qodo-ai/qodo-skills/tree/marketplace-kiro/kiro-power-standards',
       pathInRepo: 'kiro-power-standards',
-      repositoryBranch: 'main',
+      repositoryBranch: 'marketplace-kiro',
     },
   ],
 });
 const kiroResults = verifyKiroDocument(kiroDocument, context);
 assert.equal(kiroResults.length, 2);
-assert.equal(kiroResults[0].branch, 'main');
+assert.equal(kiroResults[0].branch, 'marketplace-kiro');
 assert.equal(kiroResults[0].commit, undefined);
 assert.throws(() => verifyKiroDocument('{}', context), /Kiro qodo/);
 assert.throws(() => verifyKiroDocument(JSON.stringify({
@@ -143,10 +143,28 @@ for (const input of ['all', 'claude', 'codex', 'kiro']) {
 }
 assert.ok((workflow.match(/type: boolean/g) ?? []).length >= 4);
 assert.match(workflow, /fromJSON\(needs\.plan\.outputs\.matrix\)/);
+assert.match(workflow, /has_verifiable/);
 assert.match(workflow, /name: marketplace-codex/);
 assert.match(workflow, /name: marketplace-\$\{\{ matrix\.provider \}\}/);
 assert.match(workflow, /required_reviewers/);
 assert.match(workflow, /verify-provider-visible/);
 assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY/);
+const preflight = workflow.indexOf('Verify immutable release before executing release code');
+const releaseCheckout = workflow.indexOf('Check out release automation');
+assert.ok(preflight >= 0 && releaseCheckout > preflight);
+assert.match(workflow, /\.immutable'\)" = 'true'/);
+assert.match(workflow, /release_tag must be an exact stable semver tag/);
+assert.match(workflow, /SOURCE_REF: marketplace-kiro/);
+assert.match(workflow, /QODO_RELEASE_ADMIN_TOKEN/);
+assert.match(workflow, /verify-kiro-release-source\.sh/);
+assert.match(workflow, /-F force=false/);
+const kiroSourcePreflight = readFileSync(join(root, 'scripts', 'verify-kiro-release-source.sh'), 'utf8');
+assert.match(kiroSourcePreflight, /Kiro marketplace release/);
+assert.match(kiroSourcePreflight, /# Usage: GH_TOKEN=/);
+assert.match(kiroSourcePreflight, /gh api user --jq '\.id'/);
+assert.match(kiroSourcePreflight, /include == \["refs\/heads\/marketplace-kiro"\]/);
+assert.match(kiroSourcePreflight, /contains\(\["update", "deletion", "non_fast_forward"\]\)/);
+assert.match(kiroSourcePreflight, /length == 1/);
+assert.match(kiroSourcePreflight, /actor_id == '"\$\{RELEASE_ACTOR_ID\}"'/);
 
 console.log('Marketplace release workflow tests passed.');

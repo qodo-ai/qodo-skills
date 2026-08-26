@@ -106,6 +106,10 @@ if (!semver.test(packageVersion ?? '')) fail('catalog package.version must be se
 if (catalog.instructionMode !== 'embedded') fail('catalog instructionMode must be embedded');
 if (catalog.runtime?.command !== 'qodo') fail('runtime command must remain qodo');
 if (catalog.runtime?.loginCommand !== 'qodo login') fail('runtime login must remain qodo login');
+const kiroProvider = marketplaces.providers?.find((provider) => provider.id === 'kiro');
+if (kiroProvider?.mode !== 'protected-release-branch' || kiroProvider?.sourceRef !== 'marketplace-kiro') {
+  fail('Kiro marketplace must use the protected marketplace-kiro release branch');
+}
 for (const field of ['repository', 'homepage', 'supportUrl', 'privacyPolicyUrl', 'termsOfServiceUrl']) {
   if (!String(catalog.package?.[field] ?? '').startsWith('https://')) {
     fail(`catalog package.${field} must be an HTTPS URL`);

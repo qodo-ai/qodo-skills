@@ -58,6 +58,46 @@ try {
     cwd: repositoryRoot,
     encoding: 'utf8',
   }).trim();
+  assert.throws(
+    () => execFileSync(
+      process.execPath,
+      [join(repositoryRoot, 'scripts', 'validate-diff.mjs'), 'not-a-commit'],
+      { cwd: repositoryRoot, stdio: 'pipe' },
+    ),
+    (error) => {
+      assert.match(String(error.stderr), /Base commit cannot be resolved: not-a-commit/);
+      return true;
+    },
+  );
+  const emptyTree = execFileSync('git', ['mktree'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    input: '',
+  }).trim();
+  const cataloglessBase = execFileSync(
+    'git',
+    ['commit-tree', emptyTree, '-m', 'catalogless base'],
+    { cwd: repositoryRoot, encoding: 'utf8' },
+  ).trim();
+  assert.match(
+    execFileSync(
+      process.execPath,
+      [join(repositoryRoot, 'scripts', 'validate-diff.mjs'), cataloglessBase],
+      { cwd: repositoryRoot, encoding: 'utf8' },
+    ),
+    /treating this as the initial release/,
+  );
+  assert.throws(
+    () => execFileSync(process.execPath, [
+      join(repositoryRoot, 'scripts', 'prepare-release.mjs'),
+      '--summary', 'Invalid initial bump.',
+      '--skill', 'qodo-review=initial',
+    ], { cwd: repositoryRoot, stdio: 'pipe' }),
+    (error) => {
+      assert.match(String(error.stderr), /initial is only valid for a skill absent from the HEAD catalog/);
+      return true;
+    },
+  );
   execFileSync(process.execPath, [
     join(repositoryRoot, 'scripts', 'prepare-release.mjs'),
     '--summary', 'Exercise the release pipeline.',
@@ -84,6 +124,13 @@ try {
   assert.match(generatedReview, /## Handle a skill update notice/);
   assert.doesNotMatch(generatedReview, /qodo help workflow/);
   assert.match(generatedReview, /--distribution marketplace --host claude-code/);
+  const legacyResolver = readFileSync(
+    join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-pr-resolver', 'SKILL.md'),
+    'utf8',
+  );
+  assert.match(legacyResolver, /^name: qodo-pr-resolver$/m);
+  assert.match(legacyResolver, /Compatibility alias for explicit qodo-pr-resolver requests/);
+  assert.match(legacyResolver, /--skill qodo-review-resolver .*--distribution marketplace --host claude-code/);
   const releaseIndexPath = join(repositoryRoot, 'distribution', 'qodo-skills-index.json');
   const releaseIndexText = readFileSync(releaseIndexPath, 'utf8');
   const releaseIndex = JSON.parse(releaseIndexText);
@@ -165,6 +212,71 @@ try {
       return true;
     },
   );
+
+  const resetToRelease = () => {
+    execFileSync('git', ['reset', '--hard', releaseCommit], { cwd: repositoryRoot, stdio: 'pipe' });
+    execFileSync('git', ['clean', '-fd'], { cwd: repositoryRoot, stdio: 'pipe' });
+  };
+  const commitScenario = (message) => {
+    execFileSync('git', ['add', '.'], { cwd: repositoryRoot });
+    execFileSync('git', ['commit', '--quiet', '-m', message], { cwd: repositoryRoot });
+  };
+  const expectDiffFailure = (pattern) => assert.throws(
+    () => execFileSync(
+      process.execPath,
+      [join(repositoryRoot, 'scripts', 'validate-diff.mjs'), releaseCommit],
+      { cwd: repositoryRoot, stdio: 'pipe' },
+    ),
+    (error) => {
+      assert.match(String(error.stderr), pattern);
+      return true;
+    },
+  );
+
+  resetToRelease();
+  appendFileSync(join(repositoryRoot, 'scripts', 'sync-adapters.mjs'), '\n// packaging change\n');
+  commitScenario('unversioned packaging change');
+  expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
+
+  resetToRelease();
+  appendFileSync(join(repositoryRoot, '.github', 'workflows', 'ship-marketplaces.yml'), '\n# release workflow change\n');
+  commitScenario('unversioned marketplace workflow change');
+  expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
+
+  resetToRelease();
+  const deletionCatalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
+  deletionCatalog.skills = deletionCatalog.skills.filter((skill) => skill.name !== 'qodo-review');
+  for (const installPackage of deletionCatalog.installPackages) {
+    installPackage.skills = installPackage.skills.filter((name) => name !== 'qodo-review');
+  }
+  writeFileSync(catalogPath, `${JSON.stringify(deletionCatalog, null, 2)}\n`);
+  rmSync(join(repositoryRoot, 'skills', 'qodo-review'), { recursive: true, force: true });
+  commitScenario('unsupported skill removal');
+  expectDiffFailure(/qodo-review was removed without a supported immutable removal record/);
+
+  resetToRelease();
+  const catalogOnlyBump = JSON.parse(readFileSync(catalogPath, 'utf8'));
+  const catalogOnlyReview = catalogOnlyBump.skills.find((skill) => skill.name === 'qodo-review');
+  catalogOnlyReview.version = incrementVersion(catalogOnlyReview.version, 'patch');
+  writeFileSync(catalogPath, `${JSON.stringify(catalogOnlyBump, null, 2)}\n`);
+  commitScenario('catalog-only skill bump');
+  expectDiffFailure(new RegExp(`qodo-review must appear in the v${expectedPackageVersion.replaceAll('.', '\\.')} release record`));
+
+  resetToRelease();
+  execFileSync(process.execPath, [
+    join(repositoryRoot, 'scripts', 'prepare-release.mjs'),
+    '--summary', 'Exercise semantic change validation.',
+    '--skill', 'qodo-review=minor',
+  ], { cwd: repositoryRoot, stdio: 'pipe' });
+  const mislabeledCatalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
+  const mislabeledReleasePath = join(repositoryRoot, 'releases', `v${mislabeledCatalog.package.version}.json`);
+  const mislabeledRelease = JSON.parse(readFileSync(mislabeledReleasePath, 'utf8'));
+  mislabeledRelease.package.change = 'patch';
+  mislabeledRelease.skills[0].change = 'patch';
+  writeFileSync(mislabeledReleasePath, `${JSON.stringify(mislabeledRelease, null, 2)}\n`);
+  commitScenario('mislabel semantic changes');
+  expectDiffFailure(/release package\.change must be minor[\s\S]*qodo-review release change must be minor/);
+
   console.log('Release preparation test passed.');
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });

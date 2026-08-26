@@ -43,8 +43,13 @@ Schemas rather than relying only on partial hand-written checks.
 | skills.sh | canonical `skills/` tree | `skills-sh`, host stamped by installer/use context |
 
 Generation copies the complete canonical workflow. It changes only distribution/host provenance
-and provider manifests. Validation byte-compares every generated skill against that deterministic
-projection and rejects any `qodo help workflow` loader.
+and provider manifests. Core marketplace packages also generate the temporary
+`qodo-pr-resolver` compatibility alias from the canonical `qodo-review-resolver` body so existing
+explicit invocations survive the rename without creating a second authored workflow. Validation
+byte-compares every generated skill against that deterministic projection and rejects any
+`qodo help workflow` loader. Kiro uses the current Agent Plugins contract (`plugin.json` plus
+`skills/`); the retired `POWER.md`/`steering/` layout is not regenerated. Its public listing follows
+only the protected `marketplace-kiro` release branch, never mutable day-to-day `main`.
 
 ## Runtime contract
 

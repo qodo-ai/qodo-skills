@@ -189,6 +189,21 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       );
     }
   }
+  // Preserve the legacy marketplace invocation while the canonical skill name
+  // moves from qodo-pr-resolver to qodo-review-resolver. This is generated from
+  // the canonical workflow (never separately authored), and its narrow
+  // description prevents it competing with the canonical skill for new tasks.
+  if (value.name === pkg.name) {
+    const canonical = files.get('skills/qodo-review-resolver/SKILL.md');
+    if (!canonical) throw new Error(`${value.name}: missing qodo-review-resolver compatibility source`);
+    const compatibilityAlias = canonical
+      .replace(/^name:\s*qodo-review-resolver$/m, 'name: qodo-pr-resolver')
+      .replace(
+        /^description:.*$/m,
+        'description: Compatibility alias for explicit qodo-pr-resolver requests. Follow the complete Qodo PR review workflow embedded here; use qodo-review-resolver for new invocations.',
+      );
+    files.set('skills/qodo-pr-resolver/SKILL.md', compatibilityAlias);
+  }
   return files;
 }
 

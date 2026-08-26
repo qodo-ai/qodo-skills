@@ -90,14 +90,17 @@ progress events to **stderr** (`--progress` requires `--json`). Split the two in
 the progress one:
 
 ```
-mkdir -p .qodo                                   # redirect targets won't create it; .qodo/ is gitignored
+QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
+cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
+trap cleanup_qodo_review EXIT; trap 'exit 130' INT; trap 'exit 143' TERM
 qodo review --json --progress [--deep|--fast] [--ticket <URL> …] [<pathspec>…] \
-  >.qodo/review.result.json 2>.qodo/review.progress.ndjson &   # background it (drop & if your runtime backgrounds for you)
+  >"$QODO_REVIEW_TMP/result.json" 2>"$QODO_REVIEW_TMP/progress.ndjson" &
 pid=$!
-tail -n +1 --pid="$pid" -f .qodo/review.progress.ndjson        # GNU tail: follows, then STOPS when the review exits
+tail -n +1 --pid="$pid" -f "$QODO_REVIEW_TMP/progress.ndjson" # GNU tail: follows, then STOPS when the review exits
 wait "$pid"; status=$?                                         # capture exit — but do NOT abort on non-zero
-# ALWAYS read .qodo/review.result.json now (even if status != 0): it carries the
+# ALWAYS read "$QODO_REVIEW_TMP/result.json" now (even if status != 0): it carries the
 # error envelope (code/message/hint, incl. closed_preview). Then act on $status.
+# After parsing it, remove only "$QODO_REVIEW_TMP"; never delete a shared path.
 ```
 
 **This is a POSIX example, and the real follow mechanism is your runtime's, not a literal `tail`.**
@@ -108,8 +111,8 @@ in PowerShell use a background job + `Get-Content -Wait`, or just take the foreg
 - **Context via a file, not stdin.** Backgrounding + redirection fights a stdin heredoc, so put the
   context in `.qodo/session-context.json` (auto-attached) or pass `--context-file .qodo/ctx.json`.
   `.qodo/` is always excluded from the reviewed diff and should be gitignored.
-- **Launch it in the background** so your turn isn't blocked, then **read the growing
-  `.qodo/review.progress.ndjson`** and give the user short status lines. Each line is one JSON
+- **Launch it in the background** so your turn isn't blocked, then **read the growing per-run
+  `progress.ndjson`** and give the user short status lines. Each line is one JSON
   object; translate by `kind` — never dump raw NDJSON at the user:
   - `cli.status` → relay its `message` verbatim-ish (it's already human-readable, e.g. *"Reviewing
     acme/widgets @ a1b2c3d4e — 3247B of local changes · auto depth"*).
@@ -130,9 +133,10 @@ in PowerShell use a background job + `Get-Content -Wait`, or just take the foreg
     progress event alone hands the user a bare failure with the actionable part missing.
   - **Any other `kind`** (e.g. `agent.spawn`, `state.update`) → treat as a generic heartbeat like
     `task.delta`; never dump its raw JSON at the user. The set is open — new kinds may appear.
-- **When the process exits, read `.qodo/review.result.json`** and proceed exactly as below (findings
+- **When the process exits, read that run's `result.json`** and proceed exactly as below (findings
   / `meta` / `hint`, or the `error` envelope — including `closed_preview`, which arrives here, not on
-  the progress stream). Then delete the two `.qodo/review.*` temp files.
+  the progress stream). Then delete only the unique directory created for that run, including on
+  interruption or failure. Never reuse or remove a fixed/shared `.qodo/review.*` path.
 
 The progress stream is deliberately **coarse** — lifecycle/status and tool outcomes, never finding
 text or model output (it can land in CI logs). It tells the user *what stage the review is at*, not
@@ -182,9 +186,10 @@ or when your runtime can't hold a process open for minutes, that's a review you 
 is alive; you collect the result later with `qodo review status <operation-id>`.
 
 ```
-id=$(qodo review --async --json --deep | jq -r .operation_id)   # submits and returns at once
-# ... do other work, or exit entirely; the review keeps running ...
-qodo review status "$id" --json                                  # collect it
+command -v jq >/dev/null 2>&1 || { printf '%s\n' 'This async recipe requires jq; install it or use the live qodo review flow.' >&2; exit 1; }
+if ! submission="$(qodo review --async --json --deep)"; then printf '%s\n' "$submission" >&2; exit 1; fi
+if ! id="$(printf '%s\n' "$submission" | jq -er '.operation_id | select(type == "string" and length > 0)')"; then printf '%s\n' "$submission" >&2; exit 1; fi
+qodo review status "$id" --json                                # collect it
 ```
 
 Poll until it's done — the exit code is the whole protocol, so you never parse stdout to find out:
@@ -196,7 +201,10 @@ Poll until it's done — the exit code is the whole protocol, so you never parse
 | `1` | Failed, canceled, expired, or no such operation. Read the `error` envelope. | Report it; re-run if appropriate. |
 
 ```
-until qodo review status "$id" --json > .qodo/review.result.json; [ $? -ne 2 ]; do sleep 15; done
+QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
+cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
+trap cleanup_qodo_review EXIT; trap 'exit 130' INT; trap 'exit 143' TERM
+while :; do status=0; qodo review status "$id" --json > "$QODO_REVIEW_TMP/result.json" || status=$?; case "$status" in 0) break;; 2) sleep 15;; *) cat "$QODO_REVIEW_TMP/result.json" >&2; exit "$status";; esac; done
 ```
 
 **Prefer `--async` when:**
@@ -236,7 +244,10 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 ## Preflight
 
 1. **Auth first.** Run `qodo whoami`. After the sandbox retry above when applicable, a non-zero
-   exit → tell the user to run `qodo login`, then stop. Never guess creds. `Not logged in` /
+   exit → tell the user to re-run the exact login command supplied by their installer,
+   organization, or configured endpoint, then stop. With no custom endpoint, use `qodo login`;
+   with an explicit endpoint, preserve it as `qodo login --auth-url <their-url>`. Never replace a
+   custom deployment with the cloud default or invent an endpoint. `Not logged in` /
    `No tool catalog cached` require login. If `whoami`
    succeeds but the built-in `qodo review` command is unknown, the runtime is too old; ask the
    user to update the CLI from the official source. Re-login and catalog refresh cannot add this

@@ -56,6 +56,8 @@ qodo rules set-state --rule-ids 123,124 --state inactive --dry-run --json
 qodo rules set-state --rule-ids 123,124 --state inactive --json       # after confirming the preview
 qodo rules set-scope --rule-ids 123 --scopes "/owner/repo/","/owner/repo2/" --json
 qodo rules list --state pending --json                                # suggestions awaiting triage
+qodo rules bulk --operation accept_activate --rule-ids 10,11 --dry-run --json
+# Show the exact matched rules/count and ask once. Only after explicit approval:
 qodo rules bulk --operation accept_activate --rule-ids 10,11 --json
 qodo rules bulk --operation reject --rule-ids 12 --dry-run --json     # PERMANENT delete — dry run first
 qodo rules get --rule-id 123 --json                                   # current form before editing

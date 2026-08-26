@@ -19,8 +19,9 @@
           "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
           "displayName": { "type": "string", "minLength": 1 },
           "mode": {
-            "enum": ["provider-pinned-git", "reviewed-portal-snapshot", "live-git-directory"]
+            "enum": ["provider-pinned-git", "reviewed-portal-snapshot", "protected-release-branch"]
           },
+          "sourceRef": { "type": "string", "pattern": "^[a-zA-Z0-9._/-]+$" },
           "submissionUrl": { "type": "string", "format": "uri" },
           "directoryUrl": { "type": "string", "format": "uri" },
           "directoryManifestUrl": { "type": "string", "format": "uri" },

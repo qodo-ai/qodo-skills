@@ -114,6 +114,12 @@ per-command permission checks. If it still fails, follow the normal auth trouble
 2. **Resolve the PR.** Use the PR URL the user gives. If they don't name one and you're inside
    a git repo, infer the open PR for the current branch and **confirm it with the user before
    acting**. Never guess a PR URL.
+3. **Bind edits to the checkout.** Report-only reads may target any PR. Before any local fix,
+   resolve the PR repository from provider metadata and the current checkout repository from its
+   `origin`; normalize both to the full case-insensitive `owner/repo` identity. They must match
+   exactly. A missing/ambiguous origin or mismatch means stop and ask the user to open the correct
+   checkout — never apply a finding from one repository to another worktree. Repeat this check if
+   the target PR changes during a watch loop.
 
 ## Fetch the review session
 

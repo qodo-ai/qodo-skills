@@ -6,7 +6,7 @@
 |---|---|---|
 | Claude Code official listing | Claude marketplace | `packages/qodo` |
 | Codex official listing | Codex marketplace/portal | `codex-packages/qodo` |
-| Kiro official listing | Kiro Powers | `kiro-power` |
+| Kiro official listing | Kiro Powers on protected `marketplace-kiro` | `kiro-power` |
 | Compatible host without a listing | skills.sh | canonical `skills/` |
 
 `qodo-standards` is a separate optional package on every surface. It is never included in core
@@ -36,6 +36,9 @@ the cached catalog is authoritative for the current account and workspace.
 6. The CLI and skill release independently; a skill may require a minimum CLI only when the release
    plan ships the compatible CLI first.
 7. Rollback is a new immutable patch, never mutation of a published tag or asset.
+8. Marketplace core packages retain the generated `qodo-pr-resolver` compatibility alias while
+   `qodo-review-resolver` is canonical. The alias is generated from the same complete workflow and
+   remains only for explicit legacy invocations; it is not a second authored skill.
 
 ## Acceptance
 
@@ -44,7 +47,9 @@ For each selected provider, release evidence must include:
 - provider-visible version and exact source commit/path;
 - fresh install;
 - upgrade from the currently published Qodo version;
-- exactly four core skills after core-only install;
+- exactly four canonical core capabilities after core-only install (the generated
+  `qodo-pr-resolver` name may coexist only as a compatibility alias for
+  `qodo-review-resolver`, never as another capability);
 - Qodo Standards absent until explicitly installed;
 - login/setup, one read workflow, and one approval-gated write workflow;
 - host-owned update followed by a new session;

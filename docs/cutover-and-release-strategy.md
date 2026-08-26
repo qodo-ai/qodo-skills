@@ -35,7 +35,7 @@ skills/<name>/ (authored once)
           │
           ├── packages/             Claude Code complete skills
           ├── codex-packages/       Codex complete skills
-          ├── kiro-power*/          Kiro complete skills
+          ├── kiro-power*/          Kiro Agent Plugins power packages
           └── skills/               skills.sh source
 
 qodo CLI ── login + runtime + tool help + version notice
@@ -56,11 +56,17 @@ rollback.
 - Create protected GitHub environments `marketplace-claude`, `marketplace-kiro`, and
   `marketplace-codex` with required release-owner reviewers.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
-- Configure `QODO_RELEASE_ADMIN_TOKEN` with repository `Administration: read` only. The workflow
-  uses it solely to verify immutability; normal `GITHUB_TOKEN` remains the publication credential.
+- Configure `QODO_RELEASE_ADMIN_TOKEN` with repository `Administration: read` and `Contents:
+  read/write`. It verifies release controls and advances only the protected `marketplace-kiro`
+  source branch; normal `GITHUB_TOKEN` remains read-only.
 - Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
   `refs/tags/v*`; tag creation is allowed, but updates and deletion are blocked. Release preflight
   searches every ruleset page and rejects duplicate matches or a creation restriction.
+- Create exactly one active **Kiro marketplace release** ruleset for
+  `refs/heads/marketplace-kiro`: block update, deletion, and force-push; permit creation; exclude
+  nothing; and grant always-bypass to exactly the release identity
+  behind `QODO_RELEASE_ADMIN_TOKEN` to advance it without force pushes. Repoint both existing Kiro
+  listing URLs from `main` to this branch before the first marketplace-owned release.
 
 Gate: every item is verified from provider/repository state. A source manifest is not evidence of
 a live marketplace listing.
@@ -88,6 +94,10 @@ Rollback: roll back only the runtime. Existing skills remain owned by their curr
 ### 2. Publish the canonical skills release
 
 - Merge the atomic qodo-skills PR with canonical version bumps and generated provider packages.
+- Release validation derives changes from both canonical files and the catalog: packaging-only
+  changes require a package release, every semantic-version delta must match its release record,
+  catalog-only bumps cannot disappear from release notes, `initial` cannot target an existing
+  skill, and deletion is blocked until the release schema defines an explicit tombstone.
 - After the compatible CLI is live, dispatch **Release skills** manually from current `main`; the
   workflow verifies the selected SHA is current before and after validation, pushes a protected
   annotated tag, verifies its peeled remote SHA, creates or resumes a draft, verifies both assets
@@ -98,28 +108,36 @@ Rollback: roll back only the runtime. Existing skills remain owned by their curr
 - Smoke-test skills.sh core installation on representative non-marketplace agents before provider
   promotion.
 
-Gate: `npm test`, immutable release verification, core-only four-skill membership, standards
+Gate: `npm test`, immutable release verification, four canonical core capabilities, standards
 opt-in, full embedded body/provenance checks, and skills.sh project/global update without package
-broadening.
+broadening. Marketplace packages may also expose the generated `qodo-pr-resolver` compatibility
+name, which is the same canonical resolver workflow and not a fifth capability.
 
 Rollback: publish a new immutable patch. Never replace the release asset.
 
 ### 3. Promote Claude and Kiro
 
-Run **Ship marketplaces** with Claude and Kiro selected. The action prepares both packets, then
-pauses each provider verification in its protected environment while the release owner completes
-any provider submission. Approve a provider only when its listing is expected to be visible; the
-resumed job verifies the exact release and fails closed otherwise.
+Run **Ship marketplaces** with Claude and Kiro selected. Selection is provider-level: the action
+ships every configured listing for each selected provider, including both `qodo` and the separately
+installable `qodo-standards`. It then pauses each provider verification in its protected environment
+while the release owner completes any provider submission. Approve a provider only when its listing
+is expected to be visible; the resumed job verifies the exact release and fails closed otherwise.
 
 - Preserve the existing `qodo` listing identity and repoint it to the generated core path.
 - Publish `qodo-standards` only as a separate optional listing.
+- Kiro uses its current Agent Plugins power contract (`plugin.json` plus nested `skills/`), not the
+  retired `POWER.md`/`steering/` package layout.
+- Kiro follows the protected `marketplace-kiro` branch, which the approved release job advances
+  fast-forward to the immutable tag before verifying the provider-visible listing. It never follows
+  day-to-day `main`.
 - Wait for provider-visible exact commit/path before behavioral acceptance.
 
-Gate per provider: fresh install, in-place upgrade, exactly four core skills, optional standards
-absence, setup/login, one read workflow, one approval-gated write workflow, update and new-session
-activation.
+Gate per provider: fresh install, in-place upgrade, exactly four canonical core capabilities plus
+the expected generated legacy resolver alias (five core-package skill entries), optional standards absence,
+setup/login, one read workflow, one approval-gated write workflow, update and new-session activation.
 
-Rollback: publish/repoint to a new last-good patch through the provider-supported flow.
+Rollback: publish/repoint to a new last-good patch through the provider-supported flow. Kiro is
+strictly forward-only because the protected release branch cannot be rewound.
 
 ### 4. Promote Codex and deprecate the old source
 
@@ -171,9 +189,9 @@ optional skills are discoverable but never auto-installed.
 | Gate | Evidence required | Blocks |
 |---|---|---|
 | Source | exact merged heads, full CI, generated-drift checks | GitHub release |
-| Repository | admin-read preflight credential, immutable releases enabled, no-bypass `v*` tag update/deletion ruleset, protected tag SHA, and post-publication immutable asset bytes | all promotion |
+| Repository | least-privilege release credential, immutable releases enabled, no-bypass `v*` tag ruleset, protected `marketplace-kiro` branch, protected tag SHA, and post-publication immutable asset bytes | all promotion |
 | Claude | official catalog exact SHA/path | Claude completion |
-| Kiro | live Power exact repository/branch/path | Kiro completion |
+| Kiro | live Agent Plugins power on `marketplace-kiro` at the exact release SHA/path | Kiro completion |
 | Codex | portal review + publish + protected attestation | Codex completion and old-repo deprecation |
 | Behavior | fresh install, upgrade, package isolation, setup/read/write/update | provider sign-off |
 | Migration | no duplicate/shadowed skill; cleanup preserves user changes | broad rollout |
@@ -190,8 +208,8 @@ declared scope, and cannot route a marketplace-owned ID through skills.sh.
 Go only when:
 
 - CLI and skills PR heads are independently green and review-clean;
-- release immutability, its admin-read preflight credential, and all three marketplace environment
-  protections are configured;
+- release immutability, the least-privilege release credential, protected `marketplace-kiro`, and
+  all three marketplace environment protections are configured;
 - rollback identities/artifacts are recorded;
 - selected provider publication owners are available;
 - fresh-install and upgrade fixtures are ready.

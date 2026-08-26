@@ -95,6 +95,47 @@ export function prepareRelease(argv, repositoryRoot = root) {
   const knownSkills = new Set(catalog.skills.map((skill) => skill.name));
   const unknownSkills = [...options.skills.keys()].filter((name) => !knownSkills.has(name));
   if (unknownSkills.length) throw new Error(`Unknown skills: ${unknownSkills.join(', ')}`);
+  let headCatalog = { skills: [] };
+  let hasHead = false;
+  try {
+    execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
+      cwd: repositoryRoot,
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    hasHead = true;
+  } catch (error) {
+    if (error.code === 'ENOENT') throw error;
+  }
+  if (hasHead) {
+    let hasHeadCatalog = false;
+    try {
+      execFileSync('git', ['cat-file', '-e', 'HEAD:distribution/catalog.json'], {
+        cwd: repositoryRoot,
+        stdio: ['ignore', 'ignore', 'pipe'],
+      });
+      hasHeadCatalog = true;
+    } catch (error) {
+      if (error.code === 'ENOENT') throw error;
+    }
+    if (hasHeadCatalog) {
+      const headCatalogText = execFileSync(
+        'git',
+        ['show', 'HEAD:distribution/catalog.json'],
+        { cwd: repositoryRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
+      );
+      try {
+        headCatalog = JSON.parse(headCatalogText);
+      } catch (error) {
+        throw new Error(`HEAD distribution/catalog.json is invalid: ${error.message}`);
+      }
+    }
+  }
+  const headSkills = new Set((headCatalog.skills ?? []).map((skill) => skill.name));
+  for (const [name, bump] of options.skills) {
+    if (bump === 'initial' && headSkills.has(name)) {
+      throw new Error(`${name}=initial is only valid for a skill absent from the HEAD catalog`);
+    }
+  }
 
   const changes = [];
   for (const skill of catalog.skills) {

@@ -256,14 +256,18 @@ export function verifyKiroDocument(document, context, selectedProvider = provide
   const normalized = normalizedEmbeddedJson(document);
   const records = embeddedObjectRecords(normalized);
   const results = [];
+  const sourceRef = selectedProvider.sourceRef;
+  if (!sourceRef) throw new Error('Kiro marketplace contract is missing sourceRef');
   for (const listing of selectedProvider.listings) {
-    const repository = `${repositoryUrl}/tree/main/${listing.sourcePath}`;
+    const repository = `${repositoryUrl}/tree/${sourceRef}/${listing.sourcePath}`;
     const entry = records.find((candidate) => candidate.name === listing.id);
     if (!entry) throw new Error(`Kiro ${listing.id}: provider listing is missing`);
     if (entry.repositoryUrl !== repository) throw new Error(`Kiro ${listing.id}: wrong repository`);
     if (entry.pathInRepo !== listing.sourcePath) throw new Error(`Kiro ${listing.id}: expected path ${listing.sourcePath}`);
-    if (entry.repositoryBranch !== 'main') throw new Error(`Kiro ${listing.id}: expected branch main`);
-    results.push({ id: listing.id, state: 'provider-visible', source: repository, branch: 'main' });
+    if (entry.repositoryBranch !== sourceRef) {
+      throw new Error(`Kiro ${listing.id}: expected branch ${sourceRef}`);
+    }
+    results.push({ id: listing.id, state: 'provider-visible', source: repository, branch: sourceRef });
   }
   return results;
 }
@@ -292,11 +296,14 @@ export async function verifyMarketplace(providerId, context) {
   }
   if (providerId === 'kiro') {
     const results = verifyKiroDocument(await fetchText(selectedProvider.directoryUrl), context, selectedProvider);
-    const main = JSON.parse(await fetchText('https://api.github.com/repos/qodo-ai/qodo-skills/commits/main'));
-    if (main.sha !== context.commit) {
-      throw new Error(`Kiro follows main at ${main.sha ?? '<missing>'}, not release commit ${context.commit}`);
+    const sourceRef = selectedProvider.sourceRef;
+    const source = JSON.parse(await fetchText(
+      `https://api.github.com/repos/qodo-ai/qodo-skills/commits/${encodeURIComponent(sourceRef)}`,
+    ));
+    if (source.sha !== context.commit) {
+      throw new Error(`Kiro follows ${sourceRef} at ${source.sha ?? '<missing>'}, not release commit ${context.commit}`);
     }
-    return results.map((result) => ({ ...result, commit: main.sha }));
+    return results.map((result) => ({ ...result, commit: source.sha }));
   }
   throw new Error(`${providerId}: no verifier implemented`);
 }
@@ -323,7 +330,12 @@ async function main(argv) {
         .filter((id) => provider(id).mode !== 'reviewed-portal-snapshot')
         .map((id) => ({ provider: id })),
     });
-    const outputs = { matrix, verifiable_matrix: verifiableMatrix, selected: selected.join(',') };
+    const outputs = {
+      matrix,
+      verifiable_matrix: verifiableMatrix,
+      has_verifiable: String(JSON.parse(verifiableMatrix).include.length > 0),
+      selected: selected.join(','),
+    };
     for (const id of marketplaceCatalog.providers.map((entry) => entry.id)) outputs[id] = String(selected.includes(id));
     writeGithubOutput(outputs);
     console.log(matrix);

@@ -1,6 +1,6 @@
 ---
-name: qodo-review-resolver
-description: Read or resolve a pull request's Qodo review with the qodo CLI — fetch the structured status, reviewed commit SHA, and findings for ANY PR as JSON, then optionally resolve open findings in code and record each outcome, once or in a watch loop until clean. Use this — never `gh`/`curl` scraping of review comments — for "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "what did Qodo flag", "is this review up to date with head", "check before merging", "resolve my PR review", "fix the review findings", or "babysit this PR until it's clean".
+name: qodo-pr-resolver
+description: Compatibility alias for explicit qodo-pr-resolver requests. Follow the complete Qodo PR review workflow embedded here; use qodo-review-resolver for new invocations.
 owner: Qodo
 when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
@@ -8,7 +8,8 @@ metadata:
   version: "1.4.2"
   recommended: "true"
   package: "qodo"
-  distribution: "skills-sh"
+  distribution: "marketplace"
+  instruction_mode: "embedded"
 arguments:
   - name: autofix
     description: Resolve the recommended fixes directly without asking. Omit to evaluate the findings and let the user pick which to resolve.
@@ -69,7 +70,7 @@ session may still have the old skill loaded.
 ## Quick start
 
 ```
-qodo whoami --json --skill qodo-review-resolver --skill-version 1.4.2 --distribution skills-sh
+qodo whoami --json --skill qodo-review-resolver --skill-version 1.4.2 --distribution marketplace --host claude-code
 qodo pr-review-session findings --pr-url <PR_URL> --json            # the review session for a PR
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
 qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explanation "..." --json
