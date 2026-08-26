@@ -429,9 +429,9 @@ try {
     },
   );
   resetToRelease();
-  writeFileSync(join(repositoryRoot, 'skills', 'qodo-review', 'agents', 'openai\tvariant.yaml'),
+  writeFileSync(join(repositoryRoot, 'skills', 'qodo-review', 'agents', process.platform === 'win32' ? 'openai variant.yaml' : 'openai\tvariant.yaml'),
     '# unversioned shipped agent change with a quoted Git pathname\n');
-  commitScenario('unversioned quoted agent definition change');
+  commitScenario('unversioned special agent definition change');
   expectDiffFailure(new RegExp(`qodo-review version must increase from ${expectedReviewVersion.replaceAll('.', '\\.')}`));
   for (const schema of ['catalog.schema.json', 'codex-submissions.schema.json', 'marketplaces.schema.json']) {
     resetToRelease();
