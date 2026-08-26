@@ -61,6 +61,9 @@ try {
     tag: 'v1.0.6',
   });
   assert.deepEqual(manifest.archive, { name: first.archiveName, sha256: first.archiveSha256 });
+  assert.deepEqual(manifest.installation, {
+    skillsCli: { environment: { DO_NOT_TRACK: '1' } },
+  });
   assert.equal(manifest.index.name, 'qodo-skills-index.json');
   assert.equal(
     readFileSync(join(firstRoot, `${first.manifestName}.sha256`), 'utf8'),
@@ -69,6 +72,7 @@ try {
 
   const files = tarFiles(firstArchive);
   assert.ok(files.has('qodo-enterprise/README.md'));
+  assert.match(files.get('qodo-enterprise/README.md').toString(), /DO_NOT_TRACK=1/);
   assert.ok(files.has('qodo-enterprise/bundle.json'));
   assert.ok(![...files.keys()].some((path) => path.endsWith('/qodo.mjs')), 'CLI bytes must remain a separate release');
   assert.doesNotMatch(firstArchive.toString(), /BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY/);

@@ -133,10 +133,12 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 - QAR's generated CLI `version.json` advertises only same-origin skills-index paths. The compatible
   CLI consumes that metadata for notices; it does not download workflows or mutate agent roots.
 - A customer deployment imports the matching host package through its approved local plugin
-  lifecycle. Qodo Standards remains a separate explicit choice.
+  lifecycle. If that importer uses the skills CLI, every command runs with `DO_NOT_TRACK=1`, as
+  declared by the bundle manifest. Qodo Standards remains a separate explicit choice.
 
 Gate: deterministic archive rebuild; exact manifest/archive/index checksums; QAR offline image
-build and route tests; private-origin no-egress; fresh core import; Standards absent; enterprise
+build and route tests; private-origin no-egress; telemetry-disabled skills-CLI import when used;
+fresh core import; Standards absent; enterprise
 bundle upgrade; new-session activation. The QAR PR cannot become merge-ready until the pinned
 immutable qodo-skills release exists at the exact bytes in its lock.
 

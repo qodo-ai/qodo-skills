@@ -138,11 +138,14 @@ its CLI pin, verifies every byte while building the backend image, and serves it
 
 The archive is an enterprise distribution input, not a hidden CLI payload. A customer deployment
 imports the host-specific package or portable local source through its approved plugin rollout.
+The manifest requires `DO_NOT_TRACK=1` whenever that rollout invokes the skills CLI; direct host
+imports need no skills CLI at all.
 The CLI reads only QAR's same-origin compact index, emits an enterprise-owner stale notice, and
 never copies archive contents into an agent root.
 
 Gate: deterministic rebuild, manifest/archive/index checksums, no credential or CLI bytes, core and
-Standards isolation, QAR same-origin download, private-origin no-egress behavior, and a customer
+Standards isolation, QAR same-origin download, private-origin no-egress behavior, telemetry-disabled
+skills-CLI use when applicable, and a customer
 plugin update followed by a new agent session.
 
 ## Rollback

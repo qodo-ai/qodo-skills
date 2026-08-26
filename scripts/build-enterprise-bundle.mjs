@@ -139,6 +139,8 @@ This archive contains Qodo skills only; the Qodo CLI runtime is released and pin
 - Install the \`qodo\` package by default from the directory for the target host.
 - Install \`qodo-standards\` only after an explicit administrator or user choice.
 - Use \`portable/<package>\` for agents that consume a local \`skills/\` source.
+- If an enterprise importer invokes the skills CLI, it must set \`DO_NOT_TRACK=1\` for every
+  inventory, install, update, and removal command. The bundle itself never invokes that CLI.
 - Keep one lifecycle owner per installed root. Do not install a public marketplace copy over an
   enterprise-managed copy.
 - Update by importing a newer immutable enterprise bundle, then start a new agent session.
@@ -194,6 +196,7 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
     packageVersion: version,
     runtimeProtocolVersion: catalog.runtime.protocolVersion,
     source: { repository: catalog.package.repository, commit, tag: `v${version}` },
+    installation: { skillsCli: { environment: { DO_NOT_TRACK: '1' } } },
     packages,
   };
   files.push(

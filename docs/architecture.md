@@ -101,4 +101,5 @@ Production-usage data prioritizes smoke testing but does not define an allowlist
 - Provider-visible publication, fresh install, and upgrade tests are release gates; green source CI
   is necessary but not proof of marketplace acceptance.
 - Enterprise archives are deterministic, checksum-published, contain no CLI binary or credential,
-  keep Standards opt-in, and are independently pinned by QAR.
+  keep Standards opt-in, declare `DO_NOT_TRACK=1` for any skills-CLI-based enterprise import, and
+  are independently pinned by QAR.
