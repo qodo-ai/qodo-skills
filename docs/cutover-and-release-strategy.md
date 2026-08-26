@@ -4,10 +4,12 @@
 
 Qodo moves skill ownership out of the CLI without creating a second architecture:
 
-> Qodo authors skills once; marketplaces update plugins; the CLI updates the runtime.
+> Qodo authors skills once; marketplaces or the enterprise bundle update plugins; the CLI updates the runtime.
 
 - Claude Code, Codex, and Kiro receive complete generated skills through their official listings.
 - Compatible agents without a Qodo listing use skills.sh.
+- On-prem QAR deployments pin and serve one immutable enterprise archive beside the independently
+  pinned CLI; customer deployment tooling owns plugin rollout.
 - `qodo-standards` remains a separate optional package everywhere.
 - The CLI authenticates and runs tools, updates itself, prints lifecycle guidance, emits stale-skill
   notices, and retires only hash-exact shipped copies into recoverable hidden quarantines.
@@ -36,10 +38,14 @@ skills/<name>/ (authored once)
           ├── packages/             Claude Code complete skills
           ├── codex-packages/       Codex complete skills
           ├── kiro-power*/          Kiro Agent Plugins power packages
-          └── skills/               skills.sh source
+          ├── skills/               skills.sh source
+          └── enterprise archive    Claude/Codex/Kiro/portable offline projections
 
 qodo CLI ── login + runtime + tool help + version notice
         └── never installs, updates, or serves workflow instructions
+
+QAR /toolbox ── independently pinned CLI + enterprise skills assets
+             └── same-origin checksummed metadata; no public-network dependency at runtime
 ```
 
 ## Cutover sequence
@@ -116,6 +122,26 @@ broadening. Marketplace packages may also expose the generated `qodo-pr-resolver
 name, which is the same canonical resolver workflow and not a fifth capability.
 
 Rollback: publish a new immutable patch. Never replace the release asset.
+
+### 2a. Prepare the on-prem enterprise lane
+
+- The immutable skills release includes a deterministic enterprise manifest, archive, and
+  checksums. The archive stamps `enterprise-bundle` provenance into complete Claude, Codex, Kiro,
+  and portable projections while preserving core/Standards package isolation.
+- QAR pins the skills version and hashes in a lock separate from its CLI lock, verifies and bakes
+  both during the backend image build, and serves the skills index and archive under `/toolbox`.
+- QAR's generated CLI `version.json` advertises only same-origin skills-index paths. The compatible
+  CLI consumes that metadata for notices; it does not download workflows or mutate agent roots.
+- A customer deployment imports the matching host package through its approved local plugin
+  lifecycle. Qodo Standards remains a separate explicit choice.
+
+Gate: deterministic archive rebuild; exact manifest/archive/index checksums; QAR offline image
+build and route tests; private-origin no-egress; fresh core import; Standards absent; enterprise
+bundle upgrade; new-session activation. The QAR PR cannot become merge-ready until the pinned
+immutable qodo-skills release exists at the exact bytes in its lock.
+
+Rollback: publish a new immutable skills patch and advance only the QAR skills pin. The CLI pin is
+unchanged unless runtime compatibility independently requires it.
 
 ### 3. Promote Claude and Kiro
 
@@ -205,6 +231,7 @@ optional skills are discoverable but never auto-installed.
 | Codex | portal review + publish + protected attestation | Codex completion and old-repo deprecation |
 | Behavior | fresh install, upgrade, package isolation, setup/read/write/update | provider sign-off |
 | Migration | no duplicate/shadowed skill; cleanup preserves user changes | broad rollout |
+| On-prem | immutable enterprise asset hashes, QAR pin/routes, no-egress, core-only import and upgrade | enterprise rollout |
 
 No gate is satisfied by an announcement, packet, or green workflow that does not prove the named
 external state.

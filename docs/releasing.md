@@ -48,16 +48,18 @@ After the compatible CLI release is live and the skills PR is merged, a release 
 3. requires the repository immutability setting;
 4. creates annotated tag `v<package-version>`, pushes it without force, and verifies the protected
    remote tag peels to the validated SHA immediately before publication;
-5. creates or resumes a draft release, uploads only `qodo-skills-index.json` and its SHA-256, and
-   verifies their checksum and bytes before publication;
+5. builds the deterministic enterprise archive, then creates or resumes a draft release containing
+   the compact index, enterprise manifest, enterprise archive, and all three SHA-256 files;
 6. publishes the verified draft, which makes the release immutable;
 7. verifies the published release is immutable, the protected tag is unchanged, and both published
    assets still match the validated checkout byte-for-byte;
 8. on an idempotent rerun, downloads both existing assets, verifies their checksum, and compares
    them byte-for-byte with the validated checkout before reporting success.
 
-The index is metadata for stale-version notices. It contains no workflow body and grants no write
-authority. GitHub release publication does not publish the Qodo CLI.
+The index is metadata for stale-version notices. The enterprise archive contains the complete
+Claude, Codex, Kiro, and portable package projections with `enterprise-bundle` provenance; core is
+default and Standards remains optional. Neither artifact grants write authority or contains the
+Qodo CLI.
 
 GitHub drafts are mutable by trusted repository release writers until publication. The protected
 tag prevents commit drift; the second post-publication download detects any draft-asset race before
@@ -126,6 +128,22 @@ No publication API is required: skills.sh installs from this repository. After t
 is validated and **before any provider promotion**, smoke-test a core install and update on
 representative non-marketplace agents, including multi-agent and project/global scope. Use explicit
 `--skill` selection so the optional package cannot appear by accident.
+
+## 6. QAR enterprise channel
+
+Every immutable skills release carries `qodo-enterprise-manifest.json` plus the deterministic
+`qodo-enterprise-bundle-v<version>.tar.gz` and checksums. QAR pins that release independently from
+its CLI pin, verifies every byte while building the backend image, and serves it from the existing
+`/toolbox` origin. Its separate dependency workflow opens the reviewed skills-pin PR.
+
+The archive is an enterprise distribution input, not a hidden CLI payload. A customer deployment
+imports the host-specific package or portable local source through its approved plugin rollout.
+The CLI reads only QAR's same-origin compact index, emits an enterprise-owner stale notice, and
+never copies archive contents into an agent root.
+
+Gate: deterministic rebuild, manifest/archive/index checksums, no credential or CLI bytes, core and
+Standards isolation, QAR same-origin download, private-origin no-egress behavior, and a customer
+plugin update followed by a new agent session.
 
 ## Rollback
 

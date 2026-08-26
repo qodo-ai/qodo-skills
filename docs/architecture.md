@@ -2,7 +2,7 @@
 
 ## Invariant
 
-> Qodo authors skills once; marketplaces update plugins; the CLI updates the runtime.
+> Qodo authors skills once; marketplaces or the enterprise bundle update plugins; the CLI updates the runtime.
 
 This is one architecture across every local coding agent. Providers differ only in packaging and
 lifecycle UI—not in workflow content or authority.
@@ -14,6 +14,7 @@ lifecycle UI—not in workflow content or authority.
 | `qodo-skills` | canonical workflow bodies, package membership, versions, provider projections, release packets | credentials, API transport, installed host state |
 | Marketplace | install, cache, update, rollback, and removal of its Qodo plugin | Qodo runtime binary or login |
 | skills.sh | install, link/copy, scope, update, and removal for agents without a Qodo listing | Qodo runtime binary or login |
+| Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and customer-controlled plugin rollout | public CLI binary contents or silent agent-root mutation |
 | Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices | skill installation, task-time playbooks, marketplace caches |
 
 After an explicit migration command, the CLI may retire only byte-identical copies produced by a
@@ -42,6 +43,7 @@ Schemas rather than relying only on partial hand-written checks.
 | Codex | `codex-packages/<package>/` | `marketplace`, `codex` |
 | Kiro | `kiro-power/`, `kiro-power-standards/` | `kiro-power`, `kiro` |
 | skills.sh | canonical `skills/` tree | `skills-sh`, host stamped by installer/use context |
+| On-prem | immutable `qodo-enterprise-bundle-v<version>.tar.gz` release asset | `enterprise-bundle`, host retained in each projection |
 
 Generation copies the complete canonical workflow. It changes only distribution/host provenance
 and provider manifests. Core marketplace packages also generate the temporary
@@ -65,6 +67,8 @@ Every skill:
 
 The CLI’s compact release index contains only package and skill versions. A daily bounded refresh
 may discover staleness. It never downloads workflow text and never changes an agent skill root.
+An on-prem QAR `version.json` advertises same-origin index paths; a private origin without that
+pointer fails closed instead of reaching the public release host.
 
 ## Why workflows are embedded
 
@@ -96,3 +100,5 @@ Production-usage data prioritizes smoke testing but does not define an allowlist
 - Optional packages are never pulled in by update.
 - Provider-visible publication, fresh install, and upgrade tests are release gates; green source CI
   is necessary but not proof of marketplace acceptance.
+- Enterprise archives are deterministic, checksum-published, contain no CLI binary or credential,
+  keep Standards opt-in, and are independently pinned by QAR.

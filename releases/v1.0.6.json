@@ -1,0 +1,9 @@
+{
+  "version": "1.0.6",
+  "summary": "Add the independently versioned Qodo enterprise skills bundle.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "skills": []
+}

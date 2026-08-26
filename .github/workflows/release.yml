@@ -58,7 +58,14 @@ jobs:
           GH_TOKEN: ${{ secrets.QODO_RELEASE_ADMIN_TOKEN }}
         run: scripts/verify-release-prerequisites.sh
 
+      - name: Build the deterministic enterprise bundle
+        run: >-
+          node scripts/build-enterprise-bundle.mjs
+          --output "${RUNNER_TEMP}/qodo-enterprise-release"
+          --commit "${GITHUB_SHA}"
+
       - name: Publish the immutable tag and GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          QODO_ENTERPRISE_RELEASE_DIR: ${{ runner.temp }}/qodo-enterprise-release
         run: scripts/publish-release.sh

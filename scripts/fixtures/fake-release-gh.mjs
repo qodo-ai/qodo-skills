@@ -50,7 +50,8 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
     throw new Error('Release upload must use --clobber');
   }
   const state = readState();
-  const assetPaths = args.filter((arg) => arg.endsWith('qodo-skills-index.json') || arg.endsWith('qodo-skills-index.json.sha256'));
+  const assetPattern = /(?:qodo-skills-index\.json(?:\.sha256)?|qodo-enterprise-manifest\.json(?:\.sha256)?|qodo-enterprise-bundle-v\d+\.\d+\.\d+\.tar\.gz(?:\.sha256)?)$/;
+  const assetPaths = args.filter((arg) => assetPattern.test(arg));
   mkdirSync(process.env.FAKE_GH_ASSETS, { recursive: true });
   for (const path of assetPaths) copyFileSync(path, join(process.env.FAKE_GH_ASSETS, basename(path)));
   writeState({
@@ -61,7 +62,7 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
     assets: assetPaths.map((path) => basename(path)),
   });
 } else if (args[0] === 'release' && args[1] === 'download') {
-  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || args[args.indexOf('--pattern') + 1] !== 'qodo-skills-index.json*') {
+  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || args[args.indexOf('--pattern') + 1] !== 'qodo-*') {
     throw new Error('Invalid release download');
   }
   const state = readState();
