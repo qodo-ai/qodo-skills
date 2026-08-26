@@ -433,10 +433,12 @@ try {
     '# unversioned shipped agent change with a quoted Git pathname\n');
   commitScenario('unversioned quoted agent definition change');
   expectDiffFailure(new RegExp(`qodo-review version must increase from ${expectedReviewVersion.replaceAll('.', '\\.')}`));
-  resetToRelease();
-  appendFileSync(join(repositoryRoot, 'distribution', 'catalog.schema.json'), '\n');
-  commitScenario('unversioned catalog schema change');
-  expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
+  for (const schema of ['catalog.schema.json', 'codex-submissions.schema.json']) {
+    resetToRelease();
+    appendFileSync(join(repositoryRoot, 'distribution', schema), '\n');
+    commitScenario(`unversioned ${schema} change`);
+    expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
+  }
   resetToRelease();
   const missingSkillsDiffRelease = JSON.parse(readFileSync(releaseRecordPath, 'utf8'));
   delete missingSkillsDiffRelease.skills;
