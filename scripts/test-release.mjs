@@ -52,6 +52,8 @@ try {
   execFileSync('git', ['config', 'core.autocrlf', 'false'], { cwd: repositoryRoot });
   execFileSync('git', ['config', 'core.safecrlf', 'false'], { cwd: repositoryRoot });
   execFileSync('git', ['config', 'commit.gpgsign', 'false'], { cwd: repositoryRoot });
+  execFileSync('git', ['config', 'gc.auto', '0'], { cwd: repositoryRoot });
+  execFileSync('git', ['config', 'maintenance.auto', 'false'], { cwd: repositoryRoot });
   execFileSync('git', ['add', '.'], { cwd: repositoryRoot });
   execFileSync('git', ['commit', '--quiet', '-m', 'baseline'], { cwd: repositoryRoot });
   const base = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -292,5 +294,5 @@ try {
 
   console.log('Release preparation test passed.');
 } finally {
-  rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 20, retryDelay: 200 });
 }
