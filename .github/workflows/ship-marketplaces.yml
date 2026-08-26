@@ -50,6 +50,8 @@ jobs:
     steps:
       - name: Check out release automation
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_tag }}
 
       - name: Resolve selected marketplaces
         id: plan
@@ -84,9 +86,15 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
+          for tool in git gh; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Marketplace preparation requires ${tool}." >&2; exit 1; }
+          done
           test "$(git describe --tags --exact-match HEAD)" = "${RELEASE_TAG}"
           test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')" = 'true'
           test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.tag_name')" = "${RELEASE_TAG}"
+
+      - name: Install locked validation dependencies
+        run: npm ci
 
       - name: Validate canonical source and generated adapters
         run: npm test
@@ -112,10 +120,30 @@ jobs:
           name: marketplace-${{ matrix.provider }}-${{ inputs.release_tag }}
           path: ${{ steps.prepare.outputs.output }}
           if-no-files-found: error
+          include-hidden-files: true
           retention-days: 30
 
-  verify-provider-visible:
+  verify-provider-environment:
     needs: [plan, prepare]
+    if: needs.plan.outputs.verifiable_matrix != '{"include":[]}'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.verifiable_matrix) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require protected provider environment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for tool in gh grep; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Provider environment verification requires ${tool}." >&2; exit 1; }
+          done
+          gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-${{ matrix.provider }}" \
+            --jq 'any(.protection_rules[]?; .type == "required_reviewers")' | grep -qx true
+
+  verify-provider-visible:
+    needs: [plan, prepare, verify-provider-environment]
     if: needs.plan.outputs.verifiable_matrix != '{"include":[]}'
     strategy:
       fail-fast: false
@@ -142,6 +170,9 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
+          for tool in git node; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Provider verification requires ${tool}." >&2; exit 1; }
+          done
           node scripts/marketplace-release.mjs verify \
             --provider "${PROVIDER}" \
             --tag "${RELEASE_TAG}" \
@@ -157,6 +188,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          for tool in gh grep; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Codex gate verification requires ${tool}." >&2; exit 1; }
+          done
           gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-codex" \
             --jq 'any(.protection_rules[]?; .type == "required_reviewers")' | grep -qx true
 
@@ -188,8 +222,12 @@ jobs:
       - name: Record the protected release-owner attestation
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
-        run: >-
-          node scripts/marketplace-release.mjs attest
-          --provider codex
-          --tag "${RELEASE_TAG}"
-          --commit "$(git rev-parse HEAD)"
+        run: |
+          set -euo pipefail
+          for tool in git node; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Codex attestation requires ${tool}." >&2; exit 1; }
+          done
+          node scripts/marketplace-release.mjs attest \
+            --provider codex \
+            --tag "${RELEASE_TAG}" \
+            --commit "$(git rev-parse HEAD)"

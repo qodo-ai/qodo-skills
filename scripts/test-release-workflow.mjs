@@ -143,6 +143,16 @@ assert.match(releaseSource, /--jq '\.draft'/);
 assert.match(releaseSource, /"refs\/tags\/\$\{TAG\}:refs\/tags\/\$\{TAG\}"/);
 assert.match(releaseSource, /git rev-list -n 1 \"\$\{TAG\}\"/);
 assert.match(releaseSource, /\.assets\[\]\.name/);
+assert.match(
+  readFileSync(join(root, '.gitattributes'), 'utf8'),
+  /^\*\.sha256 text eol=lf$/m,
+  'checksum manifests must remain LF-only so sha256sum never sees a CR-suffixed filename on Windows',
+);
+assert.match(
+  readFileSync(join(root, '.gitattributes'), 'utf8'),
+  /^\*\.sh text eol=lf$/m,
+  'Git Bash entrypoints must remain LF-only on Windows',
+);
 
 const run = (cwd, command, args = [], env = {}) => execFileSync(command, args, {
   cwd,

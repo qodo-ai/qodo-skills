@@ -90,6 +90,12 @@ assert.equal(kiroResults.length, 2);
 assert.equal(kiroResults[0].branch, 'main');
 assert.equal(kiroResults[0].commit, undefined);
 assert.throws(() => verifyKiroDocument('{}', context), /Kiro qodo/);
+assert.throws(() => verifyKiroDocument(JSON.stringify({
+  powers: [
+    { name: 'qodo', repositoryUrl: 'https://github.com/qodo-ai/qodo-skills/tree/main/kiro-power' },
+    { pathInRepo: 'kiro-power', repositoryBranch: 'main' },
+  ],
+}), context), /Kiro qodo/);
 
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'qodo-marketplace-release-'));
 try {

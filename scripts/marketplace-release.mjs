@@ -215,19 +215,54 @@ function normalizedEmbeddedJson(text) {
     .replaceAll('\\"', '"');
 }
 
+function embeddedObjectRecords(text) {
+  const records = [];
+  const collect = (value) => {
+    if (!value || typeof value !== 'object') return;
+    if (!Array.isArray(value)) records.push(value);
+    for (const nested of Object.values(value)) collect(nested);
+  };
+  try {
+    collect(JSON.parse(text));
+  } catch {
+    // Provider pages may contain escaped JSON records inside HTML/script text.
+  }
+  const starts = [];
+  let quoted = false;
+  let escaped = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') quoted = false;
+      continue;
+    }
+    if (char === '"') quoted = true;
+    else if (char === '{') starts.push(index);
+    else if (char === '}' && starts.length > 0) {
+      const start = starts.pop();
+      try {
+        collect(JSON.parse(text.slice(start, index + 1)));
+      } catch {
+        // Not every brace-delimited provider-page fragment is JSON.
+      }
+    }
+  }
+  return records;
+}
+
 export function verifyKiroDocument(document, context, selectedProvider = provider('kiro')) {
   const normalized = normalizedEmbeddedJson(document);
+  const records = embeddedObjectRecords(normalized);
   const results = [];
   for (const listing of selectedProvider.listings) {
     const repository = `${repositoryUrl}/tree/main/${listing.sourcePath}`;
-    const required = [
-      `"name":"${listing.id}"`,
-      `"repositoryUrl":"${repository}"`,
-      `"pathInRepo":"${listing.sourcePath}"`,
-      '"repositoryBranch":"main"',
-    ];
-    const missing = required.filter((fragment) => !normalized.includes(fragment));
-    if (missing.length) throw new Error(`Kiro ${listing.id}: provider listing is missing ${missing.join(', ')}`);
+    const entry = records.find((candidate) => candidate.name === listing.id);
+    if (!entry) throw new Error(`Kiro ${listing.id}: provider listing is missing`);
+    if (entry.repositoryUrl !== repository) throw new Error(`Kiro ${listing.id}: wrong repository`);
+    if (entry.pathInRepo !== listing.sourcePath) throw new Error(`Kiro ${listing.id}: expected path ${listing.sourcePath}`);
+    if (entry.repositoryBranch !== 'main') throw new Error(`Kiro ${listing.id}: expected branch main`);
     results.push({ id: listing.id, state: 'provider-visible', source: repository, branch: 'main' });
   }
   return results;

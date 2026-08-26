@@ -45,6 +45,7 @@ jobs:
 
       - name: Validate Claude marketplace JSON
         run: |
+          command -v jq >/dev/null 2>&1 || { echo "Claude validation requires jq." >&2; exit 1; }
           jq -e '.name == "qodo" and (.plugins | length == 2) and
             ([.plugins[] | .name] | sort) == ["qodo", "qodo-standards"] and
             (.plugins[] | select(.name == "qodo") | .source) == "./packages/qodo" and
