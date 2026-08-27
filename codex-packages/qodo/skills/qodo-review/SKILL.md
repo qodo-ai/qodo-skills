@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening a pull request, using the 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.9.3"
+  version: "1.9.4"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -15,15 +15,11 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to review **local changes before you open a pull request**. `qodo review`
-diffs your working tree against a base branch, includes new/untracked files, and sends the diff —
-plus any **coding-session context** you supply — to Qodo's review engine. It returns structured
-findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is
-pushed and no PR is created; only the base commit must already be on the remote (the reviewer
-clones it).
+Use the `qodo` CLI to review **local changes before you open a pull request**. `qodo review` diffs your working tree against a base branch, includes new/untracked files, and sends the diff plus any
+**coding-session context** you supply to Qodo's review engine. It returns structured findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is pushed and no
+PR is created; only the base commit must already be on the remote (the reviewer clones it).
 
-This is the **pre-PR** half of the review loop. After the PR exists, switch to resolving the PR's
-review findings instead.
+This is the **pre-PR** half of the review loop. After the PR exists, switch to resolving the PR's review findings instead.
 
 ## Prerequisites
 
@@ -33,27 +29,34 @@ review findings instead.
 
 ## Instructions
 
-Follow the detailed workflow below: preserve update notices, attach self-contained context, run
-with visible progress and a suitable timeout, read the structured result, and act on findings.
+Follow the workflow below: preserve notices, attach self-contained context, show progress, use a
+suitable timeout, read the structured result, and act on findings.
 
 ## Handle a skill update notice
 
-A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When
-`code` is `qodo_skill_update_available`, keep the command's result and finish the current
-task. Then follow the notice's `steps`: do read-only inventory first, resolve the installed
-Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
+A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When `code` is
+`qodo_skill_update_available`, keep the command's result and finish the current task. Then follow the
+notice's `steps`: do read-only inventory first, resolve the installed Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
 once before any mutation. If the user declines, keep the current version usable.
 
-Never invoke a different lifecycle owner, guess a placeholder, or install an optional package
-implicitly. After an approved update, ask for the host restart named by the notice; the current
+Never invoke a different lifecycle owner, guess a placeholder, or install an optional package implicitly. After an approved update, ask for the host restart named by the notice; the current
 session may still have the old skill loaded.
+
+## Runtime compatibility gate
+
+Resolve the executable using this skill's command-not-found fallback, then run `<qodo> --version`
+with no provenance flags. This skill requires Qodo CLI **0.1.0-next.37 or newer**. If older or
+unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure. Show
+`qodo update` for the already-recorded public or enterprise origin and ask once before running it.
+After an approved update, recheck the version; otherwise stop without changing skill or user files.
 
 ## Quick start
 You just wrote the code, so you hold the one input the reviewer can't get anywhere else: **why**.
 Attach it on every run — write the session context first, then review:
 
 ```
-qodo whoami --json --skill qodo-review --skill-version 1.9.3 --distribution marketplace --host codex
+qodo --version                                  # compatibility probe — run this FIRST
+qodo whoami --json --skill qodo-review --skill-version 1.9.4 --distribution marketplace --host codex
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -70,8 +73,7 @@ qodo review status <operation-id>            # collect an --async result (exit 2
 qodo review --help                           # exact flags (renders offline)
 ```
 
-You can also keep `.qodo/session-context.json` (same JSON shape) updated at the repo root — it is
-auto-attached to every run, so even a bare `qodo review` carries your context. An explicit
+You can also keep `.qodo/session-context.json` (same JSON shape) updated at the repo root — it is auto-attached to every run, so even a bare `qodo review` carries your context. An explicit
 `--context-file` overrides it; the file itself is never part of the reviewed diff. Don't commit it
 (add `.qodo/` to `.gitignore` or `.git/info/exclude`).
 Add `--json` to anything you parse, and a **long shell timeout** — runs take minutes (see below).
@@ -495,5 +497,4 @@ context or widen authority merely to obtain a green result.
 - A `closed_preview` error means the org isn't enrolled in the preview — surface message + hint to
   the user and stop; never retry or loop on it (see "If the run is gated" above).
 
-Lead with the bottom line — how many findings, how many you applied, what's left and why — then the
-specifics. A short, accurate status beats a wall of finding text.
+Lead with the bottom line — how many findings, how many you applied, what's left and why — then the specifics. A short, accurate status beats a wall of finding text.

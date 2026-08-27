@@ -14,7 +14,9 @@ install or update operations.
 
 ## Runtime compatibility
 
-Skills require a Qodo CLI that supports:
+The current package declares `runtime.minimumCliVersion` in `distribution/catalog.json`; every
+canonical skill repeats that value in an unadorned `qodo --version` gate before it sends newer
+provenance flags. Skills require a compatible Qodo CLI that supports:
 
 - `qodo whoami --json`;
 - `qodo tools help [<group> [<tool>]] --json`;
@@ -33,8 +35,9 @@ the cached catalog is authoritative for the current account and workspace.
 4. A core update cannot add Qodo Standards.
 5. A provider identity/source migration is backward compatible only when it upgrades the existing
    listing in place and does not create a duplicate skill identity.
-6. The CLI and skill release independently; a skill may require a minimum CLI only when the release
-   plan ships the compatible CLI first.
+6. The CLI and skill release independently. A skill that raises `minimumCliVersion` must ship the
+   compatible CLI first, probe without new flags, and degrade to the runtime's recorded update
+   origin without misclassifying incompatibility as an authentication failure.
 7. Rollback is a new immutable patch, never mutation of a published tag or asset.
 8. Marketplace core packages retain the generated `qodo-pr-resolver` compatibility alias while
    `qodo-review-resolver` is canonical. The alias is generated from the same complete workflow and

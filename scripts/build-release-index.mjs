@@ -24,6 +24,7 @@ const index = {
   schemaVersion: 1,
   instructionMode: catalog.instructionMode,
   packageVersion: catalog.package.version,
+  minimumCliVersion: catalog.runtime.minimumCliVersion,
   repository: catalog.package.repository,
   skills,
 };

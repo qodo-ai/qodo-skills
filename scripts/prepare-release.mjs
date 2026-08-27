@@ -300,6 +300,7 @@ export function prepareRelease(argv, repositoryRoot = root) {
       summary: options.summary,
       package: { change: packageBump },
       runtimeProtocolVersion: catalog.runtime.protocolVersion,
+      minimumCliVersion: catalog.runtime.minimumCliVersion,
       skills: changes,
     });
 

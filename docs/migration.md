@@ -10,6 +10,7 @@ The migration changes the skill lifecycle owner without changing the Qodo accoun
 | CLI only, no listing | Select detected agents, or choose current IDs from `qodo agents catalog`, then run the exact skills.sh command printed by `qodo agents install` | New session loads the selected core skills |
 | Plugin first, CLI missing | Follow `qodo-setup` to the checksum-verified CLI installer | `qodo whoami` and tool refresh succeed |
 | Plugin first, CLI logged out | Run `qodo login` | Identity and tool catalog verify |
+| Plugin updated before the CLI | Run the skill's unadorned version gate, then approve `qodo update` from the already-recorded public or enterprise origin | The version satisfies the package's `minimumCliVersion` before authentication or managed-tool calls |
 | Older CLI-managed copy plus marketplace plugin | Verify the plugin in a new session, then run explicit cleanup | Only byte-identical shipped copies are moved to recoverable hidden quarantine |
 | Older CLI-managed copy with edits | Keep it; decide manually | Cleanup reports no retirement |
 
@@ -48,3 +49,10 @@ command still succeeds and emits `QODO_NOTICE`. The skill must:
 6. request a new agent session after update.
 
 Declining an update leaves the current skill usable. The CLI never silently performs the update.
+
+## Runtime compatibility
+
+Skill updates and runtime updates are independent. Every skill therefore runs `qodo --version`
+without provenance flags before its first real Qodo command. An older runtime is a compatibility
+state, not an authentication failure: the skill must preserve the current task, offer `qodo update`
+from the runtime's recorded origin with consent, and stop if compatibility cannot be established.

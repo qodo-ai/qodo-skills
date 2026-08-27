@@ -117,7 +117,7 @@ try {
   );
   assert.match(
     codexSkill,
-    /--skill qodo-codebase-wisdom --skill-version 1\.1\.1 --distribution marketplace --host codex/,
+    /--skill qodo-codebase-wisdom --skill-version 1\.1\.2 --distribution marketplace --host codex/,
   );
   assert.match(codexSkill, /instruction_mode: "embedded"/);
   assert.match(codexSkill, /## Handle a skill update notice/);

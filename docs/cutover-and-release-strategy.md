@@ -87,6 +87,11 @@ Ship the CLI that:
 - retains explicit `qodo skills cleanup` for migration: it holds a validated root identity and
   atomically quarantines exact immutable-release copies without recursively deleting bytes.
 
+The first compatible release is `0.1.0-next.37`. Do not publish a skill package whose declared
+`minimumCliVersion` is newer than the live runtime channel. Because marketplace and skills.sh
+updates can still arrive before a particular machine updates, every skill probes `qodo --version`
+without provenance flags and offers the runtime's already-recorded update origin before auth.
+
 Gate: clean install and upgrade on macOS/Linux/Windows; login; catalog refresh; machine-readable
 help; marketplace status outcomes; multi-agent skills.sh command; optional package isolation; no
 skill-root mutation during ordinary startup.
