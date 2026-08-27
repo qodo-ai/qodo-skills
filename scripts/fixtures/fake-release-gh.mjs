@@ -46,11 +46,18 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
   if (args[1] === 'create' && (!args.includes('--draft') || !args.includes('--verify-tag'))) {
     throw new Error('Release creation must use --draft and --verify-tag');
   }
-  if (args[1] === 'upload' && !args.includes('--clobber')) {
-    throw new Error('Release upload must use --clobber');
+  if (args[1] === 'upload' && args.includes('--clobber')) {
+    throw new Error('Release upload must never overwrite an existing asset');
   }
   const state = readState();
+  if (args[1] === 'upload' && (!state.exists || !state.draft)) {
+    throw new Error('Release upload requires an existing draft');
+  }
   const assetPaths = args.filter((arg) => arg.endsWith('qodo-skills-index.json') || arg.endsWith('qodo-skills-index.json.sha256'));
+  const assetNames = assetPaths.map((path) => basename(path));
+  if (assetNames.some((asset) => state.assets.includes(asset))) {
+    throw new Error('Release upload must not replace an existing asset');
+  }
   mkdirSync(process.env.FAKE_GH_ASSETS, { recursive: true });
   for (const path of assetPaths) copyFileSync(path, join(process.env.FAKE_GH_ASSETS, basename(path)));
   writeState({
@@ -58,7 +65,7 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
     exists: true,
     draft: true,
     immutable: false,
-    assets: assetPaths.map((path) => basename(path)),
+    assets: [...state.assets, ...assetNames],
   });
 } else if (args[0] === 'release' && args[1] === 'download') {
   if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || args[args.indexOf('--pattern') + 1] !== 'qodo-skills-index.json*') {

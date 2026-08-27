@@ -24,11 +24,26 @@ TAG="v${VERSION}"
 NOTES="${RUNNER_TEMP}/qodo-release-notes.md"
 node scripts/release-notes.mjs "${NOTES}"
 
-git fetch origin main --no-tags
-if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
-  echo 'Refusing to publish: main advanced while this release was being validated.' >&2
-  exit 1
-fi
+require_current_main() {
+  git fetch origin main --no-tags
+  if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+    echo 'Refusing to publish: main advanced while this release was being validated.' >&2
+    exit 1
+  fi
+}
+
+require_annotated_release_tag() {
+  if [[ "$(git cat-file -t "refs/tags/${TAG}" 2>/dev/null)" != 'tag' ]]; then
+    echo "${TAG} is not an annotated tag; refusing to publish." >&2
+    exit 1
+  fi
+  if [[ "$(git rev-parse "refs/tags/${TAG}^{}")" != "${GITHUB_SHA}" ]]; then
+    echo "${TAG} does not resolve to the validated release commit; refusing to publish." >&2
+    exit 1
+  fi
+}
+
+require_current_main
 
 RELEASE_EXISTS=false
 RELEASE_LOOKUP="$(mktemp "${RUNNER_TEMP}/qodo-release-lookup.XXXXXX")"
@@ -43,9 +58,12 @@ fi
 rm -f -- "${RELEASE_LOOKUP}"
 if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
   git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
-  test "$(git rev-list -n 1 "${TAG}")" = "${GITHUB_SHA}"
+  require_annotated_release_tag
   if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.draft')" != 'true' ]]; then
-    test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" = 'true'
+    if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" != 'true' ]]; then
+      echo "Existing public release ${TAG} is mutable; refusing to overwrite its assets." >&2
+      exit 1
+    fi
     test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
       'qodo-skills-index.json qodo-skills-index.json.sha256'
     VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-release-verify.XXXXXX")"
@@ -62,22 +80,45 @@ if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
 fi
 
 if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
-  if [[ "$(git rev-list -n 1 "${TAG}")" != "${GITHUB_SHA}" ]]; then
-    echo "${TAG} already points to a different commit; refusing to publish." >&2
-    exit 1
-  fi
+  require_annotated_release_tag
 else
   git config user.name "github-actions[bot]"
   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
   git tag --no-sign -a "${TAG}" "${GITHUB_SHA}" -m "Qodo skills ${TAG}"
 fi
+require_annotated_release_tag
 
+# Minimize the freshness window after draft discovery. Release integrity does
+# not depend on main staying still: the tag and every asset remain bound to the
+# exact commit this job checked out and validated.
+require_current_main
 git push origin "refs/tags/${TAG}:refs/tags/${TAG}"
 
 if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
-  gh release upload "${TAG}" --clobber \
-    distribution/qodo-skills-index.json \
-    distribution/qodo-skills-index.json.sha256
+  if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.draft')" != 'true' ]]; then
+    echo "Existing release ${TAG} left draft state before asset verification; refusing to mutate it." >&2
+    exit 1
+  fi
+  EXISTING_ASSETS="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')"
+  case "${EXISTING_ASSETS}" in
+    '')
+      gh release upload "${TAG}" \
+        distribution/qodo-skills-index.json \
+        distribution/qodo-skills-index.json.sha256
+      ;;
+    'qodo-skills-index.json')
+      gh release upload "${TAG}" distribution/qodo-skills-index.json.sha256
+      ;;
+    'qodo-skills-index.json.sha256')
+      gh release upload "${TAG}" distribution/qodo-skills-index.json
+      ;;
+    'qodo-skills-index.json qodo-skills-index.json.sha256')
+      ;;
+    *)
+      echo "Existing draft ${TAG} has an unexpected asset inventory; refusing to replace anything." >&2
+      exit 1
+      ;;
+  esac
 else
   gh release create "${TAG}" --draft --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}" \
     distribution/qodo-skills-index.json \
@@ -98,10 +139,7 @@ cmp --silent "${VERIFY_DIR}/qodo-skills-index.json" distribution/qodo-skills-ind
 cmp --silent "${VERIFY_DIR}/qodo-skills-index.json.sha256" distribution/qodo-skills-index.json.sha256
 
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
-if [[ "$(git rev-list -n 1 "${TAG}")" != "${GITHUB_SHA}" ]]; then
-  echo "Remote ${TAG} no longer resolves to the validated release commit." >&2
-  exit 1
-fi
+require_annotated_release_tag
 gh release edit "${TAG}" --draft=false
 if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" != 'true' ]]; then
   echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
@@ -113,7 +151,7 @@ fi
 test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
   'qodo-skills-index.json qodo-skills-index.json.sha256'
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
-test "$(git rev-list -n 1 "${TAG}")" = "${GITHUB_SHA}"
+require_annotated_release_tag
 PUBLISHED_VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-published-release-verify.XXXXXX")"
 trap 'rm -rf -- "${VERIFY_DIR:-}" "${PUBLISHED_VERIFY_DIR:-}"' EXIT
 gh release download "${TAG}" --dir "${PUBLISHED_VERIFY_DIR}" --pattern 'qodo-skills-index.json*'
