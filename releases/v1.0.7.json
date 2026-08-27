@@ -1,0 +1,10 @@
+{
+  "version": "1.0.7",
+  "summary": "Add the independently versioned Qodo enterprise skills bundle with enforced CLI compatibility.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}

@@ -132,7 +132,8 @@ representative non-marketplace agents, including multi-agent and project/global 
 ## 6. QAR enterprise channel
 
 Every immutable skills release carries `qodo-enterprise-manifest.json` plus the deterministic
-`qodo-enterprise-bundle-v<version>.tar.gz` and checksums. QAR pins that release independently from
+`qodo-enterprise-bundle-v<version>.tar.gz` and checksums. The manifest carries the package's
+`minimumCliVersion`; QAR must reject the bundle when its independent CLI lock is older. QAR pins that release independently from
 its CLI pin, verifies every byte while building the backend image, and serves it from the existing
 `/toolbox` origin. Its separate dependency workflow opens the reviewed skills-pin PR.
 

@@ -43,8 +43,8 @@ const secondRoot = mkdtempSync(join(tmpdir(), 'qodo-enterprise-second-'));
 try {
   const first = buildEnterpriseBundle({ output: firstRoot, commit });
   const second = buildEnterpriseBundle({ output: secondRoot, commit });
-  assert.equal(first.version, '1.0.6');
-  assert.equal(first.archiveName, 'qodo-enterprise-bundle-v1.0.6.tar.gz');
+  assert.equal(first.version, '1.0.7');
+  assert.equal(first.archiveName, 'qodo-enterprise-bundle-v1.0.7.tar.gz');
 
   const firstArchive = readFileSync(join(firstRoot, first.archiveName));
   const secondArchive = readFileSync(join(secondRoot, second.archiveName));
@@ -57,11 +57,12 @@ try {
 
   const manifestPayload = readFileSync(join(firstRoot, first.manifestName));
   const manifest = JSON.parse(manifestPayload);
-  assert.equal(manifest.packageVersion, '1.0.6');
+  assert.equal(manifest.packageVersion, '1.0.7');
+  assert.equal(manifest.minimumCliVersion, '0.1.0-next.37');
   assert.deepEqual(manifest.source, {
     repository: 'https://github.com/qodo-ai/qodo-skills',
     commit,
-    tag: 'v1.0.6',
+    tag: 'v1.0.7',
   });
   assert.deepEqual(manifest.archive, { name: first.archiveName, sha256: first.archiveSha256 });
   assert.deepEqual(manifest.installation, {
@@ -76,7 +77,12 @@ try {
   const files = tarFiles(firstArchive);
   assert.ok(files.has('qodo-enterprise/README.md'));
   assert.match(files.get('qodo-enterprise/README.md').toString(), /DO_NOT_TRACK=1/);
+  assert.match(files.get('qodo-enterprise/README.md').toString(), /Qodo CLI 0\.1\.0-next\.37 or newer/);
   assert.ok(files.has('qodo-enterprise/bundle.json'));
+  assert.equal(
+    JSON.parse(files.get('qodo-enterprise/bundle.json')).minimumCliVersion,
+    '0.1.0-next.37',
+  );
   assert.ok(![...files.keys()].some((path) => path.endsWith('/qodo.mjs')), 'CLI bytes must remain a separate release');
   for (const [path, payload] of files) assertNoPrivateKeyPayload(payload, path);
   for (const marker of [

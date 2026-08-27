@@ -150,10 +150,13 @@ function packagedSkills(packageRoot) {
     .sort(bytewisePathCompare);
 }
 
-function bundleReadme(version) {
+function bundleReadme(version, minimumCliVersion) {
   return `# Qodo enterprise skills ${version}
 
 This archive contains Qodo skills only; the Qodo CLI runtime is released and pinned separately.
+
+It requires Qodo CLI ${minimumCliVersion} or newer. QAR must verify this against its independently
+pinned CLI before serving the bundle.
 
 - Install the \`qodo\` package by default from the directory for the target host.
 - Install \`qodo-standards\` only after an explicit administrator or user choice.
@@ -227,12 +230,13 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
     distribution: DISTRIBUTION,
     packageVersion: version,
     runtimeProtocolVersion: catalog.runtime.protocolVersion,
+    minimumCliVersion: catalog.runtime.minimumCliVersion,
     source: { repository: catalog.package.repository, commit, tag: `v${version}` },
     installation: { skillsCli: { environment: { DO_NOT_TRACK: '1' } } },
     packages,
   };
   files.push(
-    { path: `${PREFIX}/README.md`, payload: Buffer.from(bundleReadme(version)) },
+    { path: `${PREFIX}/README.md`, payload: Buffer.from(bundleReadme(version, catalog.runtime.minimumCliVersion)) },
     { path: `${PREFIX}/bundle.json`, payload: Buffer.from(`${JSON.stringify(bundle, null, 2)}\n`) },
   );
   for (const file of files) assertNoPrivateKeyPayload(file.payload, file.path);
