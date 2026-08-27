@@ -50,8 +50,11 @@ const validationInstall = releaseSource.indexOf('npm ci');
 const validationRun = releaseSource.indexOf('npm test');
 const existingReleaseBranch = releaseSource.indexOf('if [[ "${RELEASE_EXISTS}"');
 const toolChecks = releaseSource.indexOf('for tool in gh git node npm mktemp sha256sum cmp rm; do');
-const finalMainGuard = releaseSource.lastIndexOf('git rev-parse origin/main');
-const tagPush = releaseSource.indexOf('git push origin "refs/tags/${TAG}:refs/tags/${TAG}"');
+const firstMainGuard = releaseSource.indexOf('require_current_main');
+const publisherReleaseLookup = publisher.indexOf('RELEASE_LOOKUP=');
+const publisherTagCreation = publisher.indexOf('git tag --no-sign -a');
+const publisherFinalMainGuard = publisher.lastIndexOf('require_current_main');
+const publisherTagPush = publisher.indexOf('git push origin "refs/tags/${TAG}:refs/tags/${TAG}"');
 const releaseAdminTokenCheck = releaseSource.indexOf('QODO_RELEASE_ADMIN_TOKEN is required');
 const tagRulesetCheck = releaseSource.indexOf('Immutable release tags ruleset is required');
 const releaseVerificationHelper = releaseSource.indexOf('verify_release_assets()');
@@ -62,7 +65,7 @@ const draftPublish = releaseSource.indexOf('gh release edit "${TAG}" --draft=fal
 const draftAssetCheck = releaseSource.indexOf('.assets[].name', draftCreation);
 const draftDownload = releaseSource.indexOf('gh release download', draftCreation);
 const draftVerification = releaseSource.indexOf('verify_release_assets "${VERIFY_DIR}"', draftDownload);
-const remoteTagCheck = releaseSource.indexOf('Remote ${TAG} no longer resolves', draftCreation);
+const remoteTagCheck = releaseSource.indexOf('require_annotated_release_tag', draftCreation);
 const publishedDownload = releaseSource.indexOf('gh release download', draftPublish);
 const publishedVerification = releaseSource.indexOf('verify_release_assets "${PUBLISHED_VERIFY_DIR}"', publishedDownload);
 
@@ -74,7 +77,7 @@ assert.match(releaseSource, /git rev-parse origin\/main/);
 assert.match(releaseSource, /git tag --no-sign -a/);
 assert.ok(validationInstall >= 0 && validationInstall < validationRun,
   'locked validation dependencies must be installed before release validation');
-assert.ok(finalMainGuard > validationRun && finalMainGuard < existingReleaseBranch,
+assert.ok(firstMainGuard > validationRun && firstMainGuard < existingReleaseBranch,
   'the verified release commit must still be the exact main head before release handling');
 assert.ok(toolChecks >= 0 && toolChecks < exactMainGuard,
   'external release tools must be checked before their first use');
@@ -109,7 +112,12 @@ assert.match(releaseSource, /index\("creation"\)\) == null/,
 assert.match(releaseSource, /\.bypass_actors \| type == "array" and length == 0/);
 assert.match(releaseSource, /GH_TOKEN: \$\{\{ secrets\.QODO_RELEASE_ADMIN_TOKEN \}\}/);
 assert.match(releaseSource, /GH_TOKEN: \$\{\{ github\.token \}\}/);
-assert.ok(tagPush > tagCreation && tagPush < releaseCreation,
+assert.ok(
+  publisherFinalMainGuard > publisherReleaseLookup &&
+  publisherFinalMainGuard > publisherTagCreation &&
+  publisherFinalMainGuard < publisherTagPush,
+  'main must be revalidated after draft discovery and immediately before the tag push');
+assert.ok(publisherTagPush > publisherTagCreation,
   'the validated annotated tag must be pushed without a force path before release creation');
 assert.doesNotMatch(releaseSource, /--force-with-lease/);
 assert.doesNotMatch(releaseSource, /\$\{GITHUB_SHA\}:refs\/heads\/main/);
@@ -132,13 +140,18 @@ assert.ok(publishedVerification > publishedDownload,
 assert.match(releaseSource, /RELEASE_EXISTS=false/);
 assert.match(releaseSource, /gh api --include/);
 assert.match(releaseSource, /HTTP\/\[0-9\.\]\+ 404/);
-assert.match(releaseSource, /gh release upload "\$\{TAG\}" --clobber "\$\{RELEASE_ASSETS\[@\]\}"/,
-  'a failed draft publication must be resumable without abandoning the version');
-assert.match(releaseSource, /gh release delete-asset "\$\{TAG\}" "\$\{existing_asset\}" --yes/,
-  'a resumed draft must remove assets outside the exact release inventory');
+assert.match(releaseSource, /gh release upload "\$\{TAG\}"/,
+  'a partial draft publication must be resumable without abandoning the version');
+assert.doesNotMatch(releaseSource, /gh release upload[^\n]*--clobber/,
+  'draft recovery must never overwrite an existing asset');
+assert.doesNotMatch(releaseSource, /gh release delete-asset/,
+  'draft recovery must never delete an existing asset');
+assert.match(releaseSource, /git cat-file -t "refs\/tags\/\$\{TAG\}"/,
+  'existing and fetched release refs must be annotated tag objects');
+assert.match(releaseSource, /git rev-parse "refs\/tags\/\$\{TAG\}\^\{\}"/,
+  'annotated release tags must peel to the validated commit');
 assert.match(releaseSource, /--jq '\.draft'/);
 assert.match(releaseSource, /"refs\/tags\/\$\{TAG\}:refs\/tags\/\$\{TAG\}"/);
-assert.match(releaseSource, /git rev-list -n 1 \"\$\{TAG\}\"/);
 assert.match(releaseSource, /\.assets\[\]\.name/);
 assert.match(
   readFileSync(join(root, '.gitattributes'), 'utf8'),
@@ -253,6 +266,17 @@ try {
     { draft: false, immutable: true, edits: 1, downloads: 2 },
   );
 
+  // A lightweight tag at the correct commit is still not the release object
+  // promised by the publication contract.
+  run(checkout, 'git', ['tag', '-d', releaseTag]);
+  run(checkout, 'git', ['push', 'origin', `:refs/tags/${releaseTag}`]);
+  run(checkout, 'git', ['-c', 'tag.gpgSign=false', 'tag', releaseTag, releaseSha]);
+  run(checkout, 'git', ['push', 'origin', `refs/tags/${releaseTag}:refs/tags/${releaseTag}`]);
+  assert.throws(() => runShell(checkout, publishPath, publishEnv), /is not an annotated tag/);
+  run(checkout, 'git', ['tag', '-d', releaseTag]);
+  run(checkout, 'git', ['-c', 'tag.gpgSign=false', 'tag', '--no-sign', '-a', releaseTag, '-m', releaseTag, releaseSha]);
+  run(checkout, 'git', ['push', '--force', 'origin', `refs/tags/${releaseTag}:refs/tags/${releaseTag}`]);
+
   // A published retry must fetch the remote tag instead of trusting a stale local copy.
   run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'drift fixture']);
   const driftSha = run(checkout, 'git', ['rev-parse', 'HEAD']).trim();
@@ -268,19 +292,19 @@ try {
   assert.equal(verifiedRetry.edits, 1);
   assert.equal(verifiedRetry.downloads, 3);
 
-  // A resumed draft removes stale assets before uploading the exact inventory.
-  writeFileSync(fakeGhState, `${JSON.stringify({
+  // A resumed draft with an unexpected asset is rejected without mutation.
+  const unexpectedDraft = {
     exists: true,
     draft: true,
     immutable: false,
     assets: ['qodo-skills-index.json', 'qodo-skills-index.json.sha256', 'stale-release.zip'],
     downloads: 0,
     edits: 0,
-  })}\n`);
-  runShell(checkout, publishPath, publishEnv);
-  const cleanedDraft = JSON.parse(readFileSync(fakeGhState, 'utf8'));
-  assert.deepEqual(cleanedDraft.deletedAssets, ['stale-release.zip']);
-  assert.ok(!cleanedDraft.assets.includes('stale-release.zip'));
+  };
+  writeFileSync(fakeGhState, `${JSON.stringify(unexpectedDraft)}\n`);
+  assert.throws(() => runShell(checkout, publishPath, publishEnv),
+    /unexpected asset inventory; refusing to replace anything/);
+  assert.deepEqual(JSON.parse(readFileSync(fakeGhState, 'utf8')), unexpectedDraft);
 
   // A mismatched draft asset fails before publication and remains resumable.
   writeFileSync(fakeGhState, `${JSON.stringify({
@@ -300,6 +324,20 @@ try {
   assert.equal(rejectedDraft.edits, 0);
   runShell(checkout, publishPath, publishEnv);
   assert.equal(JSON.parse(readFileSync(fakeGhState, 'utf8')).immutable, true);
+
+  // A pre-existing public mutable release is never eligible for draft resume.
+  const publicMutable = {
+    exists: true,
+    draft: false,
+    immutable: false,
+    assets: ['qodo-skills-index.json', 'qodo-skills-index.json.sha256'],
+    downloads: 0,
+    edits: 0,
+  };
+  writeFileSync(fakeGhState, `${JSON.stringify(publicMutable)}\n`);
+  assert.throws(() => runShell(checkout, publishPath, publishEnv),
+    /Existing public release .* is mutable; refusing to overwrite its assets/);
+  assert.deepEqual(JSON.parse(readFileSync(fakeGhState, 'utf8')), publicMutable);
 
   // Publication is not success until GitHub reports the release immutable.
   writeFileSync(fakeGhState, `${JSON.stringify({
@@ -402,7 +440,10 @@ try {
   git(seed, ['add', 'release.txt']);
   git(seed, ['commit', '-m', 'advance main']);
   git(seed, ['push', 'origin', 'main']);
+
   git(runner, ['fetch', 'origin', 'main']);
+  assert.notEqual(git(runner, ['rev-parse', 'origin/main']), releaseSha,
+    'the final release guard must observe an intervening main advance');
   git(runner, ['tag', '-f', '-a', 'v1', '-m', 'moved v1', 'origin/main']);
   assert.throws(() => git(runner, [
     'push', '--force', 'origin', 'refs/tags/v1:refs/tags/v1',

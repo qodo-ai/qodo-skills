@@ -57,24 +57,27 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
   if (args[1] === 'create' && (!args.includes('--draft') || !args.includes('--verify-tag'))) {
     throw new Error('Release creation must use --draft and --verify-tag');
   }
-  if (args[1] === 'upload' && !args.includes('--clobber')) {
-    throw new Error('Release upload must use --clobber');
+  if (args[1] === 'upload' && args.includes('--clobber')) {
+    throw new Error('Release upload must never overwrite an existing asset');
   }
   const state = readState();
   const assetPattern = /(?:qodo-skills-index\.json(?:\.sha256)?|qodo-enterprise-manifest\.json(?:\.sha256)?|qodo-enterprise-bundle-v\d+\.\d+\.\d+\.tar\.gz(?:\.sha256)?)$/;
+  if (args[1] === 'upload' && (!state.exists || !state.draft)) {
+    throw new Error('Release upload requires an existing draft');
+  }
   const assetPaths = args.filter((arg) => assetPattern.test(arg));
+  const assetNames = assetPaths.map((path) => basename(path));
+  if (assetNames.some((asset) => state.assets.includes(asset))) {
+    throw new Error('Release upload must not replace an existing asset');
+  }
   mkdirSync(process.env.FAKE_GH_ASSETS, { recursive: true });
   for (const path of assetPaths) copyFileSync(path, join(process.env.FAKE_GH_ASSETS, basename(path)));
-  const uploadedAssets = assetPaths.map((path) => basename(path));
-  const retainedAssets = args[1] === 'upload'
-    ? state.assets.filter((asset) => !uploadedAssets.includes(asset))
-    : [];
   writeState({
     ...state,
     exists: true,
     draft: true,
     immutable: false,
-    assets: [...retainedAssets, ...uploadedAssets],
+    assets: [...state.assets, ...assetNames],
   });
 } else if (args[0] === 'release' && args[1] === 'download') {
   if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || args[args.indexOf('--pattern') + 1] !== 'qodo-*') {
