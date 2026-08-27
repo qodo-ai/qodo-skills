@@ -82,7 +82,7 @@ Capability-level data flow (this is Kiro-Power–specific behavior; for Qodo's o
 | `qodo: command not found` | Use the absolute path `~/.qodo/bin/qodo` (GUI shells have a minimal `PATH`). If the file is missing, (re)install with the `curl` line above. |
 | `not_logged_in` / `Not logged in` | Run `~/.qodo/bin/qodo login`. |
 | `unknown command` on a tool right after install | The cached tool catalog is stale — run `~/.qodo/bin/qodo tools --refresh` and retry. |
-| `qodo review` is slow or times out | Scope it to the changed area, e.g. `qodo review backend/`. A large **gitignored** tree (`venv/`, `node_modules/`) slows the first, uncached run. |
+| `qodo review` is slow or times out | Give the shell invocation a `1200000` ms (20-minute) timeout and scope it to the changed area, e.g. `qodo review backend/`. A large **gitignored** tree (`venv/`, `node_modules/`) slows the first, uncached run. |
 
 ---
 
