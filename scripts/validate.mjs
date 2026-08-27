@@ -112,6 +112,9 @@ if (packageLock.version !== packageVersion || packageLock.packages?.['']?.versio
 if (catalog.instructionMode !== 'embedded') fail('catalog instructionMode must be embedded');
 if (catalog.runtime?.command !== 'qodo') fail('runtime command must remain qodo');
 if (catalog.runtime?.loginCommand !== 'qodo login') fail('runtime login must remain qodo login');
+if (!semver.test(catalog.runtime?.minimumCliVersion ?? '')) {
+  fail('runtime minimumCliVersion must be semantic version');
+}
 const kiroProvider = marketplaces.providers?.find((provider) => provider.id === 'kiro');
 if (kiroProvider?.mode !== 'protected-release-branch' || kiroProvider?.sourceRef !== 'marketplace-kiro') {
   fail('Kiro marketplace must use the protected marketplace-kiro release branch');
@@ -245,6 +248,17 @@ for (const skill of catalog.skills ?? []) {
   }
   const provenance = `--skill ${skill.name} --skill-version ${skill.version} --distribution skills-sh`;
   if (!skillText.includes(provenance)) fail(`${skill.name}: missing canonical provenance invocation`);
+  const versionProbe = skillText.search(/^qodo --version(?:\s+#.*)?$/m);
+  if (versionProbe < 0 || versionProbe > skillText.indexOf(provenance)) {
+    fail(`${skill.name}: unadorned qodo --version must precede the first provenance invocation`);
+  }
+  if (skillText.includes('qodo --version --skill')) {
+    fail(`${skill.name}: compatibility probe must not use provenance flags`);
+  }
+  const escapedMinimum = catalog.runtime.minimumCliVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!new RegExp(`Qodo\\s+CLI\\s+\\*\\*${escapedMinimum} or newer\\*\\*`).test(skillText)) {
+    fail(`${skill.name}: runtime gate must name catalog minimumCliVersion`);
+  }
   const headingCount = expectedHeading ? skillText.split(expectedHeading).length - 1 : 0;
   if (!expectedHeading || headingCount !== 1) {
     fail(`${skill.name}: expected exactly one branded value-moment heading ${expectedHeading ?? '<unregistered>'}`);
@@ -369,6 +383,9 @@ if (!['initial', 'patch', 'minor', 'major'].includes(release.package?.change)) {
 }
 if (release.runtimeProtocolVersion !== catalog.runtime?.protocolVersion) {
   fail('release runtimeProtocolVersion must match the catalog');
+}
+if (release.minimumCliVersion !== catalog.runtime?.minimumCliVersion) {
+  fail('release minimumCliVersion must match the catalog');
 }
 const releaseSkillNames = new Set();
 if (!Array.isArray(release.skills)) fail('release skills must be an array');

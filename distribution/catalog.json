@@ -18,7 +18,8 @@
   "runtime": {
     "command": "qodo",
     "loginCommand": "qodo login",
-    "protocolVersion": 2
+    "protocolVersion": 2,
+    "minimumCliVersion": "0.1.0-next.37"
   },
   "installPackages": [
     {
@@ -47,7 +48,7 @@
   "skills": [
     {
       "name": "qodo-setup",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "recommended": true,
       "displayName": "Set up Qodo",
       "shortDescription": "Connect the Qodo runtime and verify this agent is ready.",
@@ -55,7 +56,7 @@
     },
     {
       "name": "qodo-codebase-wisdom",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "recommended": true,
       "displayName": "Qodo Codebase Wisdom",
       "shortDescription": "Understand code, history, and cross-repo impact.",
@@ -63,7 +64,7 @@
     },
     {
       "name": "qodo-get-rules",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "recommended": false,
       "displayName": "Qodo Rules",
       "shortDescription": "Load the standards that apply to the current change.",
@@ -71,7 +72,7 @@
     },
     {
       "name": "qodo-manage-standards",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "recommended": false,
       "displayName": "Qodo Standards Manager",
       "shortDescription": "Create and maintain Qodo Review Standards.",
@@ -79,7 +80,7 @@
     },
     {
       "name": "qodo-review",
-      "version": "1.9.3",
+      "version": "1.9.4",
       "recommended": true,
       "displayName": "Qodo Local Review",
       "shortDescription": "Review local changes before opening a pull request.",
@@ -87,7 +88,7 @@
     },
     {
       "name": "qodo-review-resolver",
-      "version": "1.4.2",
+      "version": "1.4.3",
       "recommended": true,
       "displayName": "Qodo Review Resolver",
       "shortDescription": "Read and resolve Qodo pull-request findings.",

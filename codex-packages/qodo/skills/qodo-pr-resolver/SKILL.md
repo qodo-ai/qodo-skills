@@ -6,7 +6,7 @@ when_to_use: When you need to read or act on a pull request's Qodo review — ch
 metadata:
   alias_for: "qodo-review-resolver"
   vendor: qodo
-  version: "1.4.2"
+  version: "1.4.3"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -68,10 +68,26 @@ Never invoke a different lifecycle owner, guess a placeholder, or install an opt
 implicitly. After an approved update, ask for the host restart named by the notice; the current
 session may still have the old skill loaded.
 
+## Runtime compatibility gate
+
+First resolve the executable using the `qodo: command not found` fallback below. Before any other
+Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
+This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
+CLI **0.1.0-next.37 or newer**.
+
+If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
+do not describe the failure as an authentication problem. Explain that the skill is newer than the
+runtime, show `qodo update` as the update command for the runtime's already-recorded origin, and ask
+once before running it. For a customer deployment, keep its organization-provided update origin;
+never switch it to the public service. After an approved update, rerun the unadorned version probe
+and continue only when it satisfies the minimum. If the user declines or the update fails, stop with
+the current skill and user files unchanged.
+
 ## Quick start
 
 ```
-qodo whoami --json --skill qodo-review-resolver --skill-version 1.4.2 --distribution marketplace --host codex
+qodo --version                                                       # compatibility probe — run this FIRST
+qodo whoami --json --skill qodo-review-resolver --skill-version 1.4.3 --distribution marketplace --host codex
 qodo pr-review-session findings --pr-url <PR_URL> --json            # the review session for a PR
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
 qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explanation "..." --json

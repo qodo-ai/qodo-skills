@@ -58,17 +58,19 @@ only the protected `marketplace-kiro` release branch, never mutable day-to-day `
 
 Every skill:
 
-1. identifies itself on its first Qodo call with `--skill`, `--skill-version`, `--distribution`,
+1. checks the declared minimum runtime with an unadorned `qodo --version` call that older CLIs can
+   parse and offers the runtime's recorded update path when needed;
+2. identifies itself on its first post-gate Qodo call with `--skill`, `--skill-version`, `--distribution`,
    and a provider-generated `--host` where applicable;
-2. verifies authentication through `qodo whoami`;
-3. discovers exact commands and READ/WRITE safety from `qodo tools help`;
-4. invokes the authenticated runtime;
-5. treats a `QODO_NOTICE` as non-fatal metadata after preserving the command result.
+3. verifies authentication through `qodo whoami`;
+4. discovers exact commands and READ/WRITE safety from `qodo tools help`;
+5. invokes the authenticated runtime;
+6. treats a `QODO_NOTICE` as non-fatal metadata after preserving the command result.
 
-The CLI’s compact release index contains only package and skill versions. A daily bounded refresh
-may discover staleness. It never downloads workflow text and never changes an agent skill root.
-An on-prem QAR `version.json` advertises same-origin index paths; a private origin without that
-pointer fails closed instead of reaching the public release host.
+The CLI’s compact release index contains only package, skill, and minimum-runtime versions. A daily
+bounded refresh may discover staleness. It never downloads workflow text and never changes an agent
+skill root. An on-prem QAR `version.json` advertises same-origin index paths; a private origin without
+that pointer fails closed instead of reaching the public release host.
 
 ## Why workflows are embedded
 

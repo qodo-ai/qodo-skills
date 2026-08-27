@@ -4,7 +4,7 @@ description: Connect Qodo to the current local coding agent — verify the Qodo 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.3"
+  version: "1.0.4"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -47,35 +47,46 @@ session may still have the old skill loaded.
 Run:
 
 ```sh
-qodo --version --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code
+qodo --version
 ```
 
 If a POSIX shell reports `qodo: command not found`, retry the standard user-scoped location:
 
 ```sh
-"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code
+"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version
 ```
 
 In Windows PowerShell, use the native launcher:
 
 ```powershell
 $qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
-& (Join-Path $qodoHome 'bin/qodo.cmd') --version --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code
+& (Join-Path $qodoHome 'bin/qodo.cmd') --version
 ```
 
 Keep the working command for every later step. Do not rewrite PATH automatically.
 
 If neither command exists, tell the user:
 
-> The Qodo marketplace plugin is installed, but its local runtime is not. Install the
-> checksum-verified Qodo CLI from https://get.qodo.ai, then ask me to “Set up Qodo” again.
+> The Qodo skill is installed, but its local runtime is not. Obtain the checksum-verified Qodo CLI
+> from https://get.qodo.ai or your organization's Qodo administrator, then ask me to “Set up Qodo”
+> again.
 
 Stop there. Do not invent a checksum, pipe a remote script into a shell, use a package from
 an unofficial registry, or install software without the user's approval.
 
+If an executable was found, evaluate its output before continuing. The unadorned version probe is
+intentionally compatible with older Qodo CLIs. This skill requires Qodo CLI **0.1.0-next.37 or newer**.
+If the version is older or cannot be parsed, do not run `whoami` or `login` and do not
+describe the failure as an authentication problem. Explain that the skill is newer than the runtime,
+show `<qodo> update` as the update command for the runtime's already-recorded origin, and ask once
+before running it. For a customer deployment, keep its organization-provided update origin; never
+switch it to the public service. After an approved update, rerun the unadorned version probe and
+continue only when it satisfies the minimum. If the user declines or the update fails, stop with the
+current skill and user files unchanged.
+
 ## 2. Check authentication
 
-Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code`.
+Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.4 --distribution marketplace --host claude-code`.
 
 In a sandboxed environment, any failed `whoami` can be a blocked keychain rather than a logged-out
 user. Ask for approval to retry that exact read-only command once outside the sandbox. The approval
@@ -86,8 +97,9 @@ logged out when the approved retry also fails.
 - After the sandbox diagnostic above when applicable, `Not logged in`, missing credentials, or a
   non-zero authentication result: run
   `<qodo> login`. This is the only supported login path.
-- An `unknown command` for `whoami` means the runtime is too old; ask the user to update it
-  from the same official installer source, then stop.
+- An `unknown command` or `unknown option` after the successful version gate is a runtime-contract
+  failure, not an authentication failure. Report the exact error and stop; do not send the user
+  through login.
 
 `qodo login` may open a browser. Tell the user what is happening before you run it. Wait for
 the command to finish; never claim login succeeded from a browser opening alone. If the
@@ -103,8 +115,8 @@ with cloud defaults.
 After login, run both:
 
 ```sh
-<qodo> whoami --json --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.3 --distribution marketplace --host claude-code
+<qodo> whoami --json --skill qodo-setup --skill-version 1.0.4 --distribution marketplace --host claude-code
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.4 --distribution marketplace --host claude-code
 ```
 
 Read the structured results. Readiness requires both a successful authenticated identity

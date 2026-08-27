@@ -21,7 +21,7 @@ lines.push(
   '',
   '## Runtime compatibility',
   '',
-  `Requires Qodo runtime protocol ${release.runtimeProtocolVersion}.`,
+  `Requires Qodo CLI ${release.minimumCliVersion} or newer (runtime protocol ${release.runtimeProtocolVersion}).`,
   'The Qodo CLI is distributed and updated independently from this plugin release.',
   '',
 );
