@@ -77,14 +77,16 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
   }
   writeState({ ...state, downloads });
 } else if (args[0] === 'release' && args[1] === 'edit') {
-  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || !args.includes('--draft=false')) {
-    throw new Error('Release publication must specify a valid tag and --draft=false');
+  const publishing = args.includes('--draft=false');
+  const containing = args.includes('--draft=true');
+  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || publishing === containing) {
+    throw new Error('Release edit must specify a valid tag and exactly one draft state');
   }
   const state = readState();
   writeState({
     ...state,
-    draft: false,
-    immutable: process.env.FAKE_PUBLISHED_MUTABLE !== 'true',
+    draft: containing,
+    immutable: publishing && process.env.FAKE_PUBLISHED_MUTABLE !== 'true',
     edits: state.edits + 1,
   });
 } else {

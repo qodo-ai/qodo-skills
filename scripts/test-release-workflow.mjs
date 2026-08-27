@@ -28,6 +28,8 @@ const escapedReleaseTag = releaseTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 assert.doesNotMatch(releaseSource, /^\s+push:/m,
   'source merge must not bypass the CLI-first release order or an unmet credential gate');
 assert.match(releaseSource, /^\s+workflow_dispatch:/m);
+assert.match(workflow, /github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/,
+  'the write-scoped release job must run only from the default branch');
 assert.match(workflow, /run: scripts\/verify-release-prerequisites\.sh/);
 assert.match(workflow, /run: scripts\/publish-release\.sh/);
 assert.match(readFileSync(join(root, 'scripts', 'verify-release-prerequisites.cmd'), 'utf8'),
@@ -308,7 +310,7 @@ try {
   const rejectedMutable = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: rejectedMutable.draft, immutable: rejectedMutable.immutable, edits: rejectedMutable.edits },
-    { draft: false, immutable: false, edits: 1 },
+    { draft: true, immutable: false, edits: 2 },
   );
 
   // The final public download is independently verified after publication.

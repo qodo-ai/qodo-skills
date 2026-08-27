@@ -105,6 +105,9 @@ fi
 gh release edit "${TAG}" --draft=false
 if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" != 'true' ]]; then
   echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
+  if ! gh release edit "${TAG}" --draft=true; then
+    echo 'CRITICAL: could not return the mutable release to draft; stop all consumer rollout.' >&2
+  fi
   exit 1
 fi
 test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
