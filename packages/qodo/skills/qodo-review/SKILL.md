@@ -56,7 +56,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo whoami --json --skill qodo-review --skill-version 1.9.4 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review --skill-version 1.9.4 --distribution marketplace --host claude-code
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -154,8 +154,8 @@ user to obtain a checksum-pinned installer command from Qodo or their organizati
 administrator. Installers are served from https://get.qodo.ai, but never invent a digest
 or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo whoami`
+**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
+(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
 outside the sandbox before recommending login or refreshing tools. Keychain failures can be
 reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
 applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
@@ -245,7 +245,7 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 
 ## Preflight
 
-1. **Auth first.** Run `qodo whoami`. After the sandbox retry above when applicable, a non-zero
+1. **Auth first.** Run `qodo read whoami`. After the sandbox retry above when applicable, a non-zero
    exit → tell the user to re-run the exact login command supplied by their installer,
    organization, or configured endpoint, then stop. With no custom endpoint, use `qodo login`;
    with an explicit endpoint, preserve it as `qodo login --auth-url <their-url>`. Never replace a
@@ -464,7 +464,7 @@ On `closed_preview`:
    `qodo review` unless the user says enrollment happened (after enrollment, access activates
    within ~10 minutes; no re-login needed).
 
-Only the review itself is gated — auth (`qodo whoami`) and the other qodo commands are unaffected.
+Only the review itself is gated — auth (`qodo read whoami`) and the other qodo commands are unaffected.
 
 ## Configuration
 

@@ -62,10 +62,11 @@ Every skill:
    parse and offers the runtime's recorded update path when needed;
 2. identifies itself on its first post-gate Qodo call with `--skill`, `--skill-version`, `--distribution`,
    and a provider-generated `--host` where applicable;
-3. verifies authentication through `qodo whoami`;
-4. discovers exact commands and READ/WRITE safety from `qodo tools help`;
-5. invokes the authenticated runtime;
-6. treats a `QODO_NOTICE` as non-fatal metadata after preserving the command result.
+3. verifies authentication through `qodo read whoami`;
+4. discovers and invokes non-mutating commands through the fail-closed `qodo read` gateway;
+5. inspects the complete READ/WRITE catalog through `qodo tools help` before any write;
+6. invokes the authenticated runtime;
+7. treats a `QODO_NOTICE` as non-fatal metadata after preserving the command result.
 
 The CLI’s compact release index contains only package, skill, and minimum-runtime versions. A daily
 bounded refresh may discover staleness. It never downloads workflow text and never changes an agent

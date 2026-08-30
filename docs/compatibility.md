@@ -18,14 +18,20 @@ The current package declares `runtime.minimumCliVersion` in `distribution/catalo
 canonical skill repeats that value in an unadorned `qodo --version` gate before it sends newer
 provenance flags. Skills require a compatible Qodo CLI that supports:
 
-- `qodo whoami --json`;
-- `qodo tools help [<group> [<tool>]] --json`;
-- managed tool groups projected from the cached catalog;
+- `qodo read whoami --json`;
+- `qodo read tools [<group> [<tool>]] --json`;
+- the fail-closed `qodo read <group> <tool>` gateway for cached catalog entries explicitly marked
+  non-mutating;
 - provenance flags `--skill`, `--skill-version`, `--distribution`, and `--host`;
 - non-fatal `QODO_NOTICE` output on stderr.
 
 Skills must discover exact tool names and schemas at runtime. Examples in a skill are illustrative;
 the cached catalog is authoritative for the current account and workspace.
+
+Kiro's generated `qodo-read-only.permissions.yaml` contains only exact version probes and the
+stable `qodo read *` prefix for supported executable spellings. It is a user-reviewed template,
+never an automatically applied permission mutation. New read tools require no permission-template
+change: they become reachable only when the runtime catalog explicitly marks them non-mutating.
 
 ## Release compatibility rules
 

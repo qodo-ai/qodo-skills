@@ -64,19 +64,19 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
-qodo whoami --json --skill qodo-manage-standards --skill-version 1.0.2 --distribution marketplace --host codex
-qodo rules metadata --json                                            # categories/severities before creating
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.2 --distribution marketplace --host codex
+qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
 qodo rules set-state --rule-ids 123,124 --state inactive --dry-run --json
 qodo rules set-state --rule-ids 123,124 --state inactive --json       # after confirming the preview
 qodo rules set-scope --rule-ids 123 --scopes "/owner/repo/","/owner/repo2/" --json
-qodo rules list --state pending --json                                # suggestions awaiting triage
+qodo read rules list --state pending --json                           # suggestions awaiting triage
 qodo rules bulk --operation accept_activate --rule-ids 10,11 --dry-run --json
 # Show the exact matched rules/count and ask once; run without --dry-run only after approval.
 qodo rules bulk --operation reject --rule-ids 12 --dry-run --json     # PERMANENT delete — dry run first
-qodo rules get --rule-id 123 --json                                   # current form before editing
-qodo tools help rules --json                                          # exact flags (renders offline)
+qodo read rules get --rule-id 123 --json                              # current form before editing
+qodo read tools rules --json                                          # exact safe flags (renders offline)
 ```
 
 **`qodo: command not found`?** That's usually PATH, not a missing install: GUI-launched agents
@@ -93,8 +93,8 @@ actually not installed; tell the user to obtain a checksum-pinned installer comm
 their organization's administrator. Installers are served from https://get.qodo.ai, but never
 invent a digest or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo whoami`
+**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
+(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
 outside the sandbox before recommending login or refreshing tools. Keychain failures can be
 reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
 applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
@@ -102,21 +102,22 @@ later Qodo commands outside the sandbox automatically. If the retry succeeds, co
 per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
 
 Add `--json` to everything you parse. **Confirm the exact tool names, flags, and write status with
-`qodo tools help rules [<tool>] --json`** (renders offline from the cached catalog) — the commands above are
+`qodo read tools rules [<tool>] --json`** (renders offline from the cached catalog) — use it for reads;
+inspect write commands with `qodo tools help rules [<tool>] --json`. The commands above are
 illustrative, not guaranteed current; a stale catalog after a fresh install shows as `unknown
 command`/`unknown option` on `rules` while `whoami` still succeeds — run `qodo tools --refresh`
 and retry before assuming the tool doesn't exist.
 
 ## Preflight
 
-1. **Auth first.** Run `qodo whoami`. After the sandbox retry above when applicable, tell the user
+1. **Auth first.** Run `qodo read whoami`. After the sandbox retry above when applicable, tell the user
    to run `qodo login` only when the result explicitly says `Not logged in`, then stop. `No tool
    catalog cached` is a catalog failure, not proof of missing credentials: run `qodo tools
    --refresh` once, then retry `whoami`. If either command still fails, report that exact failure
    and stop instead of sending the user through login. An `unknown command`/`unknown option` on
    `rules` while `whoami` succeeds also means a stale cached catalog — refresh once and retry.
 2. **Never guess the target.** Resolve which rule or suggestion the user means (by id from a
-   prior `qodo-get-rules`/`qodo rules list` result, or by asking) before calling a write
+   prior `qodo-get-rules`/`qodo read rules list` result, or by asking) before calling a write
    command. Never invent a `rule_id`.
 3. **Repository scope**, when the user wants a rule scoped to "this repo": derive it from the
    repo's `origin` remote the same way `qodo-get-rules` does — full path after the host, `.git`
@@ -151,7 +152,7 @@ This skill covers everything that changes the rule set. Route the user's request
 described or agreed on a convention mid-session and wants it enforced going forward ("make this
 a rule", "let's make sure we always do X"). Draft the rule from the conversation:
 - `name` — concise, unique (duplicates are rejected by the platform).
-- `category` — call `qodo rules metadata` first and pick an existing category when one fits
+- `category` — call `qodo read rules metadata` first and pick an existing category when one fits
   (falling back to a sensible new one, e.g. Security, Correctness, Quality, Reliability,
   Performance, Testability, Compliance, Accessibility, Observability, Architecture).
 - `severity` — **error** = must comply, **warning** = comply by default, **recommendation** =
@@ -171,7 +172,7 @@ suggestion — an admin needs to approve it before it's enforced."* A duplicate-
 means pick a different name; don't retry with the same one.
 
 **2. Edit — change an existing rule.** "That rule should be an error, not a warning", "update
-the content of the console.log rule". Fetch the rule first (`qodo rules get`) if you don't
+the content of the console.log rule". Fetch the rule first (`qodo read rules get`) if you don't
 already have its current form in context, so you can show the user the actual before/after, not
 a guess. Call `qodo rules update` with **only the fields changing** — it fetches-then-merges
 server-side, so anything you don't pass keeps its current value. Confirm the specific change
@@ -187,7 +188,7 @@ with `--dry-run` first and show the count before executing for real.
 
 **4. Triage & hygiene — suggestions and bulk operations.** "Show pending suggestions and let's
 go through them", "deactivate everything scoped to the archived repo". List first
-(`qodo rules list --state pending` for triage, or a filtered `qodo rules list` for hygiene) so
+(`qodo read rules list --state pending` for triage, or a filtered `qodo read rules list` for hygiene) so
 the user sees what's affected before anything changes. Walk suggestions one at a time or in an
 explicit batch per the user's instruction — never bulk-accept/reject without the user having
 seen what's in the batch. `qodo rules bulk` operations:
@@ -208,7 +209,7 @@ defaulting to the reversible option.
 
 When triaging a batch of suggestions, close the session with explicit counts — how many
 accepted, rejected, and left pending — so the user knows the end state without re-running
-`qodo rules list`.
+`qodo read rules list`.
 
 ## Report the verified outcome
 

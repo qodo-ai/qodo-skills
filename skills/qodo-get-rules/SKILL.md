@@ -61,11 +61,11 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo whoami --json --skill qodo-get-rules --skill-version 1.1.2 --distribution skills-sh
-qodo rules search --query "Name: JWT Authentication Endpoint Validation
+qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.2 --distribution skills-sh
+qodo read rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json
-qodo tools help rules --json                              # exact flags (renders offline)
+qodo read tools rules --json                              # exact safe flags (renders offline)
 ```
 
 The newlines inside the quoted `--query` value are literal — a multi-line double-quoted
@@ -80,8 +80,8 @@ actually not installed; tell the user to obtain a checksum-pinned installer comm
 Qodo or their organization's administrator. Installers are served from https://get.qodo.ai,
 but never invent a digest or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo whoami`
+**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
+(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
 outside the sandbox before recommending login or refreshing tools. Keychain failures can be
 reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
 applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
@@ -92,7 +92,7 @@ per-command permission checks. If it still fails, follow the normal auth trouble
 
 1. **Already loaded?** If "Qodo Rules Loaded" appears earlier in this conversation, skip
    straight to applying those rules — don't re-fetch.
-2. **Auth.** Run `qodo whoami`. After the sandbox retry above when applicable, a non-zero exit →
+2. **Auth.** Run `qodo read whoami`. After the sandbox retry above when applicable, a non-zero exit →
    tell the user to run `qodo login`, then stop.
    `Not logged in` / `No tool catalog cached` → not logged in. An `unknown command` on
    `qodo rules` while `whoami` SUCCEEDS is a different failure: the cached catalog predates
@@ -134,17 +134,17 @@ Content: <1-2 sentences describing what should be checked or enforced; mention t
 
 ## Search and merge
 
-Run `qodo rules search` **once per query** (in parallel when you can), each with
+Run `qodo read rules search` **once per query** (in parallel when you can), each with
 `--top-k 20` and `--json`. Add `--scopes "$SCOPE"` only when detection produced a scope:
 
 ```
 # With a detected scope:
-qodo rules search --query "$TOPIC_QUERY" --top-k 20 --scopes "$SCOPE" --json
-qodo rules search --query "$CROSS_QUERY" --top-k 20 --scopes "$SCOPE" --json
+qodo read rules search --query "$TOPIC_QUERY" --top-k 20 --scopes "$SCOPE" --json
+qodo read rules search --query "$CROSS_QUERY" --top-k 20 --scopes "$SCOPE" --json
 
 # Without a detected scope, omit both the flag and its value:
-qodo rules search --query "$TOPIC_QUERY" --top-k 20 --json
-qodo rules search --query "$CROSS_QUERY" --top-k 20 --json
+qodo read rules search --query "$TOPIC_QUERY" --top-k 20 --json
+qodo read rules search --query "$CROSS_QUERY" --top-k 20 --json
 ```
 
 Merge: topic results first (in order), then cross-cutting results not already present —

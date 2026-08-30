@@ -61,18 +61,18 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.2 --distribution skills-sh
-qodo codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
-qodo codebase grep --repo owner/repo --pattern "chargeCard" --json
-qodo codebase read-file --repo owner/repo --path src/pay.py --json
-qodo codebase blame --repo owner/repo --path src/pay.py --json
-qodo pull-request similar --repo owner/repo --query "retry failed charge" --json
-qodo cross-repo relations --repo owner/repo --json
-qodo tools help codebase --json                           # a group's tools + exact flags (offline)
+qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.2 --distribution skills-sh
+qodo read codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
+qodo read codebase grep --repo owner/repo --pattern "chargeCard" --json
+qodo read codebase read-file --repo owner/repo --path src/pay.py --json
+qodo read codebase blame --repo owner/repo --path src/pay.py --json
+qodo read pull-request similar --repo owner/repo --query "retry failed charge" --json
+qodo read cross-repo relations --repo owner/repo --json
+qodo read tools codebase --json                           # the safe group's tools + exact flags (offline)
 ```
 
 Add `--json` to anything you parse. **Before calling a tool, confirm its exact name, flags,
-and read/write status with `qodo tools help <group> [<tool>] --json`** (renders offline) —
+with `qodo read tools <group> [<tool>] --json`** (renders offline) —
 the tool names below are illustrative, not guaranteed current.
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
@@ -83,8 +83,8 @@ user to obtain a checksum-pinned installer command from Qodo or their organizati
 administrator. Installers are served from https://get.qodo.ai, but never invent a digest
 or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo whoami`
+**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
+(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
 outside the sandbox before recommending login or refreshing tools. Keychain failures can be
 reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
 applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
@@ -93,7 +93,7 @@ per-command permission checks. If it still fails, follow the normal auth trouble
 
 ## Preflight
 
-1. **Auth first.** Run `qodo whoami`. After the sandbox retry above when applicable, a non-zero
+1. **Auth first.** Run `qodo read whoami`. After the sandbox retry above when applicable, a non-zero
    exit → tell the user to run `qodo login`, then stop. Never guess creds. `Not logged in` /
    `No tool catalog cached` are authentication setup
    failures. If `whoami` succeeds but a group is unknown, run `qodo tools --refresh` once. If the
@@ -101,17 +101,17 @@ per-command permission checks. If it still fails, follow the normal auth trouble
    stop and explain that a workspace admin must enable access; do not send an authenticated user
    through login again or loop on refresh.
 2. Resolve the repo. Named repo → `--repo owner/repo`. Inside a git repo with none named →
-   omit `--repo` (autodetected from origin). Otherwise `qodo codebase search-repos --query
+   omit `--repo` (autodetected from origin). Otherwise `qodo read codebase search-repos --query
    "<name>" --json` and **never guess a slug**. Multiple matches → ask the user which; zero
    matches → say so and stop, don't invent one.
 
 ## Route to a tool group
 
-| The task needs… | Group | Representative tools (verify via `qodo tools help`) |
+| The task needs… | Group | Representative tools (verify via `qodo read tools`) |
 |---|---|---|
-| **Current code** — where/what/how it works now | `qodo codebase` | search-repos, grep, find, ls, read-file, blame, list-commits, get-commit, list-prs, get-pr, list-issues, get-issue, search-issues |
-| **History / prior art** — how a change was done, a file's PR history, past review feedback | `qodo pull-request` | stats, similar, by-file, details, patch |
-| **Impact / coupling** — what a change affects, which repos depend on this | `qodo cross-repo` | overview, relations |
+| **Current code** — where/what/how it works now | `qodo read codebase` | search-repos, grep, find, ls, read-file, blame, list-commits, get-commit, list-prs, get-pr, list-issues, get-issue, search-issues |
+| **History / prior art** — how a change was done, a file's PR history, past review feedback | `qodo read pull-request` | stats, similar, by-file, details, patch |
+| **Impact / coupling** — what a change affects, which repos depend on this | `qodo read cross-repo` | overview, relations |
 
 Real tasks span groups — see Examples.
 
@@ -182,7 +182,7 @@ replace them with guessed repository facts or broader authority.
 
 ## Guardrails
 
-- Only call tools you've confirmed **read-only** via `qodo tools help`. The write tools — `approve`,
+- Only call managed tools through the fail-closed `qodo read` gateway. The write tools — `approve`,
   `post-comment`, `post-inline-comment(s)`, `set-labels`, `update-description` (non-exhaustive) —
   post to the forge; **don't call them** while investigating. (Editing local code as part of a
   fix is your normal work — that's not these tools.)
