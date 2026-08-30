@@ -87,15 +87,15 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                                       # compatibility probe — run this FIRST
-qodo whoami --json --skill qodo-review-resolver --skill-version 1.4.3 --distribution kiro-power --host kiro
-qodo pr-review-session findings --pr-url <PR_URL> --json            # the review session for a PR
+qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.3 --distribution kiro-power --host kiro
+qodo read pr-review-session findings --pr-url <PR_URL> --json       # the review session for a PR
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
 qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explanation "..." --json
-qodo tools help pr-review-session --json                            # exact tools + flags (offline)
+qodo read tools pr-review-session --json                            # exact safe tools + flags (offline)
 ```
 
 Add `--json` to anything you parse. **Confirm the exact tool names, flags, and read/write status
-with `qodo tools help pr-review-session [<tool>] --json`** (renders offline) — the names above
+with `qodo read tools pr-review-session [<tool>] --json`** (renders offline) — the names above
 are illustrative, not guaranteed current.
 
 `unknown command` on `dismiss`/`mark-implemented` after authentication may be a stale local tool
@@ -110,8 +110,8 @@ user to obtain a checksum-pinned installer command from Qodo or their organizati
 administrator. Installers are served from https://get.qodo.ai, but never invent a digest
 or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo whoami`
+**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
+(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
 outside the sandbox before recommending login or refreshing tools. Keychain failures can be
 reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
 applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
@@ -120,12 +120,12 @@ per-command permission checks. If it still fails, follow the normal auth trouble
 
 ## Preflight
 
-1. **Auth first.** Run `qodo whoami`. After the sandbox retry above when applicable, a non-zero
+1. **Auth first.** Run `qodo read whoami`. After the sandbox retry above when applicable, a non-zero
    exit → tell the user to run `qodo login`, then stop. Never guess creds. The tool only exists
    *after* login, so treat `Not logged in` or `No
    tool catalog cached` as "run `qodo login`", and don't retry before they have.
    **An `unknown command`/`unknown option` while `whoami` SUCCEEDED is not an auth failure.** Run
-   `qodo tools --refresh` once and re-check `qodo tools help pr-review-session --json`. If the write command
+   `qodo tools --refresh` once and re-check `qodo read tools pr-review-session --json`. If the write command
    remains absent, report that this account/workspace currently has read-only review capability;
    do not re-login, retry indefinitely, or substitute a forge comment for the structured write.
 2. **Resolve the PR.** Use the PR URL the user gives. If they don't name one and you're inside
@@ -140,7 +140,7 @@ per-command permission checks. If it still fails, follow the normal auth trouble
 
 ## Fetch the review session
 
-`qodo pr-review-session findings --pr-url <PR_URL> --json` returns:
+`qodo read pr-review-session findings --pr-url <PR_URL> --json` returns:
 
 - `review_session` — the latest review run: `status`, `commit_sha` (**the last commit included in
   the review** — the code these findings describe), `started_at`. **`null` = the PR has no review
@@ -158,7 +158,7 @@ check it before acting:
 
 - **Is a review still running?** If `status` is not a terminal/`completed` state (e.g. `started` /
   in-progress), a review is **mid-flight** — the findings are provisional and will change. Do NOT
-  resolve them yet; poll `qodo pr-review-session findings … --json` until `status` is `completed`.
+  resolve them yet; poll `qodo read pr-review-session findings … --json` until `status` is `completed`.
 - **What commit do the findings describe?** `review_session.commit_sha` is the last commit the
   review included. If it's **behind the PR head**, the findings are **stale** — they don't reflect
   your latest code. Either the review hasn't run on the new commit yet (wait) or you're looking at
@@ -244,7 +244,7 @@ findings and the fix commit is pushed, Qodo re-reviews the *new* commit — so:
 1. Note the PR's current head SHA — the commit you just pushed (`git rev-parse HEAD`), or, for a
    PR you didn't push, read it as forge metadata (`gh pr view <pr> --json headRefOid`). That's a
    metadata read, not review-comment scraping — it's fine.
-2. Poll `qodo pr-review-session findings … --json` until the review is **`completed` AND its
+2. Poll `qodo read pr-review-session findings … --json` until the review is **`completed` AND its
    `commit_sha` equals that head SHA**. Until both hold, the findings are stale or provisional
    (a review is still running, or it describes the pre-fix commit) — do not act on them.
 3. When fresh: if any OPEN findings remain (all four statuses — a `partial_implementation` is
@@ -335,8 +335,8 @@ qodo pr-review-session dismiss --finding-ids <id>,<id> --reason <reason> --expla
 
 **User: "Resolve the action-required findings on https://github.com/acme/api/pull/318"**
 
-1. `qodo whoami` → logged in.
-2. `qodo pr-review-session findings --pr-url https://github.com/acme/api/pull/318 --json`
+1. `qodo read whoami` → logged in.
+2. `qodo read pr-review-session findings --pr-url https://github.com/acme/api/pull/318 --json`
    → `review_session`: `status: completed`, `commit_sha: a1b2c3d` (= the PR head, so findings are current);
    `findings`: 3 open (2 `pending`, 1 `partial_implementation`) — 2 `action_required`, 1 `informational`.
 3. Instruction filters to `action_required` → work those 2; the informational one is out of scope (report it, don't fix).

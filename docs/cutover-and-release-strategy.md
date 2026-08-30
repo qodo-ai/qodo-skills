@@ -140,6 +140,9 @@ This avoids GitHub's lossy single-pending queue, launch races, and old-tag rerun
 - Publish `qodo-standards` only as a separate optional listing.
 - Kiro uses its current Agent Plugins power contract (`plugin.json` plus nested `skills/`), not the
   retired `POWER.md`/`steering/` package layout.
+- Kiro packages a generated, user-reviewed permission template for the stable `qodo read *`
+  gateway. The runtime admits only catalog entries explicitly marked non-mutating, so new read
+  tools do not require another permission-pattern release; all other Qodo commands remain on ask.
 - Kiro follows the protected `marketplace-kiro` branch, which the approved release job advances
   fast-forward to the immutable tag before verifying the provider-visible listing. It never follows
   day-to-day `main`.

@@ -111,6 +111,7 @@ if (packageLock.version !== packageVersion || packageLock.packages?.['']?.versio
 }
 if (catalog.instructionMode !== 'embedded') fail('catalog instructionMode must be embedded');
 if (catalog.runtime?.command !== 'qodo') fail('runtime command must remain qodo');
+if (catalog.runtime?.readCommand !== 'qodo read') fail('runtime read command must remain qodo read');
 if (catalog.runtime?.loginCommand !== 'qodo login') fail('runtime login must remain qodo login');
 if (!semver.test(catalog.runtime?.minimumCliVersion ?? '')) {
   fail('runtime minimumCliVersion must be semantic version');
@@ -248,6 +249,9 @@ for (const skill of catalog.skills ?? []) {
   }
   const provenance = `--skill ${skill.name} --skill-version ${skill.version} --distribution skills-sh`;
   if (!skillText.includes(provenance)) fail(`${skill.name}: missing canonical provenance invocation`);
+  if (!skillText.includes(`read whoami --json ${provenance}`)) {
+    fail(`${skill.name}: first authenticated probe must use the qodo read gateway`);
+  }
   const versionProbe = skillText.search(/^qodo --version(?:\s+#.*)?$/m);
   if (versionProbe < 0 || versionProbe > skillText.indexOf(provenance)) {
     fail(`${skill.name}: unadorned qodo --version must precede the first provenance invocation`);
@@ -334,6 +338,19 @@ if (existsSync(join(root, 'packages', 'qodo', 'skills', 'qodo-get-rules'))) {
 }
 if (!existsSync(join(root, 'packages', 'qodo-standards', 'skills', 'qodo-get-rules', 'SKILL.md'))) {
   fail('qodo-get-rules must be present in the optional standards package');
+}
+
+for (const path of [
+  'kiro-power/qodo-read-only.permissions.yaml',
+  'kiro-power-standards/qodo-read-only.permissions.yaml',
+]) {
+  const profile = readFileSync(join(root, path), 'utf8');
+  if (!profile.includes('- "qodo --version"') || !profile.includes('- "qodo read *"')) {
+    fail(`${path}: missing the exact version and read-gateway allow patterns`);
+  }
+  if (profile.includes('- "qodo *"') || profile.includes('- "qodo codebase *"')) {
+    fail(`${path}: must not grant a broad Qodo command namespace`);
+  }
 }
 
 for (const installPackage of catalog.installPackages ?? []) {

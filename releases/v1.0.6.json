@@ -1,6 +1,6 @@
 {
   "version": "1.0.6",
-  "summary": "Require a compatible Qodo runtime before marketplace skill invocation.",
+  "summary": "Require a compatible Qodo runtime and route safe reads through a permission-stable gateway.",
   "package": {
     "change": "patch"
   },

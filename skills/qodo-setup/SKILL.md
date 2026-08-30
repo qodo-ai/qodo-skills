@@ -85,7 +85,7 @@ current skill and user files unchanged.
 
 ## 2. Check authentication
 
-Run `<qodo> whoami --json --skill qodo-setup --skill-version 1.0.4 --distribution skills-sh`.
+Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.4 --distribution skills-sh`.
 
 In a sandboxed environment, any failed `whoami` can be a blocked keychain rather than a logged-out
 user. Ask for approval to retry that exact read-only command once outside the sandbox. The approval
@@ -114,7 +114,7 @@ with cloud defaults.
 After login, run both:
 
 ```sh
-<qodo> whoami --json --skill qodo-setup --skill-version 1.0.4 --distribution skills-sh
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.4 --distribution skills-sh
 <qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.4 --distribution skills-sh
 ```
 
@@ -130,6 +130,13 @@ but managed tools are not ready, including the returned error and the safe retry
 Keep the first working Qodo executable path and any explicit `--auth-url` for the entire setup.
 Stamp exact skill/version/distribution provenance on the first Qodo call. Marketplace or skills.sh
 owns this skill package; the CLI owns login, runtime, and tool-catalog refresh.
+
+When the host is Kiro and safe reads prompt repeatedly, explain the optional persistent rule before
+the next read. The only broad pattern to offer is `<qodo> read *`: that CLI gateway rejects every
+managed tool not explicitly marked non-mutating by the live catalog. Keep the version probe as its
+own exact `<qodo> --version` rule. Never suggest `<qodo> *` or `<qodo> codebase *`, and never edit
+Kiro permission files from the agent. The user may choose Kiro's **Always allow** action and scope,
+or review the generated `qodo-read-only.permissions.yaml` supplied with the Qodo Power.
 
 ## Error Handling
 

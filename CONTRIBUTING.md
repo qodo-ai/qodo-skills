@@ -36,9 +36,16 @@ Every Qodo skill must:
 - check authentication before protected operations;
 - distinguish authentication failure from catalog or command-version failure;
 - verify exact commands through CLI help where the catalog can evolve;
-- state whether operations are read-only or mutating;
+- invoke identity checks and every managed read through `qodo read`; the runtime admits only
+  catalog entries explicitly marked `mutating: false`;
+- invoke writes outside `qodo read`, state that they mutate, and preserve exact user approval;
 - preserve user approval gates for local edits and external writes;
 - avoid direct Qodo HTTP requests, credentials, provider tokens, and secret output.
+
+Do not add individual Kiro allow patterns when a skill gains a read tool. The generated Power keeps
+one stable `qodo read *` pattern, and the CLI catalog classification controls reachability. A new or
+reclassified write therefore remains prompted automatically. Run `npm run adapters` and `npm test`
+to regenerate and verify the permission template.
 
 Operational skills also expose one meaningful branded value moment. Follow
 `docs/architecture.md`: one `# <emoji> Qodo <outcome>` block after a verified result, with useful

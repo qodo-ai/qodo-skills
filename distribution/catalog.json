@@ -17,6 +17,7 @@
   },
   "runtime": {
     "command": "qodo",
+    "readCommand": "qodo read",
     "loginCommand": "qodo login",
     "protocolVersion": 2,
     "minimumCliVersion": "0.1.0-next.37"

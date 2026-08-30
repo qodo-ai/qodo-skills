@@ -30,9 +30,10 @@
     "runtime": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["command", "loginCommand", "protocolVersion", "minimumCliVersion"],
+      "required": ["command", "readCommand", "loginCommand", "protocolVersion", "minimumCliVersion"],
       "properties": {
         "command": { "const": "qodo" },
+        "readCommand": { "const": "qodo read" },
         "loginCommand": { "const": "qodo login" },
         "protocolVersion": { "type": "integer", "minimum": 1 },
         "minimumCliVersion": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$" }
