@@ -124,7 +124,7 @@ try {
     const text = payload.toString();
     assert.match(text, /  distribution: "enterprise-bundle"/);
     assert.match(text, /--distribution enterprise-bundle/);
-    assert.doesNotMatch(text, /--distribution (?:skills-sh|marketplace|kiro-power)(?:\s|$)/);
+    assert.doesNotMatch(text, /--distribution (?:skills-sh|marketplace|kiro-power)(?=$|[^A-Za-z0-9_-])/m);
     assert.doesNotMatch(text, /  distribution: "(?:skills-sh|marketplace|kiro-power)"/);
     assert.ok(path.startsWith('qodo-enterprise/'));
   }

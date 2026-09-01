@@ -10,7 +10,12 @@ command -v gh >/dev/null 2>&1 || {
 }
 
 if [[ -z "${GH_TOKEN:-}" ]]; then
-  echo 'A repository-scoped GitHub token is required for release preflight.' >&2
+  echo 'A repository-scoped GitHub App token with Administration:read is required for release preflight.' >&2
+  exit 1
+fi
+
+if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" --jq '.enabled')" != 'true' ]]; then
+  echo 'Release immutability is disabled. Enable it before creating a tag or release.' >&2
   exit 1
 fi
 

@@ -27,12 +27,15 @@ The pull request must state:
 
 The repository administrator must enable GitHub release immutability before the first release.
 Do not place an administrator PAT or a shared QAR release credential in this public repository.
-The normal release workflow uses its scoped `GITHUB_TOKEN`. Kiro promotion uses a dedicated
-`qodo-skills-release-bot` GitHub App with only `Contents: write` and `Metadata: read`; the protected
+The normal release workflow uses its scoped `GITHUB_TOKEN` for publication. Pre-publication
+immutability verification and Kiro promotion use a dedicated `qodo-skills-release-bot` GitHub App
+with only `Administration: read`, `Contents: write`, and `Metadata: read`; the protected
 `marketplace-kiro` environment stores its numeric App id as
 `QODO_SKILLS_RELEASE_APP_ID` and its private key as
 `QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`. The workflow mints a short-lived token restricted to
-`qodo-ai/qodo-skills` only after environment approval.
+`qodo-ai/qodo-skills` only after environment approval. The release workflow uses the same
+`marketplace-kiro` gate to mint an Administration-read token and verify immutability before it
+creates a tag or draft; publication still uses the normal scoped workflow token.
 
 Before the first release and after any protection change, a repository administrator must run:
 
@@ -41,7 +44,7 @@ GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh
 ```
 
 The audit uses the administrator's existing `gh` session to verify otherwise hidden bypass actors,
-the dedicated App identity and permissions, presence of an environment reviewer, release
+the dedicated App identity, permissions, and active installation on this repository, presence of an environment reviewer, release
 immutability, and exact ruleset shapes. No administrator credential is stored in Actions.
 Protect creation, update, deletion, and force-push on `refs/heads/marketplace-kiro`, with the release
 App as the sole always-bypass actor. This prevents another repository writer from claiming the
@@ -51,9 +54,8 @@ Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** rule
 `refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
 paginates the complete repository ruleset collection before resolving that exact ruleset and
 explicitly rejects a `creation` restriction. GitHub requires `Administration: read` for the
-immutable-release settings endpoint, so that check intentionally exists only in the administrator
-audit. The workflow token verifies the readable ruleset and the published release's `immutable`
-result. The checked-in audit, runtime preflight, and publication programs are covered behaviorally:
+immutable-release settings endpoint, so the workflow mints a short-lived, repository-scoped App
+token for that pre-publication check. The checked-in audit, runtime preflight, and publication programs are covered behaviorally:
 missing credentials, disabled immutability, duplicate/invalid rulesets, forbidden creation rules,
 draft corruption, draft resume, publication, and immutable retry all fail closed.
 After the compatible CLI release is live and the skills PR is merged, a release owner dispatches
@@ -62,8 +64,8 @@ After the compatible CLI release is live and the skills PR is merged, a release 
 1. requires the dispatched SHA to be the exact `main` head before and after validation; a merge
    after that final check does not change the validated release SHA;
 2. installs the lockfile-pinned validation dependencies and validates the release package;
-3. requires the exact protected-tag ruleset; the release owner must have completed the
-   administrator audit that verifies repository immutability;
+3. uses the protected release App to verify repository immutability, then requires the exact
+   protected-tag ruleset before creating any tag or release;
 4. creates annotated tag `v<package-version>`, pushes it without force, and verifies the protected
    remote tag peels to the validated SHA immediately before publication;
 5. builds the deterministic enterprise archive, then creates or resumes a draft release containing

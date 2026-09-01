@@ -198,6 +198,7 @@ assert.match(kiroSourcePreflight, /Kiro marketplace release/);
 assert.match(kiroSourcePreflight, /# Usage: GH_TOKEN=/);
 assert.doesNotMatch(kiroSourcePreflight, /gh api user/);
 assert.match(kiroSourcePreflight, /gh api \/apps\/qodo-skills-release-bot/);
+assert.match(kiroSourcePreflight, /\.permissions == \{"administration":"read","contents":"write","metadata":"read"\}/);
 assert.match(kiroSourcePreflight, /include == \["refs\/heads\/marketplace-kiro"\]/);
 assert.match(kiroSourcePreflight, /sort == \["creation", "deletion", "non_fast_forward", "update"\]/);
 assert.match(kiroSourcePreflight, /length == 1/);
@@ -212,7 +213,9 @@ assert.doesNotMatch(protectionAudit, /prevent_self_review/);
 assert.doesNotMatch(protectionAudit, /deployment-branch-policies/);
 assert.match(protectionAudit, /\.type == "required_reviewers"/);
 assert.match(protectionAudit, /QODO_SKILLS_RELEASE_APP_PRIVATE_KEY/);
-assert.match(protectionAudit, /\.permissions == \{"contents":"write","metadata":"read"\}/);
+assert.match(protectionAudit, /\.permissions == \{"administration":"read","contents":"write","metadata":"read"\}/);
+assert.match(protectionAudit, /orgs\/qodo-ai\/installations\?per_page=100/);
+assert.match(protectionAudit, /user\/installations\/\$\{INSTALLATION_ID\}\/repositories\?per_page=100/);
 assert.match(protectionAudit, /\.bypass_actors == \[\{"actor_id":\$release_app_id,"actor_type":"Integration","bypass_mode":"always"\}\]/);
 assert.match(readFileSync(join(root, 'scripts', 'audit-release-protections.cmd'), 'utf8'),
   /bash "%~dp0audit-release-protections\.sh"/);
@@ -232,7 +235,7 @@ if (process.platform !== 'win32') {
       writeFileSync(ghStub, `#!/usr/bin/env bash
 set -euo pipefail
 if [[ "$*" == "api /apps/qodo-skills-release-bot" ]]; then
-  printf '{"id":12345,"slug":"qodo-skills-release-bot","owner":{"login":"qodo-ai"},"permissions":{"contents":"write","metadata":"read"}}\\n'
+  printf '{"id":12345,"slug":"qodo-skills-release-bot","owner":{"login":"qodo-ai"},"permissions":{"administration":"read","contents":"write","metadata":"read"}}\\n'
 elif [[ "$*" == *"immutable-releases --jq .enabled"* ]]; then
   printf '%s\\n' "\${QODO_TEST_IMMUTABLE_RELEASES:-true}"
 elif [[ "$*" == "api repos/qodo-ai/qodo-skills/environments/marketplace-kiro" ]]; then
@@ -245,6 +248,14 @@ elif [[ "$*" == *"variables/QODO_SKILLS_RELEASE_APP_ID --jq .value"* ]]; then
   printf '%s\\n' "\${QODO_TEST_ENVIRONMENT_APP_ID:-12345}"
 elif [[ "$*" == *"environments/marketplace-kiro/secrets --jq"* ]]; then
   printf 'true\\n'
+elif [[ "$*" == *"orgs/qodo-ai/installations?per_page=100"* ]]; then
+  if [[ "\${QODO_TEST_MISSING_INSTALLATION:-}" != 1 ]]; then printf '%s\\n' 99; fi
+elif [[ "$*" == *"user/installations/99/repositories?per_page=100"* ]]; then
+  if [[ "\${QODO_TEST_INSTALLATION_MISSES_REPO:-}" == 1 ]]; then
+    printf 'qodo-ai/other\\n'
+  else
+    printf 'qodo-ai/qodo-skills\\n'
+  fi
 elif [[ "$*" == *"rulesets?per_page=100"* ]]; then
   if [[ "$*" == *"Immutable release tags"* ]]; then printf '%s\\n' 78; else printf '%s\\n' 77; fi
 elif [[ "$*" == "api repos/qodo-ai/qodo-skills/rulesets/78" ]]; then
@@ -327,6 +338,16 @@ fi
       });
       assert.equal(validAudit.status, 0, validAudit.stderr);
       assert.match(validAudit.stdout, /app_id=12345 tag_ruleset=78 kiro_ruleset=77/);
+      const missingInstallationAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
+        encoding: 'utf8', env: { ...auditEnvironment, QODO_TEST_MISSING_INSTALLATION: '1' }, timeout: 5_000,
+      });
+      assert.equal(missingInstallationAudit.status, 1, missingInstallationAudit.stderr);
+      assert.match(missingInstallationAudit.stderr, /exactly one active qodo-ai installation/);
+      const wrongRepositoryAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
+        encoding: 'utf8', env: { ...auditEnvironment, QODO_TEST_INSTALLATION_MISSES_REPO: '1' }, timeout: 5_000,
+      });
+      assert.equal(wrongRepositoryAudit.status, 1, wrongRepositoryAudit.stderr);
+      assert.match(wrongRepositoryAudit.stderr, /not installed on qodo-ai\/qodo-skills/);
       const missingReviewerAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
         encoding: 'utf8', env: { ...auditEnvironment, QODO_TEST_MISSING_REVIEWER: '1' }, timeout: 5_000,
       });

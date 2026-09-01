@@ -27,9 +27,9 @@ APP_JSON="$(gh api /apps/qodo-skills-release-bot)"
 if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
   (.id == $release_app_id) and
   (.slug == "qodo-skills-release-bot") and
-  (.permissions == {"contents":"write","metadata":"read"})
+  (.permissions == {"administration":"read","contents":"write","metadata":"read"})
 ' <<< "${APP_JSON}")" != 'true' ]]; then
-  echo 'The configured release App must be qodo-skills-release-bot with only Contents:write and Metadata:read.' >&2
+  echo 'The configured release App must be qodo-skills-release-bot with only Administration:read, Contents:write, and Metadata:read.' >&2
   exit 1
 fi
 

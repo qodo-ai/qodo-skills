@@ -70,7 +70,7 @@ rollback.
   `marketplace-codex` with required release-owner reviewers.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
 - Install the dedicated `qodo-skills-release-bot` GitHub App on `qodo-ai/qodo-skills` with only
-  `Contents: write` and `Metadata: read`. Store its App id and private key only in the protected
+  `Administration: read`, `Contents: write`, and `Metadata: read`. Store its App id and private key only in the protected
   `marketplace-kiro` environment as `QODO_SKILLS_RELEASE_APP_ID` and
   `QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`, and require at least one release reviewer. For the initial
   cutover, admin bypass remains enabled, self-review is allowed, and protected branches may deploy;
@@ -85,7 +85,8 @@ rollback.
   `refs/heads/marketplace-kiro`: block creation, update, deletion, and force-push; exclude
   nothing; and grant always-bypass only to the dedicated App's `Integration` actor. The approved
   workflow mints a short-lived token scoped to this repository and advances the branch without a
-  force push. Repoint both existing Kiro listing URLs from `main` to this branch before the first
+  force push. The release workflow uses the same protected App only to verify repository
+  immutability before creating a tag or draft. Repoint both existing Kiro listing URLs from `main` to this branch before the first
   marketplace-owned release.
 
 Gate: every item is verified from provider/repository state. A source manifest is not evidence of

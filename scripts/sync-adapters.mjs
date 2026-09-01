@@ -240,9 +240,14 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
     if (adapterSet === 'codex') {
       const canonicalAdapter = files.get('skills/qodo-review-resolver/agents/openai.yaml');
       if (!canonicalAdapter) throw new Error(`${value.name}: missing qodo-review-resolver Codex adapter`);
+      if (!/^  allow_implicit_invocation: true$/m.test(canonicalAdapter)) {
+        throw new Error(`${value.name}: qodo-review-resolver Codex adapter must declare implicit invocation`);
+      }
       files.set(
         'skills/qodo-pr-resolver/agents/openai.yaml',
-        canonicalAdapter.replace(/\$qodo-review-resolver\b/g, '$qodo-pr-resolver'),
+        canonicalAdapter
+          .replace(/\$qodo-review-resolver\b/g, '$qodo-pr-resolver')
+          .replace(/^  allow_implicit_invocation: true$/m, '  allow_implicit_invocation: false'),
       );
     }
   }

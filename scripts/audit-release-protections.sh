@@ -3,7 +3,7 @@
 # Usage: GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh
 set -euo pipefail
 
-for tool in gh jq; do
+for tool in gh grep jq; do
   command -v "${tool}" >/dev/null 2>&1 || {
     echo "Release protection audit requires '${tool}', but it is not available." >&2
     exit 1
@@ -51,9 +51,35 @@ if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
   (.id == $release_app_id) and
   (.slug == "qodo-skills-release-bot") and
   (.owner.login == "qodo-ai") and
-  (.permissions == {"contents":"write","metadata":"read"})
+  (.permissions == {"administration":"read","contents":"write","metadata":"read"})
 ' <<< "${APP_JSON}")" != 'true' ]]; then
-  echo 'qodo-skills-release-bot must be owned by qodo-ai and have only Contents:write and Metadata:read.' >&2
+  echo 'qodo-skills-release-bot must be owned by qodo-ai and have only Administration:read, Contents:write, and Metadata:read.' >&2
+  exit 1
+fi
+
+INSTALLATION_IDS="$(gh api --paginate "orgs/qodo-ai/installations?per_page=100" --jq ".installations[] | select(
+  .app_id == ${RELEASE_APP_ID} and .suspended_at == null
+) | .id")"
+INSTALLATION_COUNT=0
+INSTALLATION_ID=''
+while IFS= read -r candidate; do
+  if [[ -n "${candidate}" ]]; then
+    INSTALLATION_COUNT=$((INSTALLATION_COUNT + 1))
+    INSTALLATION_ID="${candidate}"
+  fi
+done <<< "${INSTALLATION_IDS}"
+if [[ "${INSTALLATION_COUNT}" -ne 1 ]]; then
+  echo 'qodo-skills-release-bot must have exactly one active qodo-ai installation.' >&2
+  exit 1
+fi
+if ! INSTALLATION_REPOSITORIES="$(gh api --paginate \
+  "user/installations/${INSTALLATION_ID}/repositories?per_page=100" \
+  --jq '.repositories[].full_name')"; then
+  echo 'Could not inspect the release App installation; authenticate gh with read:user and retry.' >&2
+  exit 1
+fi
+if ! grep -Fxq "${GITHUB_REPOSITORY}" <<< "${INSTALLATION_REPOSITORIES}"; then
+  echo 'qodo-skills-release-bot is not installed on qodo-ai/qodo-skills.' >&2
   exit 1
 fi
 

@@ -35,7 +35,8 @@ for (const [name, skill] of Object.entries(bundle.skills)) {
     if (file.path === 'SKILL.md') {
       const markdown = payload.toString('utf8');
       assert.match(markdown, /^  distribution: "qodo-cli-managed"$/m);
-      assert.match(markdown, /--distribution qodo-cli-managed(?=\s|$)/);
+      assert.match(markdown, /--distribution qodo-cli-managed(?=$|[^A-Za-z0-9_-])/m);
+      assert.doesNotMatch(markdown, /--distribution (?:skills-sh|marketplace|kiro-power)(?=$|[^A-Za-z0-9_-])/m);
       assert.doesNotMatch(markdown, /^  distribution: "(?:skills-sh|marketplace|kiro-power)"$/m);
     }
   }

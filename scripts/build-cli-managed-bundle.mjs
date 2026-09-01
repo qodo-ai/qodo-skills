@@ -38,7 +38,7 @@ export function assertSafeRelativePath(path) {
 
 function cliManagedSkillMarkdown(text, sourcePath) {
   const metadata = /^  distribution: "(?:skills-sh|marketplace|kiro-power)"$/m;
-  const calls = /--distribution (?:skills-sh|marketplace|kiro-power)(?=\s|$)/g;
+  const calls = /--distribution (?:skills-sh|marketplace|kiro-power)(?=$|[^A-Za-z0-9_-])/g;
   if (!metadata.test(text) || !calls.test(text)) {
     throw new Error(`${sourcePath}: skill has no recognized distribution provenance`);
   }
