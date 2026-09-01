@@ -67,7 +67,7 @@ const downloadedVerification = releaseSource.indexOf('verify_release_assets "${V
 const draftCreation = releaseSource.indexOf('gh release create "${TAG}" --draft');
 const draftPublish = releaseSource.indexOf('gh api --method PATCH "${RELEASE_ENDPOINT}" -F draft=false');
 const draftAssetCheck = releaseSource.indexOf('.assets[].name', draftCreation);
-const draftDownload = releaseSource.indexOf('gh release download', draftCreation);
+const draftDownload = releaseSource.indexOf('download_draft_release_assets_by_id "${VERIFY_DIR}"', draftCreation);
 const draftVerification = releaseSource.indexOf('verify_release_assets "${VERIFY_DIR}"', draftDownload);
 const remoteTagCheck = releaseSource.indexOf('require_annotated_release_tag', draftCreation);
 const publishedDownload = releaseSource.indexOf('gh release download', draftPublish);
@@ -167,8 +167,8 @@ assert.match(workflow, /QODO_RELEASE_COMMIT: \$\{\{ steps\.release-source\.outpu
 assert.match(publisher, /A release commit behind current main may only resume an existing draft/);
 assert.match(publisher, /git -C "\$\{RELEASE_SOURCE_DIR\}" rev-parse HEAD/);
 assert.match(publisher, /release source HEAD is not QODO_RELEASE_COMMIT/);
-assert.match(releaseSource, /gh release upload "\$\{TAG\}"/,
-  'a partial draft publication must be resumable without abandoning the version');
+assert.match(releaseSource, /upload_draft_release_asset_by_id "\$\{release_asset\}"/);
+assert.doesNotMatch(publisher, /gh release upload/, 'tag lookup cannot address a draft release');
 assert.doesNotMatch(releaseSource, /gh release upload[^\n]*--clobber/,
   'draft recovery must never overwrite an existing asset');
 assert.doesNotMatch(releaseSource, /gh release delete-asset/,
@@ -315,7 +315,7 @@ try {
   const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
-    { draft: false, immutable: true, edits: 1, downloads: 2 },
+    { draft: false, immutable: true, edits: 1, downloads: 9 },
   );
   for (const corruption of [{ name: 'wrong title' }, { body: 'wrong notes' }]) {
     const corrupted = { ...published, ...corruption, draft: true, immutable: false, edits: 0, downloads: 0 };
@@ -353,7 +353,7 @@ try {
   const recovered = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: recovered.draft, immutable: recovered.immutable, edits: recovered.edits, downloads: recovered.downloads },
-    { draft: false, immutable: true, edits: 1, downloads: 2 },
+    { draft: false, immutable: true, edits: 1, downloads: 9 },
   );
   run(checkout, 'git', ['reset', '--hard', releaseSha]);
   run(checkout, 'git', ['push', '--force', 'origin', 'main']);
@@ -402,7 +402,7 @@ try {
   runShell(checkout, publishPath, publishEnv);
   const verifiedRetry = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.equal(verifiedRetry.edits, 1);
-  assert.equal(verifiedRetry.downloads, 3);
+  assert.equal(verifiedRetry.downloads, 10);
 
   // A resumed draft with an unexpected asset is rejected without mutation.
   const unexpectedDraft = {
@@ -490,11 +490,10 @@ try {
       edits: rejectedPublicBytes.edits,
       downloads: rejectedPublicBytes.downloads,
     },
-    { draft: false, immutable: true, edits: 1, downloads: 2 },
+    { draft: false, immutable: true, edits: 1, downloads: 9 },
   );
 } finally {
   rmSync(harness, { recursive: true, force: true });
 }
-
 console.log('Release workflow safety test passed.');
 await import('./test-release-tag-protection.mjs');

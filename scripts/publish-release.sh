@@ -173,6 +173,27 @@ require_release_metadata() {
   fi
 }
 
+upload_draft_release_asset_by_id() {
+  local asset_path="$1" asset_name encoded_name upload_url
+  asset_name="$(basename "${asset_path}")"
+  encoded_name="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "${asset_name}")"
+  upload_url="$(gh api "${RELEASE_ENDPOINT}" --jq '.upload_url | sub("\\{.*$"; "")')"
+  gh api --method POST --silent \
+    -H 'Accept: application/vnd.github+json' \
+    -H 'Content-Type: application/octet-stream' \
+    --input "${asset_path}" "${upload_url}?name=${encoded_name}"
+}
+
+download_draft_release_assets_by_id() {
+  local directory="$1" assets asset_id asset_name
+  assets="$(gh api "${RELEASE_ENDPOINT}" --jq '.assets[] | [.id, .name] | @tsv')"
+  while IFS=$'\t' read -r asset_id asset_name; do
+    [[ -n "${asset_id:-}" ]] || continue
+    gh api -H 'Accept: application/octet-stream' \
+      "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" > "${directory}/${asset_name}"
+  done <<< "${assets}"
+}
+
 require_current_main
 require_exact_release_source
 
@@ -248,7 +269,7 @@ if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
       fi
     done
     if [[ "${present}" == 'false' ]]; then
-      gh release upload "${TAG}" "${release_asset}"
+      upload_draft_release_asset_by_id "${release_asset}"
     fi
   done
 else
@@ -267,7 +288,7 @@ test "$(gh api "${RELEASE_ENDPOINT}" --jq '[.assets[].name] | sort | join(" ")')
   "${EXPECTED_ASSETS}"
 VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-release-verify.XXXXXX")"
 trap 'rm -rf -- "${VERIFY_DIR}"' EXIT
-gh release download "${TAG}" --dir "${VERIFY_DIR}" --pattern 'qodo-*'
+download_draft_release_assets_by_id "${VERIFY_DIR}"
 verify_release_assets "${VERIFY_DIR}"
 
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force

@@ -94,8 +94,9 @@ ancestor of current `main` and an existing draft for the tag is present. Recover
 exact tagged commit into a separate clean worktree; both enterprise packaging and every potentially
 missing release input are read from it, never from current `main`. The publisher revalidates the
 source worktree, draft title, and draft body immediately before mutation, and every downloaded draft
-asset must match before the draft can become public. An older tag without its draft fails closed;
-tags and assets are never moved, deleted, or overwritten.
+asset must match before the draft can become public. Draft uploads and downloads use the numeric
+release and asset REST endpoints because GitHub's tag-oriented CLI cannot resolve drafts. An older
+tag without its draft fails closed; tags and assets are never moved, deleted, or overwritten.
 
 After that workflow succeeds, dispatch **release: publish skills compatibility channel** in
 `qodo-ai/qodo-in-cli` with the immutable `v<package-version>` tag. The workflow verifies the public
