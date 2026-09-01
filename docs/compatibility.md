@@ -47,7 +47,7 @@ change: they become reachable only when the runtime catalog explicitly marks the
 7. Rollback is a new immutable patch, never mutation of a published tag or asset.
 8. Marketplace core packages retain the generated `qodo-pr-resolver` compatibility alias while
    `qodo-review-resolver` is canonical. The alias is generated from the same complete workflow and
-   remains only for explicit legacy invocations; it is not a second authored skill.
+   remains only as a compatibility alias for earlier invocations; it is not a second authored skill.
 
 ## Acceptance
 
@@ -62,7 +62,7 @@ For each selected provider, release evidence must include:
 - Qodo Standards absent until explicitly installed;
 - login/setup, one read workflow, and one approval-gated write workflow;
 - host-owned update followed by a new session;
-- no duplicate or shadowed legacy copy.
+- no duplicate or shadowed copy from an earlier distribution channel.
 
 For skills.sh, repeat the same behavioral checks on representative detected agents and verify both
 project/global scope, multi-agent selection, exact package membership, update without broadening,

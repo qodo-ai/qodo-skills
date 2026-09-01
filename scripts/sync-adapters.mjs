@@ -222,7 +222,7 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       );
     }
   }
-  // Preserve the legacy marketplace invocation while the canonical skill name
+  // Preserve the earlier marketplace invocation as a compatibility alias while the canonical skill name
   // moves from qodo-pr-resolver to qodo-review-resolver. This is generated from
   // the canonical workflow (never separately authored), and its narrow
   // description prevents it competing with the canonical skill for new tasks.
