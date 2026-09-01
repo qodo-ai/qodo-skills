@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening a pull request, using the 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.9.4"
+  version: "1.9.5"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -55,7 +55,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.9.4 --distribution skills-sh
+qodo read whoami --json --skill qodo-review --skill-version 1.9.5 --distribution skills-sh
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -205,7 +205,7 @@ Poll until it's done — the exit code is the whole protocol, so you never parse
 QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
 cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
 trap cleanup_qodo_review EXIT; trap 'exit 130' INT; trap 'exit 143' TERM
-while :; do status=0; qodo review status "$id" --json > "$QODO_REVIEW_TMP/result.json" || status=$?; case "$status" in 0) break;; 2) sleep 15;; *) cat "$QODO_REVIEW_TMP/result.json" >&2; exit "$status";; esac; done
+while :; do status=0; qodo review status "$id" --json > "$QODO_REVIEW_TMP/result.json" || status=$?; case "$status" in 0) cat "$QODO_REVIEW_TMP/result.json" || exit 1; break ;; 2) sleep 15 ;; *) cat "$QODO_REVIEW_TMP/result.json" >&2; exit "$status" ;; esac; done
 ```
 
 **Prefer `--async` when:**

@@ -90,7 +90,7 @@
     },
     {
       "name": "qodo-review",
-      "version": "1.9.4",
+      "version": "1.9.5",
       "recommended": true,
       "displayName": "Qodo Local Review",
       "shortDescription": "Review local changes before opening a pull request.",
