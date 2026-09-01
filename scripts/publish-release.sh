@@ -85,6 +85,10 @@ for asset in "${RELEASE_ASSETS[@]}"; do
   test -f "${asset}" || { echo "Release asset is missing: ${asset}" >&2; exit 1; }
 done
 test -f "${NOTES}" || { echo "Release notes are missing: ${NOTES}" >&2; exit 1; }
+EXPECTED_TITLE="Qodo skills ${TAG}"
+EXPECTED_NOTES_BASE64="$(node -e \
+  'process.stdout.write(require("node:fs").readFileSync(process.argv[1]).toString("base64"))' \
+  "${NOTES}")"
 
 verify_release_assets() {
   local directory="$1"
@@ -155,6 +159,20 @@ load_release() {
   fi
 }
 
+require_release_metadata() {
+  local actual_title actual_notes_base64
+  actual_title="$(gh api "${RELEASE_ENDPOINT}" --jq '.name')"
+  if [[ "${actual_title}" != "${EXPECTED_TITLE}" ]]; then
+    echo "Existing release ${TAG} has unexpected title metadata; refusing to publish." >&2
+    exit 1
+  fi
+  actual_notes_base64="$(gh api "${RELEASE_ENDPOINT}" --jq '(.body // "") | @base64')"
+  if [[ "${actual_notes_base64}" != "${EXPECTED_NOTES_BASE64}" ]]; then
+    echo "Existing release ${TAG} has unexpected notes metadata; refusing to publish." >&2
+    exit 1
+  fi
+}
+
 require_current_main
 require_exact_release_source
 
@@ -164,6 +182,7 @@ if [[ "${RELEASE_COMMIT}" != "${GITHUB_SHA}" && "${RELEASE_EXISTS}" != 'true' ]]
   exit 1
 fi
 if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
+  require_release_metadata
   git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
   require_annotated_release_tag
   if [[ "$(gh api "${RELEASE_ENDPOINT}" --jq '.draft')" != 'true' ]]; then
@@ -240,6 +259,7 @@ else
     echo "GitHub did not expose the newly created ${TAG} draft; refusing to continue." >&2
     exit 1
   fi
+  require_release_metadata
 fi
 
 test "$(gh api "${RELEASE_ENDPOINT}" --jq '.draft')" = 'true'
@@ -253,6 +273,7 @@ verify_release_assets "${VERIFY_DIR}"
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
 require_annotated_release_tag
 require_exact_release_source
+require_release_metadata
 gh api --method PATCH "${RELEASE_ENDPOINT}" -F draft=false >/dev/null
 if [[ "$(gh api "${RELEASE_ENDPOINT}" --jq '.immutable')" != 'true' ]]; then
   echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
@@ -263,6 +284,7 @@ if [[ "$(gh api "${RELEASE_ENDPOINT}" --jq '.immutable')" != 'true' ]]; then
 fi
 test "$(gh api "${RELEASE_ENDPOINT}" --jq '[.assets[].name] | sort | join(" ")')" = \
   "${EXPECTED_ASSETS}"
+require_release_metadata
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
 require_annotated_release_tag
 PUBLISHED_VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-published-release-verify.XXXXXX")"

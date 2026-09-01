@@ -26,7 +26,6 @@ const packageVersion = JSON.parse(
 ).version;
 const releaseTag = `v${packageVersion}`;
 const escapedReleaseTag = releaseTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 assert.doesNotMatch(releaseSource, /^\s+push:/m,
   'source merge must not bypass the CLI-first release order or an unmet credential gate');
 assert.match(releaseSource, /^\s+workflow_dispatch:/m);
@@ -73,7 +72,6 @@ const draftVerification = releaseSource.indexOf('verify_release_assets "${VERIFY
 const remoteTagCheck = releaseSource.indexOf('require_annotated_release_tag', draftCreation);
 const publishedDownload = releaseSource.indexOf('gh release download', draftPublish);
 const publishedVerification = releaseSource.indexOf('verify_release_assets "${PUBLISHED_VERIFY_DIR}"', publishedDownload);
-
 assert.match(protectionAudit, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/,
   'the administrator audit must check repository immutability');
 assert.match(preflight, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/,
@@ -205,7 +203,6 @@ const runShell = (cwd, script, env = {}) => process.platform === 'win32'
     '/d', '/c', 'call', script.replace(/\.sh$/, '.cmd'),
   ], env)
   : run(cwd, script, [], env);
-
 // Keep a space in the harness path so Windows cmd /c quoting is exercised.
 const harness = mkdtempSync(join(tmpdir(), 'qodo release behavior-'));
 const bin = join(harness, 'bin');
@@ -222,8 +219,8 @@ const fakeGhEnv = {
   GITHUB_REPOSITORY: 'qodo-ai/qodo-skills',
   FAKE_GH_STATE: fakeGhState,
   FAKE_GH_ASSETS: fakeGhAssets,
+  FAKE_RELEASE_TAG: releaseTag,
 };
-
 try {
   const preflightPath = join(root, 'scripts', 'verify-release-prerequisites.sh');
   runShell(root, preflightPath, fakeGhEnv);
@@ -320,13 +317,19 @@ try {
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
     { draft: false, immutable: true, edits: 1, downloads: 2 },
   );
+  for (const corruption of [{ name: 'wrong title' }, { body: 'wrong notes' }]) {
+    const corrupted = { ...published, ...corruption, draft: true, immutable: false, edits: 0, downloads: 0 };
+    writeFileSync(fakeGhState, `${JSON.stringify(corrupted)}\n`);
+    assert.throws(() => runShell(checkout, publishPath, publishEnv), /unexpected .* metadata/);
+    assert.deepEqual(JSON.parse(readFileSync(fakeGhState, 'utf8')), corrupted);
+  }
+  writeFileSync(fakeGhState, `${JSON.stringify(published)}\n`);
   assert.throws(() => runShell(checkout, publishPath, {
     ...publishEnv,
     FAKE_DUPLICATE_RELEASES: 'true',
   }), new RegExp(`Multiple releases claim ${escapedReleaseTag}`));
 
-  // A reviewed automation-only main advance can resume an already-tagged
-  // draft, but all downloaded assets must still match the tagged release.
+  // Recovery from reviewed automation changes must still use tagged bytes.
   writeFileSync(fakeGhState, `${JSON.stringify({
     ...published,
     draft: true,
@@ -376,8 +379,7 @@ try {
   run(checkout, 'git', ['push', '--force', 'origin', 'main']);
   writeFileSync(fakeGhState, `${JSON.stringify(recovered)}\n`);
 
-  // A lightweight tag at the correct commit is still not the release object
-  // promised by the publication contract.
+  // A lightweight tag is not the promised release object.
   run(checkout, 'git', ['tag', '-d', releaseTag]);
   run(checkout, 'git', ['push', 'origin', `:refs/tags/${releaseTag}`]);
   run(checkout, 'git', ['-c', 'tag.gpgSign=false', 'tag', releaseTag, releaseSha]);
@@ -434,7 +436,6 @@ try {
   assert.equal(rejectedDraft.edits, 0);
   runShell(checkout, publishPath, publishEnv);
   assert.equal(JSON.parse(readFileSync(fakeGhState, 'utf8')).immutable, true);
-
   // A pre-existing public mutable release is never eligible for draft resume.
   const publicMutable = {
     exists: true,
@@ -468,8 +469,7 @@ try {
     { draft: true, immutable: false, edits: 2 },
   );
 
-  // The final public download is independently verified after publication.
-  // A mismatch burns this immutable version and must still fail the workflow.
+  // A final-download mismatch burns the immutable version and fails the workflow.
   writeFileSync(fakeGhState, `${JSON.stringify({
     exists: true,
     draft: true,

@@ -7,9 +7,19 @@ const args = process.argv.slice(2);
 const statePath = process.env.FAKE_GH_STATE;
 if (!statePath) throw new Error('FAKE_GH_STATE is required');
 
-const readState = () => existsSync(statePath)
-  ? JSON.parse(readFileSync(statePath, 'utf8'))
-  : { exists: false, draft: false, immutable: false, assets: [], downloads: 0, edits: 0 };
+const readState = () => {
+  const state = existsSync(statePath)
+    ? JSON.parse(readFileSync(statePath, 'utf8'))
+    : { exists: false, draft: false, immutable: false, assets: [], downloads: 0, edits: 0 };
+  const tag = process.env.FAKE_RELEASE_TAG
+    ?? args.find((arg) => /^v\d+\.\d+\.\d+$/.test(arg)) ?? 'v0.0.0';
+  return {
+    ...state,
+    name: state.name ?? `Qodo skills ${tag}`,
+    body: state.body ?? (process.env.QODO_RELEASE_NOTES_FILE
+      ? readFileSync(process.env.QODO_RELEASE_NOTES_FILE, 'utf8') : ''),
+  };
+};
 const writeState = (state) => writeFileSync(statePath, `${JSON.stringify(state)}\n`);
 const endpoint = args.find((arg) =>
   arg.startsWith('repos/') || arg.startsWith('installation/')) ?? '';
@@ -54,6 +64,8 @@ if (args[0] === 'api' && endpoint.startsWith('installation/repositories')) {
     });
   } else if (query === '.draft') process.stdout.write(`${state.draft}\n`);
   else if (query === '.immutable') process.stdout.write(`${state.immutable}\n`);
+  else if (query === '.name') process.stdout.write(`${state.name}\n`);
+  else if (query.includes('@base64')) process.stdout.write(`${Buffer.from(state.body).toString('base64')}\n`);
   else if (query === '.assets[].name') process.stdout.write(`${state.assets.join('\n')}\n`);
   else if (query.includes('.assets[].name')) process.stdout.write(`${[...state.assets].sort().join(' ')}\n`);
   else throw new Error(`Unsupported release query: ${query}`);
@@ -96,6 +108,10 @@ if (args[0] === 'api' && endpoint.startsWith('installation/repositories')) {
     draft: true,
     immutable: false,
     assets: [...state.assets, ...assetNames],
+    ...(args[1] === 'create' ? {
+      name: args[args.indexOf('--title') + 1],
+      body: readFileSync(args[args.indexOf('--notes-file') + 1], 'utf8'),
+    } : {}),
   });
 } else if (args[0] === 'release' && args[1] === 'download') {
   if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || args[args.indexOf('--pattern') + 1] !== 'qodo-*') {
