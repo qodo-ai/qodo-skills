@@ -118,13 +118,9 @@ export function buildCliManagedBundle(repositoryRoot = root) {
       repository: catalog.package.repository,
       tag: `v${catalog.package.version}`,
     },
-    aliases: {
-      'codebase-wisdom': 'qodo-codebase-wisdom',
-      'get-rules': 'qodo-get-rules',
-      'pre-pr-review': 'qodo-review',
-      'qodo-manage-rules': 'qodo-manage-standards',
-      'resolve-findings': 'qodo-review-resolver',
-    },
+    aliases: Object.fromEntries(
+      catalog.installPackages.flatMap((installPackage) => Object.entries(installPackage.compatibilityAliases)),
+    ),
     skills,
   };
   const output = `${JSON.stringify(bundle, null, 2)}\n`;

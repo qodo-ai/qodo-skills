@@ -221,6 +221,7 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
       description: installPackage.description,
       default: installPackage.default,
       skills: installPackage.skills,
+      compatibilityAliases: installPackage.compatibilityAliases,
       projectionSkills,
       roots,
     };

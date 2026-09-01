@@ -10,10 +10,10 @@
   },
   "aliases": {
     "codebase-wisdom": "qodo-codebase-wisdom",
-    "get-rules": "qodo-get-rules",
     "pre-pr-review": "qodo-review",
-    "qodo-manage-rules": "qodo-manage-standards",
-    "resolve-findings": "qodo-review-resolver"
+    "resolve-findings": "qodo-review-resolver",
+    "get-rules": "qodo-get-rules",
+    "qodo-manage-rules": "qodo-manage-standards"
   },
   "skills": {
     "qodo-codebase-wisdom": {

@@ -237,6 +237,14 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       )
       .replace(/^metadata:$/m, 'metadata:\n  alias_for: "qodo-review-resolver"');
     files.set('skills/qodo-pr-resolver/SKILL.md', compatibilityAlias);
+    if (adapterSet === 'codex') {
+      const canonicalAdapter = files.get('skills/qodo-review-resolver/agents/openai.yaml');
+      if (!canonicalAdapter) throw new Error(`${value.name}: missing qodo-review-resolver Codex adapter`);
+      files.set(
+        'skills/qodo-pr-resolver/agents/openai.yaml',
+        canonicalAdapter.replace(/\$qodo-review-resolver\b/g, '$qodo-pr-resolver'),
+      );
+    }
   }
   return files;
 }
