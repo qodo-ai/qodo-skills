@@ -22,7 +22,7 @@
       "package": "qodo-standards"
     },
     "qodo-review": {
-      "version": "1.9.4",
+      "version": "1.9.5",
       "package": "qodo"
     },
     "qodo-review-resolver": {

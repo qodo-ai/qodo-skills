@@ -272,6 +272,12 @@ for (const skill of catalog.skills ?? []) {
       fail('qodo-setup: login guidance must branch by deployment and fail closed before opening a browser');
     }
   }
+  if (skill.name === 'qodo-review') {
+    const completedResult = /0\) cat "\$QODO_REVIEW_TMP\/result\.json" \|\| exit 1; break ;;/;
+    if (!completedResult.test(skillText)) {
+      fail('qodo-review: successful async polling must emit the completed result before cleanup');
+    }
+  }
   const headingCount = expectedHeading ? skillText.split(expectedHeading).length - 1 : 0;
   if (!expectedHeading || headingCount !== 1) {
     fail(`${skill.name}: expected exactly one branded value-moment heading ${expectedHeading ?? '<unregistered>'}`);
