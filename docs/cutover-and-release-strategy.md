@@ -64,7 +64,7 @@ rollback.
   `refs/tags/v*`; tag creation is allowed, but updates and deletion are blocked. Release preflight
   searches every ruleset page and rejects duplicate matches or a creation restriction.
 - Create exactly one active **Kiro marketplace release** ruleset for
-  `refs/heads/marketplace-kiro`: block update, deletion, and force-push; permit creation; exclude
+  `refs/heads/marketplace-kiro`: block creation, update, deletion, and force-push; exclude
   nothing; and grant always-bypass to exactly the release identity
   behind `QODO_RELEASE_ADMIN_TOKEN` to advance it without force pushes. Repoint both existing Kiro
   listing URLs from `main` to this branch before the first marketplace-owned release.

@@ -47,13 +47,12 @@ fi
 if [[ "$(jq --argjson release_actor_id "${RELEASE_ACTOR_ID}" '
   (.conditions.ref_name.include == ["refs/heads/marketplace-kiro"]) and
   (.conditions.ref_name.exclude | type == "array" and length == 0) and
-  ([.rules[].type] | contains(["update", "deletion", "non_fast_forward"])) and
-  ([.rules[].type] | index("creation")) == null and
+  ([.rules[].type] | sort == ["creation", "deletion", "non_fast_forward", "update"]) and
   (.bypass_actors | type == "array" and length == 1) and
   (.bypass_actors[0].bypass_mode == "always") and
   (.bypass_actors[0].actor_type == "User") and
   (.bypass_actors[0].actor_id == $release_actor_id)
 ' <<< "${RULESET_JSON}")" != 'true' ]]; then
-  echo 'Kiro marketplace release ruleset must protect update/deletion/force-push, permit creation, cover only refs/heads/marketplace-kiro, and have exactly one always-bypass User release identity.' >&2
+  echo 'Kiro marketplace release ruleset must protect creation/update/deletion/force-push, cover only refs/heads/marketplace-kiro, and have exactly one always-bypass User release identity.' >&2
   exit 1
 fi

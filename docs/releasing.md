@@ -32,6 +32,10 @@ callers with ruleset write access, and `GITHUB_TOKEN` cannot read the repository
 or advance the protected Kiro source. The workflow uses this token only for immutable-release
 preflight and the non-force `marketplace-kiro` advance; normal release publication uses its scoped
 workflow token.
+Protect creation, update, deletion, and force-push on `refs/heads/marketplace-kiro`, with the release
+identity as the sole always-bypass actor. This prevents another repository writer from claiming the
+provider-visible branch before the first promotion while still allowing the approved release job to
+create it.
 Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
 `refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
 paginates the complete repository ruleset collection before resolving that exact ruleset and
