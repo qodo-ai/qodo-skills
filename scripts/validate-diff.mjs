@@ -136,15 +136,15 @@ const changedReleaseRecords = statuses.flatMap(({ status, path, sourcePath }) =>
   [sourcePath, path].filter((candidate) => candidate?.startsWith('releases/'))
     .map((candidate) => [status, candidate]));
 const versionedPackagePaths = [
-  /^\.github\/workflows\/(?:release|ship-marketplaces)\.yml$/,
+  /^\.github\/workflows\/ship-marketplaces\.yml$/,
   /^\.agents\/plugins\//,
   /^\.claude-plugin\//,
   /^codex-packages\//,
   /^kiro-power(?:-standards)?\//,
   /^packages\//,
   /^distribution\/(?:(?:catalog|codex-submissions|marketplaces)\.schema|codex-submissions|marketplaces)\.json$/,
-  /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|marketplace-release(?:-lock)?|prepare-release|release-notes|skill-provenance|sync-adapters|validate-diff)\.mjs$/,
-  /^scripts\/(?:audit-release-protections|publish-release|verify-kiro-release-source|verify-release-prerequisites)\.(?:cmd|sh)$/,
+  /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|marketplace-release(?:-lock)?|prepare-release|release-notes|skill-provenance|sync-adapters)\.mjs$/,
+  /^scripts\/(?:audit-release-protections|verify-kiro-release-source|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 const packagingChanged = files.some((path) => versionedPackagePaths.some((pattern) => pattern.test(path)));
 if (!changedSkills.size && !catalogChanged && !changedReleaseRecords.length && !packagingChanged) {

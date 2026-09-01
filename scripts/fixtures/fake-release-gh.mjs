@@ -27,17 +27,27 @@ if (args[0] === 'api' && endpoint.startsWith('installation/repositories')) {
   const valid = process.env.FAKE_RULESET_VALID !== 'false'
     && (process.env.FAKE_RULESET_HAS_CREATION !== 'true' || creationRejected === false);
   process.stdout.write(`${valid}\n`);
-} else if (args[0] === 'api' && endpoint.includes('/releases/tags/')) {
+} else if (args[0] === 'api' && endpoint.endsWith('/releases?per_page=100')) {
   const state = readState();
-  if (args.includes('--include')) {
-    if (process.env.FAKE_RELEASE_LOOKUP_ERROR === 'true') {
-      process.stderr.write('HTTP/2.0 503 Service Unavailable\n');
-      process.exit(1);
-    }
-    process.stdout.write(`HTTP/2.0 ${state.exists ? '200 OK' : '404 Not Found'}\n`);
-    if (!state.exists) process.exit(1);
-  } else if (!state.exists) process.exit(1);
-  else if (query === '.draft') process.stdout.write(`${state.draft}\n`);
+  if (process.env.FAKE_RELEASE_LOOKUP_ERROR === 'true') {
+    process.stderr.write('release list unavailable\n');
+    process.exit(1);
+  }
+  if (state.exists) process.stdout.write(`123\t${state.draft}\n`);
+} else if (args[0] === 'api' && /\/releases\/123$/.test(endpoint)) {
+  const state = readState();
+  if (!state.exists) process.exit(1);
+  if (args[args.indexOf('--method') + 1] === 'PATCH') {
+    const publishing = args.includes('draft=false');
+    const containing = args.includes('draft=true');
+    if (publishing === containing) throw new Error('Release patch must set exactly one draft state');
+    writeState({
+      ...state,
+      draft: containing,
+      immutable: publishing && process.env.FAKE_PUBLISHED_MUTABLE !== 'true',
+      edits: state.edits + 1,
+    });
+  } else if (query === '.draft') process.stdout.write(`${state.draft}\n`);
   else if (query === '.immutable') process.stdout.write(`${state.immutable}\n`);
   else if (query === '.assets[].name') process.stdout.write(`${state.assets.join('\n')}\n`);
   else if (query.includes('.assets[].name')) process.stdout.write(`${[...state.assets].sort().join(' ')}\n`);
@@ -98,19 +108,6 @@ if (args[0] === 'api' && endpoint.startsWith('installation/repositories')) {
     writeFileSync(join(dir, 'qodo-skills-index.json'), 'corrupt\n');
   }
   writeState({ ...state, downloads });
-} else if (args[0] === 'release' && args[1] === 'edit') {
-  const publishing = args.includes('--draft=false');
-  const containing = args.includes('--draft=true');
-  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || publishing === containing) {
-    throw new Error('Release edit must specify a valid tag and exactly one draft state');
-  }
-  const state = readState();
-  writeState({
-    ...state,
-    draft: containing,
-    immutable: publishing && process.env.FAKE_PUBLISHED_MUTABLE !== 'true',
-    edits: state.edits + 1,
-  });
 } else {
   throw new Error(`Unsupported fake gh call: ${args.join(' ')}`);
 }
