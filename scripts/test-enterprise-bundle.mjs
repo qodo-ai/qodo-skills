@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import {
   assertNoPrivateKeyPayload,
@@ -11,6 +12,8 @@ import {
 } from './build-enterprise-bundle.mjs';
 
 const commit = '0123456789abcdef0123456789abcdef01234567';
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const packageVersion = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 
 function sha256(payload) {
   return createHash('sha256').update(payload).digest('hex');
@@ -43,8 +46,8 @@ const secondRoot = mkdtempSync(join(tmpdir(), 'qodo-enterprise-second-'));
 try {
   const first = buildEnterpriseBundle({ output: firstRoot, commit });
   const second = buildEnterpriseBundle({ output: secondRoot, commit });
-  assert.equal(first.version, '1.0.7');
-  assert.equal(first.archiveName, 'qodo-enterprise-bundle-v1.0.7.tar.gz');
+  assert.equal(first.version, packageVersion);
+  assert.equal(first.archiveName, `qodo-enterprise-bundle-v${packageVersion}.tar.gz`);
 
   const firstArchive = readFileSync(join(firstRoot, first.archiveName));
   const secondArchive = readFileSync(join(secondRoot, second.archiveName));
@@ -57,12 +60,12 @@ try {
 
   const manifestPayload = readFileSync(join(firstRoot, first.manifestName));
   const manifest = JSON.parse(manifestPayload);
-  assert.equal(manifest.packageVersion, '1.0.7');
+  assert.equal(manifest.packageVersion, packageVersion);
   assert.equal(manifest.minimumCliVersion, '0.1.0-next.37');
   assert.deepEqual(manifest.source, {
     repository: 'https://github.com/qodo-ai/qodo-skills',
     commit,
-    tag: 'v1.0.7',
+    tag: `v${packageVersion}`,
   });
   assert.deepEqual(manifest.archive, { name: first.archiveName, sha256: first.archiveSha256 });
   assert.deepEqual(manifest.installation, {

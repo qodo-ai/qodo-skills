@@ -11,11 +11,14 @@ const readState = () => existsSync(statePath)
   ? JSON.parse(readFileSync(statePath, 'utf8'))
   : { exists: false, draft: false, immutable: false, assets: [], downloads: 0, edits: 0 };
 const writeState = (state) => writeFileSync(statePath, `${JSON.stringify(state)}\n`);
-const endpoint = args.find((arg) => arg.startsWith('repos/')) ?? '';
+const endpoint = args.find((arg) =>
+  arg.startsWith('repos/') || arg.startsWith('installation/')) ?? '';
 const jqIndex = args.indexOf('--jq');
 const query = jqIndex >= 0 ? args[jqIndex + 1] ?? '' : '';
 
-if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
+if (args[0] === 'api' && endpoint.startsWith('installation/repositories')) {
+  process.stdout.write(`${process.env.FAKE_INSTALLATION_REPOSITORIES ?? 'qodo-ai/qodo-skills'}\n`);
+} else if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
   process.stdout.write(`${process.env.FAKE_IMMUTABLE_RELEASES ?? 'true'}\n`);
 } else if (args[0] === 'api' && endpoint.includes('/rulesets?')) {
   process.stdout.write(`${process.env.FAKE_RULESET_IDS ?? '21488082'}\n`);

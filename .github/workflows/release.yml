@@ -64,14 +64,13 @@ jobs:
           [[ "${RELEASE_APP_ID}" =~ ^[0-9]+$ ]] || { echo 'QODO_SKILLS_RELEASE_APP_ID must be configured in marketplace-kiro.' >&2; exit 1; }
           test -n "${RELEASE_APP_PRIVATE_KEY}" || { echo 'QODO_SKILLS_RELEASE_APP_PRIVATE_KEY must be configured in marketplace-kiro.' >&2; exit 1; }
 
-      - name: Mint repository-scoped release preflight token
+      - name: Mint installation-wide read-only release preflight token
         id: release-preflight-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
         with:
           app-id: ${{ vars.QODO_SKILLS_RELEASE_APP_ID }}
           private-key: ${{ secrets.QODO_SKILLS_RELEASE_APP_PRIVATE_KEY }}
           owner: qodo-ai
-          repositories: qodo-skills
           permission-administration: read
 
       - name: Verify runtime release prerequisites

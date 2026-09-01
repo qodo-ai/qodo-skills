@@ -55,7 +55,7 @@ const publisherReleaseLookup = publisher.indexOf('RELEASE_LOOKUP=');
 const publisherTagCreation = publisher.indexOf('git tag --no-sign -a');
 const publisherFinalMainGuard = publisher.lastIndexOf('require_current_main');
 const publisherTagPush = publisher.indexOf('git push origin "refs/tags/${TAG}:refs/tags/${TAG}"');
-const releaseTokenCheck = releaseSource.indexOf('repository-scoped GitHub App token with Administration:read is required');
+const releaseTokenCheck = releaseSource.indexOf('installation-wide, read-only GitHub App token with Administration:read is required');
 const checkoutGuard = publisher.indexOf('\nrequire_exact_release_checkout\n');
 const catalogRead = publisher.indexOf('require(\'./distribution/catalog.json\')');
 const tagRulesetCheck = releaseSource.indexOf('Immutable release tags ruleset is required');
@@ -78,7 +78,11 @@ assert.match(preflight, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/,
 assert.match(workflow, /environment:\s*\n\s*name: marketplace-kiro/);
 assert.match(workflow, /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/);
 assert.match(workflow, /permission-administration: read/);
+assert.match(workflow, /Mint installation-wide read-only release preflight token/);
+assert.doesNotMatch(workflow, /repositories: qodo-skills/,
+  'the read-only preflight token must see the complete installation repository set');
 assert.match(workflow, /GH_TOKEN: \$\{\{ steps\.release-preflight-token\.outputs\.token \}\}/);
+assert.match(preflight, /installation\/repositories\?per_page=100/);
 assert.ok(exactMainGuard >= 0 && exactMainGuard < tagCreation,
   'release workflow must require the exact merged main commit before creating a tag');
 assert.match(releaseSource, /git fetch origin main --no-tags/);
@@ -113,7 +117,7 @@ assert.ok(releaseVerificationHelper >= 0 && releaseVerificationHelper < existing
 assert.ok(downloadedVerification > releaseDownload && downloadedVerification < existingReleaseExit,
   'downloaded immutable assets must be checksum- and byte-verified before success');
 assert.ok(releaseTokenCheck > validationRun && releaseTokenCheck < existingReleaseBranch,
-  'runtime preflight must require a repository-scoped App token before tagging');
+  'runtime preflight must require an installation-wide read-only App token before tagging');
 assert.ok(tagRulesetCheck > releaseTokenCheck && tagRulesetCheck < existingReleaseBranch,
   'release-tag update/deletion protection must be verified before tagging');
 assert.match(releaseSource, /\.conditions\.ref_name\.include/);
@@ -214,7 +218,15 @@ try {
   const preflightPath = join(root, 'scripts', 'verify-release-prerequisites.sh');
   runShell(root, preflightPath, fakeGhEnv);
   assert.throws(() => runShell(root, preflightPath, { ...fakeGhEnv, GH_TOKEN: '' }),
-    /repository-scoped GitHub App token with Administration:read is required/);
+    /installation-wide, read-only GitHub App token with Administration:read is required/);
+  assert.throws(() => runShell(root, preflightPath, {
+    ...fakeGhEnv,
+    FAKE_INSTALLATION_REPOSITORIES: 'qodo-ai/other',
+  }), /installed on qodo-ai\/qodo-skills and no other repository/);
+  assert.throws(() => runShell(root, preflightPath, {
+    ...fakeGhEnv,
+    FAKE_INSTALLATION_REPOSITORIES: 'qodo-ai/qodo-skills\nqodo-ai/other',
+  }), /installed on qodo-ai\/qodo-skills and no other repository/);
   assert.throws(() => runShell(root, preflightPath, {
     ...fakeGhEnv,
     FAKE_IMMUTABLE_RELEASES: 'false',

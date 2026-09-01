@@ -1,0 +1,10 @@
+{
+  "version": "1.0.8",
+  "summary": "Fix release App installation scope audit",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}

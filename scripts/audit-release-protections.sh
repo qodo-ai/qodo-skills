@@ -57,29 +57,27 @@ if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
   exit 1
 fi
 
-INSTALLATION_IDS="$(gh api --paginate "orgs/qodo-ai/installations?per_page=100" --jq ".installations[] | select(
+INSTALLATIONS="$(gh api --paginate "orgs/qodo-ai/installations?per_page=100" --jq ".installations[] | select(
   .app_id == ${RELEASE_APP_ID} and .suspended_at == null
-) | .id")"
+) | [.id, .repository_selection, .permissions.administration, .permissions.contents, .permissions.metadata] | @tsv")"
 INSTALLATION_COUNT=0
-INSTALLATION_ID=''
-while IFS= read -r candidate; do
-  if [[ -n "${candidate}" ]]; then
+INSTALLATION_SELECTION=''
+while IFS=$'\t' read -r candidate selection administration contents metadata; do
+  if [[ -n "${candidate:-}" ]]; then
     INSTALLATION_COUNT=$((INSTALLATION_COUNT + 1))
-    INSTALLATION_ID="${candidate}"
+    INSTALLATION_SELECTION="${selection}"
+    if [[ "${administration}" != 'read' || "${contents}" != 'write' || "${metadata}" != 'read' ]]; then
+      echo 'The active qodo-skills-release-bot installation permissions do not match its registration.' >&2
+      exit 1
+    fi
   fi
-done <<< "${INSTALLATION_IDS}"
+done <<< "${INSTALLATIONS}"
 if [[ "${INSTALLATION_COUNT}" -ne 1 ]]; then
   echo 'qodo-skills-release-bot must have exactly one active qodo-ai installation.' >&2
   exit 1
 fi
-if ! INSTALLATION_REPOSITORIES="$(gh api --paginate \
-  "user/installations/${INSTALLATION_ID}/repositories?per_page=100" \
-  --jq '.repositories[].full_name')"; then
-  echo 'Could not inspect the release App installation; authenticate gh with read:user and retry.' >&2
-  exit 1
-fi
-if ! grep -Fxq "${GITHUB_REPOSITORY}" <<< "${INSTALLATION_REPOSITORIES}"; then
-  echo 'qodo-skills-release-bot is not installed on qodo-ai/qodo-skills.' >&2
+if [[ "${INSTALLATION_SELECTION}" != 'selected' ]]; then
+  echo 'qodo-skills-release-bot must use selected-repository access, never all repositories.' >&2
   exit 1
 fi
 
