@@ -76,8 +76,11 @@ rollback.
   cutover, admin bypass remains enabled, self-review is allowed, and protected branches may deploy;
   the team accepts this weaker approval posture and can harden it independently later.
 - Run `GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh` with a repository
-  administrator's existing `gh` session before release. The audit verifies hidden bypass actors;
-  no administrator or shared QAR credential is stored in this public repository.
+  administrator's existing `gh` session before release. The audit verifies hidden bypass actors and
+  one active selected-repository App installation. The protected release preflight then uses a
+  short-lived, installation-wide read-only token to require the App's exact repository list to be
+  only `qodo-ai/qodo-skills`; the normal administrator token cannot query that App-token-only API.
+  No administrator or shared QAR credential is stored in this public repository.
 - Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
   `refs/tags/v*`; tag creation is allowed, but updates and deletion are blocked. Release preflight
   searches every ruleset page and rejects duplicate matches or a creation restriction.
@@ -129,7 +132,9 @@ copy and recoverable predecessor; marketplace skills remain owned by their host.
 
 - Merge the canonical/provider PR, then rebase and merge its stacked distribution PR containing
   both the CLI-managed and enterprise release assets. Do not publish the intermediate package
-  version: the first cutover release is the complete `v1.0.7` tag.
+  versions: the first cutover release is the complete `v1.0.8` tag. Candidate `v1.0.7` was not
+  published because its administrator audit used an endpoint unavailable to normal admin tokens;
+  `v1.0.8` splits hidden-setting checks from exact App-token repository-scope verification.
 - Release validation derives changes from both canonical files and the catalog: packaging-only
   changes require a package release, every semantic-version delta must match its release record,
   catalog-only bumps cannot disappear from release notes, `initial` cannot target an existing

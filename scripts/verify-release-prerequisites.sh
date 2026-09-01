@@ -10,7 +10,14 @@ command -v gh >/dev/null 2>&1 || {
 }
 
 if [[ -z "${GH_TOKEN:-}" ]]; then
-  echo 'A repository-scoped GitHub App token with Administration:read is required for release preflight.' >&2
+  echo 'An installation-wide, read-only GitHub App token with Administration:read is required for release preflight.' >&2
+  exit 1
+fi
+
+INSTALLATION_REPOSITORIES="$(gh api --paginate 'installation/repositories?per_page=100' \
+  --jq '.repositories[].full_name')"
+if [[ "${INSTALLATION_REPOSITORIES}" != "${GITHUB_REPOSITORY}" ]]; then
+  echo 'qodo-skills-release-bot must be installed on qodo-ai/qodo-skills and no other repository.' >&2
   exit 1
 fi
 

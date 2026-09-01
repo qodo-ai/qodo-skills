@@ -44,8 +44,12 @@ GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh
 ```
 
 The audit uses the administrator's existing `gh` session to verify otherwise hidden bypass actors,
-the dedicated App identity, permissions, and active installation on this repository, presence of an environment reviewer, release
-immutability, and exact ruleset shapes. No administrator credential is stored in Actions.
+the dedicated App identity and permissions, one active selected-repository installation, presence of
+an environment reviewer, release immutability, and exact ruleset shapes. The protected release and
+Kiro workflows separately mint an installation-wide token narrowed to read-only Administration and
+require its complete repository list to be exactly `qodo-ai/qodo-skills`; GitHub exposes that list
+only to an App installation token, not to the administrator's normal OAuth/PAT session. The token is
+revoked by the action after the job. No administrator credential is stored in Actions.
 Protect creation, update, deletion, and force-push on `refs/heads/marketplace-kiro`, with the release
 App as the sole always-bypass actor. This prevents another repository writer from claiming the
 provider-visible branch before the first promotion while still allowing the approved release job to
