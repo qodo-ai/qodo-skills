@@ -53,9 +53,9 @@ jobs:
       - name: Verify the release package
         run: npm test
 
-      - name: Verify immutable releases are enabled
+      - name: Verify runtime release prerequisites
         env:
-          GH_TOKEN: ${{ secrets.QODO_RELEASE_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: scripts/verify-release-prerequisites.sh
 
       - name: Build the deterministic enterprise bundle

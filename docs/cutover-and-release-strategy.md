@@ -69,18 +69,23 @@ rollback.
 - Create protected GitHub environments `marketplace-claude`, `marketplace-kiro`, and
   `marketplace-codex` with required release-owner reviewers.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
-- Configure `QODO_RELEASE_ADMIN_TOKEN` with repository `Administration: write` and `Contents:
-  read/write`. GitHub requires ruleset write access to return bypass actors; the token verifies
-  release controls and advances only the protected `marketplace-kiro`
-  source branch; normal `GITHUB_TOKEN` remains read-only.
+- Install the dedicated `qodo-skills-release-bot` GitHub App on `qodo-ai/qodo-skills` with only
+  `Contents: write` and `Metadata: read`. Store its App id and private key only in the protected
+  `marketplace-kiro` environment as `QODO_SKILLS_RELEASE_APP_ID` and
+  `QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`. The environment must disallow admin bypass, prevent
+  self-review, have at least two eligible reviewers, and allow deployments only from `main`.
+- Run `GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh` with a repository
+  administrator's existing `gh` session before release. The audit verifies hidden bypass actors;
+  no administrator or shared QAR credential is stored in this public repository.
 - Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
   `refs/tags/v*`; tag creation is allowed, but updates and deletion are blocked. Release preflight
   searches every ruleset page and rejects duplicate matches or a creation restriction.
 - Create exactly one active **Kiro marketplace release** ruleset for
   `refs/heads/marketplace-kiro`: block update, deletion, and force-push; permit creation; exclude
-  nothing; and grant always-bypass to exactly the release identity
-  behind `QODO_RELEASE_ADMIN_TOKEN` to advance it without force pushes. Repoint both existing Kiro
-  listing URLs from `main` to this branch before the first marketplace-owned release.
+  nothing; and grant always-bypass only to the dedicated App's `Integration` actor. The approved
+  workflow mints a short-lived token scoped to this repository and advances the branch without a
+  force push. Repoint both existing Kiro listing URLs from `main` to this branch before the first
+  marketplace-owned release.
 
 Gate: every item is verified from provider/repository state. A source manifest is not evidence of
 a live marketplace listing.
@@ -259,7 +264,7 @@ optional skills are discoverable but never auto-installed.
 | Gate | Evidence required | Blocks |
 |---|---|---|
 | Source | exact merged heads, full CI, generated-drift checks | GitHub release |
-| Repository | least-privilege release credential, immutable releases enabled, no-bypass `v*` tag ruleset, protected `marketplace-kiro` branch, protected tag SHA, and post-publication immutable asset bytes | all promotion |
+| Repository | successful administrator audit, dedicated repository-scoped release App, immutable releases enabled, no-bypass `v*` tag ruleset, protected `marketplace-kiro` branch, protected tag SHA, and post-publication immutable asset bytes | all promotion |
 | Claude | official catalog exact SHA/path | Claude completion |
 | Kiro | live Agent Plugins power on `marketplace-kiro` at the exact release SHA/path | Kiro completion |
 | Codex | portal review + publish + protected attestation | Codex completion and old-repo deprecation |
@@ -279,7 +284,7 @@ declared scope, and cannot route a marketplace-owned ID through skills.sh.
 Go only when:
 
 - CLI and skills PR heads are independently green and review-clean;
-- release immutability, the least-privilege release credential, protected `marketplace-kiro`, and
+- release immutability, the dedicated least-privilege release App, protected `marketplace-kiro`, and
   all three marketplace environment protections are configured;
 - rollback identities/artifacts are recorded;
 - selected provider publication owners are available;

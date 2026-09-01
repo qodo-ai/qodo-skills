@@ -183,20 +183,38 @@ assert.match(workflow, /for tool in git gh node npm; do/);
 assert.match(workflow, /\.immutable'\)" = 'true'/);
 assert.match(workflow, /release_tag must be an exact stable semver tag/);
 assert.match(workflow, /SOURCE_REF: marketplace-kiro/);
-assert.match(workflow, /QODO_RELEASE_ADMIN_TOKEN/);
+assert.doesNotMatch(workflow, /QODO_RELEASE_ADMIN_TOKEN/);
+assert.match(workflow, /QODO_SKILLS_RELEASE_APP_ID/);
+assert.match(workflow, /QODO_SKILLS_RELEASE_APP_PRIVATE_KEY/);
+assert.match(workflow, /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/);
+assert.match(workflow, /owner: qodo-ai/);
+assert.match(workflow, /repositories: qodo-skills/);
+assert.match(workflow, /permission-contents: write/);
+assert.match(workflow, /steps\.kiro-release-token\.outputs\.token/);
 assert.match(workflow, /verify-kiro-release-source\.sh/);
 assert.match(workflow, /-F force=false/);
 const kiroSourcePreflight = readFileSync(join(root, 'scripts', 'verify-kiro-release-source.sh'), 'utf8');
 assert.match(kiroSourcePreflight, /Kiro marketplace release/);
 assert.match(kiroSourcePreflight, /# Usage: GH_TOKEN=/);
-assert.match(kiroSourcePreflight, /gh api user --jq '\.id'/);
+assert.doesNotMatch(kiroSourcePreflight, /gh api user/);
+assert.match(kiroSourcePreflight, /gh api \/apps\/qodo-skills-release-bot/);
 assert.match(kiroSourcePreflight, /include == \["refs\/heads\/marketplace-kiro"\]/);
-assert.match(kiroSourcePreflight, /contains\(\["update", "deletion", "non_fast_forward"\]\)/);
+assert.match(kiroSourcePreflight, /sort == \["deletion", "non_fast_forward", "update"\]/);
 assert.match(kiroSourcePreflight, /length == 1/);
-assert.match(kiroSourcePreflight, /jq --argjson release_actor_id "\$\{RELEASE_ACTOR_ID\}"/);
-assert.match(kiroSourcePreflight, /actor_type == "User"/);
-assert.match(kiroSourcePreflight, /actor_id == \$release_actor_id/);
-assert.match(kiroSourcePreflight, /Administration:write so GitHub returns ruleset bypass actors/);
+assert.match(kiroSourcePreflight, /jq --argjson release_app_id "\$\{RELEASE_APP_ID\}"/);
+assert.match(kiroSourcePreflight, /actor_type == "Integration"/);
+assert.match(kiroSourcePreflight, /actor_id == \$release_app_id/);
+assert.match(kiroSourcePreflight, /has\("bypass_actors"\) \| not/);
+
+const protectionAudit = readFileSync(join(root, 'scripts', 'audit-release-protections.sh'), 'utf8');
+assert.match(protectionAudit, /\.can_admins_bypass == false/);
+assert.match(protectionAudit, /prevent_self_review == true/);
+assert.match(protectionAudit, /branch_policies\[\]\.name/);
+assert.match(protectionAudit, /QODO_SKILLS_RELEASE_APP_PRIVATE_KEY/);
+assert.match(protectionAudit, /\.permissions == \{"contents":"write","metadata":"read"\}/);
+assert.match(protectionAudit, /\.bypass_actors == \[\{"actor_id":\$release_app_id,"actor_type":"Integration","bypass_mode":"always"\}\]/);
+assert.match(readFileSync(join(root, 'scripts', 'audit-release-protections.cmd'), 'utf8'),
+  /bash "%~dp0audit-release-protections\.sh"/);
 
 if (process.platform !== 'win32') {
   const bashProbe = spawnSync('bash', ['--version'], { encoding: 'utf8', timeout: 5_000 });
@@ -212,15 +230,35 @@ if (process.platform !== 'win32') {
       const ghStub = join(bin, 'gh');
       writeFileSync(ghStub, `#!/usr/bin/env bash
 set -euo pipefail
-if [[ "$*" == "api user --jq .id" ]]; then
-  printf '%s\\n' 12345
+if [[ "$*" == "api /apps/qodo-skills-release-bot" ]]; then
+  printf '{"id":12345,"slug":"qodo-skills-release-bot","owner":{"login":"qodo-ai"},"permissions":{"contents":"write","metadata":"read"}}\\n'
+elif [[ "$*" == *"immutable-releases --jq .enabled"* ]]; then
+  printf '%s\\n' "\${QODO_TEST_IMMUTABLE_RELEASES:-true}"
+elif [[ "$*" == "api repos/qodo-ai/qodo-skills/environments/marketplace-kiro" ]]; then
+  if [[ "\${QODO_TEST_WEAK_ENVIRONMENT:-}" == 1 ]]; then
+    printf '{"can_admins_bypass":true,"deployment_branch_policy":{"protected_branches":true,"custom_branch_policies":false},"protection_rules":[]}\\n'
+  else
+    printf '{"can_admins_bypass":false,"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true},"protection_rules":[{"type":"required_reviewers","prevent_self_review":true,"reviewers":[{},{}]}]}\\n'
+  fi
+elif [[ "$*" == *"deployment-branch-policies?per_page=100"* ]]; then
+  printf 'main\\n'
+elif [[ "$*" == *"variables/QODO_SKILLS_RELEASE_APP_ID --jq .value"* ]]; then
+  printf '%s\\n' "\${QODO_TEST_ENVIRONMENT_APP_ID:-12345}"
+elif [[ "$*" == *"environments/marketplace-kiro/secrets --jq"* ]]; then
+  printf 'true\\n'
 elif [[ "$*" == *"rulesets?per_page=100"* ]]; then
-  printf '%s\\n' 77
+  if [[ "$*" == *"Immutable release tags"* ]]; then printf '%s\\n' 78; else printf '%s\\n' 77; fi
+elif [[ "$*" == "api repos/qodo-ai/qodo-skills/rulesets/78" ]]; then
+  if [[ "\${QODO_TEST_OMIT_BYPASS:-}" == 1 ]]; then
+    printf '{"id":78,"conditions":{"ref_name":{"include":["refs/tags/v*"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"}]}\\n'
+  else
+    printf '{"id":78,"conditions":{"ref_name":{"include":["refs/tags/v*"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"}],"bypass_actors":[]}\\n'
+  fi
 elif [[ "$*" == "api repos/qodo-ai/qodo-skills/rulesets/77" ]]; then
   if [[ "\${QODO_TEST_OMIT_BYPASS:-}" == 1 ]]; then
     printf '{"conditions":{"ref_name":{"include":["refs/heads/marketplace-kiro"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}]}\\n'
   else
-    printf '{"conditions":{"ref_name":{"include":["refs/heads/marketplace-kiro"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}],"bypass_actors":[{"bypass_mode":"always","actor_type":"%s","actor_id":%s}]}\\n' "\${QODO_TEST_RULESET_ACTOR_TYPE:-User}" "\${QODO_TEST_RULESET_ACTOR_ID:-12345}"
+    printf '{"id":77,"conditions":{"ref_name":{"include":["%s"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}],"bypass_actors":[{"bypass_mode":"always","actor_type":"%s","actor_id":%s}]}\\n' "\${QODO_TEST_RULESET_TARGET:-refs/heads/marketplace-kiro}" "\${QODO_TEST_RULESET_ACTOR_TYPE:-Integration}" "\${QODO_TEST_RULESET_ACTOR_ID:-12345}"
   fi
 else
   printf 'unexpected gh invocation: %s\\n' "$*" >&2
@@ -233,6 +271,7 @@ fi
         PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
         GH_TOKEN: 'test-token',
         GITHUB_REPOSITORY: 'qodo-ai/qodo-skills',
+        QODO_SKILLS_RELEASE_APP_ID: '12345',
       };
       const validPreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
         encoding: 'utf8',
@@ -248,7 +287,7 @@ fi
       });
       assert.equal(mismatchedPreflight.error, undefined, mismatchedPreflight.error?.message);
       assert.equal(mismatchedPreflight.status, 1, mismatchedPreflight.stderr);
-      assert.match(mismatchedPreflight.stderr, /exactly one always-bypass User release identity/);
+      assert.match(mismatchedPreflight.stderr, /dedicated Integration bypass/);
       const wrongTypePreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
         encoding: 'utf8',
         env: { ...preflightEnvironment, QODO_TEST_RULESET_ACTOR_TYPE: 'Team' },
@@ -256,15 +295,44 @@ fi
       });
       assert.equal(wrongTypePreflight.error, undefined, wrongTypePreflight.error?.message);
       assert.equal(wrongTypePreflight.status, 1, wrongTypePreflight.stderr);
-      assert.match(wrongTypePreflight.stderr, /exactly one always-bypass User release identity/);
+      assert.match(wrongTypePreflight.stderr, /dedicated Integration bypass/);
       const hiddenBypassPreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
         encoding: 'utf8',
         env: { ...preflightEnvironment, QODO_TEST_OMIT_BYPASS: '1' },
         timeout: 5_000,
       });
       assert.equal(hiddenBypassPreflight.error, undefined, hiddenBypassPreflight.error?.message);
-      assert.equal(hiddenBypassPreflight.status, 1, hiddenBypassPreflight.stderr);
-      assert.match(hiddenBypassPreflight.stderr, /Administration:write/);
+      assert.equal(hiddenBypassPreflight.status, 0, hiddenBypassPreflight.stderr);
+      const malformedTarget = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
+        encoding: 'utf8',
+        env: { ...preflightEnvironment, QODO_TEST_RULESET_TARGET: 'refs/heads/marketplace-*' },
+        timeout: 5_000,
+      });
+      assert.equal(malformedTarget.status, 1, malformedTarget.stderr);
+      assert.match(malformedTarget.stderr, /cover only refs\/heads\/marketplace-kiro/);
+
+      const auditEnvironment = { ...preflightEnvironment };
+      delete auditEnvironment.QODO_SKILLS_RELEASE_APP_ID;
+      const validAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
+        encoding: 'utf8', env: auditEnvironment, timeout: 5_000,
+      });
+      assert.equal(validAudit.status, 0, validAudit.stderr);
+      assert.match(validAudit.stdout, /app_id=12345 tag_ruleset=78 kiro_ruleset=77/);
+      const weakEnvironmentAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
+        encoding: 'utf8', env: { ...auditEnvironment, QODO_TEST_WEAK_ENVIRONMENT: '1' }, timeout: 5_000,
+      });
+      assert.equal(weakEnvironmentAudit.status, 1, weakEnvironmentAudit.stderr);
+      assert.match(weakEnvironmentAudit.stderr, /disallow admin bypass/);
+      const mutableReleaseAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
+        encoding: 'utf8', env: { ...auditEnvironment, QODO_TEST_IMMUTABLE_RELEASES: 'false' }, timeout: 5_000,
+      });
+      assert.equal(mutableReleaseAudit.status, 1, mutableReleaseAudit.stderr);
+      assert.match(mutableReleaseAudit.stderr, /Release immutability is disabled/);
+      const hiddenBypassAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
+        encoding: 'utf8', env: { ...auditEnvironment, QODO_TEST_OMIT_BYPASS: '1' }, timeout: 5_000,
+      });
+      assert.equal(hiddenBypassAudit.status, 1, hiddenBypassAudit.stderr);
+      assert.match(hiddenBypassAudit.stderr, /Immutable release tags/);
     } finally {
       rmSync(preflightFixture, { recursive: true, force: true });
     }

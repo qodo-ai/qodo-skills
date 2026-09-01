@@ -144,7 +144,7 @@ const versionedPackagePaths = [
   /^packages\//,
   /^distribution\/(?:(?:catalog|codex-submissions|marketplaces)\.schema|codex-submissions|marketplaces)\.json$/,
   /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|marketplace-release(?:-lock)?|prepare-release|release-notes|skill-provenance|sync-adapters|validate-diff)\.mjs$/,
-  /^scripts\/(?:publish-release|verify-kiro-release-source|verify-release-prerequisites)\.(?:cmd|sh)$/,
+  /^scripts\/(?:audit-release-protections|publish-release|verify-kiro-release-source|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 const packagingChanged = files.some((path) => versionedPackagePaths.some((pattern) => pattern.test(path)));
 if (!changedSkills.size && !catalogChanged && !changedReleaseRecords.length && !packagingChanged) {

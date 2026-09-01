@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fail closed before creating or advancing Kiro's provider-visible release branch.
-# Usage: GH_TOKEN=<release-token> GITHUB_REPOSITORY=<owner/repo> scripts/verify-kiro-release-source.sh
+# The administrator-only bypass audit is scripts/audit-release-protections.sh.
+# Usage: GH_TOKEN=<app-installation-token> QODO_SKILLS_RELEASE_APP_ID=<id> GITHUB_REPOSITORY=<owner/repo> scripts/verify-kiro-release-source.sh
 set -euo pipefail
 
 command -v gh >/dev/null 2>&1 || {
@@ -12,13 +13,23 @@ command -v jq >/dev/null 2>&1 || {
   exit 1
 }
 if [[ -z "${GH_TOKEN:-}" ]]; then
-  echo 'QODO_RELEASE_ADMIN_TOKEN is required with repository Administration:write and Contents:read/write.' >&2
+  echo 'The short-lived qodo-skills release App token is required.' >&2
   exit 1
 fi
 
-RELEASE_ACTOR_ID="$(gh api user --jq '.id')"
-if [[ ! "${RELEASE_ACTOR_ID}" =~ ^[0-9]+$ ]]; then
-  echo 'QODO_RELEASE_ADMIN_TOKEN must identify one GitHub user with a numeric actor id.' >&2
+RELEASE_APP_ID="${QODO_SKILLS_RELEASE_APP_ID:-}"
+if [[ ! "${RELEASE_APP_ID}" =~ ^[0-9]+$ ]]; then
+  echo 'QODO_SKILLS_RELEASE_APP_ID must be the dedicated GitHub App numeric id.' >&2
+  exit 1
+fi
+
+APP_JSON="$(gh api /apps/qodo-skills-release-bot)"
+if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
+  (.id == $release_app_id) and
+  (.slug == "qodo-skills-release-bot") and
+  (.permissions == {"contents":"write","metadata":"read"})
+' <<< "${APP_JSON}")" != 'true' ]]; then
+  echo 'The configured release App must be qodo-skills-release-bot with only Contents:write and Metadata:read.' >&2
   exit 1
 fi
 
@@ -39,21 +50,18 @@ if [[ "${RULESET_COUNT}" -ne 1 ]]; then
 fi
 
 RULESET_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets/${RULESET_ID}")"
-if [[ "$(jq 'has("bypass_actors")' <<< "${RULESET_JSON}")" != 'true' ]]; then
-  echo 'QODO_RELEASE_ADMIN_TOKEN must have repository Administration:write so GitHub returns ruleset bypass actors.' >&2
-  exit 1
-fi
-
-if [[ "$(jq --argjson release_actor_id "${RELEASE_ACTOR_ID}" '
+if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
   (.conditions.ref_name.include == ["refs/heads/marketplace-kiro"]) and
   (.conditions.ref_name.exclude | type == "array" and length == 0) and
-  ([.rules[].type] | contains(["update", "deletion", "non_fast_forward"])) and
+  ([.rules[].type] | sort == ["deletion", "non_fast_forward", "update"]) and
   ([.rules[].type] | index("creation")) == null and
-  (.bypass_actors | type == "array" and length == 1) and
-  (.bypass_actors[0].bypass_mode == "always") and
-  (.bypass_actors[0].actor_type == "User") and
-  (.bypass_actors[0].actor_id == $release_actor_id)
+  ((has("bypass_actors") | not) or (
+    (.bypass_actors | type == "array" and length == 1) and
+    (.bypass_actors[0].bypass_mode == "always") and
+    (.bypass_actors[0].actor_type == "Integration") and
+    (.bypass_actors[0].actor_id == $release_app_id)
+  ))
 ' <<< "${RULESET_JSON}")" != 'true' ]]; then
-  echo 'Kiro marketplace release ruleset must protect update/deletion/force-push, permit creation, cover only refs/heads/marketplace-kiro, and have exactly one always-bypass User release identity.' >&2
+  echo 'Kiro marketplace release ruleset must protect only update/deletion/force-push, permit creation, cover only refs/heads/marketplace-kiro, and expose only the dedicated Integration bypass when visible.' >&2
   exit 1
 fi

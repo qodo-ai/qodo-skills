@@ -26,26 +26,40 @@ The pull request must state:
 ## 2. Publish an immutable GitHub release
 
 The repository administrator must enable GitHub release immutability before the first release.
-Configure repository secret `QODO_RELEASE_ADMIN_TOKEN` with only repository
-`Administration: write` and `Contents: read/write`; GitHub exposes ruleset bypass actors only to
-callers with ruleset write access, and `GITHUB_TOKEN` cannot read the repository setting
-or advance the protected Kiro source. The workflow uses this token only for immutable-release
-preflight and the non-force `marketplace-kiro` advance; normal release publication uses its scoped
-workflow token.
+Do not place an administrator PAT or a shared QAR release credential in this public repository.
+The normal release workflow uses its scoped `GITHUB_TOKEN`. Kiro promotion uses a dedicated
+`qodo-skills-release-bot` GitHub App with only `Contents: write` and `Metadata: read`; the protected
+`marketplace-kiro` environment stores its numeric App id as
+`QODO_SKILLS_RELEASE_APP_ID` and its private key as
+`QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`. The workflow mints a short-lived token restricted to
+`qodo-ai/qodo-skills` only after environment approval.
+
+Before the first release and after any protection change, a repository administrator must run:
+
+```sh
+GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh
+```
+
+The audit uses the administrator's existing `gh` session to verify otherwise hidden bypass actors,
+the dedicated App identity and permissions, environment reviewers and branch policy, release
+immutability, and exact ruleset shapes. No administrator credential is stored in Actions.
 Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
 `refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
 paginates the complete repository ruleset collection before resolving that exact ruleset and
-explicitly rejects a `creation` restriction. The workflow invokes the same checked-in preflight
-and publication shell programs that CI executes against a stateful fake GitHub CLI: success,
+explicitly rejects a `creation` restriction. GitHub requires `Administration: read` for the
+immutable-release settings endpoint, so that check intentionally exists only in the administrator
+audit. The workflow token verifies the readable ruleset and the published release's `immutable`
+result. The checked-in audit, runtime preflight, and publication programs are covered behaviorally:
 missing credentials, disabled immutability, duplicate/invalid rulesets, forbidden creation rules,
-draft corruption, draft resume, publication, and immutable retry are covered behaviorally.
+draft corruption, draft resume, publication, and immutable retry all fail closed.
 After the compatible CLI release is live and the skills PR is merged, a release owner dispatches
 **Release skills** from the current `main` head. Rerunning it is idempotent. The workflow:
 
 1. requires the dispatched SHA to be the exact `main` head before and after validation; a merge
    after that final check does not change the validated release SHA;
 2. installs the lockfile-pinned validation dependencies and validates the release package;
-3. requires the repository immutability setting;
+3. requires the exact protected-tag ruleset; the release owner must have completed the
+   administrator audit that verifies repository immutability;
 4. creates annotated tag `v<package-version>`, pushes it without force, and verifies the protected
    remote tag peels to the validated SHA immediately before publication;
 5. builds the deterministic enterprise archive, then creates or resumes a draft release containing
@@ -98,12 +112,15 @@ after provider publication, not a substitute for it. All three environments requ
 
 Kiro's provider listing must point to `marketplace-kiro`, not `main`. After protected-environment
 approval, the workflow advances that protected branch without force to the immutable release SHA
-using `QODO_RELEASE_ADMIN_TOKEN`, then requires the live directory and branch head to match exactly.
+using a freshly minted, repository-scoped `qodo-skills-release-bot` installation token, then
+requires the live directory and branch head to match exactly.
 Before any branch mutation, a checked-in preflight requires exactly one active **Kiro marketplace
 release** branch ruleset with update/deletion/force-push protection, no exclusions, and exactly one
-always-bypass release identity. It resolves the user behind the release token and requires that
-actor id to be the sole bypass, while rejecting any branch pattern broader than the Kiro source.
-The bypass entry must be an always-bypass `User` matching the token's `/user` identity.
+always-bypass release identity. The bypass must be the dedicated App's `Integration` actor, while
+any branch pattern broader than the Kiro source is rejected. The environment must disallow admin
+bypass, prevent self-review, require at least two eligible reviewers, and permit deployments only
+from `main`. The runtime preflight checks all settings visible to the short-lived App token; the
+administrator audit is the authority for hidden bypass configuration.
 
 Core listing identity remains `qodo`; Qodo Standards remains the separately installable
 `qodo-standards` listing. **Ship marketplaces** selects providers, not individual listings, and

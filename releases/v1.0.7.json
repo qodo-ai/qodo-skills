@@ -1,6 +1,6 @@
 {
   "version": "1.0.7",
-  "summary": "Add CLI-managed continuity and the independently versioned Qodo enterprise skills bundle with enforced runtime compatibility.",
+  "summary": "Add CLI-managed continuity, the independently versioned enterprise bundle, and least-privilege marketplace release controls.",
   "package": {
     "change": "patch"
   },

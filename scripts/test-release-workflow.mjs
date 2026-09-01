@@ -19,6 +19,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8');
 const preflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
 const publisher = readFileSync(join(root, 'scripts', 'publish-release.sh'), 'utf8');
+const protectionAudit = readFileSync(join(root, 'scripts', 'audit-release-protections.sh'), 'utf8');
 const releaseSource = `${workflow}\n${preflight}\n${publisher}`;
 const packageVersion = JSON.parse(
   readFileSync(join(root, 'package.json'), 'utf8'),
@@ -40,7 +41,6 @@ assert.match(readFileSync(join(root, 'scripts', 'verify-release-prerequisites.cm
 assert.match(readFileSync(join(root, 'scripts', 'publish-release.cmd'), 'utf8'),
   /bash "%~dp0publish-release\.sh"/);
 
-const immutabilityPreflight = releaseSource.indexOf('immutable-releases');
 const tagCreation = releaseSource.indexOf('git tag --no-sign -a');
 const releaseCreation = releaseSource.indexOf('gh release create');
 const firstAssetCheck = releaseSource.indexOf('.assets[].name');
@@ -55,7 +55,7 @@ const publisherReleaseLookup = publisher.indexOf('RELEASE_LOOKUP=');
 const publisherTagCreation = publisher.indexOf('git tag --no-sign -a');
 const publisherFinalMainGuard = publisher.lastIndexOf('require_current_main');
 const publisherTagPush = publisher.indexOf('git push origin "refs/tags/${TAG}:refs/tags/${TAG}"');
-const releaseAdminTokenCheck = releaseSource.indexOf('QODO_RELEASE_ADMIN_TOKEN is required');
+const releaseTokenCheck = releaseSource.indexOf('repository-scoped GitHub token is required');
 const tagRulesetCheck = releaseSource.indexOf('Immutable release tags ruleset is required');
 const releaseVerificationHelper = releaseSource.indexOf('verify_release_assets()');
 const releaseDownload = releaseSource.indexOf('gh release download');
@@ -69,7 +69,10 @@ const remoteTagCheck = releaseSource.indexOf('require_annotated_release_tag', dr
 const publishedDownload = releaseSource.indexOf('gh release download', draftPublish);
 const publishedVerification = releaseSource.indexOf('verify_release_assets "${PUBLISHED_VERIFY_DIR}"', publishedDownload);
 
-assert.ok(immutabilityPreflight >= 0, 'release workflow must check repository immutability');
+assert.match(protectionAudit, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/,
+  'the administrator audit must check repository immutability');
+assert.doesNotMatch(preflight, /\/immutable-releases/,
+  'the runtime token must not call an endpoint that requires Administration:read');
 assert.ok(exactMainGuard >= 0 && exactMainGuard < tagCreation,
   'release workflow must require the exact merged main commit before creating a tag');
 assert.match(releaseSource, /git fetch origin main --no-tags/);
@@ -88,8 +91,8 @@ assert.match(publisher, /shasum -a 256 --check/);
 assert.match(publisher, /verify_sha256 qodo-skills-index\.json\.sha256/g);
 assert.doesNotMatch(releaseSource, /"\$GITHUB_SHA"/,
   'scalar shell variables must use braced expansion');
-assert.ok(tagCreation > immutabilityPreflight, 'immutability must be checked before creating a tag');
-assert.ok(releaseCreation > immutabilityPreflight, 'immutability must be checked before creating a release');
+assert.match(publisher, /releases\/tags\/\$\{TAG\}" --jq '\.immutable'/,
+  'publication must verify the provider reports an immutable release');
 assert.ok(firstAssetCheck >= 0 && firstAssetCheck < existingReleaseExit,
   'an existing release must be accepted only after its assets are verified');
 assert.ok(releaseDownload > firstAssetCheck && releaseDownload < existingReleaseExit,
@@ -98,19 +101,19 @@ assert.ok(releaseVerificationHelper >= 0 && releaseVerificationHelper < existing
   'release asset checksum and byte verification must be defined before release handling');
 assert.ok(downloadedVerification > releaseDownload && downloadedVerification < existingReleaseExit,
   'downloaded immutable assets must be checksum- and byte-verified before success');
-assert.ok(releaseAdminTokenCheck > validationRun && releaseAdminTokenCheck < existingReleaseBranch,
-  'immutability preflight must require an administration-read credential before tagging');
-assert.ok(tagRulesetCheck > releaseAdminTokenCheck && tagRulesetCheck < existingReleaseBranch,
+assert.ok(releaseTokenCheck > validationRun && releaseTokenCheck < existingReleaseBranch,
+  'runtime preflight must require a repository-scoped workflow token before tagging');
+assert.ok(tagRulesetCheck > releaseTokenCheck && tagRulesetCheck < existingReleaseBranch,
   'release-tag update/deletion protection must be verified before tagging');
 assert.match(releaseSource, /\.conditions\.ref_name\.include/);
 assert.match(releaseSource, /gh api --paginate "repos\/\$\{GITHUB_REPOSITORY\}\/rulesets\?per_page=100"/);
 assert.match(releaseSource, /RULESET_COUNT/);
 assert.match(releaseSource, /\.conditions\.ref_name\.exclude \| type == "array" and length == 0/);
-assert.match(releaseSource, /contains\(\["update", "deletion"\]\)/);
+assert.match(releaseSource, /sort == \["deletion", "update"\]/);
 assert.match(releaseSource, /index\("creation"\)\) == null/,
   'the release ruleset must permit initial tag creation');
-assert.match(releaseSource, /\.bypass_actors \| type == "array" and length == 0/);
-assert.match(releaseSource, /GH_TOKEN: \$\{\{ secrets\.QODO_RELEASE_ADMIN_TOKEN \}\}/);
+assert.match(releaseSource, /has\("bypass_actors"\) \| not/);
+assert.doesNotMatch(releaseSource, /QODO_RELEASE_ADMIN_TOKEN/);
 assert.match(releaseSource, /GH_TOKEN: \$\{\{ github\.token \}\}/);
 assert.ok(
   publisherFinalMainGuard > publisherReleaseLookup &&
@@ -190,7 +193,7 @@ copyFileSync(join(root, 'scripts', 'fixtures', 'fake-release-gh.mjs'), join(bin,
 if (process.platform !== 'win32') chmodSync(join(bin, 'gh'), 0o755);
 const fakeGhEnv = {
   PATH: `${bin}${delimiter}${process.env.PATH}`,
-  GH_TOKEN: 'administration-read-test-token',
+  GH_TOKEN: 'repository-scoped-test-token',
   GITHUB_REPOSITORY: 'qodo-ai/qodo-skills',
   FAKE_GH_STATE: fakeGhState,
   FAKE_GH_ASSETS: fakeGhAssets,
@@ -200,11 +203,7 @@ try {
   const preflightPath = join(root, 'scripts', 'verify-release-prerequisites.sh');
   runShell(root, preflightPath, fakeGhEnv);
   assert.throws(() => runShell(root, preflightPath, { ...fakeGhEnv, GH_TOKEN: '' }),
-    /QODO_RELEASE_ADMIN_TOKEN is required/);
-  assert.throws(() => runShell(root, preflightPath, {
-    ...fakeGhEnv,
-    FAKE_IMMUTABLE_RELEASES: 'false',
-  }), /Release immutability is disabled/);
+    /repository-scoped GitHub token is required/);
   assert.throws(() => runShell(root, preflightPath, {
     ...fakeGhEnv,
     FAKE_RULESET_IDS: '1\n2',
@@ -212,7 +211,7 @@ try {
   assert.throws(() => runShell(root, preflightPath, {
     ...fakeGhEnv,
     FAKE_RULESET_HAS_CREATION: 'true',
-  }), /must protect update\/deletion, permit creation/);
+  }), /must protect only update\/deletion, permit creation/);
 
   const behaviorOrigin = join(harness, 'origin.git');
   const checkout = join(harness, 'checkout');
