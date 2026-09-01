@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Create or resume a verified draft, then publish and re-verify immutable bytes.
-# Usage: GH_TOKEN=<contents-write-token> GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> RUNNER_TEMP=<dir> scripts/publish-release.sh
+# Usage: GH_TOKEN=<contents-write-token> GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> \
+#   RUNNER_TEMP=<dir> QODO_ENTERPRISE_RELEASE_DIR=<prepared-assets-dir> scripts/publish-release.sh
 set -euo pipefail
 
-for tool in gh git node mktemp cmp grep cat rm; do
+for tool in gh git node mktemp cmp grep cat rm basename; do
   command -v "${tool}" >/dev/null 2>&1 || {
     echo "Release publication requires '${tool}', but it is not available." >&2
     exit 1
@@ -36,7 +37,45 @@ require_exact_release_checkout
 VERSION="$(node -p "require('./distribution/catalog.json').package.version")"
 TAG="v${VERSION}"
 NOTES="${RUNNER_TEMP}/qodo-release-notes.md"
+ENTERPRISE_DIR="${QODO_ENTERPRISE_RELEASE_DIR:?QODO_ENTERPRISE_RELEASE_DIR is required}"
+ARCHIVE_NAME="qodo-enterprise-bundle-v${VERSION}.tar.gz"
+RELEASE_ASSETS=(
+  "${ENTERPRISE_DIR}/${ARCHIVE_NAME}"
+  "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
+  "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
+  "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
+  distribution/qodo-cli-managed-bundle.json
+  distribution/qodo-cli-managed-bundle.json.sha256
+  distribution/qodo-skills-index.json
+  distribution/qodo-skills-index.json.sha256
+)
+EXPECTED_ASSETS="$(node -e \
+  'console.log(process.argv.slice(1).map((asset) => require("node:path").basename(asset)).sort().join(" "))' \
+  "${RELEASE_ASSETS[@]}")"
 node scripts/release-notes.mjs "${NOTES}"
+
+for asset in "${RELEASE_ASSETS[@]}"; do
+  test -f "${asset}" || { echo "Release asset is missing: ${asset}" >&2; exit 1; }
+done
+
+verify_release_assets() {
+  local directory="$1"
+  (
+    cd "${directory}"
+    verify_sha256 qodo-skills-index.json.sha256
+    verify_sha256 qodo-cli-managed-bundle.json.sha256
+    verify_sha256 "${ARCHIVE_NAME}.sha256"
+    verify_sha256 qodo-enterprise-manifest.json.sha256
+  )
+  cmp --silent "${directory}/qodo-skills-index.json" distribution/qodo-skills-index.json
+  cmp --silent "${directory}/qodo-skills-index.json.sha256" distribution/qodo-skills-index.json.sha256
+  cmp --silent "${directory}/qodo-cli-managed-bundle.json" distribution/qodo-cli-managed-bundle.json
+  cmp --silent "${directory}/qodo-cli-managed-bundle.json.sha256" distribution/qodo-cli-managed-bundle.json.sha256
+  cmp --silent "${directory}/${ARCHIVE_NAME}" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}"
+  cmp --silent "${directory}/${ARCHIVE_NAME}.sha256" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
+  cmp --silent "${directory}/qodo-enterprise-manifest.json" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
+  cmp --silent "${directory}/qodo-enterprise-manifest.json.sha256" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
+}
 
 require_current_main() {
   require_exact_release_checkout
@@ -80,16 +119,11 @@ if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
       exit 1
     fi
     test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
-      'qodo-skills-index.json qodo-skills-index.json.sha256'
+      "${EXPECTED_ASSETS}"
     VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-release-verify.XXXXXX")"
     trap 'rm -rf -- "${VERIFY_DIR}"' EXIT
-    gh release download "${TAG}" --dir "${VERIFY_DIR}" --pattern 'qodo-skills-index.json*'
-    (
-      cd "${VERIFY_DIR}"
-      verify_sha256 qodo-skills-index.json.sha256
-    )
-    cmp --silent "${VERIFY_DIR}/qodo-skills-index.json" distribution/qodo-skills-index.json
-    cmp --silent "${VERIFY_DIR}/qodo-skills-index.json.sha256" distribution/qodo-skills-index.json.sha256
+    gh release download "${TAG}" --dir "${VERIFY_DIR}" --pattern 'qodo-*'
+    verify_release_assets "${VERIFY_DIR}"
     exit 0
   fi
 fi
@@ -114,44 +148,48 @@ if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
     echo "Existing release ${TAG} left draft state before asset verification; refusing to mutate it." >&2
     exit 1
   fi
-  EXISTING_ASSETS="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')"
-  case "${EXISTING_ASSETS}" in
-    '')
-      gh release upload "${TAG}" \
-        distribution/qodo-skills-index.json \
-        distribution/qodo-skills-index.json.sha256
-      ;;
-    'qodo-skills-index.json')
-      gh release upload "${TAG}" distribution/qodo-skills-index.json.sha256
-      ;;
-    'qodo-skills-index.json.sha256')
-      gh release upload "${TAG}" distribution/qodo-skills-index.json
-      ;;
-    'qodo-skills-index.json qodo-skills-index.json.sha256')
-      ;;
-    *)
+  EXISTING_ASSETS=()
+  while IFS= read -r existing_asset; do
+    [[ -n "${existing_asset}" ]] && EXISTING_ASSETS+=("${existing_asset}")
+  done < <(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.assets[].name')
+  for existing_asset in "${EXISTING_ASSETS[@]}"; do
+    expected=false
+    for release_asset in "${RELEASE_ASSETS[@]}"; do
+      if [[ "$(basename "${release_asset}")" == "${existing_asset}" ]]; then
+        expected=true
+        break
+      fi
+    done
+    if [[ "${expected}" == 'false' ]]; then
       echo "Existing draft ${TAG} has an unexpected asset inventory; refusing to replace anything." >&2
       exit 1
-      ;;
-  esac
+    fi
+  done
+  for release_asset in "${RELEASE_ASSETS[@]}"; do
+    asset_name="$(basename "${release_asset}")"
+    present=false
+    for existing_asset in "${EXISTING_ASSETS[@]}"; do
+      if [[ "${asset_name}" == "${existing_asset}" ]]; then
+        present=true
+        break
+      fi
+    done
+    if [[ "${present}" == 'false' ]]; then
+      gh release upload "${TAG}" "${release_asset}"
+    fi
+  done
 else
   gh release create "${TAG}" --draft --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}" \
-    distribution/qodo-skills-index.json \
-    distribution/qodo-skills-index.json.sha256
+    "${RELEASE_ASSETS[@]}"
 fi
 
 test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.draft')" = 'true'
 test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
-  'qodo-skills-index.json qodo-skills-index.json.sha256'
+  "${EXPECTED_ASSETS}"
 VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-release-verify.XXXXXX")"
 trap 'rm -rf -- "${VERIFY_DIR}"' EXIT
-gh release download "${TAG}" --dir "${VERIFY_DIR}" --pattern 'qodo-skills-index.json*'
-(
-  cd "${VERIFY_DIR}"
-  verify_sha256 qodo-skills-index.json.sha256
-)
-cmp --silent "${VERIFY_DIR}/qodo-skills-index.json" distribution/qodo-skills-index.json
-cmp --silent "${VERIFY_DIR}/qodo-skills-index.json.sha256" distribution/qodo-skills-index.json.sha256
+gh release download "${TAG}" --dir "${VERIFY_DIR}" --pattern 'qodo-*'
+verify_release_assets "${VERIFY_DIR}"
 
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
 require_annotated_release_tag
@@ -164,15 +202,10 @@ if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutab
   exit 1
 fi
 test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
-  'qodo-skills-index.json qodo-skills-index.json.sha256'
+  "${EXPECTED_ASSETS}"
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
 require_annotated_release_tag
 PUBLISHED_VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-published-release-verify.XXXXXX")"
 trap 'rm -rf -- "${VERIFY_DIR:-}" "${PUBLISHED_VERIFY_DIR:-}"' EXIT
-gh release download "${TAG}" --dir "${PUBLISHED_VERIFY_DIR}" --pattern 'qodo-skills-index.json*'
-(
-  cd "${PUBLISHED_VERIFY_DIR}"
-  verify_sha256 qodo-skills-index.json.sha256
-)
-cmp --silent "${PUBLISHED_VERIFY_DIR}/qodo-skills-index.json" distribution/qodo-skills-index.json
-cmp --silent "${PUBLISHED_VERIFY_DIR}/qodo-skills-index.json.sha256" distribution/qodo-skills-index.json.sha256
+gh release download "${TAG}" --dir "${PUBLISHED_VERIFY_DIR}" --pattern 'qodo-*'
+verify_release_assets "${PUBLISHED_VERIFY_DIR}"

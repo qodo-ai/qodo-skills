@@ -5,7 +5,7 @@
   "package": {
     "name": "qodo",
     "displayName": "Qodo for coding agents",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "homepage": "https://www.qodo.ai",
@@ -33,7 +33,12 @@
         "qodo-codebase-wisdom",
         "qodo-review",
         "qodo-review-resolver"
-      ]
+      ],
+      "compatibilityAliases": {
+        "codebase-wisdom": "qodo-codebase-wisdom",
+        "pre-pr-review": "qodo-review",
+        "resolve-findings": "qodo-review-resolver"
+      }
     },
     {
       "name": "qodo-standards",
@@ -43,7 +48,11 @@
       "skills": [
         "qodo-get-rules",
         "qodo-manage-standards"
-      ]
+      ],
+      "compatibilityAliases": {
+        "get-rules": "qodo-get-rules",
+        "qodo-manage-rules": "qodo-manage-standards"
+      }
     }
   ],
   "skills": [

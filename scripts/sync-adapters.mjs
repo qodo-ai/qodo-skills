@@ -222,7 +222,7 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       );
     }
   }
-  // Preserve the legacy marketplace invocation while the canonical skill name
+  // Preserve the earlier marketplace invocation as a compatibility alias while the canonical skill name
   // moves from qodo-pr-resolver to qodo-review-resolver. This is generated from
   // the canonical workflow (never separately authored), and its narrow
   // description prevents it competing with the canonical skill for new tasks.
@@ -237,6 +237,19 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       )
       .replace(/^metadata:$/m, 'metadata:\n  alias_for: "qodo-review-resolver"');
     files.set('skills/qodo-pr-resolver/SKILL.md', compatibilityAlias);
+    if (adapterSet === 'codex') {
+      const canonicalAdapter = files.get('skills/qodo-review-resolver/agents/openai.yaml');
+      if (!canonicalAdapter) throw new Error(`${value.name}: missing qodo-review-resolver Codex adapter`);
+      if (!/^  allow_implicit_invocation: true$/m.test(canonicalAdapter)) {
+        throw new Error(`${value.name}: qodo-review-resolver Codex adapter must declare implicit invocation`);
+      }
+      files.set(
+        'skills/qodo-pr-resolver/agents/openai.yaml',
+        canonicalAdapter
+          .replace(/\$qodo-review-resolver\b/g, '$qodo-pr-resolver')
+          .replace(/^  allow_implicit_invocation: true$/m, '  allow_implicit_invocation: false'),
+      );
+    }
   }
   return files;
 }

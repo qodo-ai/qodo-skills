@@ -45,7 +45,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "displayName", "description", "default", "skills"],
+        "required": ["name", "displayName", "description", "default", "skills", "compatibilityAliases"],
         "properties": {
           "name": { "type": "string", "pattern": "^qodo(?:-[a-z0-9-]+)?$" },
           "displayName": { "type": "string", "minLength": 1 },
@@ -56,6 +56,12 @@
             "minItems": 1,
             "uniqueItems": true,
             "items": { "type": "string", "pattern": "^qodo-[a-z0-9-]+$" }
+          },
+          "compatibilityAliases": {
+            "type": "object",
+            "minProperties": 1,
+            "propertyNames": { "pattern": "^[a-z][a-z0-9-]{1,63}$" },
+            "additionalProperties": { "type": "string", "pattern": "^qodo-[a-z0-9-]+$" }
           }
         }
       }

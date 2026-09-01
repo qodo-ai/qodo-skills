@@ -445,14 +445,15 @@ try {
   writeFileSync(releaseRecordPath, `${JSON.stringify(missingSkillsDiffRelease, null, 2)}\n`);
   commitScenario('release record without skills array');
   expectDiffFailure(/skills must be an array/);
-  resetToRelease();
-  appendFileSync(join(repositoryRoot, 'scripts', 'prepare-release.mjs'), '\n// release generator change\n');
-  commitScenario('unversioned release generator change');
-  expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
-  resetToRelease();
-  appendFileSync(join(repositoryRoot, '.github', 'workflows', 'ship-marketplaces.yml'), '\n# release workflow change\n');
-  commitScenario('unversioned marketplace workflow change');
-  expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
+  const expectPackageVersionChange = (path, change) => {
+    resetToRelease();
+    appendFileSync(join(repositoryRoot, path), change);
+    commitScenario(`unversioned ${path} change`);
+    expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
+  };
+  expectPackageVersionChange('scripts/build-enterprise-bundle.mjs', '\n// enterprise packaging change\n');
+  expectPackageVersionChange('scripts/prepare-release.mjs', '\n// release generator change\n');
+  expectPackageVersionChange('.github/workflows/ship-marketplaces.yml', '\n# release workflow change\n');
   resetToRelease();
   const deletionCatalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
   deletionCatalog.skills = deletionCatalog.skills.filter((skill) => skill.name !== 'qodo-review');
@@ -493,7 +494,6 @@ try {
   writeFileSync(mislabeledReleasePath, `${JSON.stringify(mislabeledRelease, null, 2)}\n`);
   commitScenario('mislabel semantic changes');
   expectDiffFailure(/release package\.change must be minor[\s\S]*qodo-review release change must be minor/);
-
   console.log('Release preparation test passed.');
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true, maxRetries: 20, retryDelay: 200 });

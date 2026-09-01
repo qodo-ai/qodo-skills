@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fail closed before a release tag or draft can be created.
-# Usage: GH_TOKEN=<release-token> GITHUB_REPOSITORY=owner/repo scripts/verify-release-prerequisites.sh
+# The administrator-only bypass audit is scripts/audit-release-protections.sh.
+# Usage: GH_TOKEN=<workflow-token> GITHUB_REPOSITORY=owner/repo scripts/verify-release-prerequisites.sh
 set -euo pipefail
 
 command -v gh >/dev/null 2>&1 || {
@@ -9,7 +10,7 @@ command -v gh >/dev/null 2>&1 || {
 }
 
 if [[ -z "${GH_TOKEN:-}" ]]; then
-  echo 'QODO_RELEASE_ADMIN_TOKEN is required with repository Administration:read and Contents:read/write.' >&2
+  echo 'A repository-scoped GitHub App token with Administration:read is required for release preflight.' >&2
   exit 1
 fi
 
@@ -38,12 +39,12 @@ if [[ "${RULESET_COUNT}" -ne 1 ]]; then
   exit 1
 fi
 if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/rulesets/${RULESET_ID}" --jq '
-  (.conditions.ref_name.include | index("refs/tags/v*")) != null and
+  (.conditions.ref_name.include == ["refs/tags/v*"]) and
   (.conditions.ref_name.exclude | type == "array" and length == 0) and
-  ([.rules[].type] | contains(["update", "deletion"])) and
+  ([.rules[].type] | sort == ["deletion", "update"]) and
   ([.rules[].type] | index("creation")) == null and
-  (.bypass_actors | type == "array" and length == 0)
+  ((has("bypass_actors") | not) or (.bypass_actors | type == "array" and length == 0))
 ')" != 'true' ]]; then
-  echo 'The active, no-exclusion, no-bypass Immutable release tags ruleset must protect update/deletion, permit creation, and cover refs/tags/v*.' >&2
+  echo 'The active, exact-target Immutable release tags ruleset must protect only update/deletion, permit creation, and expose no bypass actors when visible.' >&2
   exit 1
 fi

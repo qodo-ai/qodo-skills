@@ -1,0 +1,10 @@
+{
+  "version": "1.0.7",
+  "summary": "Add CLI-managed continuity, the independently versioned enterprise bundle, and least-privilege marketplace release controls.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}

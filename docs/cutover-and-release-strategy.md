@@ -4,14 +4,21 @@
 
 Qodo moves skill ownership out of the CLI without creating a second architecture:
 
-> Qodo authors skills once; marketplaces update plugins; the CLI updates the runtime.
+> Qodo authors skills once; every installed root has one lifecycle owner. Marketplaces and the
+> enterprise bundle update plugin roots; the CLI-managed channel updates only roots created by
+> earlier Qodo CLI releases;
+> the CLI updates the runtime.
 
 - Claude Code, Codex, and Kiro receive complete generated skills through their official listings.
 - Compatible agents without a Qodo listing use skills.sh.
+- On-prem QAR deployments pin and serve one immutable enterprise archive beside the independently
+  pinned CLI; customer deployment tooling owns plugin rollout.
 - `qodo-standards` remains a separate optional package everywhere.
+- Existing users who keep the copies originally installed by the CLI continue receiving current
+  skills automatically; marketplace migration is optional, not a support deadline.
 - The CLI authenticates and runs tools, updates itself, prints lifecycle guidance, emits stale-skill
-  notices, and retires only hash-exact shipped copies into recoverable hidden quarantines.
-- No task-time playbook loader and no CLI skill installer/updater ship in the cutover.
+  notices, and maintains only hash-exact CLI-managed copies through a separate compatibility channel.
+- No task-time playbook loader or general-purpose CLI skill installer ships in the cutover.
 
 ## Why this design
 
@@ -36,10 +43,16 @@ skills/<name>/ (authored once)
           ├── packages/             Claude Code complete skills
           ├── codex-packages/       Codex complete skills
           ├── kiro-power*/          Kiro Agent Plugins power packages
-          └── skills/               skills.sh source
+          ├── skills/               skills.sh source
+          ├── enterprise archive    Claude/Codex/Kiro/portable offline projections
+          └── CLI-managed bundle    current bytes for proven earlier CLI-managed roots
 
 qodo CLI ── login + runtime + tool help + version notice
-        └── never installs, updates, or serves workflow instructions
+        ├── never creates a new skill installation after cutover
+        └── updates only roots carrying CLI-managed ownership proof
+
+QAR /toolbox ── independently pinned CLI + enterprise skills assets
+             └── same-origin checksummed metadata; no public-network dependency at runtime
 ```
 
 ## Cutover sequence
@@ -56,18 +69,25 @@ rollback.
 - Create protected GitHub environments `marketplace-claude`, `marketplace-kiro`, and
   `marketplace-codex` with required release-owner reviewers.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
-- Configure `QODO_RELEASE_ADMIN_TOKEN` with repository `Administration: write` and `Contents:
-  read/write`. GitHub requires ruleset write access to return bypass actors; the token verifies
-  release controls and advances only the protected `marketplace-kiro`
-  source branch; normal `GITHUB_TOKEN` remains read-only.
+- Install the dedicated `qodo-skills-release-bot` GitHub App on `qodo-ai/qodo-skills` with only
+  `Administration: read`, `Contents: write`, and `Metadata: read`. Store its App id and private key only in the protected
+  `marketplace-kiro` environment as `QODO_SKILLS_RELEASE_APP_ID` and
+  `QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`, and require at least one release reviewer. For the initial
+  cutover, admin bypass remains enabled, self-review is allowed, and protected branches may deploy;
+  the team accepts this weaker approval posture and can harden it independently later.
+- Run `GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh` with a repository
+  administrator's existing `gh` session before release. The audit verifies hidden bypass actors;
+  no administrator or shared QAR credential is stored in this public repository.
 - Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
   `refs/tags/v*`; tag creation is allowed, but updates and deletion are blocked. Release preflight
   searches every ruleset page and rejects duplicate matches or a creation restriction.
 - Create exactly one active **Kiro marketplace release** ruleset for
   `refs/heads/marketplace-kiro`: block creation, update, deletion, and force-push; exclude
-  nothing; and grant always-bypass to exactly the release identity
-  behind `QODO_RELEASE_ADMIN_TOKEN` to advance it without force pushes. Repoint both existing Kiro
-  listing URLs from `main` to this branch before the first marketplace-owned release.
+  nothing; and grant always-bypass only to the dedicated App's `Integration` actor. The approved
+  workflow mints a short-lived token scoped to this repository and advances the branch without a
+  force push. The release workflow uses the same protected App only to verify repository
+  immutability before creating a tag or draft. Repoint both existing Kiro listing URLs from `main` to this branch before the first
+  marketplace-owned release.
 
 Gate: every item is verified from provider/repository state. A source manifest is not evidence of
 a live marketplace listing.
@@ -82,7 +102,12 @@ Ship the CLI that:
 - when none is detected, reads the current skills.sh agent catalog, excludes marketplace-owned
   IDs, and preserves each selected agent's supported project/global scope;
 - prints exact core and optional-package commands without executing them;
-- has no `qodo skills install`, no direct updater, and no task-time workflow endpoint;
+- has no `qodo skills install` and no task-time workflow endpoint;
+- enrolls only byte-exact copies from shipped CLI releases, including the live `next.36` bytes;
+- immediately refreshes enrolled copies from its embedded cutover snapshot, then follows the
+  checksummed CLI-managed qodo-skills channel in the background;
+- never adds a missing skill, never touches marketplace/enterprise roots, honors the historical
+  `autoManage: false` preference, and preserves any user edit or unknown copy;
 - refreshes only the checksummed compact skill index and emits non-fatal stale notices;
 - retains explicit `qodo skills cleanup` for migration: it holds a validated root identity and
   atomically quarantines exact immutable-release copies without recursively deleting bytes.
@@ -93,14 +118,18 @@ updates can still arrive before a particular machine updates, every skill probes
 without provenance flags and offers the runtime's already-recorded update origin before auth.
 
 Gate: clean install and upgrade on macOS/Linux/Windows; login; catalog refresh; machine-readable
-help; marketplace status outcomes; multi-agent skills.sh command; optional package isolation; no
-skill-root mutation during ordinary startup.
+help; marketplace status outcomes; multi-agent skills.sh command; optional package isolation;
+`next.36` CLI-created roots update to the exact canonical bytes; marketplace, user-modified, unknown,
+and opted-out roots remain byte-identical; failed replacement restores the active copy.
 
-Rollback: roll back only the runtime. Existing skills remain owned by their current host.
+Rollback: roll back the runtime independently. Existing CLI-managed skills keep their last verified
+copy and recoverable predecessor; marketplace skills remain owned by their host.
 
-### 2. Publish the canonical skills release
+### 2. Publish one complete canonical skills release
 
-- Merge the atomic qodo-skills PR with canonical version bumps and generated provider packages.
+- Merge the canonical/provider PR, then rebase and merge its stacked distribution PR containing
+  both the CLI-managed and enterprise release assets. Do not publish the intermediate package
+  version: the first cutover release is the complete `v1.0.7` tag.
 - Release validation derives changes from both canonical files and the catalog: packaging-only
   changes require a package release, every semantic-version delta must match its release record,
   catalog-only bumps cannot disappear from release notes, `initial` cannot target an existing
@@ -111,16 +140,48 @@ Rollback: roll back only the runtime. Existing skills remain owned by their curr
   before publication, and then re-verifies the immutable tag and assets after publication.
 - CI executes those checked-in preflight and publication programs with a stateful fake GitHub CLI,
   including credential/ruleset failures, corrupted draft rejection and resume, successful
-  publication, and idempotent immutable verification.
+  publication, and idempotent immutable verification. The release asset inventory includes the
+  compact index, the data-only CLI-managed bundle, the enterprise bundle, and their checksums.
+- After the immutable GitHub release is verified, dispatch **release: publish skills compatibility
+  channel** in `qodo-ai/qodo-in-cli` with that exact tag. Its canary job verifies the immutable
+  release and checksums, copies the compact index and CLI-managed bundle to tag-scoped
+  `get.qodo.ai` paths, and advances only the `skills` pointers in `version.json`. The protected
+  production job promotes the exact canary bytes. CLI release jobs preserve those pointers when
+  they update the independent runtime channel.
 - Smoke-test skills.sh core installation on representative non-marketplace agents before provider
   promotion.
 
-Gate: `npm test`, immutable release verification, four canonical core capabilities, standards
+Gate: `npm test`, immutable release verification, tag-scoped canary and production compatibility
+assets plus exact same-origin `version.json` pointers, four canonical core capabilities, standards
 opt-in, full embedded body/provenance checks, and skills.sh project/global update without package
 broadening. Marketplace packages may also expose the generated `qodo-pr-resolver` compatibility
 name, which is the same canonical resolver workflow and not a fifth capability.
 
 Rollback: publish a new immutable patch. Never replace the release asset.
+
+### 2a. Prepare the on-prem enterprise lane
+
+- The immutable skills release includes a deterministic enterprise manifest, archive, and
+  checksums. The archive stamps `enterprise-bundle` provenance into complete Claude, Codex, Kiro,
+  and portable projections while preserving core/Standards package isolation.
+- QAR pins the skills version and hashes in a lock separate from its CLI lock, verifies and bakes
+  both during the backend image build, and serves the skills index, CLI-managed bundle, and archive
+  under `/toolbox`.
+- The compatible CLI fetches the CLI-managed bundle from the recorded QAR origin, so an on-prem
+  client never falls back to public GitHub. Only previously enrolled CLI-managed roots are updated;
+  enterprise plugin imports remain customer-controlled.
+- A customer deployment imports the matching host package through its approved local plugin
+  lifecycle. If that importer uses the skills CLI, every command runs with `DO_NOT_TRACK=1`, as
+  declared by the bundle manifest. Qodo Standards remains a separate explicit choice.
+
+Gate: deterministic archive rebuild; exact manifest/archive/index checksums; QAR offline image
+build and route tests; private-origin no-egress; telemetry-disabled skills-CLI import when used;
+fresh core import; Standards absent; enterprise
+bundle upgrade; new-session activation. The QAR PR cannot become merge-ready until the pinned
+immutable qodo-skills release exists at the exact bytes in its lock.
+
+Rollback: publish a new immutable skills patch and advance only the QAR skills pin. The CLI pin is
+unchanged unless runtime compatibility independently requires it.
 
 ### 3. Promote Claude and Kiro
 
@@ -149,7 +210,7 @@ This avoids GitHub's lossy single-pending queue, launch races, and old-tag rerun
 - Wait for provider-visible exact commit/path before behavioral acceptance.
 
 Gate per provider: fresh install, in-place upgrade, exactly four canonical core capabilities plus
-the expected generated legacy resolver alias (five core-package skill entries), optional standards absence,
+the expected generated resolver compatibility alias (five core-package skill entries), optional standards absence,
 setup/login, one read workflow, one approval-gated write workflow, update and new-session activation.
 
 Rollback: publish/repoint to a new last-good patch through the provider-supported flow. Kiro is
@@ -176,6 +237,11 @@ Rollback: while the window is open, restore the existing listing to the recorded
 or ship a new canonical patch. Never create a second core listing.
 
 ### 5. Migrate existing CLI-first users
+
+Migration is optional. A user who does nothing remains on the supported CLI-managed channel and
+receives current skill bodies whenever automatic updates are enabled and the configured release
+origin is reachable. A user with automatic updates disabled or an offline machine keeps the last
+verified copy and receives no false claim of freshness.
 
 - If the official plugin is installed, ask for a new session and verify Qodo.
 - If a listing is visible, direct the user to the host’s install action.
@@ -207,12 +273,13 @@ optional skills are discoverable but never auto-installed.
 | Gate | Evidence required | Blocks |
 |---|---|---|
 | Source | exact merged heads, full CI, generated-drift checks | GitHub release |
-| Repository | least-privilege release credential, immutable releases enabled, no-bypass `v*` tag ruleset, protected `marketplace-kiro` branch, protected tag SHA, and post-publication immutable asset bytes | all promotion |
+| Repository | successful administrator audit, dedicated repository-scoped release App, immutable releases enabled, no-bypass `v*` tag ruleset, protected `marketplace-kiro` branch, protected tag SHA, and post-publication immutable asset bytes | all promotion |
 | Claude | official catalog exact SHA/path | Claude completion |
 | Kiro | live Agent Plugins power on `marketplace-kiro` at the exact release SHA/path | Kiro completion |
 | Codex | portal review + publish + protected attestation | Codex completion and old-repo deprecation |
 | Behavior | fresh install, upgrade, package isolation, setup/read/write/update | provider sign-off |
 | Migration | no duplicate/shadowed skill; cleanup preserves user changes | broad rollout |
+| On-prem | immutable enterprise asset hashes, QAR pin/routes, no-egress, core-only import and upgrade | enterprise rollout |
 
 No gate is satisfied by an announcement, packet, or green workflow that does not prove the named
 external state.
@@ -226,7 +293,7 @@ declared scope, and cannot route a marketplace-owned ID through skills.sh.
 Go only when:
 
 - CLI and skills PR heads are independently green and review-clean;
-- release immutability, the least-privilege release credential, protected `marketplace-kiro`, and
+- release immutability, the dedicated least-privilege release App, protected `marketplace-kiro`, and
   all three marketplace environment protections are configured;
 - rollback identities/artifacts are recorded;
 - selected provider publication owners are available;

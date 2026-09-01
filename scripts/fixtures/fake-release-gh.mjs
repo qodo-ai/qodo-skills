@@ -36,11 +36,22 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
   } else if (!state.exists) process.exit(1);
   else if (query === '.draft') process.stdout.write(`${state.draft}\n`);
   else if (query === '.immutable') process.stdout.write(`${state.immutable}\n`);
+  else if (query === '.assets[].name') process.stdout.write(`${state.assets.join('\n')}\n`);
   else if (query.includes('.assets[].name')) process.stdout.write(`${[...state.assets].sort().join(' ')}\n`);
   else throw new Error(`Unsupported release query: ${query}`);
 } else if (args[0] === 'release' && args[1] === 'view') {
   if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '')) throw new Error('Invalid release view tag');
   process.exit(readState().exists ? 0 : 1);
+} else if (args[0] === 'release' && args[1] === 'delete-asset') {
+  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || !args[3] || !args.includes('--yes')) {
+    throw new Error('Release asset deletion must specify a valid tag, asset, and --yes');
+  }
+  const state = readState();
+  writeState({
+    ...state,
+    assets: state.assets.filter((asset) => asset !== args[3]),
+    deletedAssets: [...(state.deletedAssets ?? []), args[3]],
+  });
 } else if (args[0] === 'release' && (args[1] === 'create' || args[1] === 'upload')) {
   if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '')) throw new Error('Invalid release mutation tag');
   if (args[1] === 'create' && (!args.includes('--draft') || !args.includes('--verify-tag'))) {
@@ -50,10 +61,11 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
     throw new Error('Release upload must never overwrite an existing asset');
   }
   const state = readState();
+  const assetPattern = /(?:qodo-(?:skills-index|cli-managed-bundle)\.json(?:\.sha256)?|qodo-enterprise-manifest\.json(?:\.sha256)?|qodo-enterprise-bundle-v\d+\.\d+\.\d+\.tar\.gz(?:\.sha256)?)$/;
   if (args[1] === 'upload' && (!state.exists || !state.draft)) {
     throw new Error('Release upload requires an existing draft');
   }
-  const assetPaths = args.filter((arg) => arg.endsWith('qodo-skills-index.json') || arg.endsWith('qodo-skills-index.json.sha256'));
+  const assetPaths = args.filter((arg) => assetPattern.test(arg));
   const assetNames = assetPaths.map((path) => basename(path));
   if (assetNames.some((asset) => state.assets.includes(asset))) {
     throw new Error('Release upload must not replace an existing asset');
@@ -68,7 +80,7 @@ if (args[0] === 'api' && endpoint.endsWith('/immutable-releases')) {
     assets: [...state.assets, ...assetNames],
   });
 } else if (args[0] === 'release' && args[1] === 'download') {
-  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || args[args.indexOf('--pattern') + 1] !== 'qodo-skills-index.json*') {
+  if (!/^v\d+\.\d+\.\d+$/.test(args[2] ?? '') || args[args.indexOf('--pattern') + 1] !== 'qodo-*') {
     throw new Error('Invalid release download');
   }
   const state = readState();

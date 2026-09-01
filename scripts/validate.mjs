@@ -137,6 +137,7 @@ if (JSON.stringify(diskSkills) !== JSON.stringify(catalogSkills)) {
 
 const installPackageNames = new Set();
 const packagedSkills = new Map();
+const compatibilityAliases = new Set();
 for (const installPackage of catalog.installPackages ?? []) {
   if (!/^qodo(?:-[a-z0-9-]+)?$/.test(installPackage.name) || installPackageNames.has(installPackage.name)) {
     fail(`invalid or duplicate install package ${installPackage.name ?? '<missing>'}`);
@@ -152,6 +153,17 @@ for (const installPackage of catalog.installPackages ?? []) {
       fail(`${skillName}: assigned to both ${packagedSkills.get(skillName)} and ${installPackage.name}`);
     } else {
       packagedSkills.set(skillName, installPackage.name);
+    }
+  }
+  if (!installPackage.compatibilityAliases || typeof installPackage.compatibilityAliases !== 'object') {
+    fail(`${installPackage.name}: install package must declare compatibility aliases`);
+  } else {
+    for (const [alias, target] of Object.entries(installPackage.compatibilityAliases)) {
+      if (compatibilityAliases.has(alias)) fail(`${alias}: compatibility alias is assigned more than once`);
+      compatibilityAliases.add(alias);
+      if (!installPackage.skills.includes(target)) {
+        fail(`${alias}: compatibility alias target ${target} is outside ${installPackage.name}`);
+      }
     }
   }
 }
@@ -343,6 +355,10 @@ if (claudeMarketplace.plugins?.find((entry) => entry.name === 'qodo-standards')?
 }
 if (json('packages/qodo/.claude-plugin/plugin.json').name !== claudeCoreId) {
   fail('Claude core package manifest must preserve the qodo identity');
+}
+const legacyCodexAdapter = readFileSync(join(root, 'codex-packages/qodo/skills/qodo-pr-resolver/agents/openai.yaml'), 'utf8');
+if (!/\$qodo-pr-resolver/.test(legacyCodexAdapter) || !/^  allow_implicit_invocation: false$/m.test(legacyCodexAdapter)) {
+  fail('Codex qodo-pr-resolver compatibility alias must be explicit-only');
 }
 
 for (const unsafeRoot of ['plugin.json', '.codex-plugin/plugin.json', '.claude-plugin/plugin.json', 'gemini-extension.json']) {

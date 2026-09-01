@@ -16,6 +16,8 @@ jobs:
       github.repository == 'qodo-ai/qodo-skills' &&
       github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
+    environment:
+      name: marketplace-kiro
     steps:
       - name: Check out the release commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -53,12 +55,38 @@ jobs:
       - name: Verify the release package
         run: npm test
 
-      - name: Verify immutable releases are enabled
+      - name: Require dedicated release App configuration
         env:
-          GH_TOKEN: ${{ secrets.QODO_RELEASE_ADMIN_TOKEN }}
+          RELEASE_APP_ID: ${{ vars.QODO_SKILLS_RELEASE_APP_ID }}
+          RELEASE_APP_PRIVATE_KEY: ${{ secrets.QODO_SKILLS_RELEASE_APP_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          [[ "${RELEASE_APP_ID}" =~ ^[0-9]+$ ]] || { echo 'QODO_SKILLS_RELEASE_APP_ID must be configured in marketplace-kiro.' >&2; exit 1; }
+          test -n "${RELEASE_APP_PRIVATE_KEY}" || { echo 'QODO_SKILLS_RELEASE_APP_PRIVATE_KEY must be configured in marketplace-kiro.' >&2; exit 1; }
+
+      - name: Mint repository-scoped release preflight token
+        id: release-preflight-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ vars.QODO_SKILLS_RELEASE_APP_ID }}
+          private-key: ${{ secrets.QODO_SKILLS_RELEASE_APP_PRIVATE_KEY }}
+          owner: qodo-ai
+          repositories: qodo-skills
+          permission-administration: read
+
+      - name: Verify runtime release prerequisites
+        env:
+          GH_TOKEN: ${{ steps.release-preflight-token.outputs.token }}
         run: scripts/verify-release-prerequisites.sh
+
+      - name: Build the deterministic enterprise bundle
+        run: >-
+          node scripts/build-enterprise-bundle.mjs
+          --output "${RUNNER_TEMP}/qodo-enterprise-release"
+          --commit "${GITHUB_SHA}"
 
       - name: Publish the immutable tag and GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          QODO_ENTERPRISE_RELEASE_DIR: ${{ runner.temp }}/qodo-enterprise-release
         run: scripts/publish-release.sh
