@@ -12,9 +12,12 @@ npm test
 ```
 
 `release:prepare` increments the affected skill and package versions, regenerates Claude, Codex,
-Kiro, and release-index artifacts, and writes `releases/v<version>.json`. CI rejects a changed
-workflow without a version bump, generated drift, a thin loader, package leakage, or an incomplete
-release record.
+Kiro, and release-index artifacts, and writes `releases/v<version>.json`. CI requires a version bump
+for skill bodies, generated projections, marketplace packaging, and artifact-generating automation;
+it also rejects generated drift, a thin loader, package leakage, or an incomplete release record.
+Operational release publication and validation code can advance independently because it changes no
+installed package bytes—this separation is what permits a reviewed fix to resume an existing tagged
+draft without inventing or moving a package version.
 
 The pull request must state:
 
@@ -63,7 +66,8 @@ token for that pre-publication check. The checked-in audit, runtime preflight, a
 missing credentials, disabled immutability, duplicate/invalid rulesets, forbidden creation rules,
 draft corruption, draft resume, publication, and immutable retry all fail closed.
 After the compatible CLI release is live and the skills PR is merged, a release owner dispatches
-**Release skills** from the current `main` head. Rerunning it is idempotent. The workflow:
+**Release skills** from the current `main` head. Rerunning it is idempotent, including recovery when
+a prior run created the protected tag and draft but stopped before publication. The workflow:
 
 1. requires the dispatched SHA to be the exact `main` head before and after validation; a merge
    after that final check does not change the validated release SHA;
@@ -72,14 +76,27 @@ After the compatible CLI release is live and the skills PR is merged, a release 
    protected-tag ruleset before creating any tag or release;
 4. creates annotated tag `v<package-version>`, pushes it without force, and verifies the protected
    remote tag peels to the validated SHA immediately before publication;
-5. builds the deterministic enterprise archive, then creates or resumes a draft release containing
-   the compact index, data-only CLI-managed bundle, enterprise manifest, enterprise archive, and
-   all four SHA-256 files;
+5. materializes the resolved release commit as a clean detached worktree and, before the
+   publication token is exposed, runs that tree's enterprise and release-note builders; publication
+   then uses only those prepared outputs plus that tree's index, CLI-managed bundle, and checksums,
+   and requires the draft title and body to match the tagged-source metadata exactly;
 6. publishes the verified draft, which makes the release immutable;
-7. verifies the published release is immutable, the protected tag is unchanged, and both published
+7. verifies the published release is immutable, the protected tag is unchanged, and all published
    assets still match the validated checkout byte-for-byte;
-8. on an idempotent rerun, downloads both existing assets, verifies their checksum, and compares
+8. on an idempotent rerun, downloads all eight existing assets, verifies their checksums, and compares
    them byte-for-byte with the validated checkout before reporting success.
+
+GitHub's release-by-tag REST endpoint does not expose draft releases. The publisher therefore finds
+both drafts and public releases through the paginated release list, rejects duplicate tag claims,
+and addresses the selected release by immutable numeric id. If reviewed release automation advances
+`main` after a draft was created, recovery may use the older tagged commit only when that tag is an
+ancestor of current `main` and an existing draft for the tag is present. Recovery checks out that
+exact tagged commit into a separate clean worktree; both enterprise packaging and every potentially
+missing release input are read from it, never from current `main`. The publisher revalidates the
+source worktree, draft title, and draft body immediately before mutation, and every downloaded draft
+asset must match before the draft can become public. Draft uploads and downloads use the numeric
+release and asset REST endpoints because GitHub's tag-oriented CLI cannot resolve drafts. An older
+tag without its draft fails closed; tags and assets are never moved, deleted, or overwritten.
 
 After that workflow succeeds, dispatch **release: publish skills compatibility channel** in
 `qodo-ai/qodo-in-cli` with the immutable `v<package-version>` tag. The workflow verifies the public

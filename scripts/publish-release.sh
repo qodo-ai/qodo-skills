@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Create or resume a verified draft, then publish and re-verify immutable bytes.
 # Usage: GH_TOKEN=<contents-write-token> GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> \
-#   RUNNER_TEMP=<dir> QODO_ENTERPRISE_RELEASE_DIR=<prepared-assets-dir> scripts/publish-release.sh
+#   RUNNER_TEMP=<dir> QODO_ENTERPRISE_RELEASE_DIR=<prepared-assets-dir> \
+#   QODO_RELEASE_NOTES_FILE=<prepared-notes> QODO_RELEASE_SOURCE_DIR=<tagged-worktree> \
+#   scripts/publish-release.sh
 set -euo pipefail
 
-for tool in gh git node mktemp cmp grep cat rm basename; do
+for tool in gh git node mktemp cmp rm basename; do
   command -v "${tool}" >/dev/null 2>&1 || {
     echo "Release publication requires '${tool}', but it is not available." >&2
     exit 1
@@ -34,9 +36,36 @@ require_exact_release_checkout() {
 
 require_exact_release_checkout
 
-VERSION="$(node -p "require('./distribution/catalog.json').package.version")"
+RELEASE_COMMIT="${QODO_RELEASE_COMMIT:-${GITHUB_SHA}}"
+if [[ ! "${RELEASE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
+  echo 'QODO_RELEASE_COMMIT must be a full lowercase commit SHA.' >&2
+  exit 1
+fi
+RELEASE_SOURCE_DIR="${QODO_RELEASE_SOURCE_DIR:-.}"
+if [[ ! -d "${RELEASE_SOURCE_DIR}" ]]; then
+  echo 'QODO_RELEASE_SOURCE_DIR must name the materialized release source tree.' >&2
+  exit 1
+fi
+RELEASE_SOURCE_DIR="$(cd "${RELEASE_SOURCE_DIR}" && pwd -P)"
+require_exact_release_source() {
+  if [[ "$(git -C "${RELEASE_SOURCE_DIR}" rev-parse HEAD)" != "${RELEASE_COMMIT}" ]]; then
+    echo 'Refusing to publish: release source HEAD is not QODO_RELEASE_COMMIT.' >&2
+    exit 1
+  fi
+  if [[ -n "$(git -C "${RELEASE_SOURCE_DIR}" status --porcelain --untracked-files=all)" ]]; then
+    echo 'Refusing to publish: the release source tree is not clean.' >&2
+    exit 1
+  fi
+}
+require_exact_release_source
+CURRENT_VERSION="$(node -p 'require(process.argv[1]).package.version' "$(pwd)/distribution/catalog.json")"
+VERSION="$(node -p 'require(process.argv[1]).package.version' "${RELEASE_SOURCE_DIR}/distribution/catalog.json")"
+if [[ "${VERSION}" != "${CURRENT_VERSION}" ]]; then
+  echo 'Refusing to publish: current automation and immutable release source have different package versions.' >&2
+  exit 1
+fi
 TAG="v${VERSION}"
-NOTES="${RUNNER_TEMP}/qodo-release-notes.md"
+NOTES="${QODO_RELEASE_NOTES_FILE:?QODO_RELEASE_NOTES_FILE is required}"
 ENTERPRISE_DIR="${QODO_ENTERPRISE_RELEASE_DIR:?QODO_ENTERPRISE_RELEASE_DIR is required}"
 ARCHIVE_NAME="qodo-enterprise-bundle-v${VERSION}.tar.gz"
 RELEASE_ASSETS=(
@@ -44,19 +73,22 @@ RELEASE_ASSETS=(
   "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
   "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
-  distribution/qodo-cli-managed-bundle.json
-  distribution/qodo-cli-managed-bundle.json.sha256
-  distribution/qodo-skills-index.json
-  distribution/qodo-skills-index.json.sha256
+  "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json"
+  "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json.sha256"
+  "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json"
+  "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json.sha256"
 )
 EXPECTED_ASSETS="$(node -e \
   'console.log(process.argv.slice(1).map((asset) => require("node:path").basename(asset)).sort().join(" "))' \
   "${RELEASE_ASSETS[@]}")"
-node scripts/release-notes.mjs "${NOTES}"
-
 for asset in "${RELEASE_ASSETS[@]}"; do
   test -f "${asset}" || { echo "Release asset is missing: ${asset}" >&2; exit 1; }
 done
+test -f "${NOTES}" || { echo "Release notes are missing: ${NOTES}" >&2; exit 1; }
+EXPECTED_TITLE="Qodo skills ${TAG}"
+EXPECTED_NOTES_BASE64="$(node -e \
+  'process.stdout.write(require("node:fs").readFileSync(process.argv[1]).toString("base64"))' \
+  "${NOTES}")"
 
 verify_release_assets() {
   local directory="$1"
@@ -67,10 +99,10 @@ verify_release_assets() {
     verify_sha256 "${ARCHIVE_NAME}.sha256"
     verify_sha256 qodo-enterprise-manifest.json.sha256
   )
-  cmp --silent "${directory}/qodo-skills-index.json" distribution/qodo-skills-index.json
-  cmp --silent "${directory}/qodo-skills-index.json.sha256" distribution/qodo-skills-index.json.sha256
-  cmp --silent "${directory}/qodo-cli-managed-bundle.json" distribution/qodo-cli-managed-bundle.json
-  cmp --silent "${directory}/qodo-cli-managed-bundle.json.sha256" distribution/qodo-cli-managed-bundle.json.sha256
+  cmp --silent "${directory}/qodo-skills-index.json" "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json"
+  cmp --silent "${directory}/qodo-skills-index.json.sha256" "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json.sha256"
+  cmp --silent "${directory}/qodo-cli-managed-bundle.json" "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json"
+  cmp --silent "${directory}/qodo-cli-managed-bundle.json.sha256" "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json.sha256"
   cmp --silent "${directory}/${ARCHIVE_NAME}" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}"
   cmp --silent "${directory}/${ARCHIVE_NAME}.sha256" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   cmp --silent "${directory}/qodo-enterprise-manifest.json" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
@@ -91,34 +123,95 @@ require_annotated_release_tag() {
     echo "${TAG} is not an annotated tag; refusing to publish." >&2
     exit 1
   fi
-  if [[ "$(git rev-parse "refs/tags/${TAG}^{}")" != "${GITHUB_SHA}" ]]; then
+  if [[ "$(git rev-parse "refs/tags/${TAG}^{}")" != "${RELEASE_COMMIT}" ]]; then
     echo "${TAG} does not resolve to the validated release commit; refusing to publish." >&2
     exit 1
   fi
 }
 
-require_current_main
+load_release() {
+  local releases release_count candidate_id candidate_draft
+  if ! releases="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+    --jq ".[] | select(.tag_name == \"${TAG}\") | [.id, .draft] | @tsv")"; then
+    echo "Could not determine whether ${TAG} already exists; refusing to create a release." >&2
+    exit 1
+  fi
+  release_count=0
+  RELEASE_ID=''
+  RELEASE_DRAFT=''
+  while IFS=$'\t' read -r candidate_id candidate_draft; do
+    if [[ -n "${candidate_id:-}" ]]; then
+      release_count=$((release_count + 1))
+      RELEASE_ID="${candidate_id}"
+      RELEASE_DRAFT="${candidate_draft}"
+    fi
+  done <<< "${releases}"
+  if [[ "${release_count}" -gt 1 ]]; then
+    echo "Multiple releases claim ${TAG}; refusing to choose one." >&2
+    exit 1
+  fi
+  if [[ "${release_count}" -eq 1 ]]; then
+    RELEASE_EXISTS=true
+    RELEASE_ENDPOINT="repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}"
+  else
+    RELEASE_EXISTS=false
+    RELEASE_ENDPOINT=''
+  fi
+}
 
-RELEASE_EXISTS=false
-RELEASE_LOOKUP="$(mktemp "${RUNNER_TEMP}/qodo-release-lookup.XXXXXX")"
-if gh api --include "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" >"${RELEASE_LOOKUP}" 2>&1; then
-  RELEASE_EXISTS=true
-elif ! grep -Eq '^HTTP/[0-9.]+ 404([[:space:]]|$)' "${RELEASE_LOOKUP}"; then
-  cat "${RELEASE_LOOKUP}" >&2
-  rm -f -- "${RELEASE_LOOKUP}"
-  echo "Could not determine whether ${TAG} already exists; refusing to create a release." >&2
+require_release_metadata() {
+  local actual_title actual_notes_base64
+  actual_title="$(gh api "${RELEASE_ENDPOINT}" --jq '.name')"
+  if [[ "${actual_title}" != "${EXPECTED_TITLE}" ]]; then
+    echo "Existing release ${TAG} has unexpected title metadata; refusing to publish." >&2
+    exit 1
+  fi
+  actual_notes_base64="$(gh api "${RELEASE_ENDPOINT}" --jq '(.body // "") | @base64')"
+  if [[ "${actual_notes_base64}" != "${EXPECTED_NOTES_BASE64}" ]]; then
+    echo "Existing release ${TAG} has unexpected notes metadata; refusing to publish." >&2
+    exit 1
+  fi
+}
+
+upload_draft_release_asset_by_id() {
+  local asset_path="$1" asset_name encoded_name upload_url
+  asset_name="$(basename "${asset_path}")"
+  encoded_name="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "${asset_name}")"
+  upload_url="$(gh api "${RELEASE_ENDPOINT}" --jq '.upload_url | sub("\\{.*$"; "")')"
+  gh api --method POST --silent \
+    -H 'Accept: application/vnd.github+json' \
+    -H 'Content-Type: application/octet-stream' \
+    --input "${asset_path}" "${upload_url}?name=${encoded_name}"
+}
+
+download_draft_release_assets_by_id() {
+  local directory="$1" assets asset_id asset_name
+  assets="$(gh api "${RELEASE_ENDPOINT}" --jq '.assets[] | [.id, .name] | @tsv')"
+  while IFS=$'\t' read -r asset_id asset_name; do
+    [[ -n "${asset_id:-}" ]] || continue
+    gh api -H 'Accept: application/octet-stream' \
+      "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}" > "${directory}/${asset_name}"
+  done <<< "${assets}"
+}
+
+require_current_main
+require_exact_release_source
+
+load_release
+if [[ "${RELEASE_COMMIT}" != "${GITHUB_SHA}" && "${RELEASE_EXISTS}" != 'true' ]]; then
+  echo 'A release commit behind current main may only resume an existing draft.' >&2
   exit 1
 fi
-rm -f -- "${RELEASE_LOOKUP}"
 if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
+  require_release_metadata
   git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
   require_annotated_release_tag
-  if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.draft')" != 'true' ]]; then
-    if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" != 'true' ]]; then
+  if [[ "$(gh api "${RELEASE_ENDPOINT}" --jq '.draft')" != 'true' ]]; then
+    if [[ "$(gh api "${RELEASE_ENDPOINT}" --jq '.immutable')" != 'true' ]]; then
       echo "Existing public release ${TAG} is mutable; refusing to overwrite its assets." >&2
       exit 1
     fi
-    test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
+    test "$(gh api "${RELEASE_ENDPOINT}" --jq '[.assets[].name] | sort | join(" ")')" = \
       "${EXPECTED_ASSETS}"
     VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-release-verify.XXXXXX")"
     trap 'rm -rf -- "${VERIFY_DIR}"' EXIT
@@ -133,7 +226,7 @@ if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
 else
   git config user.name "github-actions[bot]"
   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-  git tag --no-sign -a "${TAG}" "${GITHUB_SHA}" -m "Qodo skills ${TAG}"
+  git tag --no-sign -a "${TAG}" "${RELEASE_COMMIT}" -m "Qodo skills ${TAG}"
 fi
 require_annotated_release_tag
 
@@ -141,17 +234,18 @@ require_annotated_release_tag
 # not depend on main staying still: the tag and every asset remain bound to the
 # exact commit this job checked out and validated.
 require_current_main
+require_exact_release_source
 git push origin "refs/tags/${TAG}:refs/tags/${TAG}"
 
 if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
-  if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.draft')" != 'true' ]]; then
+  if [[ "$(gh api "${RELEASE_ENDPOINT}" --jq '.draft')" != 'true' ]]; then
     echo "Existing release ${TAG} left draft state before asset verification; refusing to mutate it." >&2
     exit 1
   fi
   EXISTING_ASSETS=()
   while IFS= read -r existing_asset; do
     [[ -n "${existing_asset}" ]] && EXISTING_ASSETS+=("${existing_asset}")
-  done < <(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.assets[].name')
+  done < <(gh api "${RELEASE_ENDPOINT}" --jq '.assets[].name')
   for existing_asset in "${EXISTING_ASSETS[@]}"; do
     expected=false
     for release_asset in "${RELEASE_ASSETS[@]}"; do
@@ -175,34 +269,43 @@ if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
       fi
     done
     if [[ "${present}" == 'false' ]]; then
-      gh release upload "${TAG}" "${release_asset}"
+      upload_draft_release_asset_by_id "${release_asset}"
     fi
   done
 else
   gh release create "${TAG}" --draft --verify-tag --title "Qodo skills ${TAG}" --notes-file "${NOTES}" \
     "${RELEASE_ASSETS[@]}"
+  load_release
+  if [[ "${RELEASE_EXISTS}" != 'true' || "${RELEASE_DRAFT}" != 'true' ]]; then
+    echo "GitHub did not expose the newly created ${TAG} draft; refusing to continue." >&2
+    exit 1
+  fi
+  require_release_metadata
 fi
 
-test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.draft')" = 'true'
-test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
+test "$(gh api "${RELEASE_ENDPOINT}" --jq '.draft')" = 'true'
+test "$(gh api "${RELEASE_ENDPOINT}" --jq '[.assets[].name] | sort | join(" ")')" = \
   "${EXPECTED_ASSETS}"
 VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-release-verify.XXXXXX")"
 trap 'rm -rf -- "${VERIFY_DIR}"' EXIT
-gh release download "${TAG}" --dir "${VERIFY_DIR}" --pattern 'qodo-*'
+download_draft_release_assets_by_id "${VERIFY_DIR}"
 verify_release_assets "${VERIFY_DIR}"
 
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
 require_annotated_release_tag
-gh release edit "${TAG}" --draft=false
-if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.immutable')" != 'true' ]]; then
+require_exact_release_source
+require_release_metadata
+gh api --method PATCH "${RELEASE_ENDPOINT}" -F draft=false >/dev/null
+if [[ "$(gh api "${RELEASE_ENDPOINT}" --jq '.immutable')" != 'true' ]]; then
   echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
-  if ! gh release edit "${TAG}" --draft=true; then
+  if ! gh api --method PATCH "${RELEASE_ENDPOINT}" -F draft=true >/dev/null; then
     echo 'CRITICAL: could not return the mutable release to draft; stop all consumer rollout.' >&2
   fi
   exit 1
 fi
-test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '[.assets[].name] | sort | join(" ")')" = \
+test "$(gh api "${RELEASE_ENDPOINT}" --jq '[.assets[].name] | sort | join(" ")')" = \
   "${EXPECTED_ASSETS}"
+require_release_metadata
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
 require_annotated_release_tag
 PUBLISHED_VERIFY_DIR="$(mktemp -d "${RUNNER_TEMP}/qodo-published-release-verify.XXXXXX")"

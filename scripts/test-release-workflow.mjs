@@ -1,6 +1,7 @@
 /** Verify that release publication fails closed before creating mutable artifacts. */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   copyFileSync,
@@ -14,7 +15,6 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEnterpriseBundle } from './build-enterprise-bundle.mjs';
-
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8');
 const preflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
@@ -26,7 +26,6 @@ const packageVersion = JSON.parse(
 ).version;
 const releaseTag = `v${packageVersion}`;
 const escapedReleaseTag = releaseTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 assert.doesNotMatch(releaseSource, /^\s+push:/m,
   'source merge must not bypass the CLI-first release order or an unmet credential gate');
 assert.match(releaseSource, /^\s+workflow_dispatch:/m);
@@ -34,7 +33,10 @@ assert.match(workflow, /github\.ref == format\('refs\/heads\/\{0\}', github\.eve
   'the write-scoped release job must run only from the default branch');
 assert.match(workflow, /run: scripts\/verify-release-prerequisites\.sh/);
 assert.match(workflow, /run: scripts\/publish-release\.sh/);
-assert.match(workflow, /node scripts\/build-enterprise-bundle\.mjs/);
+assert.match(workflow, /qodo-release-source\/scripts\/build-enterprise-bundle\.mjs/);
+assert.match(workflow, /git worktree add --detach/);
+assert.match(workflow, /QODO_RELEASE_SOURCE_DIR: \$\{\{ runner\.temp \}\}\/qodo-release-source/);
+assert.match(workflow, /QODO_RELEASE_NOTES_FILE: \$\{\{ runner\.temp \}\}\/qodo-release-notes\.md/);
 assert.match(workflow, /QODO_ENTERPRISE_RELEASE_DIR/);
 assert.match(readFileSync(join(root, 'scripts', 'verify-release-prerequisites.cmd'), 'utf8'),
   /bash "%~dp0verify-release-prerequisites\.sh"/);
@@ -51,26 +53,25 @@ const validationRun = releaseSource.indexOf('npm test');
 const existingReleaseBranch = releaseSource.indexOf('if [[ "${RELEASE_EXISTS}"');
 const toolChecks = releaseSource.indexOf('for tool in gh git node npm mktemp sha256sum cmp rm; do');
 const firstMainGuard = releaseSource.indexOf('require_current_main');
-const publisherReleaseLookup = publisher.indexOf('RELEASE_LOOKUP=');
+const publisherReleaseLookup = publisher.indexOf('load_release');
 const publisherTagCreation = publisher.indexOf('git tag --no-sign -a');
 const publisherFinalMainGuard = publisher.lastIndexOf('require_current_main');
 const publisherTagPush = publisher.indexOf('git push origin "refs/tags/${TAG}:refs/tags/${TAG}"');
 const releaseTokenCheck = releaseSource.indexOf('installation-wide, read-only GitHub App token with Administration:read is required');
 const checkoutGuard = publisher.indexOf('\nrequire_exact_release_checkout\n');
-const catalogRead = publisher.indexOf('require(\'./distribution/catalog.json\')');
+const catalogRead = publisher.indexOf('CURRENT_VERSION=');
 const tagRulesetCheck = releaseSource.indexOf('Immutable release tags ruleset is required');
 const releaseVerificationHelper = releaseSource.indexOf('verify_release_assets()');
 const releaseDownload = releaseSource.indexOf('gh release download');
 const downloadedVerification = releaseSource.indexOf('verify_release_assets "${VERIFY_DIR}"', releaseDownload);
 const draftCreation = releaseSource.indexOf('gh release create "${TAG}" --draft');
-const draftPublish = releaseSource.indexOf('gh release edit "${TAG}" --draft=false');
+const draftPublish = releaseSource.indexOf('gh api --method PATCH "${RELEASE_ENDPOINT}" -F draft=false');
 const draftAssetCheck = releaseSource.indexOf('.assets[].name', draftCreation);
-const draftDownload = releaseSource.indexOf('gh release download', draftCreation);
+const draftDownload = releaseSource.indexOf('download_draft_release_assets_by_id "${VERIFY_DIR}"', draftCreation);
 const draftVerification = releaseSource.indexOf('verify_release_assets "${VERIFY_DIR}"', draftDownload);
 const remoteTagCheck = releaseSource.indexOf('require_annotated_release_tag', draftCreation);
 const publishedDownload = releaseSource.indexOf('gh release download', draftPublish);
 const publishedVerification = releaseSource.indexOf('verify_release_assets "${PUBLISHED_VERIFY_DIR}"', publishedDownload);
-
 assert.match(protectionAudit, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/,
   'the administrator audit must check repository immutability');
 assert.match(preflight, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/,
@@ -106,7 +107,7 @@ assert.match(publisher, /shasum -a 256 --check/);
 assert.match(publisher, /verify_sha256 qodo-skills-index\.json\.sha256/g);
 assert.doesNotMatch(releaseSource, /"\$GITHUB_SHA"/,
   'scalar shell variables must use braced expansion');
-assert.match(publisher, /releases\/tags\/\$\{TAG\}" --jq '\.immutable'/,
+assert.match(publisher, /gh api "\$\{RELEASE_ENDPOINT\}" --jq '\.immutable'/,
   'publication must verify the provider reports an immutable release');
 assert.ok(firstAssetCheck >= 0 && firstAssetCheck < existingReleaseExit,
   'an existing release must be accepted only after its assets are verified');
@@ -156,10 +157,18 @@ assert.ok(publishedDownload > draftPublish,
 assert.ok(publishedVerification > publishedDownload,
   'published immutable assets must still match their checksums and validated bytes');
 assert.match(releaseSource, /RELEASE_EXISTS=false/);
-assert.match(releaseSource, /gh api --include/);
-assert.match(releaseSource, /HTTP\/\[0-9\.\]\+ 404/);
-assert.match(releaseSource, /gh release upload "\$\{TAG\}"/,
-  'a partial draft publication must be resumable without abandoning the version');
+assert.match(releaseSource, /releases\?per_page=100/,
+  'draft discovery must use the release list because GitHub release-by-tag returns 404 for drafts');
+assert.doesNotMatch(publisher, /releases\/tags\/\$\{TAG\}/,
+  'draft reads must use the release ID returned by the list endpoint');
+assert.match(workflow, /id: release-source/);
+assert.match(workflow, /git merge-base --is-ancestor/);
+assert.match(workflow, /QODO_RELEASE_COMMIT: \$\{\{ steps\.release-source\.outputs\.commit \}\}/);
+assert.match(publisher, /A release commit behind current main may only resume an existing draft/);
+assert.match(publisher, /git -C "\$\{RELEASE_SOURCE_DIR\}" rev-parse HEAD/);
+assert.match(publisher, /release source HEAD is not QODO_RELEASE_COMMIT/);
+assert.match(releaseSource, /upload_draft_release_asset_by_id "\$\{release_asset\}"/);
+assert.doesNotMatch(publisher, /gh release upload/, 'tag lookup cannot address a draft release');
 assert.doesNotMatch(releaseSource, /gh release upload[^\n]*--clobber/,
   'draft recovery must never overwrite an existing asset');
 assert.doesNotMatch(releaseSource, /gh release delete-asset/,
@@ -181,7 +190,6 @@ assert.match(
   /^\*\.sh text eol=lf$/m,
   'Git Bash entrypoints must remain LF-only on Windows',
 );
-
 const run = (cwd, command, args = [], env = {}) => execFileSync(command, args, {
   cwd,
   encoding: 'utf8',
@@ -195,7 +203,6 @@ const runShell = (cwd, script, env = {}) => process.platform === 'win32'
     '/d', '/c', 'call', script.replace(/\.sh$/, '.cmd'),
   ], env)
   : run(cwd, script, [], env);
-
 // Keep a space in the harness path so Windows cmd /c quoting is exercised.
 const harness = mkdtempSync(join(tmpdir(), 'qodo release behavior-'));
 const bin = join(harness, 'bin');
@@ -212,8 +219,8 @@ const fakeGhEnv = {
   GITHUB_REPOSITORY: 'qodo-ai/qodo-skills',
   FAKE_GH_STATE: fakeGhState,
   FAKE_GH_ASSETS: fakeGhAssets,
+  FAKE_RELEASE_TAG: releaseTag,
 };
-
 try {
   const preflightPath = join(root, 'scripts', 'verify-release-prerequisites.sh');
   runShell(root, preflightPath, fakeGhEnv);
@@ -272,8 +279,11 @@ try {
   run(harness, 'git', ['init', '--bare', '--initial-branch=main', behaviorOrigin]);
   run(checkout, 'git', ['remote', 'add', 'origin', behaviorOrigin]);
   run(checkout, 'git', ['push', '-u', 'origin', 'main']);
-  // The publisher owns the tag's format. A runner-level signing preference
-  // must not introduce a pinentry/key dependency into an automated release.
+  const releaseSourceCheckout = join(harness, 'release-source');
+  run(checkout, 'git', ['worktree', 'add', '--detach', releaseSourceCheckout, releaseSha]);
+  const releaseNotes = join(harness, 'release-notes.md');
+  run(releaseSourceCheckout, process.execPath, [join(releaseSourceCheckout, 'scripts', 'release-notes.mjs'), releaseNotes]);
+  // The publisher owns the tag format even when the runner prefers signed tags.
   run(checkout, 'git', ['config', 'tag.gpgSign', 'true']);
 
   const publishEnv = {
@@ -282,6 +292,8 @@ try {
     GITHUB_SHA: releaseSha,
     RUNNER_TEMP: harness,
     QODO_ENTERPRISE_RELEASE_DIR: enterpriseDir,
+    QODO_RELEASE_NOTES_FILE: releaseNotes,
+    QODO_RELEASE_SOURCE_DIR: releaseSourceCheckout,
   };
   const publishPath = join(checkout, 'scripts', 'publish-release.sh');
   assert.throws(() => runShell(checkout, publishPath, {
@@ -303,11 +315,71 @@ try {
   const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
-    { draft: false, immutable: true, edits: 1, downloads: 2 },
+    { draft: false, immutable: true, edits: 1, downloads: 9 },
   );
+  for (const corruption of [{ name: 'wrong title' }, { body: 'wrong notes' }]) {
+    const corrupted = { ...published, ...corruption, draft: true, immutable: false, edits: 0, downloads: 0 };
+    writeFileSync(fakeGhState, `${JSON.stringify(corrupted)}\n`);
+    assert.throws(() => runShell(checkout, publishPath, publishEnv), /unexpected .* metadata/);
+    assert.deepEqual(JSON.parse(readFileSync(fakeGhState, 'utf8')), corrupted);
+  }
+  writeFileSync(fakeGhState, `${JSON.stringify(published)}\n`);
+  assert.throws(() => runShell(checkout, publishPath, {
+    ...publishEnv,
+    FAKE_DUPLICATE_RELEASES: 'true',
+  }), new RegExp(`Multiple releases claim ${escapedReleaseTag}`));
 
-  // A lightweight tag at the correct commit is still not the release object
-  // promised by the publication contract.
+  // Recovery from reviewed automation changes must still use tagged bytes.
+  writeFileSync(fakeGhState, `${JSON.stringify({
+    ...published,
+    draft: true,
+    immutable: false,
+    downloads: 0,
+    edits: 0,
+  })}\n`);
+  const divergentIndex = '{"currentMainOnly":true}\n';
+  writeFileSync(join(checkout, 'distribution', 'qodo-skills-index.json'), divergentIndex);
+  writeFileSync(join(checkout, 'distribution', 'qodo-skills-index.json.sha256'),
+    `${createHash('sha256').update(divergentIndex).digest('hex')}  qodo-skills-index.json\n`);
+  run(checkout, 'git', ['add', 'distribution']);
+  run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '-m', 'release recovery automation']);
+  const recoverySha = run(checkout, 'git', ['rev-parse', 'HEAD']).trim();
+  run(checkout, 'git', ['push', 'origin', 'main']);
+  runShell(checkout, publishPath, {
+    ...publishEnv,
+    GITHUB_SHA: recoverySha,
+    QODO_RELEASE_COMMIT: releaseSha,
+  });
+  const recovered = JSON.parse(readFileSync(fakeGhState, 'utf8'));
+  assert.deepEqual(
+    { draft: recovered.draft, immutable: recovered.immutable, edits: recovered.edits, downloads: recovered.downloads },
+    { draft: false, immutable: true, edits: 1, downloads: 9 },
+  );
+  run(checkout, 'git', ['reset', '--hard', releaseSha]);
+  run(checkout, 'git', ['push', '--force', 'origin', 'main']);
+
+  // An older tag without a matching draft can never borrow current-main bytes.
+  writeFileSync(fakeGhState, `${JSON.stringify({
+    exists: false,
+    draft: false,
+    immutable: false,
+    assets: [],
+    downloads: 0,
+    edits: 0,
+  })}\n`);
+  run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'unsafe untagged recovery']);
+  const unsafeRecoverySha = run(checkout, 'git', ['rev-parse', 'HEAD']).trim();
+  run(checkout, 'git', ['push', 'origin', 'main']);
+  assert.throws(() => runShell(checkout, publishPath, {
+    ...publishEnv,
+    GITHUB_SHA: unsafeRecoverySha,
+    QODO_RELEASE_COMMIT: releaseSha,
+  }), /may only resume an existing draft/);
+  run(checkout, 'git', ['reset', '--hard', releaseSha]);
+  run(checkout, 'git', ['push', '--force', 'origin', 'main']);
+  writeFileSync(fakeGhState, `${JSON.stringify(recovered)}\n`);
+
+  // A lightweight tag is not the promised release object.
   run(checkout, 'git', ['tag', '-d', releaseTag]);
   run(checkout, 'git', ['push', 'origin', `:refs/tags/${releaseTag}`]);
   run(checkout, 'git', ['-c', 'tag.gpgSign=false', 'tag', releaseTag, releaseSha]);
@@ -330,7 +402,7 @@ try {
   runShell(checkout, publishPath, publishEnv);
   const verifiedRetry = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.equal(verifiedRetry.edits, 1);
-  assert.equal(verifiedRetry.downloads, 3);
+  assert.equal(verifiedRetry.downloads, 10);
 
   // A resumed draft with an unexpected asset is rejected without mutation.
   const unexpectedDraft = {
@@ -364,7 +436,6 @@ try {
   assert.equal(rejectedDraft.edits, 0);
   runShell(checkout, publishPath, publishEnv);
   assert.equal(JSON.parse(readFileSync(fakeGhState, 'utf8')).immutable, true);
-
   // A pre-existing public mutable release is never eligible for draft resume.
   const publicMutable = {
     exists: true,
@@ -398,8 +469,7 @@ try {
     { draft: true, immutable: false, edits: 2 },
   );
 
-  // The final public download is independently verified after publication.
-  // A mismatch burns this immutable version and must still fail the workflow.
+  // A final-download mismatch burns the immutable version and fails the workflow.
   writeFileSync(fakeGhState, `${JSON.stringify({
     exists: true,
     draft: true,
@@ -420,80 +490,10 @@ try {
       edits: rejectedPublicBytes.edits,
       downloads: rejectedPublicBytes.downloads,
     },
-    { draft: false, immutable: true, edits: 1, downloads: 2 },
+    { draft: false, immutable: true, edits: 1, downloads: 9 },
   );
 } finally {
   rmSync(harness, { recursive: true, force: true });
 }
-
-const fixture = mkdtempSync(join(tmpdir(), 'qodo-release-lease-'));
-const origin = join(fixture, 'origin.git');
-const seed = join(fixture, 'seed');
-const runner = join(fixture, 'runner');
-const git = (cwd, args) => execFileSync('git', [
-  '-c', 'commit.gpgsign=false',
-  '-c', 'tag.gpgSign=false',
-  ...args,
-], { cwd, encoding: 'utf8', stdio: 'pipe' }).trim();
-
-try {
-  git(fixture, ['init', '--bare', '--initial-branch=main', origin]);
-  const preReceive = join(origin, 'hooks', 'pre-receive');
-  writeFileSync(preReceive, [
-    '#!/usr/bin/env bash',
-    '# Description: reject updates and deletions of release tags in this bare-repository fixture.',
-    '# Usage: Git pre-receive hook; reads "<old-sha> <new-sha> <ref>" records from stdin.',
-    'set -euo pipefail',
-    'while read -r old_sha new_sha ref_name; do',
-    '  case "${ref_name}" in',
-    '    refs/tags/*)',
-    '      if [[ "${old_sha}" == *[!0]* ]]; then',
-    '        echo "immutable release tag update rejected: ${ref_name}" >&2',
-    '        exit 1',
-    '      fi',
-    '      ;;',
-    '  esac',
-    'done',
-    '',
-  ].join('\n'));
-  chmodSync(preReceive, 0o755);
-  git(fixture, ['clone', origin, seed]);
-  git(seed, ['config', 'user.name', 'Release Test']);
-  git(seed, ['config', 'user.email', 'release-test@qodo.invalid']);
-  writeFileSync(join(seed, 'release.txt'), 'v1\n');
-  git(seed, ['add', 'release.txt']);
-  git(seed, ['commit', '-m', 'release v1']);
-  const releaseSha = git(seed, ['rev-parse', 'HEAD']);
-  git(seed, ['push', 'origin', 'main']);
-
-  git(fixture, ['clone', origin, runner]);
-  git(runner, ['config', 'user.name', 'Release Test']);
-  git(runner, ['config', 'user.email', 'release-test@qodo.invalid']);
-  git(runner, ['tag', '-a', 'v1', '-m', 'v1']);
-  git(runner, ['push', 'origin', 'refs/tags/v1:refs/tags/v1']);
-  assert.equal(
-    git(runner, ['ls-remote', 'origin', 'refs/tags/v1^{}']).split(/\s+/)[0],
-    releaseSha,
-  );
-
-  writeFileSync(join(seed, 'release.txt'), 'v2\n');
-  git(seed, ['add', 'release.txt']);
-  git(seed, ['commit', '-m', 'advance main']);
-  git(seed, ['push', 'origin', 'main']);
-
-  git(runner, ['fetch', 'origin', 'main']);
-  assert.notEqual(git(runner, ['rev-parse', 'origin/main']), releaseSha,
-    'the final release guard must observe an intervening main advance');
-  git(runner, ['tag', '-f', '-a', 'v1', '-m', 'moved v1', 'origin/main']);
-  assert.throws(() => git(runner, [
-    'push', '--force', 'origin', 'refs/tags/v1:refs/tags/v1',
-  ]), /immutable release tag update rejected/);
-  assert.equal(
-    git(runner, ['ls-remote', 'origin', 'refs/tags/v1^{}']).split(/\s+/)[0],
-    releaseSha,
-  );
-} finally {
-  rmSync(fixture, { recursive: true, force: true });
-}
-
 console.log('Release workflow safety test passed.');
+await import('./test-release-tag-protection.mjs');

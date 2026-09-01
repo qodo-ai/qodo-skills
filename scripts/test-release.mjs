@@ -2,26 +2,14 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
-  appendFileSync,
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  lstatSync,
-  readlinkSync,
-  readFileSync,
-  readdirSync,
-  renameSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
+  appendFileSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync,
+  readdirSync, readlinkSync, renameSync, rmSync, symlinkSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { incrementVersion } from './prepare-release.mjs';
-
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'qodo-skills-release-'));
 const repositoryRoot = join(temporaryRoot, 'repository');
@@ -31,7 +19,6 @@ const sourceReview = sourceCatalog.skills.find((skill) => skill.name === 'qodo-r
 const expectedReviewVersion = incrementVersion(sourceReview.version, 'patch');
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error('npm_execpath is unavailable; run this release test through npm test');
-
 try {
   mkdirSync(repositoryRoot);
   for (const name of readdirSync(root)) {
@@ -454,6 +441,19 @@ try {
   expectPackageVersionChange('scripts/build-enterprise-bundle.mjs', '\n// enterprise packaging change\n');
   expectPackageVersionChange('scripts/prepare-release.mjs', '\n// release generator change\n');
   expectPackageVersionChange('.github/workflows/ship-marketplaces.yml', '\n# release workflow change\n');
+  const expectOperationalChange = (path, change) => {
+    resetToRelease();
+    appendFileSync(join(repositoryRoot, path), change);
+    commitScenario(`operational ${path} change`);
+    execFileSync(
+      process.execPath,
+      [join(repositoryRoot, 'scripts', 'validate-diff.mjs'), releaseCommit],
+      { cwd: repositoryRoot, stdio: 'pipe' },
+    );
+  };
+  expectOperationalChange('.github/workflows/release.yml', '\n# publication recovery change\n');
+  expectOperationalChange('scripts/publish-release.sh', '\n# publication recovery change\n');
+  expectOperationalChange('scripts/validate-diff.mjs', '\n// validation policy change\n');
   resetToRelease();
   const deletionCatalog = JSON.parse(readFileSync(catalogPath, 'utf8'));
   deletionCatalog.skills = deletionCatalog.skills.filter((skill) => skill.name !== 'qodo-review');
