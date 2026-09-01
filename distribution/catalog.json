@@ -49,7 +49,7 @@
   "skills": [
     {
       "name": "qodo-setup",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "recommended": true,
       "displayName": "Set up Qodo",
       "shortDescription": "Connect the Qodo runtime and verify this agent is ready.",

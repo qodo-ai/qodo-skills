@@ -52,6 +52,8 @@ const publisherReleaseLookup = publisher.indexOf('RELEASE_LOOKUP=');
 const publisherTagCreation = publisher.indexOf('git tag --no-sign -a');
 const publisherFinalMainGuard = publisher.lastIndexOf('require_current_main');
 const publisherTagPush = publisher.indexOf('git push origin "refs/tags/${TAG}:refs/tags/${TAG}"');
+const checkoutGuard = publisher.indexOf('\nrequire_exact_release_checkout\n');
+const catalogRead = publisher.indexOf('require(\'./distribution/catalog.json\')');
 const releaseAdminTokenCheck = releaseSource.indexOf('QODO_RELEASE_ADMIN_TOKEN is required');
 const tagRulesetCheck = releaseSource.indexOf('Immutable release tags ruleset is required');
 const releaseDownload = releaseSource.indexOf('gh release download');
@@ -87,6 +89,11 @@ assert.ok(validationInstall >= 0 && validationInstall < validationRun,
   'locked validation dependencies must be installed before release validation');
 assert.ok(firstMainGuard > validationRun && firstMainGuard < existingReleaseBranch,
   'the verified release commit must still be the exact main head before release handling');
+assert.ok(checkoutGuard >= 0 && checkoutGuard < catalogRead,
+  'the publisher must bind a clean local checkout to GITHUB_SHA before reading release assets');
+assert.match(publisher, /git rev-parse HEAD/);
+assert.match(publisher, /git diff --quiet --ignore-submodules --/);
+assert.match(publisher, /git diff --cached --quiet --ignore-submodules --/);
 assert.ok(toolChecks >= 0 && toolChecks < exactMainGuard,
   'external release tools must be checked before their first use');
 assert.match(releaseSource, /command -v "\$\{tool\}"/);
@@ -265,6 +272,13 @@ try {
   assert.equal(run(checkout, 'git', ['ls-remote', '--tags', 'origin', releaseTag]).trim(), '');
   run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'stale checkout']);
   assert.notEqual(run(checkout, 'git', ['rev-parse', 'HEAD']).trim(), releaseSha);
+  assert.throws(() => runShell(checkout, publishPath, publishEnv),
+    /checked-out HEAD is not GITHUB_SHA/);
+  run(checkout, 'git', ['reset', '--hard', releaseSha]);
+  writeFileSync(join(checkout, 'distribution', 'qodo-skills-index.json'), '{}\n');
+  assert.throws(() => runShell(checkout, publishPath, publishEnv),
+    /release checkout has tracked worktree changes/);
+  run(checkout, 'git', ['reset', '--hard', releaseSha]);
   runShell(checkout, publishPath, publishEnv);
   assert.equal(run(checkout, 'git', ['rev-list', '-n', '1', releaseTag]).trim(), releaseSha);
   const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
