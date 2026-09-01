@@ -229,6 +229,7 @@ try {
   for (const directory of ['distribution', 'releases', 'scripts']) {
     mkdirSync(join(checkout, directory), { recursive: true });
   }
+  copyFileSync(join(root, '.gitattributes'), join(checkout, '.gitattributes'));
   for (const file of [
     'catalog.json',
     'qodo-cli-managed-bundle.json',
