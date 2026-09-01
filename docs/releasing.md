@@ -41,7 +41,7 @@ GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh
 ```
 
 The audit uses the administrator's existing `gh` session to verify otherwise hidden bypass actors,
-the dedicated App identity and permissions, environment reviewers and branch policy, release
+the dedicated App identity and permissions, presence of an environment reviewer, release
 immutability, and exact ruleset shapes. No administrator credential is stored in Actions.
 Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
 `refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
@@ -117,10 +117,12 @@ requires the live directory and branch head to match exactly.
 Before any branch mutation, a checked-in preflight requires exactly one active **Kiro marketplace
 release** branch ruleset with update/deletion/force-push protection, no exclusions, and exactly one
 always-bypass release identity. The bypass must be the dedicated App's `Integration` actor, while
-any branch pattern broader than the Kiro source is rejected. The environment must disallow admin
-bypass, prevent self-review, require at least two eligible reviewers, and permit deployments only
-from `main`. The runtime preflight checks all settings visible to the short-lived App token; the
-administrator audit is the authority for hidden bypass configuration.
+any branch pattern broader than the Kiro source is rejected. The environment must require at least
+one release reviewer. Admin bypass, self-review prevention, and deployment-branch filtering are not
+initial-cutover gates; this accepted posture is weaker than enforcing independent approval and may
+be hardened later without changing the token architecture. The runtime preflight checks all
+settings visible to the short-lived App token; the administrator audit is the authority for hidden
+bypass configuration.
 
 Core listing identity remains `qodo`; Qodo Standards remains the separately installable
 `qodo-standards` listing. **Ship marketplaces** selects providers, not individual listings, and

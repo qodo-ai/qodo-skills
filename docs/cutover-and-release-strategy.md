@@ -72,8 +72,9 @@ rollback.
 - Install the dedicated `qodo-skills-release-bot` GitHub App on `qodo-ai/qodo-skills` with only
   `Contents: write` and `Metadata: read`. Store its App id and private key only in the protected
   `marketplace-kiro` environment as `QODO_SKILLS_RELEASE_APP_ID` and
-  `QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`. The environment must disallow admin bypass, prevent
-  self-review, have at least two eligible reviewers, and allow deployments only from `main`.
+  `QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`, and require at least one release reviewer. For the initial
+  cutover, admin bypass remains enabled, self-review is allowed, and protected branches may deploy;
+  the team accepts this weaker approval posture and can harden it independently later.
 - Run `GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh` with a repository
   administrator's existing `gh` session before release. The audit verifies hidden bypass actors;
   no administrator or shared QAR credential is stored in this public repository.

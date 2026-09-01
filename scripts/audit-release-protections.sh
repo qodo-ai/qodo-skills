@@ -22,24 +22,12 @@ fi
 
 ENVIRONMENT_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-kiro")"
 if [[ "$(jq '
-  (.can_admins_bypass == false) and
-  (.deployment_branch_policy.protected_branches == false) and
-  (.deployment_branch_policy.custom_branch_policies == true) and
   any(.protection_rules[]?;
     .type == "required_reviewers" and
-    .prevent_self_review == true and
-    (.reviewers | type == "array" and length >= 2)
+    (.reviewers | type == "array" and length >= 1)
   )
 ' <<< "${ENVIRONMENT_JSON}")" != 'true' ]]; then
-  echo 'marketplace-kiro must disallow admin bypass, prevent self-review with at least two reviewers, and allow only selected deployment branches.' >&2
-  exit 1
-fi
-
-BRANCH_POLICIES="$(gh api --paginate \
-  "repos/${GITHUB_REPOSITORY}/environments/marketplace-kiro/deployment-branch-policies?per_page=100" \
-  --jq '.branch_policies[].name')"
-if [[ "${BRANCH_POLICIES}" != 'main' ]]; then
-  echo 'marketplace-kiro must have exactly one deployment branch policy: main.' >&2
+  echo 'marketplace-kiro must require at least one release reviewer.' >&2
   exit 1
 fi
 
