@@ -311,6 +311,10 @@ try {
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
     { draft: false, immutable: true, edits: 1, downloads: 2 },
   );
+  assert.throws(() => runShell(checkout, publishPath, {
+    ...publishEnv,
+    FAKE_DUPLICATE_RELEASES: 'true',
+  }), new RegExp(`Multiple releases claim ${escapedReleaseTag}`));
 
   // A reviewed automation-only main advance can resume an already-tagged
   // draft, but all downloaded assets must still match the tagged release.

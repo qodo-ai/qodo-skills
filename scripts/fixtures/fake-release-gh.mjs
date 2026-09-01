@@ -33,7 +33,12 @@ if (args[0] === 'api' && endpoint.startsWith('installation/repositories')) {
     process.stderr.write('release list unavailable\n');
     process.exit(1);
   }
-  if (state.exists) process.stdout.write(`123\t${state.draft}\n`);
+  if (state.exists) {
+    process.stdout.write(`123\t${state.draft}\n`);
+    if (process.env.FAKE_DUPLICATE_RELEASES === 'true') {
+      process.stdout.write(`124\t${state.draft}\n`);
+    }
+  }
 } else if (args[0] === 'api' && /\/releases\/123$/.test(endpoint)) {
   const state = readState();
   if (!state.exists) process.exit(1);
