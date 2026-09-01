@@ -76,9 +76,9 @@ a prior run created the protected tag and draft but stopped before publication. 
    protected-tag ruleset before creating any tag or release;
 4. creates annotated tag `v<package-version>`, pushes it without force, and verifies the protected
    remote tag peels to the validated SHA immediately before publication;
-5. builds the deterministic enterprise archive, then creates or resumes a draft release containing
-   the compact index, data-only CLI-managed bundle, enterprise manifest, enterprise archive, and
-   all four SHA-256 files;
+5. materializes the resolved release commit as a clean detached worktree and, before the
+   publication token is exposed, runs that tree's enterprise and release-note builders; publication
+   then uses only those prepared outputs plus that tree's index, CLI-managed bundle, and checksums;
 6. publishes the verified draft, which makes the release immutable;
 7. verifies the published release is immutable, the protected tag is unchanged, and all published
    assets still match the validated checkout byte-for-byte;
@@ -89,10 +89,12 @@ GitHub's release-by-tag REST endpoint does not expose draft releases. The publis
 both drafts and public releases through the paginated release list, rejects duplicate tag claims,
 and addresses the selected release by immutable numeric id. If reviewed release automation advances
 `main` after a draft was created, recovery may use the older tagged commit only when that tag is an
-ancestor of current `main` and an existing draft for the tag is present. The enterprise manifest is
-rebuilt with the tagged source commit, and every downloaded draft asset must match before the draft
-can become public. An older tag without its draft fails closed; tags and assets are never moved,
-deleted, or overwritten.
+ancestor of current `main` and an existing draft for the tag is present. Recovery checks out that
+exact tagged commit into a separate clean worktree; both enterprise packaging and every potentially
+missing release input are read from it, never from current `main`. The publisher revalidates the
+source worktree before mutation, and every downloaded draft asset must match before the draft can
+become public. An older tag without its draft fails closed; tags and assets are never moved, deleted,
+or overwritten.
 
 After that workflow succeeds, dispatch **release: publish skills compatibility channel** in
 `qodo-ai/qodo-in-cli` with the immutable `v<package-version>` tag. The workflow verifies the public

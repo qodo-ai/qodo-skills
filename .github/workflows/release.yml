@@ -99,15 +99,32 @@ jobs:
           GH_TOKEN: ${{ steps.release-preflight-token.outputs.token }}
         run: scripts/verify-release-prerequisites.sh
 
-      - name: Build the deterministic enterprise bundle
-        run: >-
-          node scripts/build-enterprise-bundle.mjs
-          --output "${RUNNER_TEMP}/qodo-enterprise-release"
-          --commit "${{ steps.release-source.outputs.commit }}"
+      - name: Materialize the immutable release source
+        env:
+          RELEASE_COMMIT: ${{ steps.release-source.outputs.commit }}
+        run: |
+          set -euo pipefail
+          RELEASE_SOURCE_DIR="${RUNNER_TEMP}/qodo-release-source"
+          git worktree add --detach "${RELEASE_SOURCE_DIR}" "${RELEASE_COMMIT}"
+          test "$(git -C "${RELEASE_SOURCE_DIR}" rev-parse HEAD)" = "${RELEASE_COMMIT}"
+          test -z "$(git -C "${RELEASE_SOURCE_DIR}" status --porcelain --untracked-files=all)"
+
+      - name: Build the deterministic enterprise bundle from the immutable source
+        env:
+          RELEASE_COMMIT: ${{ steps.release-source.outputs.commit }}
+        run: |
+          set -euo pipefail
+          node "${RUNNER_TEMP}/qodo-release-source/scripts/build-enterprise-bundle.mjs" \
+            --output "${RUNNER_TEMP}/qodo-enterprise-release" \
+            --commit "${RELEASE_COMMIT}"
+          node "${RUNNER_TEMP}/qodo-release-source/scripts/release-notes.mjs" \
+            "${RUNNER_TEMP}/qodo-release-notes.md"
 
       - name: Publish the immutable tag and GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           QODO_ENTERPRISE_RELEASE_DIR: ${{ runner.temp }}/qodo-enterprise-release
           QODO_RELEASE_COMMIT: ${{ steps.release-source.outputs.commit }}
+          QODO_RELEASE_NOTES_FILE: ${{ runner.temp }}/qodo-release-notes.md
+          QODO_RELEASE_SOURCE_DIR: ${{ runner.temp }}/qodo-release-source
         run: scripts/publish-release.sh

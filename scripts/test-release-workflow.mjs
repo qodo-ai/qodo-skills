@@ -1,6 +1,7 @@
 /** Verify that release publication fails closed before creating mutable artifacts. */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   chmodSync,
   copyFileSync,
@@ -14,7 +15,6 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEnterpriseBundle } from './build-enterprise-bundle.mjs';
-
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8');
 const preflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
@@ -34,7 +34,10 @@ assert.match(workflow, /github\.ref == format\('refs\/heads\/\{0\}', github\.eve
   'the write-scoped release job must run only from the default branch');
 assert.match(workflow, /run: scripts\/verify-release-prerequisites\.sh/);
 assert.match(workflow, /run: scripts\/publish-release\.sh/);
-assert.match(workflow, /node scripts\/build-enterprise-bundle\.mjs/);
+assert.match(workflow, /qodo-release-source\/scripts\/build-enterprise-bundle\.mjs/);
+assert.match(workflow, /git worktree add --detach/);
+assert.match(workflow, /QODO_RELEASE_SOURCE_DIR: \$\{\{ runner\.temp \}\}\/qodo-release-source/);
+assert.match(workflow, /QODO_RELEASE_NOTES_FILE: \$\{\{ runner\.temp \}\}\/qodo-release-notes\.md/);
 assert.match(workflow, /QODO_ENTERPRISE_RELEASE_DIR/);
 assert.match(readFileSync(join(root, 'scripts', 'verify-release-prerequisites.cmd'), 'utf8'),
   /bash "%~dp0verify-release-prerequisites\.sh"/);
@@ -57,7 +60,7 @@ const publisherFinalMainGuard = publisher.lastIndexOf('require_current_main');
 const publisherTagPush = publisher.indexOf('git push origin "refs/tags/${TAG}:refs/tags/${TAG}"');
 const releaseTokenCheck = releaseSource.indexOf('installation-wide, read-only GitHub App token with Administration:read is required');
 const checkoutGuard = publisher.indexOf('\nrequire_exact_release_checkout\n');
-const catalogRead = publisher.indexOf('require(\'./distribution/catalog.json\')');
+const catalogRead = publisher.indexOf('CURRENT_VERSION=');
 const tagRulesetCheck = releaseSource.indexOf('Immutable release tags ruleset is required');
 const releaseVerificationHelper = releaseSource.indexOf('verify_release_assets()');
 const releaseDownload = releaseSource.indexOf('gh release download');
@@ -164,6 +167,8 @@ assert.match(workflow, /id: release-source/);
 assert.match(workflow, /git merge-base --is-ancestor/);
 assert.match(workflow, /QODO_RELEASE_COMMIT: \$\{\{ steps\.release-source\.outputs\.commit \}\}/);
 assert.match(publisher, /A release commit behind current main may only resume an existing draft/);
+assert.match(publisher, /git -C "\$\{RELEASE_SOURCE_DIR\}" rev-parse HEAD/);
+assert.match(publisher, /release source HEAD is not QODO_RELEASE_COMMIT/);
 assert.match(releaseSource, /gh release upload "\$\{TAG\}"/,
   'a partial draft publication must be resumable without abandoning the version');
 assert.doesNotMatch(releaseSource, /gh release upload[^\n]*--clobber/,
@@ -187,7 +192,6 @@ assert.match(
   /^\*\.sh text eol=lf$/m,
   'Git Bash entrypoints must remain LF-only on Windows',
 );
-
 const run = (cwd, command, args = [], env = {}) => execFileSync(command, args, {
   cwd,
   encoding: 'utf8',
@@ -278,8 +282,11 @@ try {
   run(harness, 'git', ['init', '--bare', '--initial-branch=main', behaviorOrigin]);
   run(checkout, 'git', ['remote', 'add', 'origin', behaviorOrigin]);
   run(checkout, 'git', ['push', '-u', 'origin', 'main']);
-  // The publisher owns the tag's format. A runner-level signing preference
-  // must not introduce a pinentry/key dependency into an automated release.
+  const releaseSourceCheckout = join(harness, 'release-source');
+  run(checkout, 'git', ['worktree', 'add', '--detach', releaseSourceCheckout, releaseSha]);
+  const releaseNotes = join(harness, 'release-notes.md');
+  run(releaseSourceCheckout, process.execPath, [join(releaseSourceCheckout, 'scripts', 'release-notes.mjs'), releaseNotes]);
+  // The publisher owns the tag format even when the runner prefers signed tags.
   run(checkout, 'git', ['config', 'tag.gpgSign', 'true']);
 
   const publishEnv = {
@@ -288,6 +295,8 @@ try {
     GITHUB_SHA: releaseSha,
     RUNNER_TEMP: harness,
     QODO_ENTERPRISE_RELEASE_DIR: enterpriseDir,
+    QODO_RELEASE_NOTES_FILE: releaseNotes,
+    QODO_RELEASE_SOURCE_DIR: releaseSourceCheckout,
   };
   const publishPath = join(checkout, 'scripts', 'publish-release.sh');
   assert.throws(() => runShell(checkout, publishPath, {
@@ -325,7 +334,12 @@ try {
     downloads: 0,
     edits: 0,
   })}\n`);
-  run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'release recovery automation']);
+  const divergentIndex = '{"currentMainOnly":true}\n';
+  writeFileSync(join(checkout, 'distribution', 'qodo-skills-index.json'), divergentIndex);
+  writeFileSync(join(checkout, 'distribution', 'qodo-skills-index.json.sha256'),
+    `${createHash('sha256').update(divergentIndex).digest('hex')}  qodo-skills-index.json\n`);
+  run(checkout, 'git', ['add', 'distribution']);
+  run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '-m', 'release recovery automation']);
   const recoverySha = run(checkout, 'git', ['rev-parse', 'HEAD']).trim();
   run(checkout, 'git', ['push', 'origin', 'main']);
   runShell(checkout, publishPath, {

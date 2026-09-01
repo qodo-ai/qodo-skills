@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Create or resume a verified draft, then publish and re-verify immutable bytes.
 # Usage: GH_TOKEN=<contents-write-token> GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> \
-#   RUNNER_TEMP=<dir> QODO_ENTERPRISE_RELEASE_DIR=<prepared-assets-dir> scripts/publish-release.sh
+#   RUNNER_TEMP=<dir> QODO_ENTERPRISE_RELEASE_DIR=<prepared-assets-dir> \
+#   QODO_RELEASE_NOTES_FILE=<prepared-notes> QODO_RELEASE_SOURCE_DIR=<tagged-worktree> \
+#   scripts/publish-release.sh
 set -euo pipefail
 
 for tool in gh git node mktemp cmp rm basename; do
@@ -34,14 +36,36 @@ require_exact_release_checkout() {
 
 require_exact_release_checkout
 
-VERSION="$(node -p "require('./distribution/catalog.json').package.version")"
-TAG="v${VERSION}"
 RELEASE_COMMIT="${QODO_RELEASE_COMMIT:-${GITHUB_SHA}}"
 if [[ ! "${RELEASE_COMMIT}" =~ ^[0-9a-f]{40}$ ]]; then
   echo 'QODO_RELEASE_COMMIT must be a full lowercase commit SHA.' >&2
   exit 1
 fi
-NOTES="${RUNNER_TEMP}/qodo-release-notes.md"
+RELEASE_SOURCE_DIR="${QODO_RELEASE_SOURCE_DIR:-.}"
+if [[ ! -d "${RELEASE_SOURCE_DIR}" ]]; then
+  echo 'QODO_RELEASE_SOURCE_DIR must name the materialized release source tree.' >&2
+  exit 1
+fi
+RELEASE_SOURCE_DIR="$(cd "${RELEASE_SOURCE_DIR}" && pwd -P)"
+require_exact_release_source() {
+  if [[ "$(git -C "${RELEASE_SOURCE_DIR}" rev-parse HEAD)" != "${RELEASE_COMMIT}" ]]; then
+    echo 'Refusing to publish: release source HEAD is not QODO_RELEASE_COMMIT.' >&2
+    exit 1
+  fi
+  if [[ -n "$(git -C "${RELEASE_SOURCE_DIR}" status --porcelain --untracked-files=all)" ]]; then
+    echo 'Refusing to publish: the release source tree is not clean.' >&2
+    exit 1
+  fi
+}
+require_exact_release_source
+CURRENT_VERSION="$(node -p 'require(process.argv[1]).package.version' "$(pwd)/distribution/catalog.json")"
+VERSION="$(node -p 'require(process.argv[1]).package.version' "${RELEASE_SOURCE_DIR}/distribution/catalog.json")"
+if [[ "${VERSION}" != "${CURRENT_VERSION}" ]]; then
+  echo 'Refusing to publish: current automation and immutable release source have different package versions.' >&2
+  exit 1
+fi
+TAG="v${VERSION}"
+NOTES="${QODO_RELEASE_NOTES_FILE:?QODO_RELEASE_NOTES_FILE is required}"
 ENTERPRISE_DIR="${QODO_ENTERPRISE_RELEASE_DIR:?QODO_ENTERPRISE_RELEASE_DIR is required}"
 ARCHIVE_NAME="qodo-enterprise-bundle-v${VERSION}.tar.gz"
 RELEASE_ASSETS=(
@@ -49,19 +73,18 @@ RELEASE_ASSETS=(
   "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
   "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
-  distribution/qodo-cli-managed-bundle.json
-  distribution/qodo-cli-managed-bundle.json.sha256
-  distribution/qodo-skills-index.json
-  distribution/qodo-skills-index.json.sha256
+  "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json"
+  "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json.sha256"
+  "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json"
+  "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json.sha256"
 )
 EXPECTED_ASSETS="$(node -e \
   'console.log(process.argv.slice(1).map((asset) => require("node:path").basename(asset)).sort().join(" "))' \
   "${RELEASE_ASSETS[@]}")"
-node scripts/release-notes.mjs "${NOTES}"
-
 for asset in "${RELEASE_ASSETS[@]}"; do
   test -f "${asset}" || { echo "Release asset is missing: ${asset}" >&2; exit 1; }
 done
+test -f "${NOTES}" || { echo "Release notes are missing: ${NOTES}" >&2; exit 1; }
 
 verify_release_assets() {
   local directory="$1"
@@ -72,10 +95,10 @@ verify_release_assets() {
     verify_sha256 "${ARCHIVE_NAME}.sha256"
     verify_sha256 qodo-enterprise-manifest.json.sha256
   )
-  cmp --silent "${directory}/qodo-skills-index.json" distribution/qodo-skills-index.json
-  cmp --silent "${directory}/qodo-skills-index.json.sha256" distribution/qodo-skills-index.json.sha256
-  cmp --silent "${directory}/qodo-cli-managed-bundle.json" distribution/qodo-cli-managed-bundle.json
-  cmp --silent "${directory}/qodo-cli-managed-bundle.json.sha256" distribution/qodo-cli-managed-bundle.json.sha256
+  cmp --silent "${directory}/qodo-skills-index.json" "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json"
+  cmp --silent "${directory}/qodo-skills-index.json.sha256" "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json.sha256"
+  cmp --silent "${directory}/qodo-cli-managed-bundle.json" "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json"
+  cmp --silent "${directory}/qodo-cli-managed-bundle.json.sha256" "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json.sha256"
   cmp --silent "${directory}/${ARCHIVE_NAME}" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}"
   cmp --silent "${directory}/${ARCHIVE_NAME}.sha256" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   cmp --silent "${directory}/qodo-enterprise-manifest.json" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
@@ -133,6 +156,7 @@ load_release() {
 }
 
 require_current_main
+require_exact_release_source
 
 load_release
 if [[ "${RELEASE_COMMIT}" != "${GITHUB_SHA}" && "${RELEASE_EXISTS}" != 'true' ]]; then
@@ -170,6 +194,7 @@ require_annotated_release_tag
 # not depend on main staying still: the tag and every asset remain bound to the
 # exact commit this job checked out and validated.
 require_current_main
+require_exact_release_source
 git push origin "refs/tags/${TAG}:refs/tags/${TAG}"
 
 if [[ "${RELEASE_EXISTS}" == 'true' ]]; then
@@ -227,6 +252,7 @@ verify_release_assets "${VERIFY_DIR}"
 
 git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
 require_annotated_release_tag
+require_exact_release_source
 gh api --method PATCH "${RELEASE_ENDPOINT}" -F draft=false >/dev/null
 if [[ "$(gh api "${RELEASE_ENDPOINT}" --jq '.immutable')" != 'true' ]]; then
   echo 'Published release is mutable. Enable repository release immutability before any consumer rollout.' >&2
