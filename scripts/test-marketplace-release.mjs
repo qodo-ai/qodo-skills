@@ -189,6 +189,7 @@ assert.match(workflow, /QODO_SKILLS_RELEASE_APP_PRIVATE_KEY/);
 assert.match(workflow, /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/);
 assert.match(workflow, /owner: qodo-ai/);
 assert.match(workflow, /repositories: qodo-skills/);
+assert.match(workflow, /permission-administration: read/);
 assert.match(workflow, /permission-contents: write/);
 assert.match(workflow, /steps\.kiro-release-token\.outputs\.token/);
 assert.match(workflow, /verify-kiro-release-source\.sh/);

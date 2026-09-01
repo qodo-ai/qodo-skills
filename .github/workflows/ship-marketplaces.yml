@@ -228,6 +228,7 @@ jobs:
           private-key: ${{ secrets.QODO_SKILLS_RELEASE_APP_PRIVATE_KEY }}
           owner: qodo-ai
           repositories: qodo-skills
+          permission-administration: read
           permission-contents: write
 
       - name: Advance protected Kiro release source
