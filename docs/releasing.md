@@ -43,6 +43,10 @@ GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh
 The audit uses the administrator's existing `gh` session to verify otherwise hidden bypass actors,
 the dedicated App identity and permissions, presence of an environment reviewer, release
 immutability, and exact ruleset shapes. No administrator credential is stored in Actions.
+Protect creation, update, deletion, and force-push on `refs/heads/marketplace-kiro`, with the release
+App as the sole always-bypass actor. This prevents another repository writer from claiming the
+provider-visible branch before the first promotion while still allowing the approved release job to
+create it.
 Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
 `refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
 paginates the complete repository ruleset collection before resolving that exact ruleset and

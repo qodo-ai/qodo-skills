@@ -199,7 +199,7 @@ assert.match(kiroSourcePreflight, /# Usage: GH_TOKEN=/);
 assert.doesNotMatch(kiroSourcePreflight, /gh api user/);
 assert.match(kiroSourcePreflight, /gh api \/apps\/qodo-skills-release-bot/);
 assert.match(kiroSourcePreflight, /include == \["refs\/heads\/marketplace-kiro"\]/);
-assert.match(kiroSourcePreflight, /sort == \["deletion", "non_fast_forward", "update"\]/);
+assert.match(kiroSourcePreflight, /sort == \["creation", "deletion", "non_fast_forward", "update"\]/);
 assert.match(kiroSourcePreflight, /length == 1/);
 assert.match(kiroSourcePreflight, /jq --argjson release_app_id "\$\{RELEASE_APP_ID\}"/);
 assert.match(kiroSourcePreflight, /actor_type == "Integration"/);
@@ -255,9 +255,11 @@ elif [[ "$*" == "api repos/qodo-ai/qodo-skills/rulesets/78" ]]; then
   fi
 elif [[ "$*" == "api repos/qodo-ai/qodo-skills/rulesets/77" ]]; then
   if [[ "\${QODO_TEST_OMIT_BYPASS:-}" == 1 ]]; then
-    printf '{"conditions":{"ref_name":{"include":["refs/heads/marketplace-kiro"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}]}\\n'
+    printf '{"conditions":{"ref_name":{"include":["refs/heads/marketplace-kiro"],"exclude":[]}},"rules":[{"type":"creation"},{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}]}\\n'
   else
-    printf '{"id":77,"conditions":{"ref_name":{"include":["%s"],"exclude":[]}},"rules":[{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}],"bypass_actors":[{"bypass_mode":"always","actor_type":"%s","actor_id":%s}]}\\n' "\${QODO_TEST_RULESET_TARGET:-refs/heads/marketplace-kiro}" "\${QODO_TEST_RULESET_ACTOR_TYPE:-Integration}" "\${QODO_TEST_RULESET_ACTOR_ID:-12345}"
+    creation='{"type":"creation"},'
+    if [[ "\${QODO_TEST_OMIT_CREATION:-}" == 1 ]]; then creation=''; fi
+    printf '{"id":77,"conditions":{"ref_name":{"include":["%s"],"exclude":[]}},"rules":[%s{"type":"update"},{"type":"deletion"},{"type":"non_fast_forward"}],"bypass_actors":[{"bypass_mode":"always","actor_type":"%s","actor_id":%s}]}\\n' "\${QODO_TEST_RULESET_TARGET:-refs/heads/marketplace-kiro}" "$creation" "\${QODO_TEST_RULESET_ACTOR_TYPE:-Integration}" "\${QODO_TEST_RULESET_ACTOR_ID:-12345}"
   fi
 else
   printf 'unexpected gh invocation: %s\\n' "$*" >&2
@@ -279,6 +281,14 @@ fi
       });
       assert.equal(validPreflight.error, undefined, validPreflight.error?.message);
       assert.equal(validPreflight.status, 0, validPreflight.stderr);
+      const missingCreationPreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
+        encoding: 'utf8',
+        env: { ...preflightEnvironment, QODO_TEST_OMIT_CREATION: '1' },
+        timeout: 5_000,
+      });
+      assert.equal(missingCreationPreflight.error, undefined, missingCreationPreflight.error?.message);
+      assert.equal(missingCreationPreflight.status, 1, missingCreationPreflight.stderr);
+      assert.match(missingCreationPreflight.stderr, /protect creation\/update\/deletion\/force-push/);
       const mismatchedPreflight = spawnSync('bash', [join(root, 'scripts', 'verify-kiro-release-source.sh')], {
         encoding: 'utf8',
         env: { ...preflightEnvironment, QODO_TEST_RULESET_ACTOR_ID: '54321' },

@@ -96,10 +96,10 @@ if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
   has("bypass_actors") and
   (.conditions.ref_name.include == ["refs/heads/marketplace-kiro"]) and
   (.conditions.ref_name.exclude == []) and
-  ([.rules[].type] | sort == ["deletion", "non_fast_forward", "update"]) and
+  ([.rules[].type] | sort == ["creation", "deletion", "non_fast_forward", "update"]) and
   (.bypass_actors == [{"actor_id":$release_app_id,"actor_type":"Integration","bypass_mode":"always"}])
 ' <<< "${KIRO_RULESET}")" != 'true' ]]; then
-  echo 'Kiro marketplace release must target only refs/heads/marketplace-kiro and grant its sole always-bypass to qodo-skills-release-bot.' >&2
+  echo 'Kiro marketplace release must protect creation/update/deletion/force-push, target only refs/heads/marketplace-kiro, and grant its sole always-bypass to qodo-skills-release-bot.' >&2
   exit 1
 fi
 

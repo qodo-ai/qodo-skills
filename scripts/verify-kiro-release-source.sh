@@ -53,8 +53,7 @@ RULESET_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets/${RULESET_ID}")"
 if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
   (.conditions.ref_name.include == ["refs/heads/marketplace-kiro"]) and
   (.conditions.ref_name.exclude | type == "array" and length == 0) and
-  ([.rules[].type] | sort == ["deletion", "non_fast_forward", "update"]) and
-  ([.rules[].type] | index("creation")) == null and
+  ([.rules[].type] | sort == ["creation", "deletion", "non_fast_forward", "update"]) and
   ((has("bypass_actors") | not) or (
     (.bypass_actors | type == "array" and length == 1) and
     (.bypass_actors[0].bypass_mode == "always") and
@@ -62,6 +61,6 @@ if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
     (.bypass_actors[0].actor_id == $release_app_id)
   ))
 ' <<< "${RULESET_JSON}")" != 'true' ]]; then
-  echo 'Kiro marketplace release ruleset must protect only update/deletion/force-push, permit creation, cover only refs/heads/marketplace-kiro, and expose only the dedicated Integration bypass when visible.' >&2
+  echo 'Kiro marketplace release ruleset must protect creation/update/deletion/force-push only, cover only refs/heads/marketplace-kiro, and expose only the dedicated Integration bypass when visible.' >&2
   exit 1
 fi
