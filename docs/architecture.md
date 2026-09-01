@@ -2,7 +2,9 @@
 
 ## Invariant
 
-> Qodo authors skills once; marketplaces or the enterprise bundle update plugins; the CLI updates the runtime.
+> Qodo authors skills once; every installed root has one lifecycle owner. Marketplaces and the
+> enterprise bundle update plugin roots; the CLI-managed channel updates only roots created by
+> earlier Qodo CLI releases; the CLI updates the runtime.
 
 This is one architecture across every local coding agent. Providers differ only in packaging and
 lifecycle UI—not in workflow content or authority.
@@ -11,11 +13,12 @@ lifecycle UI—not in workflow content or authority.
 
 | Surface | Owns | Must not own |
 |---|---|---|
-| `qodo-skills` | canonical workflow bodies, package membership, versions, provider projections, release packets | credentials, API transport, installed host state |
+| `qodo-skills` | canonical workflow bodies, package membership, versions, provider projections, marketplace packets, and the data-only CLI-managed compatibility bundle | credentials, API transport, installed host state |
 | Marketplace | install, cache, update, rollback, and removal of its Qodo plugin | Qodo runtime binary or login |
 | skills.sh | install, link/copy, scope, update, and removal for agents without a Qodo listing | Qodo runtime binary or login |
 | Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and customer-controlled plugin rollout | public CLI binary contents or silent agent-root mutation |
-| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices | skill installation, task-time playbooks, marketplace caches |
+| CLI-managed compatibility channel | automatic updates only for byte-exact roots created by a shipped pre-cutover CLI | new installs, missing skills, marketplace/enterprise roots, user-modified copies |
+| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, and the CLI-managed compatibility updater | new skill installation, task-time playbooks, marketplace caches, enterprise plugin roots |
 
 After an explicit migration command, the CLI may retire only byte-identical copies produced by a
 shipped CLI release. It atomically moves them out of the host skill name into a recoverable hidden
@@ -44,6 +47,7 @@ Schemas rather than relying only on partial hand-written checks.
 | Kiro | `kiro-power/`, `kiro-power-standards/` | `kiro-power`, `kiro` |
 | skills.sh | canonical `skills/` tree | `skills-sh`, host stamped by installer/use context |
 | On-prem | immutable `qodo-enterprise-bundle-v<version>.tar.gz` release asset | `enterprise-bundle`, host retained in each projection |
+| Earlier CLI-managed roots | checksummed `qodo-cli-managed-bundle.json` release asset | `qodo-cli-managed` |
 
 Generation copies the complete canonical workflow. It changes only distribution/host provenance
 and provider manifests. Core marketplace packages also generate the temporary
@@ -68,10 +72,13 @@ Every skill:
 6. invokes the authenticated runtime;
 7. treats a `QODO_NOTICE` as non-fatal metadata after preserving the command result.
 
-The CLI’s compact release index contains only package, skill, and minimum-runtime versions. A daily
-bounded refresh may discover staleness. It never downloads workflow text and never changes an agent
-skill root. An on-prem QAR `version.json` advertises same-origin index paths; a private origin without
-that pointer fails closed instead of reaching the public release host.
+The CLI’s compact release index contains only package, skill, and minimum-runtime versions for
+marketplace/skills.sh notices. Separately, the CLI-managed bundle carries current canonical bytes for
+the finite CLI-managed cohort. The updater enrolls a root only when every byte matches a fingerprint
+from an actually shipped CLI, records the installed digest, and refuses to overwrite subsequent
+drift. It never adds a missing skill, so optional Standards remains optional. Replacement is staged,
+verified, atomically renamed, and leaves the prior copy recoverable. Public users read the immutable
+qodo-skills release; on-prem users read the QAR-pinned copy from their recorded runtime origin.
 
 ## Why workflows are embedded
 
@@ -101,6 +108,8 @@ Production-usage data prioritizes smoke testing but does not define an allowlist
 - Marketplace packets contain no credentials.
 - A stale notice never mutates; it requires read-only inventory and explicit approval.
 - Optional packages are never pulled in by update.
+- A CLI-managed update requires an exact shipped fingerprint or an existing ownership receipt;
+  modified copies and marketplace/enterprise roots are preserved.
 - Provider-visible publication, fresh install, and upgrade tests are release gates; green source CI
   is necessary but not proof of marketplace acceptance.
 - Enterprise archives are deterministic, checksum-published, contain no CLI binary or credential,

@@ -49,14 +49,16 @@ After the compatible CLI release is live and the skills PR is merged, a release 
 4. creates annotated tag `v<package-version>`, pushes it without force, and verifies the protected
    remote tag peels to the validated SHA immediately before publication;
 5. builds the deterministic enterprise archive, then creates or resumes a draft release containing
-   the compact index, enterprise manifest, enterprise archive, and all three SHA-256 files;
+   the compact index, data-only CLI-managed bundle, enterprise manifest, enterprise archive, and
+   all four SHA-256 files;
 6. publishes the verified draft, which makes the release immutable;
 7. verifies the published release is immutable, the protected tag is unchanged, and both published
    assets still match the validated checkout byte-for-byte;
 8. on an idempotent rerun, downloads both existing assets, verifies their checksum, and compares
    them byte-for-byte with the validated checkout before reporting success.
 
-The index is metadata for stale-version notices. The enterprise archive contains the complete
+The index is metadata for stale-version notices. The CLI-managed bundle keeps only proven roots
+from earlier Qodo CLI releases current; it is never a new-install source. The enterprise archive contains the complete
 Claude, Codex, Kiro, and portable package projections with `enterprise-bundle` provenance; core is
 default and Standards remains optional. Neither artifact grants write authority or contains the
 Qodo CLI.
@@ -141,8 +143,8 @@ The archive is an enterprise distribution input, not a hidden CLI payload. A cus
 imports the host-specific package or portable local source through its approved plugin rollout.
 The manifest requires `DO_NOT_TRACK=1` whenever that rollout invokes the skills CLI; direct host
 imports need no skills CLI at all.
-The CLI reads only QAR's same-origin compact index, emits an enterprise-owner stale notice, and
-never copies archive contents into an agent root.
+The CLI reads QAR's same-origin compact index and CLI-managed bundle. It never copies enterprise
+archive contents into an agent root; only roots already proven to be CLI-managed are refreshed.
 
 Gate: deterministic rebuild, manifest/archive/index checksums, no credential or CLI bytes, core and
 Standards isolation, QAR same-origin download, private-origin no-egress behavior, telemetry-disabled

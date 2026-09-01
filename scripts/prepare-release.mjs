@@ -312,6 +312,10 @@ export function prepareRelease(argv, repositoryRoot = root) {
       cwd: repositoryRoot,
       stdio: 'inherit',
     });
+    execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'build-cli-managed-bundle.mjs')], {
+      cwd: repositoryRoot,
+      stdio: 'inherit',
+    });
     return { version: nextPackageVersion, changes };
   });
 }

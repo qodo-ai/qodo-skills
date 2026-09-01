@@ -30,6 +30,8 @@ RELEASE_ASSETS=(
   "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
   "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
+  distribution/qodo-cli-managed-bundle.json
+  distribution/qodo-cli-managed-bundle.json.sha256
   distribution/qodo-skills-index.json
   distribution/qodo-skills-index.json.sha256
 )
@@ -47,11 +49,14 @@ verify_release_assets() {
   (
     cd "${directory}"
     verify_sha256 qodo-skills-index.json.sha256
+    verify_sha256 qodo-cli-managed-bundle.json.sha256
     verify_sha256 "${ARCHIVE_NAME}.sha256"
     verify_sha256 qodo-enterprise-manifest.json.sha256
   )
   cmp --silent "${directory}/qodo-skills-index.json" distribution/qodo-skills-index.json
   cmp --silent "${directory}/qodo-skills-index.json.sha256" distribution/qodo-skills-index.json.sha256
+  cmp --silent "${directory}/qodo-cli-managed-bundle.json" distribution/qodo-cli-managed-bundle.json
+  cmp --silent "${directory}/qodo-cli-managed-bundle.json.sha256" distribution/qodo-cli-managed-bundle.json.sha256
   cmp --silent "${directory}/${ARCHIVE_NAME}" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}"
   cmp --silent "${directory}/${ARCHIVE_NAME}.sha256" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   cmp --silent "${directory}/qodo-enterprise-manifest.json" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"

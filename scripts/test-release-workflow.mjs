@@ -223,7 +223,13 @@ try {
   for (const directory of ['distribution', 'releases', 'scripts']) {
     mkdirSync(join(checkout, directory), { recursive: true });
   }
-  for (const file of ['catalog.json', 'qodo-skills-index.json', 'qodo-skills-index.json.sha256']) {
+  for (const file of [
+    'catalog.json',
+    'qodo-cli-managed-bundle.json',
+    'qodo-cli-managed-bundle.json.sha256',
+    'qodo-skills-index.json',
+    'qodo-skills-index.json.sha256',
+  ]) {
     copyFileSync(join(root, 'distribution', file), join(checkout, 'distribution', file));
   }
   copyFileSync(join(root, 'releases', `${releaseTag}.json`), join(checkout, 'releases', `${releaseTag}.json`));
