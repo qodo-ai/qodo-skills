@@ -4,7 +4,7 @@ description: Connect Qodo to the current local coding agent — verify the Qodo 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.4"
+  version: "1.0.5"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -85,7 +85,7 @@ current skill and user files unchanged.
 
 ## 2. Check authentication
 
-Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.4 --distribution skills-sh`.
+Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.5 --distribution skills-sh`.
 
 In a sandboxed environment, any failed `whoami` can be a blocked keychain rather than a logged-out
 user. Ask for approval to retry that exact read-only command once outside the sandbox. The approval
@@ -94,28 +94,37 @@ logged out when the approved retry also fails.
 
 - Success and an identified account: continue to verification.
 - After the sandbox diagnostic above when applicable, `Not logged in`, missing credentials, or a
-  non-zero authentication result: run
-  `<qodo> login`. This is the only supported login path.
+  non-zero authentication result: choose the login path below. Do not run login until its
+  deployment endpoint is resolved.
 - An `unknown command` or `unknown option` after the successful version gate is a runtime-contract
   failure, not an authentication failure. Report the exact error and stop; do not send the user
   through login.
+
+Choose the login command before opening a browser:
+
+- For Qodo Cloud, run `<qodo> login`.
+- For a customer deployment, preserve the exact deployment-specific command the installer,
+  administrator, or user provided, such as `<qodo> login --auth-url <their-url>`.
+- Plain `<qodo> login` is also safe for a customer deployment only when this interaction has
+  explicit evidence that CLI 0.1.0-next.37 or newer already retained that endpoint—for example,
+  an earlier `qodo logout` reported that it kept the auth endpoint. The CLI resolves a retained
+  endpoint before the cloud default; never merely assume one was retained.
+- If a customer deployment is known but no exact command, endpoint, or retained-endpoint evidence
+  is available, stop and tell the user to obtain the login command from their Qodo administrator.
+  Never probe or fall back to Qodo Cloud.
 
 `qodo login` may open a browser. Tell the user what is happening before you run it. Wait for
 the command to finish; never claim login succeeded from a browser opening alone. If the
 user cancels or login fails, preserve the error message, explain that Qodo is still not
 connected, and stop without invoking other Qodo skills.
 
-For a customer deployment, preserve the deployment-specific command the installer or user
-provided, such as `qodo login --auth-url <their-url>`. Never replace an explicit endpoint
-with cloud defaults.
-
 ## 3. Verify readiness
 
 After login, run both:
 
 ```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.4 --distribution skills-sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.4 --distribution skills-sh
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.5 --distribution skills-sh
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.5 --distribution skills-sh
 ```
 
 Read the structured results. Readiness requires both a successful authenticated identity

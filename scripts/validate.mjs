@@ -275,6 +275,15 @@ for (const skill of catalog.skills ?? []) {
   if (!new RegExp(`Qodo\\s+CLI\\s+\\*\\*${escapedMinimum} or newer\\*\\*`).test(skillText)) {
     fail(`${skill.name}: runtime gate must name catalog minimumCliVersion`);
   }
+  if (skill.name === 'qodo-setup') {
+    const chooseLogin = skillText.indexOf('Choose the login command before opening a browser:');
+    const cloudLogin = skillText.indexOf('For Qodo Cloud, run `<qodo> login`.');
+    const customerLogin = skillText.indexOf('For a customer deployment, preserve the exact deployment-specific command');
+    const failClosed = skillText.indexOf('Never probe or fall back to Qodo Cloud.');
+    if (!(chooseLogin >= 0 && cloudLogin > chooseLogin && customerLogin > cloudLogin && failClosed > customerLogin)) {
+      fail('qodo-setup: login guidance must branch by deployment and fail closed before opening a browser');
+    }
+  }
   const headingCount = expectedHeading ? skillText.split(expectedHeading).length - 1 : 0;
   if (!expectedHeading || headingCount !== 1) {
     fail(`${skill.name}: expected exactly one branded value-moment heading ${expectedHeading ?? '<unregistered>'}`);

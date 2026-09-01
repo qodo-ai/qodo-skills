@@ -20,6 +20,20 @@ else
   exit 1
 fi
 
+require_exact_release_checkout() {
+  if [[ "$(git rev-parse HEAD)" != "${GITHUB_SHA}" ]]; then
+    echo 'Refusing to publish: checked-out HEAD is not GITHUB_SHA.' >&2
+    exit 1
+  fi
+  if ! git diff --quiet --ignore-submodules -- ||
+    ! git diff --cached --quiet --ignore-submodules --; then
+    echo 'Refusing to publish: the release checkout has tracked worktree changes.' >&2
+    exit 1
+  fi
+}
+
+require_exact_release_checkout
+
 VERSION="$(node -p "require('./distribution/catalog.json').package.version")"
 TAG="v${VERSION}"
 NOTES="${RUNNER_TEMP}/qodo-release-notes.md"
@@ -64,6 +78,7 @@ verify_release_assets() {
 }
 
 require_current_main() {
+  require_exact_release_checkout
   git fetch origin main --no-tags
   if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
     echo 'Refusing to publish: main advanced while this release was being validated.' >&2

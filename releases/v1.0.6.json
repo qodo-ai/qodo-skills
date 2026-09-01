@@ -1,6 +1,6 @@
 {
   "version": "1.0.6",
-  "summary": "Require a compatible Qodo runtime and route safe reads through a permission-stable gateway.",
+  "summary": "Require a compatible Qodo runtime, fail closed on customer login routing, and harden immutable release publication.",
   "package": {
     "change": "patch"
   },
@@ -9,7 +9,7 @@
   "skills": [
     {
       "name": "qodo-setup",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "change": "patch"
     },
     {
