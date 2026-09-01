@@ -240,6 +240,7 @@ try {
   for (const directory of ['distribution', 'releases', 'scripts']) {
     mkdirSync(join(checkout, directory), { recursive: true });
   }
+  copyFileSync(join(root, '.gitattributes'), join(checkout, '.gitattributes'));
   for (const file of ['catalog.json', 'qodo-skills-index.json', 'qodo-skills-index.json.sha256']) {
     copyFileSync(join(root, 'distribution', file), join(checkout, 'distribution', file));
   }
