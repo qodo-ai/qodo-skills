@@ -49,6 +49,27 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve the immutable release source commit
+        id: release-source
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./distribution/catalog.json').package.version")"
+          TAG="v${VERSION}"
+          RELEASE_COMMIT="${GITHUB_SHA}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
+            if [[ "$(git cat-file -t "refs/tags/${TAG}")" != 'tag' ]]; then
+              echo "${TAG} is not an annotated tag; refusing recovery." >&2
+              exit 1
+            fi
+            RELEASE_COMMIT="$(git rev-parse "refs/tags/${TAG}^{}")"
+            if ! git merge-base --is-ancestor "${RELEASE_COMMIT}" "${GITHUB_SHA}"; then
+              echo "${TAG} is not an ancestor of current main; refusing recovery." >&2
+              exit 1
+            fi
+          fi
+          echo "commit=${RELEASE_COMMIT}" >> "${GITHUB_OUTPUT}"
+
       - name: Install locked validation dependencies
         run: npm ci
 
@@ -82,10 +103,11 @@ jobs:
         run: >-
           node scripts/build-enterprise-bundle.mjs
           --output "${RUNNER_TEMP}/qodo-enterprise-release"
-          --commit "${GITHUB_SHA}"
+          --commit "${{ steps.release-source.outputs.commit }}"
 
       - name: Publish the immutable tag and GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           QODO_ENTERPRISE_RELEASE_DIR: ${{ runner.temp }}/qodo-enterprise-release
+          QODO_RELEASE_COMMIT: ${{ steps.release-source.outputs.commit }}
         run: scripts/publish-release.sh

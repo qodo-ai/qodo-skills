@@ -63,7 +63,8 @@ token for that pre-publication check. The checked-in audit, runtime preflight, a
 missing credentials, disabled immutability, duplicate/invalid rulesets, forbidden creation rules,
 draft corruption, draft resume, publication, and immutable retry all fail closed.
 After the compatible CLI release is live and the skills PR is merged, a release owner dispatches
-**Release skills** from the current `main` head. Rerunning it is idempotent. The workflow:
+**Release skills** from the current `main` head. Rerunning it is idempotent, including recovery when
+a prior run created the protected tag and draft but stopped before publication. The workflow:
 
 1. requires the dispatched SHA to be the exact `main` head before and after validation; a merge
    after that final check does not change the validated release SHA;
@@ -76,10 +77,19 @@ After the compatible CLI release is live and the skills PR is merged, a release 
    the compact index, data-only CLI-managed bundle, enterprise manifest, enterprise archive, and
    all four SHA-256 files;
 6. publishes the verified draft, which makes the release immutable;
-7. verifies the published release is immutable, the protected tag is unchanged, and both published
+7. verifies the published release is immutable, the protected tag is unchanged, and all published
    assets still match the validated checkout byte-for-byte;
-8. on an idempotent rerun, downloads both existing assets, verifies their checksum, and compares
+8. on an idempotent rerun, downloads all eight existing assets, verifies their checksums, and compares
    them byte-for-byte with the validated checkout before reporting success.
+
+GitHub's release-by-tag REST endpoint does not expose draft releases. The publisher therefore finds
+both drafts and public releases through the paginated release list, rejects duplicate tag claims,
+and addresses the selected release by immutable numeric id. If reviewed release automation advances
+`main` after a draft was created, recovery may use the older tagged commit only when that tag is an
+ancestor of current `main` and an existing draft for the tag is present. The enterprise manifest is
+rebuilt with the tagged source commit, and every downloaded draft asset must match before the draft
+can become public. An older tag without its draft fails closed; tags and assets are never moved,
+deleted, or overwritten.
 
 After that workflow succeeds, dispatch **release: publish skills compatibility channel** in
 `qodo-ai/qodo-in-cli` with the immutable `v<package-version>` tag. The workflow verifies the public
