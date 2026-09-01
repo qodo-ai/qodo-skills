@@ -1,0 +1,332 @@
+name: Ship marketplaces
+run-name: Ship marketplaces ${{ inputs.release_tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Immutable qodo-skills release tag (for example v1.0.2)
+        required: true
+        type: string
+      all:
+        description: Ship to every configured marketplace
+        required: false
+        default: false
+        type: boolean
+      claude:
+        description: Ship to the official Claude Code directory
+        required: false
+        default: false
+        type: boolean
+      codex:
+        description: Prepare and gate the Codex portal release
+        required: false
+        default: false
+        type: boolean
+      kiro:
+        description: Ship to the Kiro Powers directory
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: qodo-marketplaces-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: >-
+      github.repository == 'qodo-ai/qodo-skills' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    permissions:
+      actions: read
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      verifiable_matrix: ${{ steps.plan.outputs.verifiable_matrix }}
+      has_verifiable: ${{ steps.plan.outputs.has_verifiable }}
+      selected: ${{ steps.plan.outputs.selected }}
+      claude: ${{ steps.plan.outputs.claude }}
+      codex: ${{ steps.plan.outputs.codex }}
+      kiro: ${{ steps.plan.outputs.kiro }}
+    steps:
+      - name: Check out trusted release automation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Acquire the cross-tag marketplace release lock
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: node scripts/marketplace-release-lock.mjs acquire
+
+      - name: Verify immutable release before executing release code
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          command -v gh >/dev/null 2>&1 || { echo "Marketplace planning requires gh." >&2; exit 1; }
+          [[ "${RELEASE_TAG}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
+            echo "release_tag must be an exact stable semver tag (for example v1.2.3)." >&2
+            exit 1
+          }
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')" = 'true'
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.tag_name')" = "${RELEASE_TAG}"
+
+      - name: Check out immutable release automation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_tag }}
+
+      - name: Resolve selected marketplaces
+        id: plan
+        run: |
+          set -euo pipefail
+          command -v node >/dev/null 2>&1 || { echo "Marketplace planning requires node." >&2; exit 1; }
+          node scripts/marketplace-release.mjs plan \
+            --all "${{ inputs.all }}" \
+            --claude "${{ inputs.claude }}" \
+            --codex "${{ inputs.codex }}" \
+            --kiro "${{ inputs.kiro }}"
+
+  prepare:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the immutable release
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Verify required preparation tools
+        run: |
+          set -euo pipefail
+          for tool in git gh node npm; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Marketplace preparation requires ${tool}." >&2; exit 1; }
+          done
+
+      - name: Install locked validation dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify immutable release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          test "$(git describe --tags --exact-match HEAD)" = "${RELEASE_TAG}"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.immutable')" = 'true'
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.tag_name')" = "${RELEASE_TAG}"
+
+      - name: Validate canonical source and generated adapters
+        run: npm test
+
+      - name: Prepare exact provider artifact
+        id: prepare
+        env:
+          PROVIDER: ${{ matrix.provider }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          OUTPUT="${RUNNER_TEMP}/marketplace-${PROVIDER}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node scripts/marketplace-release.mjs prepare \
+            --provider "${PROVIDER}" \
+            --tag "${RELEASE_TAG}" \
+            --commit "${RELEASE_SHA}" \
+            --output "${OUTPUT}"
+
+      - name: Upload provider release packet
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: marketplace-${{ matrix.provider }}-${{ inputs.release_tag }}
+          path: ${{ steps.prepare.outputs.output }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
+
+  verify-provider-environment:
+    needs: [plan, prepare]
+    if: needs.plan.outputs.has_verifiable == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.verifiable_matrix) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require protected provider environment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for tool in gh grep; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Provider environment verification requires ${tool}." >&2; exit 1; }
+          done
+          gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-${{ matrix.provider }}" \
+            --jq 'any(.protection_rules[]?; .type == "required_reviewers")' | grep -qx true
+
+  verify-provider-visible:
+    needs: [plan, prepare, verify-provider-environment]
+    if: needs.plan.outputs.has_verifiable == 'true'
+    concurrency:
+      group: qodo-marketplace-provider-${{ matrix.provider }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.verifiable_matrix) }}
+    runs-on: ubuntu-latest
+    environment:
+      name: marketplace-${{ matrix.provider }}
+    steps:
+      - name: Check out the immutable release
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Advance protected Kiro release source
+        if: matrix.provider == 'kiro'
+        env:
+          GH_TOKEN: ${{ secrets.QODO_RELEASE_ADMIN_TOKEN }}
+          SOURCE_REF: marketplace-kiro
+        run: |
+          set -euo pipefail
+          for tool in bash gh git jq; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Kiro source promotion requires ${tool}." >&2; exit 1; }
+          done
+          test -n "${GH_TOKEN}" || { echo 'QODO_RELEASE_ADMIN_TOKEN is required to advance the protected Kiro release branch.' >&2; exit 1; }
+          bash scripts/verify-kiro-release-source.sh
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${SOURCE_REF}" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/${SOURCE_REF}" \
+              -f sha="${RELEASE_SHA}" -F force=false >/dev/null
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/heads/${SOURCE_REF}" -f sha="${RELEASE_SHA}" >/dev/null
+          fi
+
+      - name: Require exact provider-visible source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PROVIDER: ${{ matrix.provider }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          for tool in git node; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Provider verification requires ${tool}." >&2; exit 1; }
+          done
+          node scripts/marketplace-release.mjs verify \
+            --provider "${PROVIDER}" \
+            --tag "${RELEASE_TAG}" \
+            --commit "$(git rev-parse HEAD)"
+
+  codex-gate:
+    needs: [plan, prepare]
+    if: needs.plan.outputs.codex == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a protected Codex release-owner environment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for tool in gh grep; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Codex gate verification requires ${tool}." >&2; exit 1; }
+          done
+          gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-codex" \
+            --jq 'any(.protection_rules[]?; .type == "required_reviewers")' | grep -qx true
+
+      - name: Explain the external publication gate
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          {
+            echo '## Codex portal publication required'
+            echo
+            echo "Download \`marketplace-codex-${RELEASE_TAG}\`, upload the two listing packets through the OpenAI plugin portal, wait for review, and publish the approved version."
+            echo 'Approve the protected `marketplace-codex` environment only after that external step is complete.'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  codex-release-owner-attestation:
+    needs: [plan, prepare, codex-gate]
+    if: needs.plan.outputs.codex == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: marketplace-codex
+      url: https://platform.openai.com/plugins
+    steps:
+      - name: Check out the immutable release
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Record the protected release-owner attestation
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          for tool in git node; do
+            command -v "${tool}" >/dev/null 2>&1 || { echo "Codex attestation requires ${tool}." >&2; exit 1; }
+          done
+          node scripts/marketplace-release.mjs attest \
+            --provider codex \
+            --tag "${RELEASE_TAG}" \
+            --commit "$(git rev-parse HEAD)"
+
+  release-lock-finalize:
+    needs:
+      - plan
+      - prepare
+      - verify-provider-environment
+      - verify-provider-visible
+      - codex-gate
+      - codex-release-owner-attestation
+    if: >-
+      always() && github.repository == 'qodo-ai/qodo-skills' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    permissions:
+      actions: read
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out trusted release automation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Append the released marketplace lock state
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: node scripts/marketplace-release-lock.mjs release

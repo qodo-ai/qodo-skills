@@ -1,0 +1,15 @@
+{
+  "version": "1.0.2",
+  "summary": "Stamp setup runtime probes with lifecycle provenance.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.2",
+      "change": "patch"
+    }
+  ]
+}

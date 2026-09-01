@@ -1,7 +1,7 @@
-# Qodo for Kiro
+# Qodo Standards for Kiro
 
 Generated skills contain the complete reviewed Qodo playbooks for this release.
-Install or update Qodo through the Kiro Powers marketplace.
+Install or update Qodo Standards through the Kiro Powers marketplace.
 The Qodo CLI remains a separate runtime and is never bundled here.
 
 ## Optional read-only permission

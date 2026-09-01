@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/qodo-ai/qodo-skills/blob/main/distribution/catalog.schema.json",
+  "title": "Qodo skills distribution catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "instructionMode", "package", "runtime", "installPackages", "skills"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "instructionMode": { "const": "embedded" },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "displayName", "version", "description", "repository", "homepage", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl", "license", "brandColor"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "displayName": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$" },
+        "description": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string", "format": "uri" },
+        "homepage": { "type": "string", "format": "uri" },
+        "supportUrl": { "type": "string", "format": "uri" },
+        "privacyPolicyUrl": { "type": "string", "format": "uri" },
+        "termsOfServiceUrl": { "type": "string", "format": "uri" },
+        "license": { "type": "string", "minLength": 1 },
+        "brandColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "readCommand", "loginCommand", "protocolVersion", "minimumCliVersion"],
+      "properties": {
+        "command": { "const": "qodo" },
+        "readCommand": { "const": "qodo read" },
+        "loginCommand": { "const": "qodo login" },
+        "protocolVersion": { "type": "integer", "minimum": 1 },
+        "minimumCliVersion": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$" }
+      }
+    },
+    "installPackages": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "displayName", "description", "default", "skills"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^qodo(?:-[a-z0-9-]+)?$" },
+          "displayName": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "default": { "type": "boolean" },
+          "skills": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^qodo-[a-z0-9-]+$" }
+          }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "version", "recommended", "displayName", "shortDescription", "defaultPrompt"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^qodo-[a-z0-9-]+$" },
+          "version": { "type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$" },
+          "recommended": { "type": "boolean" },
+          "displayName": { "type": "string", "minLength": 1 },
+          "shortDescription": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "defaultPrompt": { "type": "string", "minLength": 1, "maxLength": 128 }
+        }
+      }
+    }
+  }
+}

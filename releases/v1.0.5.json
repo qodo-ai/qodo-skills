@@ -1,0 +1,15 @@
+{
+  "version": "1.0.5",
+  "summary": "Disarm completed review processes and keep validation portable.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.9.3",
+      "change": "patch"
+    }
+  ]
+}

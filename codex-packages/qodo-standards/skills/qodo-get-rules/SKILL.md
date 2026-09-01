@@ -7,7 +7,8 @@ metadata:
   version: "1.1.2"
   recommended: "false"
   package: "qodo-standards"
-  distribution: "skills-sh"
+  distribution: "marketplace"
+  instruction_mode: "embedded"
 ---
 
 # Get Rules
@@ -61,7 +62,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.2 --distribution skills-sh
+qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.2 --distribution marketplace --host codex
 qodo read rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json

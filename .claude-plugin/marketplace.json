@@ -1,0 +1,54 @@
+{
+  "name": "qodo",
+  "owner": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "metadata": {
+    "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
+    "version": "1.0.6"
+  },
+  "plugins": [
+    {
+      "name": "qodo",
+      "source": "./packages/qodo",
+      "description": "Qodo setup, code intelligence, and review workflows.",
+      "author": {
+        "name": "Qodo",
+        "email": "support@qodo.ai",
+        "url": "https://www.qodo.ai"
+      },
+      "homepage": "https://www.qodo.ai",
+      "repository": "https://github.com/qodo-ai/qodo-skills",
+      "license": "MIT",
+      "keywords": [
+        "qodo",
+        "code-review",
+        "code-intelligence",
+        "standards",
+        "coding-agents"
+      ]
+    },
+    {
+      "name": "qodo-standards",
+      "source": "./packages/qodo-standards",
+      "description": "Optional Qodo rules discovery and standards administration workflows.",
+      "author": {
+        "name": "Qodo",
+        "email": "support@qodo.ai",
+        "url": "https://www.qodo.ai"
+      },
+      "homepage": "https://www.qodo.ai",
+      "repository": "https://github.com/qodo-ai/qodo-skills",
+      "license": "MIT",
+      "keywords": [
+        "qodo",
+        "code-review",
+        "code-intelligence",
+        "standards",
+        "coding-agents"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+name: Release skills
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qodo-skills-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.repository == 'qodo-ai/qodo-skills' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the release commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Validate release tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tool in gh git node npm mktemp sha256sum cmp rm; do
+            command -v "${tool}" >/dev/null 2>&1 || {
+              echo "Release requires '${tool}', but it is not available on this runner." >&2
+              exit 1
+            }
+          done
+
+      - name: Require the exact merged main commit
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
+            echo 'Refusing to publish: GITHUB_SHA is not the current merged main commit.' >&2
+            exit 1
+          fi
+
+      - name: Install locked validation dependencies
+        run: npm ci
+
+      - name: Verify the release package
+        run: npm test
+
+      - name: Verify immutable releases are enabled
+        env:
+          GH_TOKEN: ${{ secrets.QODO_RELEASE_ADMIN_TOKEN }}
+        run: scripts/verify-release-prerequisites.sh
+
+      - name: Publish the immutable tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/publish-release.sh
