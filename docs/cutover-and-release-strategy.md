@@ -141,10 +141,17 @@ copy and recoverable predecessor; marketplace skills remain owned by their host.
   including credential/ruleset failures, corrupted draft rejection and resume, successful
   publication, and idempotent immutable verification. The release asset inventory includes the
   compact index, the data-only CLI-managed bundle, the enterprise bundle, and their checksums.
+- After the immutable GitHub release is verified, dispatch **release: publish skills compatibility
+  channel** in `qodo-ai/qodo-in-cli` with that exact tag. Its canary job verifies the immutable
+  release and checksums, copies the compact index and CLI-managed bundle to tag-scoped
+  `get.qodo.ai` paths, and advances only the `skills` pointers in `version.json`. The protected
+  production job promotes the exact canary bytes. CLI release jobs preserve those pointers when
+  they update the independent runtime channel.
 - Smoke-test skills.sh core installation on representative non-marketplace agents before provider
   promotion.
 
-Gate: `npm test`, immutable release verification, four canonical core capabilities, standards
+Gate: `npm test`, immutable release verification, tag-scoped canary and production compatibility
+assets plus exact same-origin `version.json` pointers, four canonical core capabilities, standards
 opt-in, full embedded body/provenance checks, and skills.sh project/global update without package
 broadening. Marketplace packages may also expose the generated `qodo-pr-resolver` compatibility
 name, which is the same canonical resolver workflow and not a fifth capability.

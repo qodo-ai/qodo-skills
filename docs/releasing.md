@@ -71,6 +71,20 @@ After the compatible CLI release is live and the skills PR is merged, a release 
 8. on an idempotent rerun, downloads both existing assets, verifies their checksum, and compares
    them byte-for-byte with the validated checkout before reporting success.
 
+After that workflow succeeds, dispatch **release: publish skills compatibility channel** in
+`qodo-ai/qodo-in-cli` with the immutable `v<package-version>` tag. The workflow verifies the public
+release again, publishes the compact index and CLI-managed bundle under tag-scoped paths in the
+canary bucket, and then waits at the existing protected production environment before copying the
+same bytes to `get.qodo.ai`. It updates only these same-origin `version.json` fields:
+
+- `skills.releaseTag`
+- `skills.releaseIndex` and `skills.releaseIndexChecksum`
+- `skills.cliManagedBundle` and `skills.cliManagedChecksum`
+
+Do not promote marketplaces until the production pointers resolve to the selected tag and both
+checksums verify. CLI releases preserve the `skills` object while changing their separate
+`channels` entry.
+
 The index is metadata for stale-version notices. The CLI-managed bundle keeps only proven roots
 from earlier Qodo CLI releases current; it is never a new-install source. The enterprise archive contains the complete
 Claude, Codex, Kiro, and portable package projections with `enterprise-bundle` provenance; core is
