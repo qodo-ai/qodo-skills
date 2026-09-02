@@ -68,6 +68,8 @@ try {
     tag: `v${packageVersion}`,
   });
   assert.deepEqual(manifest.archive, { name: first.archiveName, sha256: first.archiveSha256 });
+  assert.equal(manifest.discovery.schema, 'https://schemas.agentskills.io/discovery/0.2.0/schema.json');
+  assert.equal(manifest.discovery.minimumCliVersion, '0.1.0-next.39');
   assert.deepEqual(manifest.installation, {
     skillsCli: { environment: { DO_NOT_TRACK: '1' } },
   });
@@ -76,6 +78,41 @@ try {
     readFileSync(join(firstRoot, `${first.manifestName}.sha256`), 'utf8'),
     `${sha256(manifestPayload)}  ${first.manifestName}\n`,
   );
+
+  const discoveryPackages = new Map(manifest.discovery.packages.map((entry) => [entry.name, entry]));
+  assert.deepEqual([...discoveryPackages.keys()].sort(), ['qodo', 'qodo-standards']);
+  for (const [packageName, discoveryPackage] of discoveryPackages) {
+    const expectedIndex = packageName === 'qodo'
+      ? 'qodo-agent-skills-core-index.json'
+      : 'qodo-agent-skills-standards-index.json';
+    assert.equal(discoveryPackage.index.name, expectedIndex);
+    const firstIndex = readFileSync(join(firstRoot, expectedIndex));
+    const secondIndex = readFileSync(join(secondRoot, expectedIndex));
+    assert.deepEqual(firstIndex, secondIndex, `${packageName} discovery index must be deterministic`);
+    assert.equal(sha256(firstIndex), discoveryPackage.index.sha256);
+    const index = JSON.parse(firstIndex);
+    assert.equal(index.$schema, manifest.discovery.schema);
+    assert.deepEqual(index.skills.map((entry) => entry.name), discoveryPackage.skills.map((entry) => entry.name));
+    for (const entry of index.skills) {
+      assert.equal(entry.type, 'archive');
+      assert.match(entry.url, /^\.\.\/\.\.\/artifacts\/qodo-agent-skill-qodo-[a-z0-9-]+\.tar\.gz$/);
+      const archiveName = entry.url.split('/').at(-1);
+      const indexUrl = `https://qar.example/toolbox/skills/${packageName}/.well-known/agent-skills/index.json`;
+      assert.equal(
+        new URL(entry.url, indexUrl).pathname,
+        `/toolbox/skills/${packageName}/artifacts/${archiveName}`,
+        `${packageName} archive URL must resolve inside its package-scoped QAR route`,
+      );
+      const firstSkillArchive = readFileSync(join(firstRoot, archiveName));
+      const secondSkillArchive = readFileSync(join(secondRoot, archiveName));
+      assert.deepEqual(firstSkillArchive, secondSkillArchive, `${entry.name} archive must be deterministic`);
+      assert.equal(entry.digest, `sha256:${sha256(firstSkillArchive)}`);
+      const skillArchiveFiles = tarFiles(firstSkillArchive);
+      assert.ok(skillArchiveFiles.has('SKILL.md'));
+      assert.match(skillArchiveFiles.get('SKILL.md').toString(), /  distribution: "enterprise-bundle"/);
+      assert.ok([...skillArchiveFiles.keys()].every((path) => !path.startsWith('qodo-enterprise/')));
+    }
+  }
 
   const files = tarFiles(firstArchive);
   assert.ok(files.has('qodo-enterprise/README.md'));

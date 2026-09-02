@@ -116,7 +116,7 @@ if (args[0] === 'api' && endpoint.startsWith('installation/repositories')) {
     throw new Error('Release upload must never overwrite an existing asset');
   }
   const state = readState();
-  const assetPattern = /(?:qodo-(?:skills-index|cli-managed-bundle)\.json(?:\.sha256)?|qodo-enterprise-manifest\.json(?:\.sha256)?|qodo-enterprise-bundle-v\d+\.\d+\.\d+\.tar\.gz(?:\.sha256)?)$/;
+  const assetPattern = /(?:qodo-(?:skills-index|cli-managed-bundle)\.json(?:\.sha256)?|qodo-enterprise-manifest\.json(?:\.sha256)?|qodo-enterprise-bundle-v\d+\.\d+\.\d+\.tar\.gz(?:\.sha256)?|qodo-agent-skills-(?:core|standards)-index\.json|qodo-agent-skill-qodo-[a-z0-9-]+\.tar\.gz)$/;
   if (args[1] === 'upload' && (!state.exists || !state.draft)) {
     throw new Error('Release upload requires an existing draft');
   }

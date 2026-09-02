@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEnterpriseBundle } from './build-enterprise-bundle.mjs';
+import { assertDiscoveryManifestFailures } from './test-release-discovery-assets.mjs';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8');
 const preflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
@@ -310,12 +311,13 @@ try {
   assert.throws(() => runShell(checkout, publishPath, publishEnv),
     /release checkout has tracked worktree changes/);
   run(checkout, 'git', ['reset', '--hard', releaseSha]);
+  assertDiscoveryManifestFailures({ publisher, enterpriseDir, checkout, publishPath, publishEnv, releaseTag, run, runShell });
   runShell(checkout, publishPath, publishEnv);
   assert.equal(run(checkout, 'git', ['rev-list', '-n', '1', releaseTag]).trim(), releaseSha);
   const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
-    { draft: false, immutable: true, edits: 1, downloads: 9 },
+    { draft: false, immutable: true, edits: 1, downloads: published.assets.length + 1 },
   );
   for (const corruption of [{ name: 'wrong title' }, { body: 'wrong notes' }]) {
     const corrupted = { ...published, ...corruption, draft: true, immutable: false, edits: 0, downloads: 0 };
@@ -328,7 +330,6 @@ try {
     ...publishEnv,
     FAKE_DUPLICATE_RELEASES: 'true',
   }), new RegExp(`Multiple releases claim ${escapedReleaseTag}`));
-
   // Recovery from reviewed automation changes must still use tagged bytes.
   writeFileSync(fakeGhState, `${JSON.stringify({
     ...published,
@@ -353,7 +354,7 @@ try {
   const recovered = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: recovered.draft, immutable: recovered.immutable, edits: recovered.edits, downloads: recovered.downloads },
-    { draft: false, immutable: true, edits: 1, downloads: 9 },
+    { draft: false, immutable: true, edits: 1, downloads: recovered.assets.length + 1 },
   );
   run(checkout, 'git', ['reset', '--hard', releaseSha]);
   run(checkout, 'git', ['push', '--force', 'origin', 'main']);
@@ -402,7 +403,7 @@ try {
   runShell(checkout, publishPath, publishEnv);
   const verifiedRetry = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.equal(verifiedRetry.edits, 1);
-  assert.equal(verifiedRetry.downloads, 10);
+  assert.equal(verifiedRetry.downloads, verifiedRetry.assets.length + 2);
 
   // A resumed draft with an unexpected asset is rejected without mutation.
   const unexpectedDraft = {
@@ -490,7 +491,7 @@ try {
       edits: rejectedPublicBytes.edits,
       downloads: rejectedPublicBytes.downloads,
     },
-    { draft: false, immutable: true, edits: 1, downloads: 9 },
+    { draft: false, immutable: true, edits: 1, downloads: rejectedPublicBytes.assets.length + 1 },
   );
 } finally {
   rmSync(harness, { recursive: true, force: true });
