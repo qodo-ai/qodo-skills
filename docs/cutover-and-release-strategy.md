@@ -4,23 +4,24 @@
 
 Qodo moves skill ownership out of the CLI without creating a second architecture:
 
-> Qodo authors skills once; every installed root has one lifecycle owner. Marketplaces and the
-> enterprise bundle update plugin roots; the CLI-managed channel updates only roots created by
-> earlier Qodo CLI releases;
-> the CLI updates the runtime.
+> Qodo authors skills once; every installed root has one lifecycle owner. Marketplaces, skills.sh,
+> or the enterprise bundle update skills; the CLI-managed channel updates only roots created by
+> earlier Qodo CLI releases; the CLI updates the runtime.
 
 - Claude Code, Codex, and Kiro receive complete generated skills through their official listings.
 - Compatible agents without a Qodo listing use skills.sh.
-- On-prem QAR deployments pin and serve one immutable enterprise archive beside the independently
-  pinned CLI. The CLI natively imports its verified portable projection after explicit agent
-  selection; the enterprise bundle remains the lifecycle owner.
+- On-prem QAR deployments pin the independently released CLI and skills assets. QAR exposes
+  path-scoped Agent Skills Discovery v0.2 feeds for core and Standards. After login, the CLI invokes
+  a build-pinned, telemetry-disabled skills lifecycle engine; that engine owns agent discovery and
+  installation while the enterprise bundle remains the content lifecycle owner.
 - `qodo-standards` remains a separate optional package everywhere.
 - Existing users who keep the copies originally installed by the CLI continue receiving current
   skills automatically; marketplace migration is optional, not a support deadline.
 - The CLI authenticates and runs tools, updates itself, prints lifecycle guidance, emits stale-skill
   notices, and maintains only hash-exact CLI-managed copies through a separate compatibility channel.
 - No task-time playbook loader or general-purpose public CLI skill installer ships in the cutover.
-  The enterprise importer is enabled only by a same-origin QAR bundle and needs no public registry.
+  The enterprise command is only an authenticated launcher for the same-origin QAR feeds; it does
+  not carry agent mappings, parse skill archives, or copy skill trees itself.
 
 ## Why this design
 
@@ -46,16 +47,17 @@ skills/<name>/ (authored once)
           ├── codex-packages/       Codex complete skills
           ├── kiro-power*/          Kiro Agent Plugins power packages
           ├── skills/               skills.sh source
-          ├── enterprise archive    Claude/Codex/Kiro/portable offline projections
+          ├── enterprise archive    offline projections and compatibility artifact
+          ├── discovery feeds       core + optional Standards, one digest-pinned archive per skill
           └── CLI-managed bundle    current bytes for proven earlier CLI-managed roots
 
-qodo CLI ── login + runtime + tool help + version notice
+qodo CLI ── login + runtime + tool help + version notice + pinned skills launcher
         ├── public: never creates marketplace/skills.sh installations after cutover
         ├── compatibility: updates only roots carrying CLI-managed ownership proof
-        └── enterprise: imports only an authenticated, same-origin QAR bundle after explicit consent
+        └── enterprise: delegates same-origin feed installation after authentication and consent
 
 QAR /toolbox ── independently pinned CLI + enterprise skills assets
-             └── same-origin checksummed metadata; no public-network dependency at runtime
+             └── path-scoped v0.2 feeds and digest-pinned archives; no runtime public egress
 ```
 
 ## Cutover sequence
@@ -169,26 +171,39 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 
 ### 2a. Prepare the on-prem enterprise lane
 
-- The immutable skills release includes a deterministic enterprise manifest, archive, and
-  checksums. The archive stamps `enterprise-bundle` provenance into complete Claude, Codex, Kiro,
-  and portable projections while preserving core/Standards package isolation.
+- The immutable skills release includes the deterministic enterprise compatibility archive plus
+  path-scoped Agent Skills Discovery v0.2 indexes for `qodo` and `qodo-standards`. Every feed entry
+  points to a deterministic, SHA-256-pinned single-skill archive with `enterprise-bundle`
+  provenance. Core and Standards never share an index.
 - QAR pins the skills version and hashes in a lock separate from its CLI lock, verifies and bakes
-  both during the backend image build, and serves the skills index, CLI-managed bundle, and archive
-  under `/toolbox`.
+  both during the backend image build, and serves the compatibility assets, discovery indexes, and
+  per-skill archives under `/toolbox/skills`.
 - The compatible CLI fetches from the recorded QAR origin, so an on-prem client never falls back to
   public GitHub. Historical CLI-managed roots and new enterprise roots retain separate receipts and
   lifecycle owners.
-- After login, interactive setup offers a multi-select of supported local agents. The explicit
-  automation form is `qodo agents install --enterprise --agent <ids> --yes`. Both install core only
-  unless Standards is selected separately.
-- The native importer verifies and atomically applies the portable projection without `npx` or
-  skills.sh. A customer may instead use an approved host importer; when that path invokes the
-  skills CLI it runs with `DO_NOT_TRACK=1`, as declared by the manifest.
+- After login, `qodo agents install --enterprise` opens the lifecycle engine's current detected-agent
+  multi-select and installs core globally. Qodo Standards remains absent unless explicitly selected.
+  Automation may pass current agent IDs with `--agent ... --yes`; the lifecycle engine, not Qodo's
+  CLI source, validates those IDs. A newly supported agent therefore needs only a reviewed helper
+  pin/release, never a new Qodo-owned mapping or copier.
+- The launcher suppresses only the parent process's build-derived agent-detection markers so running
+  setup from Codex or Claude cannot bypass multi-select and consent; it does not maintain target
+  paths or agent IDs.
+- The Qodo CLI release embeds a reproducible packaging build of exact-pinned `skills@1.5.15`, the
+  newest tested release that both supports discovery v0.2 and executes at Qodo's Node 20.6 floor.
+  It materializes that helper by SHA-256 under Qodo's private runtime directory and forces
+  `DO_NOT_TRACK=1`. No npm, npx, skills.sh, GitHub, or marketplace access occurs on the client.
+- Background maintenance checks only the QAR version pointer. When newer content exists it emits
+  the exact `qodo agents update --enterprise` action. Updates are never unattended: the user sees
+  the lifecycle engine's overwrite summary and confirms it. This remains the policy until the
+  upstream engine can prove modified-root preservation; local edits are not silently discarded.
+- The discovery manifest declares `minimumCliVersion: 0.1.0-next.39` independently from the
+  package-wide `.37` minimum. QAR rejects the feed until its CLI lock reaches that version.
 
-Gate: deterministic archive rebuild; exact manifest/archive/index checksums; QAR offline image
-build and route tests; private-origin no-egress; telemetry-disabled skills-CLI import when used;
-fresh clean-machine core import; Standards absent; enterprise bundle upgrade; modified-copy
-preservation; retry no-op; new-session activation. The QAR PR cannot become merge-ready until the pinned
+Gate: deterministic archive and discovery-feed rebuild; exact manifest/archive/index digests; QAR
+offline image build and route tests; private-origin no-egress; telemetry-disabled pinned-helper
+import at Node 20.6; fresh clean-machine core import into Codex and Claude; Standards absent;
+prompted upgrade; retry; new-session activation. The QAR PR cannot become merge-ready until the pinned
 immutable qodo-skills release exists at the exact bytes in its lock.
 
 Rollback: publish a new immutable skills patch and advance only the QAR skills pin. The CLI pin is
@@ -270,7 +285,8 @@ deleted.
 ## Update experience after cutover
 
 1. The marketplace or skills.sh publishes/observes the new complete skill.
-2. The CLI’s daily bounded metadata refresh may notice that the loaded skill version is stale.
+2. The CLI’s daily bounded metadata refresh may notice that the loaded skill version is stale. For
+   enterprise installs this is a detached QAR pointer check, never an unattended root mutation.
 3. The current Qodo command succeeds and emits `QODO_NOTICE` on stderr.
 4. The skill finishes the current task, inventories its lifecycle owner read-only, shows the fully
    resolved scope-preserving action, and asks once.

@@ -315,7 +315,7 @@ try {
   const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
-    { draft: false, immutable: true, edits: 1, downloads: 9 },
+    { draft: false, immutable: true, edits: 1, downloads: published.assets.length + 1 },
   );
   for (const corruption of [{ name: 'wrong title' }, { body: 'wrong notes' }]) {
     const corrupted = { ...published, ...corruption, draft: true, immutable: false, edits: 0, downloads: 0 };
@@ -353,7 +353,7 @@ try {
   const recovered = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.deepEqual(
     { draft: recovered.draft, immutable: recovered.immutable, edits: recovered.edits, downloads: recovered.downloads },
-    { draft: false, immutable: true, edits: 1, downloads: 9 },
+    { draft: false, immutable: true, edits: 1, downloads: recovered.assets.length + 1 },
   );
   run(checkout, 'git', ['reset', '--hard', releaseSha]);
   run(checkout, 'git', ['push', '--force', 'origin', 'main']);
@@ -402,7 +402,7 @@ try {
   runShell(checkout, publishPath, publishEnv);
   const verifiedRetry = JSON.parse(readFileSync(fakeGhState, 'utf8'));
   assert.equal(verifiedRetry.edits, 1);
-  assert.equal(verifiedRetry.downloads, 10);
+  assert.equal(verifiedRetry.downloads, verifiedRetry.assets.length + 2);
 
   // A resumed draft with an unexpected asset is rejected without mutation.
   const unexpectedDraft = {
@@ -490,7 +490,7 @@ try {
       edits: rejectedPublicBytes.edits,
       downloads: rejectedPublicBytes.downloads,
     },
-    { draft: false, immutable: true, edits: 1, downloads: 9 },
+    { draft: false, immutable: true, edits: 1, downloads: rejectedPublicBytes.assets.length + 1 },
   );
 } finally {
   rmSync(harness, { recursive: true, force: true });

@@ -2,8 +2,8 @@
 
 ## Invariant
 
-> Qodo authors skills once; every installed root has one lifecycle owner. Marketplaces and the
-> enterprise bundle update plugin roots; the CLI-managed channel updates only roots created by
+> Qodo authors skills once; every installed root has one lifecycle owner. Marketplaces, skills.sh,
+> and the enterprise bundle update skills; the CLI-managed channel updates only roots created by
 > earlier Qodo CLI releases; the CLI updates the runtime.
 
 This is one architecture across every local coding agent. Providers differ only in packaging and
@@ -18,14 +18,17 @@ lifecycle UI—not in workflow content or authority.
 | skills.sh | install, link/copy, scope, update, and removal for agents without a Qodo listing | Qodo runtime binary or login |
 | Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and lifecycle ownership of explicitly selected enterprise roots | public CLI binary contents or silent agent-root mutation |
 | CLI-managed compatibility channel | automatic updates only for byte-exact roots created by a shipped pre-cutover CLI | new installs, missing skills, marketplace/enterprise roots, user-modified copies |
-| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, the compatibility updater, and the verified enterprise-bundle importer | authoring or embedding skills, task-time playbooks, marketplace caches, or roots owned by another lifecycle channel |
+| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, the compatibility updater, and an authenticated launcher for the pinned enterprise skills engine | authoring or embedding skill bodies, maintaining agent mappings, parsing skill archives, task-time playbooks, marketplace caches, or roots owned by another lifecycle channel |
 
-The enterprise importer is a transport mechanism, not a second source of skill behavior. It is
-available only when the CLI's recorded private origin serves the QAR enterprise pointer, requires
-interactive target selection or explicit non-interactive flags, and copies the exact verified
-portable projection. Its receipt records `enterprise-bundle` ownership; future refreshes use only
-the recorded origin and update only unchanged owned roots. It never invokes skills.sh or a public
-registry, so the same path works in an air-gapped deployment.
+The enterprise command is a transport launcher, not a second installer implementation. It is
+available only when the CLI's recorded private origin serves QAR's path-scoped discovery feeds and
+requires authentication plus interactive target selection or explicit non-interactive consent.
+The CLI materializes a digest-verified packaging build of exact-pinned `skills@1.5.15` and forces
+`DO_NOT_TRACK=1`; that engine performs current agent discovery and installation. The client never
+contacts npm, skills.sh, GitHub, or a marketplace, so the same path works in an air-gapped deployment.
+The discovery manifest requires Qodo CLI `0.1.0-next.39` or newer, independently from the older
+package-wide compatibility floor. Updates remain prompted until that engine can prove modified-root
+preservation.
 
 After an explicit migration command, the CLI may retire only byte-identical copies produced by a
 shipped CLI release. It atomically moves them out of the host skill name into a recoverable hidden
@@ -121,8 +124,7 @@ Production-usage data prioritizes smoke testing but does not define an allowlist
   modified copies and marketplace/enterprise roots are preserved.
 - Provider-visible publication, fresh install, and upgrade tests are release gates; green source CI
   is necessary but not proof of marketplace acceptance.
-- Enterprise archives are deterministic, checksum-published, contain no CLI binary or credential,
-  keep Standards opt-in, declare `DO_NOT_TRACK=1` for any skills-CLI-based enterprise import, and
-  are independently pinned by QAR. The native CLI importer does not use the skills CLI or public
-  network; it verifies pointer, manifest, archive, embedded identity, tar members, and complete
-  staged file digests before an atomic rename.
+- Enterprise archives and discovery feeds are deterministic, digest-published, contain no CLI
+  binary or credential, keep Standards opt-in, declare `DO_NOT_TRACK=1`, and are independently
+  pinned by QAR. QAR verifies every feed/archive byte during its image build; the CLI verifies its
+  embedded helper by digest and delegates installation only after login and same-origin discovery.

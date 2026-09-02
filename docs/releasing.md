@@ -193,28 +193,33 @@ representative non-marketplace agents, including multi-agent and project/global 
 
 ## 6. QAR enterprise channel
 
-Every immutable skills release carries `qodo-enterprise-manifest.json` plus the deterministic
-`qodo-enterprise-bundle-v<version>.tar.gz` and checksums. The manifest carries the package's
+Every immutable skills release carries `qodo-enterprise-manifest.json`, the deterministic
+`qodo-enterprise-bundle-v<version>.tar.gz`, separate core/Standards Agent Skills Discovery v0.2
+indexes, and one digest-pinned archive per skill. The manifest carries the package's
 `minimumCliVersion`; QAR must reject the bundle when its independent CLI lock is older. QAR pins that release independently from
 its CLI pin, verifies every byte while building the backend image, and serves it from the existing
 `/toolbox` origin. Its separate dependency workflow opens the reviewed skills-pin PR.
 
-The archive is an enterprise distribution input, not a hidden CLI payload. After authentication,
-the QAR-supplied CLI may import its exact portable projection only after interactive agent
-selection or explicit non-interactive flags. The receipt names `enterprise-bundle` as lifecycle
-owner; the CLI is only the verifier/copier and never embeds or authors those bytes. This native
-path uses no public registry. A customer may instead use an approved host-specific importer; the
-manifest requires `DO_NOT_TRACK=1` whenever that rollout invokes the skills CLI.
+The discovery section has its own runtime minimum. QAR enforces the greater of the package-wide
+minimum and the discovery minimum, so compatibility assets can retain their older floor without
+allowing a discovery-capable bundle to pair with an incapable CLI.
+
+The archive and discovery feeds are enterprise distribution inputs, not hidden CLI payloads. After
+authentication, the QAR-supplied CLI launches its build-pinned skills engine against the same-origin
+core feed; Standards uses a separate feed and remains explicit. The CLI embeds no skill body,
+agent registry, or archive installer. It forces `DO_NOT_TRACK=1`, and client runtime needs no public
+registry or package-manager access.
 
 The CLI reads QAR's same-origin compact index, CLI-managed bundle, and enterprise pointer. The
 compatibility updater still touches only proven historical CLI-managed roots. The enterprise
-updater separately touches only unchanged roots in its enterprise receipt, preserves foreign or
-modified roots, and never falls back to a public origin.
+checker never mutates roots in the background or falls back to a public origin. It emits
+`qodo agents update --enterprise`; the user then reviews the lifecycle engine's overwrite summary
+and confirms the update.
 
-Gate: deterministic rebuild, manifest/archive/index checksums, no credential or CLI bytes, core and
-Standards isolation, QAR same-origin download, private-origin no-egress behavior, telemetry-disabled
-skills-CLI use when applicable, clean-machine native import, unchanged-copy update, modified-copy
-preservation, retry no-op, and a new agent session.
+Gate: deterministic rebuild, manifest/archive/discovery digests, no credential or CLI bytes, core
+and Standards isolation, QAR same-origin download, private-origin no-egress behavior,
+telemetry-disabled pinned-helper use at Node 20.6, clean-machine delegated import, prompted update,
+retry, and a new agent session.
 
 ## Rollback
 

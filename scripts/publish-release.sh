@@ -78,6 +78,22 @@ RELEASE_ASSETS=(
   "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json"
   "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json.sha256"
 )
+while IFS= read -r discovery_asset; do
+  [[ -n "${discovery_asset}" ]] && RELEASE_ASSETS+=("${ENTERPRISE_DIR}/${discovery_asset}")
+done < <(node -e '
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const manifest = JSON.parse(fs.readFileSync(path.join(process.argv[1], "qodo-enterprise-manifest.json"), "utf8"));
+  const names = [];
+  for (const pkg of manifest.discovery?.packages ?? []) {
+    names.push(pkg.index?.name);
+    for (const skill of pkg.skills ?? []) names.push(skill.archive);
+  }
+  for (const name of [...new Set(names)].sort()) {
+    if (typeof name !== "string" || !/^qodo-agent-(?:skill|skills)-[a-z0-9-]+(?:-index)?\.json$/.test(name) && !/^qodo-agent-skill-[a-z0-9-]+\.tar\.gz$/.test(name)) process.exit(2);
+    console.log(name);
+  }
+' "${ENTERPRISE_DIR}")
 EXPECTED_ASSETS="$(node -e \
   'console.log(process.argv.slice(1).map((asset) => require("node:path").basename(asset)).sort().join(" "))' \
   "${RELEASE_ASSETS[@]}")"
@@ -107,6 +123,19 @@ verify_release_assets() {
   cmp --silent "${directory}/${ARCHIVE_NAME}.sha256" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   cmp --silent "${directory}/qodo-enterprise-manifest.json" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
   cmp --silent "${directory}/qodo-enterprise-manifest.json.sha256" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
+  while IFS= read -r discovery_asset; do
+    [[ -n "${discovery_asset}" ]] || continue
+    cmp --silent "${directory}/${discovery_asset}" "${ENTERPRISE_DIR}/${discovery_asset}"
+  done < <(node -e '
+    const fs = require("node:fs");
+    const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const names = [];
+    for (const pkg of manifest.discovery.packages) {
+      names.push(pkg.index.name);
+      for (const skill of pkg.skills) names.push(skill.archive);
+    }
+    console.log([...new Set(names)].sort().join("\n"));
+  ' "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json")
 }
 
 require_current_main() {

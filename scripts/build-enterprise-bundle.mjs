@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DISTRIBUTION = 'enterprise-bundle';
 const PREFIX = 'qodo-enterprise';
+const DISCOVERY_SCHEMA = 'https://schemas.agentskills.io/discovery/0.2.0/schema.json';
+const DISCOVERY_MINIMUM_CLI_VERSION = '0.1.0-next.39';
 const PRIVATE_KEY_PEM = /-----BEGIN (?:[A-Z0-9][A-Z0-9 -]* )?PRIVATE KEY(?: BLOCK)?-----/;
 
 function sha256(payload) {
@@ -134,6 +136,48 @@ function tar(files) {
   return Buffer.concat(parts);
 }
 
+function buildDiscoveryFeeds({ catalog, outputDir, repositoryRoot }) {
+  const skillMetadata = new Map(catalog.skills.map((skill) => [skill.name, skill]));
+  const packages = [];
+  const assets = [];
+  for (const installPackage of catalog.installPackages) {
+    const entries = [];
+    for (const skillName of installPackage.skills) {
+      const files = [];
+      collectTree(join(repositoryRoot, 'skills', skillName), '', files);
+      const archiveName = `qodo-agent-skill-${skillName}.tar.gz`;
+      const archive = gzipSync(tar(files), { level: 9, mtime: 0 });
+      const digest = sha256(archive);
+      writeFileSync(join(outputDir, archiveName), archive);
+      entries.push({
+        name: skillName,
+        description: skillMetadata.get(skillName)?.shortDescription
+          ?? `Qodo workflow ${skillName}.`,
+        type: 'archive',
+        url: `../../artifacts/${archiveName}`,
+        digest: `sha256:${digest}`,
+      });
+      assets.push({ name: archiveName, sha256: digest });
+    }
+    const indexName = `qodo-agent-skills-${installPackage.name === 'qodo' ? 'core' : 'standards'}-index.json`;
+    const indexPayload = Buffer.from(`${JSON.stringify({ $schema: DISCOVERY_SCHEMA, skills: entries }, null, 2)}\n`);
+    writeFileSync(join(outputDir, indexName), indexPayload);
+    const indexDigest = sha256(indexPayload);
+    assets.push({ name: indexName, sha256: indexDigest });
+    packages.push({
+      name: installPackage.name,
+      sourcePath: installPackage.name,
+      index: { name: indexName, sha256: indexDigest },
+      skills: entries.map((entry) => ({
+        name: entry.name,
+        archive: entry.url.split('/').at(-1),
+        sha256: entry.digest.slice('sha256:'.length),
+      })),
+    });
+  }
+  return { schema: DISCOVERY_SCHEMA, packages, assets };
+}
+
 function packageRoots(name) {
   return {
     claude: `${PREFIX}/claude/${name}`,
@@ -244,6 +288,7 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
 
   const outputDir = resolve(repositoryRoot, output);
   mkdirSync(outputDir, { recursive: true });
+  const discovery = buildDiscoveryFeeds({ catalog, outputDir, repositoryRoot });
   const archiveName = `qodo-enterprise-bundle-v${version}.tar.gz`;
   const archive = gzipSync(tar(files), { level: 9, mtime: 0 });
   const archiveDigest = sha256(archive);
@@ -259,6 +304,11 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
     ...bundle,
     archive: { name: archiveName, sha256: archiveDigest },
     index: { name: indexName, sha256: indexDigest, checksumName: `${indexName}.sha256` },
+    discovery: {
+      schema: discovery.schema,
+      minimumCliVersion: DISCOVERY_MINIMUM_CLI_VERSION,
+      packages: discovery.packages,
+    },
   };
   const manifestName = 'qodo-enterprise-manifest.json';
   const manifestPath = join(outputDir, manifestName);
@@ -273,6 +323,7 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
     archiveName,
     archiveSha256: archiveDigest,
     manifestName,
+    discoveryAssets: discovery.assets.map((asset) => asset.name),
     outputDir,
   };
 }
