@@ -9,7 +9,9 @@ Qodo moves skill ownership out of the CLI without creating a second architecture
 > earlier Qodo CLI releases; the CLI updates the runtime.
 
 - Claude Code, Codex, and Kiro receive complete generated skills through their official listings.
-- Compatible agents without a Qodo listing use skills.sh.
+- Compatible agents without a Qodo listing use the skills.sh lifecycle through Qodo's pinned,
+  embedded upstream engine: the CLI performs the selected, consented install and verifies the
+  resulting receipt and bytes. No separate npm or `npx` step is left to the user.
 - On-prem QAR deployments pin the independently released CLI and skills assets. QAR exposes
   path-scoped Agent Skills Discovery v0.2 feeds for core and Standards. After login, the CLI invokes
   a build-pinned, telemetry-disabled skills lifecycle engine; that engine owns agent discovery and
@@ -19,9 +21,10 @@ Qodo moves skill ownership out of the CLI without creating a second architecture
   skills automatically; marketplace migration is optional, not a support deadline.
 - The CLI authenticates and runs tools, updates itself, prints lifecycle guidance, emits stale-skill
   notices, and maintains only hash-exact CLI-managed copies through a separate compatibility channel.
-- No task-time playbook loader or general-purpose public CLI skill installer ships in the cutover.
-  The enterprise command is only an authenticated launcher for the same-origin QAR feeds; it does
-  not carry agent mappings, parse skill archives, or copy skill trees itself.
+- No task-time playbook loader or Qodo-authored agent-path copier ships in the cutover. Public and
+  enterprise commands are authenticated launchers for a build-pinned skills lifecycle engine; the
+  CLI owns orchestration, consent, immutable-source verification, and rollback, while the upstream
+  engine owns agent mappings and target materialization.
 
 ## Why this design
 
@@ -52,7 +55,7 @@ skills/<name>/ (authored once)
           └── CLI-managed bundle    current bytes for proven earlier CLI-managed roots
 
 qodo CLI ── login + runtime + tool help + version notice + pinned skills launcher
-        ├── public: never creates marketplace/skills.sh installations after cutover
+        ├── public: selected install/update through the pinned engine; never mutates unattended
         ├── compatibility: updates only roots carrying CLI-managed ownership proof
         └── enterprise: delegates same-origin feed installation after authentication and consent
 
@@ -109,7 +112,9 @@ Ship the CLI that:
 - detects known skills.sh-compatible local agents and supports multiple selection;
 - when none is detected, reads the current skills.sh agent catalog, excludes marketplace-owned
   IDs, and preserves each selected agent's supported project/global scope;
-- prints exact core and optional-package commands without executing them;
+- explains which detected agents are marketplace-owned and which can be completed immediately;
+- after one explicit confirmation, installs and byte-verifies core for selected non-marketplace
+  agents; Qodo Standards remains a separate opt-in;
 - has no `qodo skills install` and no task-time workflow endpoint;
 - enrolls only byte-exact copies from shipped CLI releases, including the live `next.36` bytes;
 - immediately refreshes enrolled copies from its embedded cutover snapshot, then follows the
@@ -135,11 +140,12 @@ copy and recoverable predecessor; marketplace skills remain owned by their host.
 
 ### 2. Publish one complete canonical skills release
 
+- Before publishing `v1.0.10`, merge and deploy qodo-agent-runtime#587. It adds backward-compatible
+  schema-v2 parsing and requires the index `sourceCommit` to equal the enterprise manifest commit;
+  it does not advance the QAR skills pin.
 - Merge the canonical/provider PR, then rebase and merge its stacked distribution PR containing
-  both the CLI-managed and enterprise release assets. Do not publish the intermediate package
-  versions: the first cutover release is the complete `v1.0.8` tag. Candidate `v1.0.7` was not
-  published because its administrator audit used an endpoint unavailable to normal admin tokens;
-  `v1.0.8` splits hidden-setting checks from exact App-token repository-scope verification.
+  both the CLI-managed and enterprise release assets. The next release is `v1.0.10`; it adds the
+  immutable source identity required by the public installer without changing skill bodies.
 - Release validation derives changes from both canonical files and the catalog: packaging-only
   changes require a package release, every semantic-version delta must match its release record,
   catalog-only bumps cannot disappear from release notes, `initial` cannot target an existing
@@ -150,8 +156,10 @@ copy and recoverable predecessor; marketplace skills remain owned by their host.
   before publication, and then re-verifies the immutable tag and assets after publication.
 - CI executes those checked-in preflight and publication programs with a stateful fake GitHub CLI,
   including credential/ruleset failures, corrupted draft rejection and resume, successful
-  publication, and idempotent immutable verification. The release asset inventory includes the
-  compact index, the data-only CLI-managed bundle, the enterprise bundle, and their checksums.
+  publication, and idempotent immutable verification. The release asset inventory includes a
+  schema-v2 compact index generated from the detached release worktree with its exact source commit,
+  the data-only CLI-managed bundle, the enterprise bundle, and their checksums. Publication rejects
+  an index whose commit or package version differs from the resolved release.
 - After the immutable GitHub release is verified, dispatch **release: publish skills compatibility
   channel** in `qodo-ai/qodo-in-cli` with that exact tag. Its canary job verifies the immutable
   release and checksums, copies the compact index and CLI-managed bundle to tag-scoped
@@ -205,8 +213,9 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 Gate: deterministic archive and discovery-feed rebuild; exact manifest/archive/index digests; QAR
 offline image build and route tests; private-origin no-egress; telemetry-disabled pinned-helper
 import at Node 20.6; fresh clean-machine core import into Codex and Claude; Standards absent;
-prompted upgrade; retry; new-session activation. The QAR PR cannot become merge-ready until the pinned
-immutable qodo-skills release exists at the exact bytes in its lock.
+prompted upgrade; retry; new-session activation. A later QAR **repin** PR cannot become merge-ready
+until the immutable qodo-skills release exists at the exact bytes in its lock; the backward-compatible
+schema parser must land before that release is published.
 
 Rollback: publish a new immutable skills patch and advance only the QAR skills pin. The CLI pin is
 unchanged unless runtime compatibility independently requires it.
@@ -274,7 +283,8 @@ verified copy and receives no false claim of freshness.
 - If the official plugin is installed, ask for a new session and verify Qodo.
 - If a listing is visible, direct the user to the host’s install action.
 - If no listing exists, use detected agents or the current read-only skills.sh catalog to select
-  one or more non-marketplace agents, then print exact scope-preserving commands.
+  one or more non-marketplace agents, confirm once, then install and verify them in the requested
+  scope through the pinned engine.
 - Install Qodo Standards only after an explicit selection.
 - Retire exact CLI copies only after the new owner works in a fresh session.
 
@@ -292,7 +302,8 @@ deleted.
 3. The current Qodo command succeeds and emits `QODO_NOTICE` on stderr.
 4. The skill finishes the current task, inventories its lifecycle owner read-only, shows the fully
    resolved scope-preserving action, and asks once.
-5. The lifecycle owner updates the skill; the user starts a new agent session.
+5. The lifecycle owner updates the skill. For skills.sh-owned roots, the shown action is the exact
+   `qodo agents update --agent <ids> --yes` command; the user then starts a new agent session.
 
 The CLI never runs `npx skills` in the background and never rewrites marketplace files. New
 optional skills are discoverable but never auto-installed.

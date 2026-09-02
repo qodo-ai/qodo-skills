@@ -3,6 +3,7 @@
 # Usage: GH_TOKEN=<contents-write-token> GITHUB_REPOSITORY=owner/repo GITHUB_SHA=<sha> \
 #   RUNNER_TEMP=<dir> QODO_ENTERPRISE_RELEASE_DIR=<prepared-assets-dir> \
 #   QODO_RELEASE_NOTES_FILE=<prepared-notes> QODO_RELEASE_SOURCE_DIR=<tagged-worktree> \
+#   QODO_RELEASE_INDEX_DIR=<prepared-index-dir> \
 #   scripts/publish-release.sh
 set -euo pipefail
 
@@ -67,6 +68,12 @@ fi
 TAG="v${VERSION}"
 NOTES="${QODO_RELEASE_NOTES_FILE:?QODO_RELEASE_NOTES_FILE is required}"
 ENTERPRISE_DIR="${QODO_ENTERPRISE_RELEASE_DIR:?QODO_ENTERPRISE_RELEASE_DIR is required}"
+INDEX_DIR="${QODO_RELEASE_INDEX_DIR:?QODO_RELEASE_INDEX_DIR is required}"
+if [[ ! -d "${INDEX_DIR}" ]]; then
+  echo 'QODO_RELEASE_INDEX_DIR must name the prepared release-index directory.' >&2
+  exit 1
+fi
+INDEX_DIR="$(cd "${INDEX_DIR}" && pwd -P)"
 ARCHIVE_NAME="qodo-enterprise-bundle-v${VERSION}.tar.gz"
 RELEASE_ASSETS=(
   "${ENTERPRISE_DIR}/${ARCHIVE_NAME}"
@@ -75,8 +82,8 @@ RELEASE_ASSETS=(
   "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
   "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json"
   "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json.sha256"
-  "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json"
-  "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json.sha256"
+  "${INDEX_DIR}/qodo-skills-index.json"
+  "${INDEX_DIR}/qodo-skills-index.json.sha256"
 )
 if ! DISCOVERY_ASSET_ROWS="$(node -e '
   const fs = require("node:fs");
@@ -115,6 +122,24 @@ EXPECTED_ASSETS="$(node -e \
 for asset in "${RELEASE_ASSETS[@]}"; do
   test -f "${asset}" || { echo "Release asset is missing: ${asset}" >&2; exit 1; }
 done
+(
+  cd "${INDEX_DIR}"
+  verify_sha256 qodo-skills-index.json.sha256
+)
+node -e '
+  const fs = require("node:fs");
+  const crypto = require("node:crypto");
+  const index = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  const manifest = JSON.parse(fs.readFileSync(process.argv[4], "utf8"));
+  if (index.schemaVersion !== 2) throw new Error("release index schemaVersion must be 2");
+  if (index.sourceCommit !== process.argv[2]) throw new Error("release index sourceCommit does not match QODO_RELEASE_COMMIT");
+  if (index.packageVersion !== process.argv[3]) throw new Error("release index packageVersion does not match the release version");
+  const digest = crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex");
+  if (manifest.index?.name !== "qodo-skills-index.json" || manifest.index?.sha256 !== digest) {
+    throw new Error("enterprise manifest does not bind the published release index");
+  }
+  if (manifest.source?.commit !== process.argv[2]) throw new Error("enterprise manifest source does not match QODO_RELEASE_COMMIT");
+' "${INDEX_DIR}/qodo-skills-index.json" "${RELEASE_COMMIT}" "${VERSION}" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
 verify_discovery_digest() {
   local asset="$1" expected="$2" actual
   actual="$(node -e '
@@ -146,8 +171,8 @@ verify_release_assets() {
     verify_sha256 "${ARCHIVE_NAME}.sha256"
     verify_sha256 qodo-enterprise-manifest.json.sha256
   )
-  cmp --silent "${directory}/qodo-skills-index.json" "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json"
-  cmp --silent "${directory}/qodo-skills-index.json.sha256" "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json.sha256"
+  cmp --silent "${directory}/qodo-skills-index.json" "${INDEX_DIR}/qodo-skills-index.json"
+  cmp --silent "${directory}/qodo-skills-index.json.sha256" "${INDEX_DIR}/qodo-skills-index.json.sha256"
   cmp --silent "${directory}/qodo-cli-managed-bundle.json" "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json"
   cmp --silent "${directory}/qodo-cli-managed-bundle.json.sha256" "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json.sha256"
   cmp --silent "${directory}/${ARCHIVE_NAME}" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}"

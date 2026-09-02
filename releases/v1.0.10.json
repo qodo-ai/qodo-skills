@@ -1,0 +1,10 @@
+{
+  "version": "1.0.10",
+  "summary": "Bind portable installs to the immutable release commit.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}

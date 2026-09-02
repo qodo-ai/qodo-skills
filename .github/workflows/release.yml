@@ -109,14 +109,18 @@ jobs:
           test "$(git -C "${RELEASE_SOURCE_DIR}" rev-parse HEAD)" = "${RELEASE_COMMIT}"
           test -z "$(git -C "${RELEASE_SOURCE_DIR}" status --porcelain --untracked-files=all)"
 
-      - name: Build the deterministic enterprise bundle from the immutable source
+      - name: Build deterministic release assets from the immutable source
         env:
           RELEASE_COMMIT: ${{ steps.release-source.outputs.commit }}
         run: |
           set -euo pipefail
+          node "${RUNNER_TEMP}/qodo-release-source/scripts/build-release-index.mjs" \
+            --output-dir "${RUNNER_TEMP}/qodo-release-index" \
+            --source-commit "${RELEASE_COMMIT}"
           node "${RUNNER_TEMP}/qodo-release-source/scripts/build-enterprise-bundle.mjs" \
             --output "${RUNNER_TEMP}/qodo-enterprise-release" \
-            --commit "${RELEASE_COMMIT}"
+            --commit "${RELEASE_COMMIT}" \
+            --release-index "${RUNNER_TEMP}/qodo-release-index/qodo-skills-index.json"
           node "${RUNNER_TEMP}/qodo-release-source/scripts/release-notes.mjs" \
             "${RUNNER_TEMP}/qodo-release-notes.md"
 
@@ -127,4 +131,5 @@ jobs:
           QODO_RELEASE_COMMIT: ${{ steps.release-source.outputs.commit }}
           QODO_RELEASE_NOTES_FILE: ${{ runner.temp }}/qodo-release-notes.md
           QODO_RELEASE_SOURCE_DIR: ${{ runner.temp }}/qodo-release-source
+          QODO_RELEASE_INDEX_DIR: ${{ runner.temp }}/qodo-release-index
         run: scripts/publish-release.sh

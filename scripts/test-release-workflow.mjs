@@ -16,33 +16,33 @@ import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEnterpriseBundle } from './build-enterprise-bundle.mjs';
 import { assertDiscoveryManifestFailures } from './test-release-discovery-assets.mjs';
+import {
+  assertMismatchedReleaseIndexRejected,
+  assertReleaseIndexWorkflowContract,
+  buildReleaseIndexFixture,
+} from './release-index-test-helpers.mjs';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8');
 const preflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
 const publisher = readFileSync(join(root, 'scripts', 'publish-release.sh'), 'utf8');
 const protectionAudit = readFileSync(join(root, 'scripts', 'audit-release-protections.sh'), 'utf8');
 const releaseSource = `${workflow}\n${preflight}\n${publisher}`;
-const packageVersion = JSON.parse(
-  readFileSync(join(root, 'package.json'), 'utf8'),
-).version;
+const packageVersion = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const releaseTag = `v${packageVersion}`;
 const escapedReleaseTag = releaseTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-assert.doesNotMatch(releaseSource, /^\s+push:/m,
-  'source merge must not bypass the CLI-first release order or an unmet credential gate');
+assert.doesNotMatch(releaseSource, /^\s+push:/m, 'source merge must not bypass the CLI-first release order or an unmet credential gate');
 assert.match(releaseSource, /^\s+workflow_dispatch:/m);
-assert.match(workflow, /github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/,
-  'the write-scoped release job must run only from the default branch');
+assert.match(workflow, /github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/, 'the write-scoped release job must run only from the default branch');
 assert.match(workflow, /run: scripts\/verify-release-prerequisites\.sh/);
 assert.match(workflow, /run: scripts\/publish-release\.sh/);
 assert.match(workflow, /qodo-release-source\/scripts\/build-enterprise-bundle\.mjs/);
+assertReleaseIndexWorkflowContract(workflow);
 assert.match(workflow, /git worktree add --detach/);
 assert.match(workflow, /QODO_RELEASE_SOURCE_DIR: \$\{\{ runner\.temp \}\}\/qodo-release-source/);
 assert.match(workflow, /QODO_RELEASE_NOTES_FILE: \$\{\{ runner\.temp \}\}\/qodo-release-notes\.md/);
 assert.match(workflow, /QODO_ENTERPRISE_RELEASE_DIR/);
-assert.match(readFileSync(join(root, 'scripts', 'verify-release-prerequisites.cmd'), 'utf8'),
-  /bash "%~dp0verify-release-prerequisites\.sh"/);
-assert.match(readFileSync(join(root, 'scripts', 'publish-release.cmd'), 'utf8'),
-  /bash "%~dp0publish-release\.sh"/);
+assert.match(readFileSync(join(root, 'scripts', 'verify-release-prerequisites.cmd'), 'utf8'), /bash "%~dp0verify-release-prerequisites\.sh"/);
+assert.match(readFileSync(join(root, 'scripts', 'publish-release.cmd'), 'utf8'), /bash "%~dp0publish-release\.sh"/);
 
 const tagCreation = releaseSource.indexOf('git tag --no-sign -a');
 const releaseCreation = releaseSource.indexOf('gh release create');
@@ -73,34 +73,26 @@ const draftVerification = releaseSource.indexOf('verify_release_assets "${VERIFY
 const remoteTagCheck = releaseSource.indexOf('require_annotated_release_tag', draftCreation);
 const publishedDownload = releaseSource.indexOf('gh release download', draftPublish);
 const publishedVerification = releaseSource.indexOf('verify_release_assets "${PUBLISHED_VERIFY_DIR}"', publishedDownload);
-assert.match(protectionAudit, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/,
-  'the administrator audit must check repository immutability');
-assert.match(preflight, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/,
-  'the protected App token must verify immutability before publication');
+assert.match(protectionAudit, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/, 'the administrator audit must check repository immutability');
+assert.match(preflight, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/, 'the protected App token must verify immutability before publication');
 assert.match(workflow, /environment:\s*\n\s*name: marketplace-kiro/);
 assert.match(workflow, /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/);
 assert.match(workflow, /permission-administration: read/);
 assert.match(workflow, /Mint installation-wide read-only release preflight token/);
-assert.doesNotMatch(workflow, /repositories: qodo-skills/,
-  'the read-only preflight token must see the complete installation repository set');
+assert.doesNotMatch(workflow, /repositories: qodo-skills/, 'the read-only preflight token must see the complete installation repository set');
 assert.match(workflow, /GH_TOKEN: \$\{\{ steps\.release-preflight-token\.outputs\.token \}\}/);
 assert.match(preflight, /installation\/repositories\?per_page=100/);
-assert.ok(exactMainGuard >= 0 && exactMainGuard < tagCreation,
-  'release workflow must require the exact merged main commit before creating a tag');
+assert.ok(exactMainGuard >= 0 && exactMainGuard < tagCreation, 'release workflow must require the exact merged main commit before creating a tag');
 assert.match(releaseSource, /git fetch origin main --no-tags/);
 assert.match(releaseSource, /git rev-parse origin\/main/);
 assert.match(releaseSource, /git tag --no-sign -a/);
-assert.ok(validationInstall >= 0 && validationInstall < validationRun,
-  'locked validation dependencies must be installed before release validation');
-assert.ok(firstMainGuard > validationRun && firstMainGuard < existingReleaseBranch,
-  'the verified release commit must still be the exact main head before release handling');
-assert.ok(checkoutGuard >= 0 && checkoutGuard < catalogRead,
-  'the publisher must bind a clean local checkout to GITHUB_SHA before reading release assets');
+assert.ok(validationInstall >= 0 && validationInstall < validationRun, 'locked validation dependencies must be installed before release validation');
+assert.ok(firstMainGuard > validationRun && firstMainGuard < existingReleaseBranch, 'the verified release commit must still be the exact main head before release handling');
+assert.ok(checkoutGuard >= 0 && checkoutGuard < catalogRead, 'the publisher must bind a clean local checkout to GITHUB_SHA before reading release assets');
 assert.match(publisher, /git rev-parse HEAD/);
 assert.match(publisher, /git diff --quiet --ignore-submodules --/);
 assert.match(publisher, /git diff --cached --quiet --ignore-submodules --/);
-assert.ok(toolChecks >= 0 && toolChecks < exactMainGuard,
-  'external release tools must be checked before their first use');
+assert.ok(toolChecks >= 0 && toolChecks < exactMainGuard, 'external release tools must be checked before their first use');
 assert.match(releaseSource, /command -v "\$\{tool\}"/);
 assert.match(publisher, /command -v sha256sum/);
 assert.match(publisher, /command -v shasum/);
@@ -269,6 +261,7 @@ try {
   }
   copyFileSync(join(root, 'releases', `${releaseTag}.json`), join(checkout, 'releases', `${releaseTag}.json`));
   copyFileSync(join(root, 'scripts', 'release-notes.mjs'), join(checkout, 'scripts', 'release-notes.mjs'));
+  copyFileSync(join(root, 'scripts', 'build-release-index.mjs'), join(checkout, 'scripts', 'build-release-index.mjs'));
   copyFileSync(join(root, 'scripts', 'publish-release.sh'), join(checkout, 'scripts', 'publish-release.sh'));
   copyFileSync(join(root, 'scripts', 'publish-release.cmd'), join(checkout, 'scripts', 'publish-release.cmd'));
   chmodSync(join(checkout, 'scripts', 'publish-release.sh'), 0o755);
@@ -276,12 +269,14 @@ try {
   run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '-m', 'release fixture']);
   const releaseSha = run(checkout, 'git', ['rev-parse', 'HEAD']).trim();
   const enterpriseDir = join(harness, 'enterprise-assets');
-  buildEnterpriseBundle({ output: enterpriseDir, commit: releaseSha });
   run(harness, 'git', ['init', '--bare', '--initial-branch=main', behaviorOrigin]);
   run(checkout, 'git', ['remote', 'add', 'origin', behaviorOrigin]);
   run(checkout, 'git', ['push', '-u', 'origin', 'main']);
   const releaseSourceCheckout = join(harness, 'release-source');
   run(checkout, 'git', ['worktree', 'add', '--detach', releaseSourceCheckout, releaseSha]);
+  const releaseIndexDir = join(harness, 'release-index');
+  buildReleaseIndexFixture(releaseSourceCheckout, releaseIndexDir, releaseSha);
+  buildEnterpriseBundle({ output: enterpriseDir, commit: releaseSha, releaseIndex: join(releaseIndexDir, 'qodo-skills-index.json') });
   const releaseNotes = join(harness, 'release-notes.md');
   run(releaseSourceCheckout, process.execPath, [join(releaseSourceCheckout, 'scripts', 'release-notes.mjs'), releaseNotes]);
   // The publisher owns the tag format even when the runner prefers signed tags.
@@ -295,8 +290,13 @@ try {
     QODO_ENTERPRISE_RELEASE_DIR: enterpriseDir,
     QODO_RELEASE_NOTES_FILE: releaseNotes,
     QODO_RELEASE_SOURCE_DIR: releaseSourceCheckout,
+    QODO_RELEASE_INDEX_DIR: releaseIndexDir,
   };
   const publishPath = join(checkout, 'scripts', 'publish-release.sh');
+  assertMismatchedReleaseIndexRejected({
+    checkout, indexDirectory: releaseIndexDir, publishEnvironment: publishEnv, publishPath,
+    releaseSource: releaseSourceCheckout, releaseCommit: releaseSha, runShell,
+  });
   assert.throws(() => runShell(checkout, publishPath, {
     ...publishEnv,
     FAKE_RELEASE_LOOKUP_ERROR: 'true',

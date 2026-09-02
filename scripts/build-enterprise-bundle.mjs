@@ -220,15 +220,15 @@ function argumentsFrom(argv) {
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (!value || !['--output', '--commit'].includes(flag)) throw new Error(`Unknown or incomplete argument: ${flag}`);
-    options[flag.slice(2)] = value;
+    if (!value || !['--output', '--commit', '--release-index'].includes(flag)) throw new Error(`Unknown or incomplete argument: ${flag}`);
+    options[flag === '--release-index' ? 'releaseIndex' : flag.slice(2)] = value;
   }
   if (!options.output) throw new Error('--output is required');
   if (!/^[a-f0-9]{40}$/i.test(options.commit ?? '')) throw new Error('--commit must be a 40-character Git SHA');
   return options;
 }
 
-export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root) {
+export function buildEnterpriseBundle({ output, commit, releaseIndex }, repositoryRoot = root) {
   const catalog = JSON.parse(readFileSync(join(repositoryRoot, 'distribution', 'catalog.json'), 'utf8'));
   const version = catalog.package.version;
   const files = [];
@@ -296,8 +296,9 @@ export function buildEnterpriseBundle({ output, commit }, repositoryRoot = root)
   writeFileSync(join(outputDir, `${archiveName}.sha256`), `${archiveDigest}  ${archiveName}\n`);
 
   const indexName = 'qodo-skills-index.json';
-  const index = readFileSync(join(repositoryRoot, 'distribution', indexName));
-  const indexChecksum = readFileSync(join(repositoryRoot, 'distribution', `${indexName}.sha256`), 'utf8');
+  const indexPath = resolve(repositoryRoot, releaseIndex ?? join('distribution', indexName));
+  const index = readFileSync(indexPath);
+  const indexChecksum = readFileSync(`${indexPath}.sha256`, 'utf8');
   const indexDigest = sha256(index);
   if (!indexChecksum.startsWith(`${indexDigest}  ${indexName}`)) throw new Error('Qodo skills index checksum is stale');
   const manifest = {
