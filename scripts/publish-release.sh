@@ -78,28 +78,59 @@ RELEASE_ASSETS=(
   "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json"
   "${RELEASE_SOURCE_DIR}/distribution/qodo-skills-index.json.sha256"
 )
-while IFS= read -r discovery_asset; do
-  [[ -n "${discovery_asset}" ]] && RELEASE_ASSETS+=("${ENTERPRISE_DIR}/${discovery_asset}")
-done < <(node -e '
+if ! DISCOVERY_ASSET_ROWS="$(node -e '
   const fs = require("node:fs");
   const path = require("node:path");
   const manifest = JSON.parse(fs.readFileSync(path.join(process.argv[1], "qodo-enterprise-manifest.json"), "utf8"));
-  const names = [];
-  for (const pkg of manifest.discovery?.packages ?? []) {
-    names.push(pkg.index?.name);
-    for (const skill of pkg.skills ?? []) names.push(skill.archive);
+  if (!Array.isArray(manifest.discovery?.packages) || manifest.discovery.packages.length === 0) {
+    throw new Error("manifest has no discovery packages");
   }
-  for (const name of [...new Set(names)].sort()) {
-    if (typeof name !== "string" || !/^qodo-agent-(?:skill|skills)-[a-z0-9-]+(?:-index)?\.json$/.test(name) && !/^qodo-agent-skill-[a-z0-9-]+\.tar\.gz$/.test(name)) process.exit(2);
-    console.log(name);
+  const assets = new Map();
+  const add = (name, digest, pattern) => {
+    if (typeof name !== "string" || !pattern.test(name)) throw new Error(`invalid discovery asset name: ${name}`);
+    if (typeof digest !== "string" || !/^[a-f0-9]{64}$/.test(digest)) throw new Error(`invalid discovery digest: ${name}`);
+    if (assets.has(name) && assets.get(name) !== digest) throw new Error(`conflicting discovery asset: ${name}`);
+    assets.set(name, digest);
+  };
+  for (const pkg of manifest.discovery.packages) {
+    add(pkg.index?.name, pkg.index?.sha256, /^qodo-agent-skills-(?:core|standards)-index\.json$/);
+    if (!Array.isArray(pkg.skills) || pkg.skills.length === 0) throw new Error(`discovery package has no skills: ${pkg.name}`);
+    for (const skill of pkg.skills) {
+      add(skill.archive, skill.sha256, /^qodo-agent-skill-qodo-[a-z0-9-]+\.tar\.gz$/);
+    }
   }
-' "${ENTERPRISE_DIR}")
+  for (const [name, digest] of [...assets].sort(([left], [right]) => Buffer.compare(Buffer.from(left), Buffer.from(right)))) {
+    console.log(`${name}\t${digest}`);
+  }
+' "${ENTERPRISE_DIR}")"; then
+  echo 'Could not enumerate and validate the discovery asset inventory.' >&2
+  exit 1
+fi
+while IFS=$'\t' read -r discovery_asset discovery_digest; do
+  [[ -n "${discovery_asset}" ]] && RELEASE_ASSETS+=("${ENTERPRISE_DIR}/${discovery_asset}")
+done <<< "${DISCOVERY_ASSET_ROWS}"
 EXPECTED_ASSETS="$(node -e \
   'console.log(process.argv.slice(1).map((asset) => require("node:path").basename(asset)).sort().join(" "))' \
   "${RELEASE_ASSETS[@]}")"
 for asset in "${RELEASE_ASSETS[@]}"; do
   test -f "${asset}" || { echo "Release asset is missing: ${asset}" >&2; exit 1; }
 done
+verify_discovery_digest() {
+  local asset="$1" expected="$2" actual
+  actual="$(node -e '
+    const fs = require("node:fs");
+    const crypto = require("node:crypto");
+    process.stdout.write(crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"));
+  ' "${asset}")"
+  if [[ "${actual}" != "${expected}" ]]; then
+    echo "Discovery asset digest mismatch: $(basename "${asset}")" >&2
+    return 1
+  fi
+}
+while IFS=$'\t' read -r discovery_asset discovery_digest; do
+  [[ -n "${discovery_asset}" ]] || continue
+  verify_discovery_digest "${ENTERPRISE_DIR}/${discovery_asset}" "${discovery_digest}"
+done <<< "${DISCOVERY_ASSET_ROWS}"
 test -f "${NOTES}" || { echo "Release notes are missing: ${NOTES}" >&2; exit 1; }
 EXPECTED_TITLE="Qodo skills ${TAG}"
 EXPECTED_NOTES_BASE64="$(node -e \
@@ -123,19 +154,12 @@ verify_release_assets() {
   cmp --silent "${directory}/${ARCHIVE_NAME}.sha256" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   cmp --silent "${directory}/qodo-enterprise-manifest.json" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
   cmp --silent "${directory}/qodo-enterprise-manifest.json.sha256" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
-  while IFS= read -r discovery_asset; do
+  while IFS=$'\t' read -r discovery_asset discovery_digest; do
     [[ -n "${discovery_asset}" ]] || continue
     cmp --silent "${directory}/${discovery_asset}" "${ENTERPRISE_DIR}/${discovery_asset}"
-  done < <(node -e '
-    const fs = require("node:fs");
-    const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-    const names = [];
-    for (const pkg of manifest.discovery.packages) {
-      names.push(pkg.index.name);
-      for (const skill of pkg.skills) names.push(skill.archive);
-    }
-    console.log([...new Set(names)].sort().join("\n"));
-  ' "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json")
+    verify_discovery_digest "${directory}/${discovery_asset}" "${discovery_digest}"
+    verify_discovery_digest "${ENTERPRISE_DIR}/${discovery_asset}" "${discovery_digest}"
+  done <<< "${DISCOVERY_ASSET_ROWS}"
 }
 
 require_current_main() {

@@ -97,6 +97,12 @@ try {
       assert.equal(entry.type, 'archive');
       assert.match(entry.url, /^\.\.\/\.\.\/artifacts\/qodo-agent-skill-qodo-[a-z0-9-]+\.tar\.gz$/);
       const archiveName = entry.url.split('/').at(-1);
+      const indexUrl = `https://qar.example/toolbox/skills/${packageName}/.well-known/agent-skills/index.json`;
+      assert.equal(
+        new URL(entry.url, indexUrl).pathname,
+        `/toolbox/skills/${packageName}/artifacts/${archiveName}`,
+        `${packageName} archive URL must resolve inside its package-scoped QAR route`,
+      );
       const firstSkillArchive = readFileSync(join(firstRoot, archiveName));
       const secondSkillArchive = readFileSync(join(secondRoot, archiveName));
       assert.deepEqual(firstSkillArchive, secondSkillArchive, `${entry.name} archive must be deterministic`);

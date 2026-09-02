@@ -176,8 +176,10 @@ Rollback: publish a new immutable patch. Never replace the release asset.
   points to a deterministic, SHA-256-pinned single-skill archive with `enterprise-bundle`
   provenance. Core and Standards never share an index.
 - QAR pins the skills version and hashes in a lock separate from its CLI lock, verifies and bakes
-  both during the backend image build, and serves the compatibility assets, discovery indexes, and
-  per-skill archives under `/toolbox/skills`.
+  both during the backend image build, and serves each discovery index at
+  `/toolbox/skills/<package>/.well-known/agent-skills/index.json` and its digest-pinned archives at
+  `/toolbox/skills/<package>/artifacts/<asset>`. The index-relative `../../artifacts/<asset>` URL
+  resolves to that same package-scoped route; it does not escape `/toolbox/skills/<package>`.
 - The compatible CLI fetches from the recorded QAR origin, so an on-prem client never falls back to
   public GitHub. Historical CLI-managed roots and new enterprise roots retain separate receipts and
   lifecycle owners.

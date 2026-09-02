@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEnterpriseBundle } from './build-enterprise-bundle.mjs';
+import { assertDiscoveryManifestFailures } from './test-release-discovery-assets.mjs';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8');
 const preflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
@@ -310,6 +311,7 @@ try {
   assert.throws(() => runShell(checkout, publishPath, publishEnv),
     /release checkout has tracked worktree changes/);
   run(checkout, 'git', ['reset', '--hard', releaseSha]);
+  assertDiscoveryManifestFailures({ publisher, enterpriseDir, checkout, publishPath, publishEnv, releaseTag, run, runShell });
   runShell(checkout, publishPath, publishEnv);
   assert.equal(run(checkout, 'git', ['rev-list', '-n', '1', releaseTag]).trim(), releaseSha);
   const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
@@ -328,7 +330,6 @@ try {
     ...publishEnv,
     FAKE_DUPLICATE_RELEASES: 'true',
   }), new RegExp(`Multiple releases claim ${escapedReleaseTag}`));
-
   // Recovery from reviewed automation changes must still use tagged bytes.
   writeFileSync(fakeGhState, `${JSON.stringify({
     ...published,
