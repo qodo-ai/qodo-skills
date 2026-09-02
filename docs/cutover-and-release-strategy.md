@@ -50,8 +50,9 @@ skills/<name>/ (authored once)
           └── CLI-managed bundle    current bytes for proven earlier CLI-managed roots
 
 qodo CLI ── login + runtime + tool help + version notice
-        ├── never creates a new skill installation after cutover
-        └── updates only roots carrying CLI-managed ownership proof
+        ├── public: never creates marketplace/skills.sh installations after cutover
+        ├── compatibility: updates only roots carrying CLI-managed ownership proof
+        └── enterprise: imports only an authenticated, same-origin QAR bundle after explicit consent
 
 QAR /toolbox ── independently pinned CLI + enterprise skills assets
              └── same-origin checksummed metadata; no public-network dependency at runtime
