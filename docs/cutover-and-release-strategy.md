@@ -12,13 +12,15 @@ Qodo moves skill ownership out of the CLI without creating a second architecture
 - Claude Code, Codex, and Kiro receive complete generated skills through their official listings.
 - Compatible agents without a Qodo listing use skills.sh.
 - On-prem QAR deployments pin and serve one immutable enterprise archive beside the independently
-  pinned CLI; customer deployment tooling owns plugin rollout.
+  pinned CLI. The CLI natively imports its verified portable projection after explicit agent
+  selection; the enterprise bundle remains the lifecycle owner.
 - `qodo-standards` remains a separate optional package everywhere.
 - Existing users who keep the copies originally installed by the CLI continue receiving current
   skills automatically; marketplace migration is optional, not a support deadline.
 - The CLI authenticates and runs tools, updates itself, prints lifecycle guidance, emits stale-skill
   notices, and maintains only hash-exact CLI-managed copies through a separate compatibility channel.
-- No task-time playbook loader or general-purpose CLI skill installer ships in the cutover.
+- No task-time playbook loader or general-purpose public CLI skill installer ships in the cutover.
+  The enterprise importer is enabled only by a same-origin QAR bundle and needs no public registry.
 
 ## Why this design
 
@@ -48,8 +50,9 @@ skills/<name>/ (authored once)
           └── CLI-managed bundle    current bytes for proven earlier CLI-managed roots
 
 qodo CLI ── login + runtime + tool help + version notice
-        ├── never creates a new skill installation after cutover
-        └── updates only roots carrying CLI-managed ownership proof
+        ├── public: never creates marketplace/skills.sh installations after cutover
+        ├── compatibility: updates only roots carrying CLI-managed ownership proof
+        └── enterprise: imports only an authenticated, same-origin QAR bundle after explicit consent
 
 QAR /toolbox ── independently pinned CLI + enterprise skills assets
              └── same-origin checksummed metadata; no public-network dependency at runtime
@@ -172,17 +175,20 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 - QAR pins the skills version and hashes in a lock separate from its CLI lock, verifies and bakes
   both during the backend image build, and serves the skills index, CLI-managed bundle, and archive
   under `/toolbox`.
-- The compatible CLI fetches the CLI-managed bundle from the recorded QAR origin, so an on-prem
-  client never falls back to public GitHub. Only previously enrolled CLI-managed roots are updated;
-  enterprise plugin imports remain customer-controlled.
-- A customer deployment imports the matching host package through its approved local plugin
-  lifecycle. If that importer uses the skills CLI, every command runs with `DO_NOT_TRACK=1`, as
-  declared by the bundle manifest. Qodo Standards remains a separate explicit choice.
+- The compatible CLI fetches from the recorded QAR origin, so an on-prem client never falls back to
+  public GitHub. Historical CLI-managed roots and new enterprise roots retain separate receipts and
+  lifecycle owners.
+- After login, interactive setup offers a multi-select of supported local agents. The explicit
+  automation form is `qodo agents install --enterprise --agent <ids> --yes`. Both install core only
+  unless Standards is selected separately.
+- The native importer verifies and atomically applies the portable projection without `npx` or
+  skills.sh. A customer may instead use an approved host importer; when that path invokes the
+  skills CLI it runs with `DO_NOT_TRACK=1`, as declared by the manifest.
 
 Gate: deterministic archive rebuild; exact manifest/archive/index checksums; QAR offline image
 build and route tests; private-origin no-egress; telemetry-disabled skills-CLI import when used;
-fresh core import; Standards absent; enterprise
-bundle upgrade; new-session activation. The QAR PR cannot become merge-ready until the pinned
+fresh clean-machine core import; Standards absent; enterprise bundle upgrade; modified-copy
+preservation; retry no-op; new-session activation. The QAR PR cannot become merge-ready until the pinned
 immutable qodo-skills release exists at the exact bytes in its lock.
 
 Rollback: publish a new immutable skills patch and advance only the QAR skills pin. The CLI pin is

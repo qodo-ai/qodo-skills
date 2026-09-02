@@ -16,9 +16,16 @@ lifecycle UI—not in workflow content or authority.
 | `qodo-skills` | canonical workflow bodies, package membership, versions, provider projections, marketplace packets, and the data-only CLI-managed compatibility bundle | credentials, API transport, installed host state |
 | Marketplace | install, cache, update, rollback, and removal of its Qodo plugin | Qodo runtime binary or login |
 | skills.sh | install, link/copy, scope, update, and removal for agents without a Qodo listing | Qodo runtime binary or login |
-| Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and customer-controlled plugin rollout | public CLI binary contents or silent agent-root mutation |
+| Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and lifecycle ownership of explicitly selected enterprise roots | public CLI binary contents or silent agent-root mutation |
 | CLI-managed compatibility channel | automatic updates only for byte-exact roots created by a shipped pre-cutover CLI | new installs, missing skills, marketplace/enterprise roots, user-modified copies |
-| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, and the CLI-managed compatibility updater | new skill installation, task-time playbooks, marketplace caches, enterprise plugin roots |
+| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, the compatibility updater, and the verified enterprise-bundle importer | authoring or embedding skills, task-time playbooks, marketplace caches, or roots owned by another lifecycle channel |
+
+The enterprise importer is a transport mechanism, not a second source of skill behavior. It is
+available only when the CLI's recorded private origin serves the QAR enterprise pointer, requires
+interactive target selection or explicit non-interactive flags, and copies the exact verified
+portable projection. Its receipt records `enterprise-bundle` ownership; future refreshes use only
+the recorded origin and update only unchanged owned roots. It never invokes skills.sh or a public
+registry, so the same path works in an air-gapped deployment.
 
 After an explicit migration command, the CLI may retire only byte-identical copies produced by a
 shipped CLI release. It atomically moves them out of the host skill name into a recoverable hidden
@@ -78,7 +85,9 @@ the finite CLI-managed cohort. The updater enrolls a root only when every byte m
 from an actually shipped CLI, records the installed digest, and refuses to overwrite subsequent
 drift. It never adds a missing skill, so optional Standards remains optional. Replacement is staged,
 verified, atomically renamed, and leaves the prior copy recoverable. Public users read the immutable
-qodo-skills release; on-prem users read the QAR-pinned copy from their recorded runtime origin.
+qodo-skills release through their marketplace or skills.sh owner; on-prem users read the QAR-pinned
+copy from their recorded runtime origin. The on-prem importer installs core only by default and
+preserves Standards as a separately selected package per root.
 
 ## Why workflows are embedded
 
@@ -114,4 +123,6 @@ Production-usage data prioritizes smoke testing but does not define an allowlist
   is necessary but not proof of marketplace acceptance.
 - Enterprise archives are deterministic, checksum-published, contain no CLI binary or credential,
   keep Standards opt-in, declare `DO_NOT_TRACK=1` for any skills-CLI-based enterprise import, and
-  are independently pinned by QAR.
+  are independently pinned by QAR. The native CLI importer does not use the skills CLI or public
+  network; it verifies pointer, manifest, archive, embedded identity, tar members, and complete
+  staged file digests before an atomic rename.

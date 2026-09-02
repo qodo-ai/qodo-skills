@@ -199,17 +199,22 @@ Every immutable skills release carries `qodo-enterprise-manifest.json` plus the 
 its CLI pin, verifies every byte while building the backend image, and serves it from the existing
 `/toolbox` origin. Its separate dependency workflow opens the reviewed skills-pin PR.
 
-The archive is an enterprise distribution input, not a hidden CLI payload. A customer deployment
-imports the host-specific package or portable local source through its approved plugin rollout.
-The manifest requires `DO_NOT_TRACK=1` whenever that rollout invokes the skills CLI; direct host
-imports need no skills CLI at all.
-The CLI reads QAR's same-origin compact index and CLI-managed bundle. It never copies enterprise
-archive contents into an agent root; only roots already proven to be CLI-managed are refreshed.
+The archive is an enterprise distribution input, not a hidden CLI payload. After authentication,
+the QAR-supplied CLI may import its exact portable projection only after interactive agent
+selection or explicit non-interactive flags. The receipt names `enterprise-bundle` as lifecycle
+owner; the CLI is only the verifier/copier and never embeds or authors those bytes. This native
+path uses no public registry. A customer may instead use an approved host-specific importer; the
+manifest requires `DO_NOT_TRACK=1` whenever that rollout invokes the skills CLI.
+
+The CLI reads QAR's same-origin compact index, CLI-managed bundle, and enterprise pointer. The
+compatibility updater still touches only proven historical CLI-managed roots. The enterprise
+updater separately touches only unchanged roots in its enterprise receipt, preserves foreign or
+modified roots, and never falls back to a public origin.
 
 Gate: deterministic rebuild, manifest/archive/index checksums, no credential or CLI bytes, core and
 Standards isolation, QAR same-origin download, private-origin no-egress behavior, telemetry-disabled
-skills-CLI use when applicable, and a customer
-plugin update followed by a new agent session.
+skills-CLI use when applicable, clean-machine native import, unchanged-copy update, modified-copy
+preservation, retry no-op, and a new agent session.
 
 ## Rollback
 
