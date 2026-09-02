@@ -141,8 +141,10 @@ copy and recoverable predecessor; marketplace skills remain owned by their host.
 ### 2. Publish one complete canonical skills release
 
 - Before publishing `v1.0.10`, merge and deploy qodo-agent-runtime#587. It adds backward-compatible
-  schema-v2 parsing and requires the index `sourceCommit` to equal the enterprise manifest commit;
-  it does not advance the QAR skills pin.
+  schema-v2 parsing, requires the index `sourceCommit` to equal the enterprise manifest commit,
+  preserves the exact v2 bytes under the immutable release path, and serves a checksum-matched
+  schema-v1 projection from the existing stale-notice endpoint for pre-`.40` CLIs. It does not
+  advance the QAR skills pin.
 - Merge the canonical/provider PR, then rebase and merge its stacked distribution PR containing
   both the CLI-managed and enterprise release assets. The next release is `v1.0.10`; it adds the
   immutable source identity required by the public installer without changing skill bodies.
@@ -213,7 +215,8 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 Gate: deterministic archive and discovery-feed rebuild; exact manifest/archive/index digests; QAR
 offline image build and route tests; private-origin no-egress; telemetry-disabled pinned-helper
 import at Node 20.6; fresh clean-machine core import into Codex and Claude; Standards absent;
-prompted upgrade; retry; new-session activation. A later QAR **repin** PR cannot become merge-ready
+prompted upgrade; retry; new-session activation; and a pre-`.40` CLI accepting the generated
+schema-v1 pointer and checksum. A later QAR **repin** PR cannot become merge-ready
 until the immutable qodo-skills release exists at the exact bytes in its lock; the backward-compatible
 schema parser must land before that release is published.
 
