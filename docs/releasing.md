@@ -99,8 +99,8 @@ asset must match before the draft can become public. Draft uploads and downloads
 release and asset REST endpoints because GitHub's tag-oriented CLI cannot resolve drafts. An older
 tag without its draft fails closed; tags and assets are never moved, deleted, or overwritten.
 
-After that workflow succeeds, dispatch **release: publish skills compatibility channel** in
-`qodo-ai/qodo-in-cli` with the immutable `v<package-version>` tag. The workflow verifies the public
+After that workflow succeeds, `qodo-ai/qodo-in-cli`'s hourly **release: publish skills compatibility
+channel** watcher selects the newest immutable release. The workflow verifies the public
 release again, publishes the compact index and CLI-managed bundle under tag-scoped paths in the
 canary bucket, and then waits at the existing protected production environment before copying the
 same bytes to `get.qodo.ai`. It updates only these same-origin `version.json` fields:
@@ -112,6 +112,10 @@ same bytes to `get.qodo.ai`. It updates only these same-origin `version.json` fi
 Do not promote marketplaces until the production pointers resolve to the selected tag and both
 checksums verify. CLI releases preserve the `skills` object while changing their separate
 `channels` entry.
+
+The protected production approval remains mandatory. For recovery, a release owner may manually
+dispatch the same workflow with an exact immutable tag; the watcher becomes a no-op once production
+advertises that tag and rejects rollback to an older release.
 
 The index is metadata for stale-version notices. The CLI-managed bundle keeps only proven roots
 from earlier Qodo CLI releases current; it is never a new-install source. The enterprise archive contains the complete
@@ -126,9 +130,16 @@ patch release; it is never accepted as a successful release.
 
 ## 3. Ship selected marketplaces
 
-Run **Ship marketplaces** with the immutable tag and any combination of `claude`, `codex`, `kiro`,
-or `all`. The action validates the tag/version, regenerates the exact provider packet, and uploads
-one artifact per selected provider.
+Once the protected compatibility pointer advertises the immutable tag, the hourly
+**Marketplace auto-start** watcher dispatches **Ship marketplaces** once with `all`. The action
+validates the tag/version, downloads the advertised compatibility index and bundle, verifies their
+checksums and release identity, and byte-compares all four files with the immutable GitHub release
+assets before regenerating the exact provider packet. It rejects a tag below the highest successful
+default-branch marketplace run. The watcher serializes automatic launches and rechecks immediately
+before dispatch; a simultaneous manual launch is safely arbitrated by the downstream atomic release
+lock rather than Actions' lossy pending-run concurrency. If any default-branch workflow run already exists for the tag,
+automatic dispatch does not loop; use the manual `claude`, `codex`, `kiro`, or `all` selector for a
+deliberate retry or partial recovery.
 
 Only one release tag may be active across providers. Same-tag retries are grouped idempotently; any
 attempt atomically advances `refs/heads/qodo-marketplace-release-lock` to an owner commit before
@@ -199,7 +210,13 @@ Every immutable skills release carries `qodo-enterprise-manifest.json`, the dete
 indexes, and one digest-pinned archive per skill. The manifest carries the package's
 `minimumCliVersion`; QAR must reject the bundle when its independent CLI lock is older. QAR pins that release independently from
 its CLI pin, verifies every byte while building the backend image, and serves it from the existing
-`/toolbox` origin. Its separate dependency workflow opens the reviewed skills-pin PR.
+`/toolbox` origin. The hourly **distribution bundles: sync promoted CLI + skills pins** workflow,
+delivered by `qodo-agent-runtime#594`,
+reads the protected public CLI pointer and the newest immutable GitHub skills release. It updates
+the CLI lock first, validates the skills minimum against that selected runtime, builds and tests
+both bundles, and opens or refreshes one reviewed dependency PR. The separate CLI-only and
+skills-only workflows remain manual recovery controls. Until that QAR change is merged, the manual
+pin workflows remain the authoritative path.
 
 The discovery section has its own runtime minimum. QAR enforces the greater of the package-wide
 minimum and the discovery minimum, so compatibility assets can retain their older floor without

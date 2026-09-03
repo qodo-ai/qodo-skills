@@ -15,7 +15,7 @@
     "release:notes": "node scripts/release-notes.mjs",
     "enterprise:build": "node scripts/build-enterprise-bundle.mjs",
     "check": "node scripts/validate.mjs && node scripts/build-release-index.mjs --check && node scripts/build-cli-managed-bundle.mjs --check",
-    "test": "npm run check && node scripts/test-cli-managed-bundle.mjs && node scripts/test-release-transaction.mjs && node scripts/test-release.mjs && node scripts/test-release-workflow.mjs && node scripts/test-marketplace-release.mjs && node scripts/test-marketplace-release-lock.mjs && node scripts/test-enterprise-bundle.mjs"
+    "test": "npm run check && node --test test/marketplace-auto-start.test.mjs && node scripts/test-cli-managed-bundle.mjs && node scripts/test-release-transaction.mjs && node scripts/test-release.mjs && node scripts/test-release-workflow.mjs && node scripts/test-marketplace-release.mjs && node scripts/test-marketplace-release-lock.mjs && node scripts/test-enterprise-bundle.mjs"
   },
   "license": "MIT",
   "devDependencies": {
