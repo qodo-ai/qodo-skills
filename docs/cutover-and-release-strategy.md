@@ -88,11 +88,13 @@ The pull model is idempotent. A watcher does nothing when its target already adv
 release. The marketplace watcher byte-verifies the protected compatibility assets against the
 immutable release, rejects releases below its successful default-branch run watermark, and rechecks
 immediately before dispatch. The downstream atomic release lock safely arbitrates a simultaneous
-manual launch. The QAR synchronizer validates and executes downloaded artifacts on a credential-free
-runner, then regenerates the same data-only locks on a fresh runner before minting its scoped PR
-token. It uses one stable branch and PR for the complete distribution tuple. The original manual compatibility,
-marketplace, CLI-pin, and skills-pin workflows remain recovery controls. Production environments,
-provider publication, PR merge, and customer deployment remain human-owned gates.
+manual launch. The QAR synchronizer resolves and verifies data-only locks without credentials,
+attests their path-independent tuple digest in a run-scoped artifact, and restores those exact bytes
+on separate validation and writer runners. Only the writer mints the scoped PR token, after the
+artifact has passed the composed distribution smoke test. It uses one stable branch and PR for the
+complete distribution tuple. The original manual compatibility, marketplace, CLI-pin, and
+skills-pin workflows remain recovery controls. Production environments, provider publication, PR
+merge, and customer deployment remain human-owned gates.
 
 ## Cutover sequence
 
@@ -226,9 +228,10 @@ Rollback: publish a new immutable patch. Never replace the release asset.
   public CLI pointer and newest immutable GitHub skills release, updates
   the CLI lock before validating the skills minimum, verifies and smoke-tests the combined tuple,
   and opens or refreshes one dependency PR. Public artifacts never execute on the runner that holds
-  the repository write token: a fresh writer regenerates and binds the data-only locks to the
-  credential-free validation result first. An unchanged automation branch preserves its head,
-  reviews, and approvals. Until that PR is merged, the separate single-pin
+  the repository write token: a credential-free resolver publishes the exact verified locks as a
+  run-scoped artifact, a separate validator restores and smoke-tests those bytes, and only then does
+  a fresh writer restore the same tuple and mint its scoped token. An unchanged automation branch
+  preserves its head, reviews, and approvals. Until that PR is merged, the separate single-pin
   workflows remain authoritative; afterward they remain manual recovery controls.
 - The compatible CLI fetches from the recorded QAR origin, so an on-prem client never falls back to
   public GitHub. Historical CLI-managed roots and new enterprise roots retain separate receipts and
@@ -254,13 +257,12 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 
 Gate: deterministic archive and discovery-feed rebuild; exact manifest/archive/index digests; QAR
 offline image build and route tests; private-origin no-egress; telemetry-disabled pinned-helper
-import at Node 20.6; uncached digest-bound MP1 tuple evidence from every declared replica; fresh authenticated clean-machine
-import of exactly the four core skills into Codex and Claude; Standards and unrelated skills absent;
-CLI and installer bytes verified before execution; the MP1 key scoped only to login; an authenticated
-same-origin identity request after installation;
-live runtime evidence of the promoted image digest; an immutable acceptance receipt binding QAR
-image digest, commit, CLI, and skills; production
-promotion of that accepted image digest only;
+import at Node 20.6; uncached digest-bound MP1 tuple evidence from every declared replica; fresh
+authenticated clean-machine import of exactly the four core skills into Codex and Claude; Standards
+and unrelated skills absent; CLI and installer bytes verified before execution; the MP1 key scoped
+only to login; an authenticated same-origin identity request after installation; live runtime
+evidence of the promoted image digest; an immutable acceptance receipt binding QAR image digest,
+commit, CLI, and skills; production promotion of that accepted image digest only;
 prompted upgrade; retry; new-session activation; and a pre-`.40` CLI accepting the generated
 schema-v1 pointer and checksum. A later QAR **repin** PR cannot become merge-ready
 until the immutable qodo-skills release exists at the exact bytes in its lock; the backward-compatible
