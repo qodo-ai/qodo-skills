@@ -1,0 +1,9 @@
+{
+  "skill": "qodo-get-rules",
+  "prompt": "implement a JWT login endpoint for our Express API",
+  "criteria": [
+    { "id": "rules-loaded", "description": "Rules loaded header", "match": "Qodo Rules Loaded", "flags": "i" },
+    { "id": "rules-returned", "description": "Rules returned (non-empty)", "match": "\\bERROR\\b|\\bWARNING\\b|\\bRECOMMENDATION\\b", "flags": "i" },
+    { "id": "category-relevance", "description": "Category relevance (Security/auth terms present)", "match": "Security|Authentication|JWT|Authorization|Credential|Token", "flags": "i" }
+  ]
+}

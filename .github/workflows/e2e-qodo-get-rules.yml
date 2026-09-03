@@ -1,0 +1,94 @@
+name: E2E Test — qodo-get-rules
+
+# Runs a live end-to-end test of the qodo-get-rules skill against the Qodo
+# rules API whenever a PR touches the skill's source files. Verifies that the
+# skill loads, returns rules, and returns topically relevant results for a
+# known security/auth prompt.
+#
+# Runs on Linux, macOS, and Windows using each platform's native shell to
+# validate real cross-platform support (not Git Bash on Windows).
+#
+# Requires the `ci` environment which holds QODO_API_KEY, QODO_API_URL, and
+# ANTHROPIC_API_KEY. Secrets are never exposed to fork PRs.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "skills/qodo-get-rules/**"
+
+jobs:
+  e2e:
+    name: E2E test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    environment: ci
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+
+    # Never run for fork PRs — secrets are already withheld by GitHub by default,
+    # but this makes intent explicit and avoids noisy failures on forks.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Configure Qodo API key (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p ~/.qodo
+          printf '{"API_KEY":"%s","QODO_API_URL":"%s"}' "$QODO_API_KEY" "$QODO_API_URL" > ~/.qodo/config.json
+        env:
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          QODO_API_URL: ${{ secrets.QODO_API_URL }}
+
+      - name: Configure Qodo API key (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -Force -ItemType Directory "$HOME/.qodo" | Out-Null
+          $config = '{"API_KEY":"' + $env:QODO_API_KEY + '","QODO_API_URL":"' + $env:QODO_API_URL + '"}'
+          Set-Content -Path "$HOME/.qodo/config.json" -Value $config
+        env:
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          QODO_API_URL: ${{ secrets.QODO_API_URL }}
+
+      - name: Install skill from PR branch (Unix)
+        # Copy the skill from the PR's source tree into the Claude skills directory
+        # so claude -p picks up the version being tested, not any cached install.
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p .claude/skills
+          rm -rf .claude/skills/qodo-get-rules
+          cp -r skills/qodo-get-rules .claude/skills/qodo-get-rules
+
+      - name: Install skill from PR branch (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -Force -ItemType Directory ".claude/skills" | Out-Null
+          Remove-Item -Recurse -Force ".claude/skills/qodo-get-rules" -ErrorAction SilentlyContinue
+          Copy-Item -Recurse "skills/qodo-get-rules" ".claude/skills/qodo-get-rules"
+
+      - name: Run skill and assert criteria (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash .github/e2e/qodo-get-rules/assert.sh
+
+      - name: Run skill and assert criteria (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .github/e2e/qodo-get-rules/assert.ps1
