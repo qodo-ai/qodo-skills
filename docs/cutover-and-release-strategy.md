@@ -63,6 +63,33 @@ QAR /toolbox ── independently pinned CLI + enterprise skills assets
              └── path-scoped v0.2 feeds and digest-pinned archives; no runtime public egress
 ```
 
+## Automated release train
+
+The repositories pull verified state from the lifecycle owner immediately upstream; no
+cross-repository administrator token is stored in the public skills repository.
+
+```text
+immutable qodo-skills release
+        ↓ hourly target-owned discovery
+qodo-in-cli compatibility canary
+        ↓ protected production approval
+get.qodo.ai skills pointer
+        ├── qodo-skills enqueues one all-provider marketplace run
+        └── QAR opens or refreshes one compatible CLI + skills pin PR
+
+QAR Release Please merge
+        ↓ automatic build-once beta promotion
+MP1 rollout
+        ↓ readiness + exact QAR/CLI/skills digest acceptance
+protected production + ST + on-prem distribution promotion
+```
+
+The pull model is idempotent. A watcher does nothing when its target already advertises the selected
+release, an existing marketplace run suppresses duplicate dispatch, and the QAR synchronizer uses
+one stable branch and PR for the complete distribution tuple. The original manual compatibility,
+marketplace, CLI-pin, and skills-pin workflows remain recovery controls. Production environments,
+provider publication, PR merge, and customer deployment remain human-owned gates.
+
 ## Cutover sequence
 
 The architecture is final; the operational rollout is staged so every step has an independent
@@ -162,12 +189,13 @@ copy and recoverable predecessor; marketplace skills remain owned by their host.
   schema-v2 compact index generated from the detached release worktree with its exact source commit,
   the data-only CLI-managed bundle, the enterprise bundle, and their checksums. Publication rejects
   an index whose commit or package version differs from the resolved release.
-- After the immutable GitHub release is verified, dispatch **release: publish skills compatibility
-  channel** in `qodo-ai/qodo-in-cli` with that exact tag. Its canary job verifies the immutable
+- After the immutable GitHub release is verified, the hourly **release: publish skills compatibility
+  channel** watcher in `qodo-ai/qodo-in-cli` selects that newest immutable release. Its canary job verifies the immutable
   release and checksums, copies the compact index and CLI-managed bundle to tag-scoped
   `get.qodo.ai` paths, and advances only the `skills` pointers in `version.json`. The protected
-  production job promotes the exact canary bytes. CLI release jobs preserve those pointers when
-  they update the independent runtime channel.
+  production job still requires approval and promotes the exact canary bytes. An exact tag may be
+  dispatched manually for recovery. CLI release jobs preserve those pointers when they update the
+  independent runtime channel.
 - Smoke-test skills.sh core installation on representative non-marketplace agents before provider
   promotion.
 
@@ -190,6 +218,10 @@ Rollback: publish a new immutable patch. Never replace the release asset.
   `/toolbox/skills/<package>/.well-known/agent-skills/index.json` and its digest-pinned archives at
   `/toolbox/skills/<package>/artifacts/<asset>`. The index-relative `../../artifacts/<asset>` URL
   resolves to that same package-scoped route; it does not escape `/toolbox/skills/<package>`.
+- QAR's hourly target-owned synchronizer reads the protected public CLI and skills pointers, updates
+  the CLI lock before validating the skills minimum, verifies and smoke-tests the combined tuple,
+  and opens or refreshes one dependency PR. The separate single-pin workflows remain manual
+  recovery controls.
 - The compatible CLI fetches from the recorded QAR origin, so an on-prem client never falls back to
   public GitHub. Historical CLI-managed roots and new enterprise roots retain separate receipts and
   lifecycle owners.
@@ -225,11 +257,14 @@ unchanged unless runtime compatibility independently requires it.
 
 ### 3. Promote Claude and Kiro
 
-Run **Ship marketplaces** with Claude and Kiro selected. Selection is provider-level: the action
+After the protected compatibility pointer is live, the hourly marketplace watcher automatically
+starts one **Ship marketplaces** run with all providers selected. Selection is provider-level: the action
 ships every configured listing for each selected provider, including both `qodo` and the separately
 installable `qodo-standards`. It then pauses each provider verification in its protected environment
 while the release owner completes any provider submission. Approve a provider only when its listing
 is expected to be visible; the resumed job verifies the exact release and fails closed otherwise.
+An existing run for the tag suppresses duplicate automatic dispatch, including after failure; release
+owners use the manual provider selector to retry or recover only the required providers.
 Only one release tag may be active across providers: any attempt fails visibly while a different
 tag owns the atomic `refs/heads/qodo-marketplace-release-lock`. The owner holds it through provider
 approval. Acquire, stale recovery, and release append commits with non-force fast-forward updates,
@@ -258,7 +293,7 @@ strictly forward-only because the protected release branch cannot be rewound.
 
 ### 4. Promote Codex and deprecate the old source
 
-Run **Ship marketplaces** with Codex selected, download the exact packet, update the existing Qodo
+Use the all-provider run's Codex packet, update the existing Qodo
 listing through the OpenAI portal, wait for review, and publish. Only after publication may the
 release owner approve `marketplace-codex`.
 
@@ -317,6 +352,7 @@ optional skills are discoverable but never auto-installed.
 |---|---|---|
 | Source | exact merged heads, full CI, generated-drift checks | GitHub release |
 | Repository | successful administrator audit, dedicated repository-scoped release App, immutable releases enabled, no-bypass `v*` tag ruleset, protected `marketplace-kiro` branch, protected tag SHA, and post-publication immutable asset bytes | all promotion |
+| Automation | protected compatibility pointer, one marketplace run per tag, one reviewed QAR tuple PR | downstream promotion |
 | Claude | official catalog exact SHA/path | Claude completion |
 | Kiro | live Agent Plugins power on `marketplace-kiro` at the exact release SHA/path | Kiro completion |
 | Codex | portal review + publish + protected attestation | Codex completion and old-repo deprecation |
