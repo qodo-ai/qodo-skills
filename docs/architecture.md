@@ -82,8 +82,11 @@ Every skill:
 6. invokes the authenticated runtime;
 7. treats a `QODO_NOTICE` as non-fatal metadata after preserving the command result.
 
-The CLI’s compact release index contains only package, skill, and minimum-runtime versions for
-marketplace/skills.sh notices. Separately, the CLI-managed bundle carries current canonical bytes for
+The checked-in schema-v1 compatibility index contains package, skill, and minimum-runtime versions
+for marketplace/skills.sh notices. A published immutable release index uses schema v2 and adds the
+exact 40-character `sourceCommit` from which its assets were built; QAR byte-verifies and preserves
+that index under the versioned release route while projecting schema v1 at the stable endpoint for
+pre-v2 CLIs. Separately, the CLI-managed bundle carries current canonical bytes for
 the finite CLI-managed cohort. The updater enrolls a root only when every byte matches a fingerprint
 from an actually shipped CLI, records the installed digest, and refuses to overwrite subsequent
 drift. It never adds a missing skill, so optional Standards remains optional. Replacement is staged,

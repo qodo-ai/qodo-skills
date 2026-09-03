@@ -77,9 +77,10 @@ a prior run created the protected tag and draft but stopped before publication. 
 4. creates annotated tag `v<package-version>`, pushes it without force, and verifies the protected
    remote tag peels to the validated SHA immediately before publication;
 5. materializes the resolved release commit as a clean detached worktree and, before the
-   publication token is exposed, runs that tree's enterprise and release-note builders; publication
-   then uses only those prepared outputs plus that tree's index, CLI-managed bundle, and checksums,
-   and requires the draft title and body to match the tagged-source metadata exactly;
+   publication token is exposed, runs that tree's enterprise, release-index, and release-note
+   builders; the generated schema-v2 index records the exact resolved commit. Publication uses only
+   those prepared outputs plus that tree's CLI-managed bundle, requires the index commit and package
+   version to match the release, and requires the draft title and body to match exactly;
 6. publishes the verified draft, which makes the release immutable;
 7. verifies the published release is immutable, the protected tag is unchanged, and all published
    assets still match the validated checkout byte-for-byte;
