@@ -1,0 +1,10 @@
+{
+  "version": "1.0.11",
+  "summary": "Add Qodo for Kiro banner",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}
