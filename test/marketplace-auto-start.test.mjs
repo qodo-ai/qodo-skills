@@ -17,6 +17,17 @@ const bundle = Buffer.from(
   }),
 );
 const digest = (body) => `${createHash('sha256').update(body).digest('hex')}  artifact\n`;
+const assetBodies = {
+  'qodo-skills-index.json': index,
+  'qodo-skills-index.json.sha256': Buffer.from(digest(index)),
+  'qodo-cli-managed-bundle.json': bundle,
+  'qodo-cli-managed-bundle.json.sha256': Buffer.from(digest(bundle)),
+};
+const releaseAssets = Object.keys(assetBodies).map((name) => ({
+  name,
+  url: `https://github.test/assets/${name}`,
+}));
+release.assets = releaseAssets;
 
 function skillsPointer(publicTag = 'v1.0.10') {
   return {
@@ -42,6 +53,13 @@ function fakeFetch({ publicTag = 'v1.0.10', runs = [], releaseBody = release, co
     }
     if (url.endsWith('/qodo-cli-managed-bundle.json')) return new Response(bundle);
     if (url.endsWith('/qodo-cli-managed-bundle.json.sha256')) return new Response(digest(bundle));
+    if (url.includes('/assets/')) {
+      const name = url.split('/').at(-1);
+      if (name === 'qodo-skills-index.json.sha256' && corruptIndex) {
+        return new Response(`${'0'.repeat(64)}  artifact\n`);
+      }
+      return new Response(assetBodies[name]);
+    }
     if (url.includes('/releases/tags/')) return response(releaseBody);
     if (url.includes('/commits/')) return response({ sha });
     if (url.includes('/actions/workflows/')) {
@@ -62,7 +80,7 @@ test('the watcher uses same-repository workflow dispatch and keeps provider gate
   assert.match(workflow, /actions: write/);
   assert.match(workflow, /gh workflow run ship-marketplaces\.yml/);
   assert.match(workflow, /-f all=true/);
-  assert.match(workflow, /group: qodo-marketplaces-\$\{\{ needs\.plan\.outputs\.tag \}\}/);
+  assert.doesNotMatch(workflow, /group: qodo-marketplaces-\$\{\{ needs\.plan\.outputs\.tag \}\}/);
   assert.equal((workflow.match(/plan-marketplace-auto-start\.mjs/g) ?? []).length, 2);
   assert.doesNotMatch(workflow, /PRIVATE_KEY|repository_dispatch/);
 
@@ -127,6 +145,7 @@ test('finds an earlier workflow run beyond the first API page', async () => {
     if (url.endsWith('/qodo-skills-index.json.sha256')) return new Response(digest(index));
     if (url.endsWith('/qodo-cli-managed-bundle.json')) return new Response(bundle);
     if (url.endsWith('/qodo-cli-managed-bundle.json.sha256')) return new Response(digest(bundle));
+    if (url.includes('/assets/')) return new Response(assetBodies[url.split('/').at(-1)]);
     if (url.includes('/releases/tags/')) return response(release);
     if (url.includes('/commits/')) return response({ sha });
     if (url.includes('/actions/workflows/')) {
@@ -173,10 +192,43 @@ test('rejects marketplace rollback below the highest default-branch release', as
       githubApi: 'https://github.test',
       versionUrl: 'https://distribution.test/version.json',
       fetchImpl: fakeFetch({
-        runs: [{ id: 43, display_title: 'Ship marketplaces v999999999999999999999.0.0', head_branch: 'main' }],
+        runs: [{
+          id: 43,
+          display_title: 'Ship marketplaces v999999999999999999999.0.0',
+          head_branch: 'main',
+          conclusion: 'success',
+        }],
       }),
     }),
     /refusing marketplace rollback/,
+  );
+});
+
+test('does not let an invalid failed future dispatch poison the rollback watermark', async () => {
+  const plan = await planMarketplaceAutoStart({
+    githubApi: 'https://github.test',
+    versionUrl: 'https://distribution.test/version.json',
+    fetchImpl: fakeFetch({
+      runs: [{ id: 44, display_title: 'Ship marketplaces v999.0.0', head_branch: 'main', conclusion: 'failure' }],
+    }),
+  });
+  assert.equal(plan.watermark, null);
+  assert.equal(plan.needed, true);
+});
+
+test('rejects production bytes that differ from the immutable release asset', async () => {
+  const altered = Buffer.from(JSON.stringify({ schemaVersion: 2, packageVersion: '1.0.10', sourceCommit: sha, drift: true }));
+  const fetchImpl = fakeFetch();
+  await assert.rejects(
+    planMarketplaceAutoStart({
+      githubApi: 'https://github.test',
+      versionUrl: 'https://distribution.test/version.json',
+      fetchImpl: async (input, init) => {
+        if (String(input).includes('/assets/qodo-skills-index.json')) return new Response(altered);
+        return fetchImpl(input, init);
+      },
+    }),
+    /differs from immutable release/,
   );
 });
 

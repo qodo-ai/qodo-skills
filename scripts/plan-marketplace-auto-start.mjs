@@ -30,9 +30,15 @@ function compareTags(left, right) {
   return 0;
 }
 
-async function readBytes(fetchImpl, url, token = '', maximumBytes = MAX_JSON_BYTES) {
+async function readBytes(
+  fetchImpl,
+  url,
+  token = '',
+  maximumBytes = MAX_JSON_BYTES,
+  accept = 'application/vnd.github+json',
+) {
   const headers = {
-    accept: 'application/vnd.github+json',
+    accept,
     'user-agent': 'qodo-marketplace-auto-start',
     'x-github-api-version': '2022-11-28',
   };
@@ -83,14 +89,18 @@ async function readWorkflowRuns(fetchImpl, baseUrl, token) {
 }
 
 function releaseTagFromRun(run) {
-  if (run?.head_branch !== DEFAULT_BRANCH || typeof run.display_title !== 'string') return null;
+  if (
+    run?.head_branch !== DEFAULT_BRANCH ||
+    run?.conclusion !== 'success' ||
+    typeof run.display_title !== 'string'
+  ) return null;
   const prefix = 'Ship marketplaces ';
   if (!run.display_title.startsWith(prefix)) return null;
   const tag = run.display_title.slice(prefix.length);
   return TAG_PATTERN.test(tag) ? tag : null;
 }
 
-async function verifyCompatibilityAssets(fetchImpl, versionUrl, skills, tag, sourceCommit) {
+async function verifyCompatibilityAssets(fetchImpl, versionUrl, skills, tag, sourceCommit, release, token) {
   const version = tag.slice(1);
   const expected = {
     releaseIndex: `skills/releases/${tag}/qodo-skills-index.json`,
@@ -107,12 +117,37 @@ async function verifyCompatibilityAssets(fetchImpl, versionUrl, skills, tag, sou
     if (url.origin !== base.origin) throw new Error(`production compatibility asset escaped ${base.origin}`);
     return readBytes(fetchImpl, url.href, '', maximumBytes);
   };
-  const [index, indexChecksum, bundle, bundleChecksum] = await Promise.all([
+  const productionAssets = await Promise.all([
     load(expected.releaseIndex, MAX_COMPATIBILITY_ASSET_BYTES),
     load(expected.releaseIndexChecksum, 512),
     load(expected.cliManagedBundle, MAX_COMPATIBILITY_ASSET_BYTES),
     load(expected.cliManagedChecksum, 512),
   ]);
+  const assetNames = [
+    'qodo-skills-index.json',
+    'qodo-skills-index.json.sha256',
+    'qodo-cli-managed-bundle.json',
+    'qodo-cli-managed-bundle.json.sha256',
+  ];
+  if (!Array.isArray(release?.assets)) throw new Error(`skills release ${tag} has no asset inventory`);
+  const releaseAssets = await Promise.all(assetNames.map(async (name, index) => {
+    const candidates = release.assets.filter((asset) => asset?.name === name);
+    if (candidates.length !== 1 || typeof candidates[0].url !== 'string') {
+      throw new Error(`skills release ${tag} must contain exactly one ${name}`);
+    }
+    const body = await readBytes(
+      fetchImpl,
+      candidates[0].url,
+      token,
+      index % 2 === 0 ? MAX_COMPATIBILITY_ASSET_BYTES : 512,
+      'application/octet-stream',
+    );
+    if (!body.equals(productionAssets[index])) {
+      throw new Error(`production compatibility ${name} differs from immutable release ${tag}`);
+    }
+    return body;
+  }));
+  const [index, indexChecksum, bundle, bundleChecksum] = releaseAssets;
   const verifyDigest = (name, body, checksum) => {
     const expectedDigest = checksum.toString('utf8').trim().split(/\s+/u)[0];
     if (!/^[a-f0-9]{64}$/.test(expectedDigest)) throw new Error(`invalid production checksum for ${name}`);
@@ -184,7 +219,7 @@ export async function planMarketplaceAutoStart({
     throw new Error(`could not resolve the immutable commit for ${tag}`);
   }
 
-  await verifyCompatibilityAssets(fetchImpl, versionUrl, version.skills, tag, commit.sha);
+  await verifyCompatibilityAssets(fetchImpl, versionUrl, version.skills, tag, commit.sha, release, token);
 
   const runsUrl =
     `${githubApi}/repos/${repository}/actions/workflows/${WORKFLOW}/runs?` +

@@ -72,9 +72,6 @@ jobs:
     needs: plan
     if: needs.plan.outputs.needed == 'true'
     runs-on: ubuntu-latest
-    concurrency:
-      group: qodo-marketplaces-${{ needs.plan.outputs.tag }}
-      cancel-in-progress: false
     steps:
       - name: Check out reviewed automation
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
