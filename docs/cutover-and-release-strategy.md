@@ -257,9 +257,10 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 
 Gate: deterministic archive and discovery-feed rebuild; exact manifest/archive/index digests; QAR
 offline image build and route tests; private-origin no-egress; telemetry-disabled pinned-helper
-import at Node 20.6; two independent uncached sampling rounds over the same complete set of declared
-MP1 replicas, each reporting the release commit and promoted image digest; fresh authenticated
-clean-machine import of exactly the four core skills into Codex and Claude; Standards and unrelated
+import at Node 20.6; a content-addressed `tag@sha256:digest` MP1 deployment; two independent
+uncached sampling rounds over the same complete set of declared MP1 replicas, with at least four
+consecutive probes and each replica reporting the release commit and promoted image digest; fresh
+authenticated clean-machine import of exactly the four core skills into Codex and Claude; Standards and unrelated
 skills absent; CLI and installer bytes verified before execution; explicit owner-only file storage
 for headless login with the MP1 key scoped only to that step; an authenticated same-origin identity
 request after installation; live runtime
