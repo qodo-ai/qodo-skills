@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./Qodo-Kiro.png" alt="Qodo for Kiro — Qodo AI code review and governance in Kiro" width="840">
+</p>
+
 # Qodo for Kiro
 
 Generated skills contain the complete reviewed Qodo playbooks for this release.
