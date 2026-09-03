@@ -180,6 +180,14 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
     }, null, 2)}\n`);
   } else {
     files.set('README.md', [
+      ...(value.name === pkg.name
+        ? [
+          '<p align="center">',
+          '  <img src="./Qodo-Kiro.png" alt="Qodo for Kiro — Qodo AI code review and governance in Kiro" width="840">',
+          '</p>',
+          '',
+        ]
+        : []),
       `# ${value.displayName} for Kiro`,
       '',
       'Generated skills contain the complete reviewed Qodo playbooks for this release.',
@@ -200,6 +208,12 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       '',
     ].join('\n'));
     files.set('qodo-read-only.permissions.yaml', kiroReadPermissionProfile());
+    if (value.name === pkg.name) {
+      files.set(
+        'Qodo-Kiro.png',
+        readFileSync(join(root, 'distribution', 'assets', 'kiro', 'Qodo-Kiro.png')),
+      );
+    }
   }
   for (const skillName of value.skills) {
     const sourceRoot = join(root, 'skills', skillName);
@@ -254,6 +268,16 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
   return files;
 }
 
+function generatedContentMatches(path, expected) {
+  try {
+    if (Buffer.isBuffer(expected)) return readFileSync(path).equals(expected);
+    const current = readFileSync(path, 'utf8');
+    return current.replace(/\r\n/g, '\n') === expected.replace(/\r\n/g, '\n');
+  } catch {
+    return false;
+  }
+}
+
 function syncGeneratedDirectory(relativeRoot, files) {
   const targetRoot = join(root, relativeRoot);
   if (check) {
@@ -261,13 +285,7 @@ function syncGeneratedDirectory(relativeRoot, files) {
     const expected = [...files.keys()].sort();
     if (JSON.stringify(actual) !== JSON.stringify(expected)) stale.push(`${relativeRoot}/`);
     for (const [path, content] of files) {
-      let current = '';
-      try {
-        current = readFileSync(join(targetRoot, path), 'utf8');
-      } catch {
-        // Missing files are stale.
-      }
-      if (current.replace(/\r\n/g, '\n') !== content.replace(/\r\n/g, '\n')) {
+      if (!generatedContentMatches(join(targetRoot, path), content)) {
         stale.push(`${relativeRoot}/${path}`);
       }
     }
