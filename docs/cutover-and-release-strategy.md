@@ -80,7 +80,7 @@ immutable qodo-skills release
 QAR Release Please merge
         ↓ automatic build-once beta promotion
 MP1 rollout
-        ↓ readiness + exact QAR/CLI/skills digest acceptance
+        ↓ four stable probes + authenticated clean install + exact tuple receipt
 protected production + ST + on-prem distribution promotion
 ```
 
@@ -88,8 +88,9 @@ The pull model is idempotent. A watcher does nothing when its target already adv
 release. The marketplace watcher byte-verifies the protected compatibility assets against the
 immutable release, rejects releases below its successful default-branch run watermark, and rechecks
 immediately before dispatch. The downstream atomic release lock safely arbitrates a simultaneous
-manual launch. The QAR synchronizer uses one stable branch and PR for the complete distribution
-tuple. The original manual compatibility,
+manual launch. The QAR synchronizer validates and executes downloaded artifacts on a credential-free
+runner, then regenerates the same data-only locks on a fresh runner before minting its scoped PR
+token. It uses one stable branch and PR for the complete distribution tuple. The original manual compatibility,
 marketplace, CLI-pin, and skills-pin workflows remain recovery controls. Production environments,
 provider publication, PR merge, and customer deployment remain human-owned gates.
 
@@ -224,7 +225,10 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 - QAR's hourly target-owned synchronizer, delivered by `qodo-agent-runtime#594`, reads the protected
   public CLI pointer and newest immutable GitHub skills release, updates
   the CLI lock before validating the skills minimum, verifies and smoke-tests the combined tuple,
-  and opens or refreshes one dependency PR. Until that PR is merged, the separate single-pin
+  and opens or refreshes one dependency PR. Public artifacts never execute on the runner that holds
+  the repository write token: a fresh writer regenerates and binds the data-only locks to the
+  credential-free validation result first. An unchanged automation branch preserves its head,
+  reviews, and approvals. Until that PR is merged, the separate single-pin
   workflows remain authoritative; afterward they remain manual recovery controls.
 - The compatible CLI fetches from the recorded QAR origin, so an on-prem client never falls back to
   public GitHub. Historical CLI-managed roots and new enterprise roots retain separate receipts and
@@ -250,7 +254,10 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 
 Gate: deterministic archive and discovery-feed rebuild; exact manifest/archive/index digests; QAR
 offline image build and route tests; private-origin no-egress; telemetry-disabled pinned-helper
-import at Node 20.6; fresh clean-machine core import into Codex and Claude; Standards absent;
+import at Node 20.6; four consecutive uncached MP1 tuple probes; fresh authenticated clean-machine
+import of exactly the four core skills into Codex and Claude; Standards and unrelated skills absent;
+an immutable acceptance receipt binding QAR image digest, commit, CLI, and skills; production
+promotion of that accepted image digest only;
 prompted upgrade; retry; new-session activation; and a pre-`.40` CLI accepting the generated
 schema-v1 pointer and checksum. A later QAR **repin** PR cannot become merge-ready
 until the immutable qodo-skills release exists at the exact bytes in its lock; the backward-compatible
@@ -362,13 +369,13 @@ optional skills are discoverable but never auto-installed.
 |---|---|---|
 | Source | exact merged heads, full CI, generated-drift checks | GitHub release |
 | Repository | successful administrator audit, dedicated repository-scoped release App, immutable releases enabled, no-bypass `v*` tag ruleset, protected `marketplace-kiro` branch, protected tag SHA, and post-publication immutable asset bytes | all promotion |
-| Automation | protected compatibility pointer, one marketplace run per tag, one reviewed QAR tuple PR | downstream promotion |
+| Automation | protected compatibility pointer, one marketplace run per tag, one reviewed QAR tuple PR, credential-isolated tuple validation | downstream promotion |
 | Claude | official catalog exact SHA/path | Claude completion |
 | Kiro | live Agent Plugins power on `marketplace-kiro` at the exact release SHA/path | Kiro completion |
 | Codex | portal review + publish + protected attestation | Codex completion and old-repo deprecation |
 | Behavior | fresh install, upgrade, package isolation, setup/read/write/update | provider sign-off |
 | Migration | no duplicate/shadowed skill; cleanup preserves user changes | broad rollout |
-| On-prem | immutable enterprise asset hashes, QAR pin/routes, no-egress, core-only import and upgrade | enterprise rollout |
+| On-prem | immutable enterprise asset hashes, QAR pin/routes, no-egress, MP1 authenticated exact-core install receipt, accepted image digest, core-only customer import and upgrade | enterprise rollout |
 
 No gate is satisfied by an announcement, packet, or green workflow that does not prove the named
 external state.
