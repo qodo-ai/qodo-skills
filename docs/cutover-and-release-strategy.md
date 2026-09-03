@@ -85,8 +85,10 @@ protected production + ST + on-prem distribution promotion
 ```
 
 The pull model is idempotent. A watcher does nothing when its target already advertises the selected
-release, an existing marketplace run suppresses duplicate dispatch, and the QAR synchronizer uses
-one stable branch and PR for the complete distribution tuple. The original manual compatibility,
+release. The marketplace watcher byte-verifies the protected compatibility assets, rejects releases
+below its default-branch run watermark, and rechecks inside the downstream per-tag concurrency group
+before dispatch. The QAR synchronizer uses one stable branch and PR for the complete distribution
+tuple. The original manual compatibility,
 marketplace, CLI-pin, and skills-pin workflows remain recovery controls. Production environments,
 provider publication, PR merge, and customer deployment remain human-owned gates.
 
@@ -218,10 +220,11 @@ Rollback: publish a new immutable patch. Never replace the release asset.
   `/toolbox/skills/<package>/.well-known/agent-skills/index.json` and its digest-pinned archives at
   `/toolbox/skills/<package>/artifacts/<asset>`. The index-relative `../../artifacts/<asset>` URL
   resolves to that same package-scoped route; it does not escape `/toolbox/skills/<package>`.
-- QAR's hourly target-owned synchronizer reads the protected public CLI and skills pointers, updates
+- QAR's hourly target-owned synchronizer, delivered by `qodo-agent-runtime#594`, reads the protected
+  public CLI and skills pointers, updates
   the CLI lock before validating the skills minimum, verifies and smoke-tests the combined tuple,
-  and opens or refreshes one dependency PR. The separate single-pin workflows remain manual
-  recovery controls.
+  and opens or refreshes one dependency PR. Until that PR is merged, the separate single-pin
+  workflows remain authoritative; afterward they remain manual recovery controls.
 - The compatible CLI fetches from the recorded QAR origin, so an on-prem client never falls back to
   public GitHub. Historical CLI-managed roots and new enterprise roots retain separate receipts and
   lifecycle owners.
@@ -257,14 +260,17 @@ unchanged unless runtime compatibility independently requires it.
 
 ### 3. Promote Claude and Kiro
 
-After the protected compatibility pointer is live, the hourly marketplace watcher automatically
-starts one **Ship marketplaces** run with all providers selected. Selection is provider-level: the action
+After the protected compatibility pointer is live, the hourly marketplace watcher verifies the
+advertised index and bundle checksums and release identity, then automatically starts one **Ship
+marketplaces** run with all providers selected. Selection is provider-level: the action
 ships every configured listing for each selected provider, including both `qodo` and the separately
 installable `qodo-standards`. It then pauses each provider verification in its protected environment
 while the release owner completes any provider submission. Approve a provider only when its listing
 is expected to be visible; the resumed job verifies the exact release and fails closed otherwise.
-An existing run for the tag suppresses duplicate automatic dispatch, including after failure; release
-owners use the manual provider selector to retry or recover only the required providers.
+An existing default-branch run for the tag suppresses duplicate automatic dispatch, including after
+failure. The watcher rejects a tag below the highest prior default-branch release and rechecks inside
+the downstream per-tag concurrency group before dispatch, closing the schedule/manual launch race.
+Release owners use the manual provider selector to retry or recover only the required providers.
 Only one release tag may be active across providers: any attempt fails visibly while a different
 tag owns the atomic `refs/heads/qodo-marketplace-release-lock`. The owner holds it through provider
 approval. Acquire, stale recovery, and release append commits with non-force fast-forward updates,

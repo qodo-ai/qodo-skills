@@ -132,9 +132,13 @@ patch release; it is never accepted as a successful release.
 
 Once the protected compatibility pointer advertises the immutable tag, the hourly
 **Marketplace auto-start** watcher dispatches **Ship marketplaces** once with `all`. The action
-validates the tag/version, regenerates the exact provider packet, and uploads one artifact per
-provider. If any workflow run already exists for the tag, automatic dispatch does not loop; use the
-manual `claude`, `codex`, `kiro`, or `all` selector for a deliberate retry or partial recovery.
+validates the tag/version, downloads the advertised compatibility index and bundle, verifies their
+checksums and release identity, regenerates the exact provider packet, and uploads one artifact per
+provider. It rejects a tag below the highest default-branch marketplace run. The watcher rechecks
+inside the same per-tag concurrency group used by **Ship marketplaces**, so simultaneous schedules
+cannot create duplicate runs. If any default-branch workflow run already exists for the tag,
+automatic dispatch does not loop; use the manual `claude`, `codex`, `kiro`, or `all` selector for a
+deliberate retry or partial recovery.
 
 Only one release tag may be active across providers. Same-tag retries are grouped idempotently; any
 attempt atomically advances `refs/heads/qodo-marketplace-release-lock` to an owner commit before
@@ -205,10 +209,12 @@ Every immutable skills release carries `qodo-enterprise-manifest.json`, the dete
 indexes, and one digest-pinned archive per skill. The manifest carries the package's
 `minimumCliVersion`; QAR must reject the bundle when its independent CLI lock is older. QAR pins that release independently from
 its CLI pin, verifies every byte while building the backend image, and serves it from the existing
-`/toolbox` origin. QAR's hourly **distribution bundles: sync promoted CLI + skills pins** workflow
+`/toolbox` origin. The hourly **distribution bundles: sync promoted CLI + skills pins** workflow,
+delivered by `qodo-agent-runtime#594`,
 updates the CLI lock first, validates the skills minimum against that selected runtime, builds and
 tests both bundles, and opens or refreshes one reviewed dependency PR. The separate CLI-only and
-skills-only workflows remain manual recovery controls.
+skills-only workflows remain manual recovery controls. Until that QAR change is merged, the manual
+pin workflows remain the authoritative path.
 
 The discovery section has its own runtime minimum. QAR enforces the greater of the package-wide
 minimum and the discovery minimum, so compatibility assets can retain their older floor without
