@@ -80,7 +80,7 @@ immutable qodo-skills release
 QAR Release Please merge
         ↓ automatic build-once beta promotion
 MP1 rollout
-        ↓ four stable probes + authenticated clean install + exact tuple receipt
+        ↓ all replicas digest-bound + authenticated clean install + exact tuple receipt
 protected production + ST + on-prem distribution promotion
 ```
 
@@ -254,9 +254,12 @@ Rollback: publish a new immutable patch. Never replace the release asset.
 
 Gate: deterministic archive and discovery-feed rebuild; exact manifest/archive/index digests; QAR
 offline image build and route tests; private-origin no-egress; telemetry-disabled pinned-helper
-import at Node 20.6; four consecutive uncached MP1 tuple probes; fresh authenticated clean-machine
+import at Node 20.6; uncached digest-bound MP1 tuple evidence from every declared replica; fresh authenticated clean-machine
 import of exactly the four core skills into Codex and Claude; Standards and unrelated skills absent;
-an immutable acceptance receipt binding QAR image digest, commit, CLI, and skills; production
+CLI and installer bytes verified before execution; the MP1 key scoped only to login; an authenticated
+same-origin identity request after installation;
+live runtime evidence of the promoted image digest; an immutable acceptance receipt binding QAR
+image digest, commit, CLI, and skills; production
 promotion of that accepted image digest only;
 prompted upgrade; retry; new-session activation; and a pre-`.40` CLI accepting the generated
 schema-v1 pointer and checksum. A later QAR **repin** PR cannot become merge-ready
