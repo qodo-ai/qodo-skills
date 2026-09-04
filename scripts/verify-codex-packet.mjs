@@ -52,6 +52,37 @@ function sameJson(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function storedZipEntry(archive, targetName) {
+  let offset = 0;
+  let target;
+  while (offset + 30 <= archive.length && archive.readUInt32LE(offset) === 0x04034b50) {
+    const flags = archive.readUInt16LE(offset + 6);
+    const method = archive.readUInt16LE(offset + 8);
+    const compressedSize = archive.readUInt32LE(offset + 18);
+    const uncompressedSize = archive.readUInt32LE(offset + 22);
+    const nameLength = archive.readUInt16LE(offset + 26);
+    const extraLength = archive.readUInt16LE(offset + 28);
+    if ((flags & 0x0008) !== 0 || method !== 0 || compressedSize !== uncompressedSize) {
+      throw new Error('Codex bundle must use deterministic stored ZIP entries');
+    }
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const dataEnd = dataStart + compressedSize;
+    if (dataEnd > archive.length) throw new Error('Codex bundle contains a truncated ZIP entry');
+    const name = archive.subarray(nameStart, nameStart + nameLength).toString('utf8');
+    if (name === targetName) {
+      if (target) throw new Error(`Codex bundle contains duplicate ${targetName} entries`);
+      target = archive.subarray(dataStart, dataEnd);
+    }
+    offset = dataEnd;
+  }
+  if (offset + 4 > archive.length || archive.readUInt32LE(offset) !== 0x02014b50) {
+    throw new Error('Codex bundle local entries do not end at a central directory');
+  }
+  if (!target) throw new Error(`Codex bundle is missing ${targetName}`);
+  return target;
+}
+
 export function verifyCodexPacket(packetRoot) {
   const root = resolve(packetRoot);
   const release = readJson(join(root, 'release.json'));
@@ -93,6 +124,15 @@ export function verifyCodexPacket(packetRoot) {
     if (artifact.sha256 !== digest) throw new Error(`${archiveName}: release.json SHA-256 mismatch`);
     if (artifact.sizeBytes !== archive.sizeBytes) throw new Error(`${archiveName}: release.json size mismatch`);
     if (checksums.get(archiveName) !== digest) throw new Error(`${archiveName}: SHA256SUMS mismatch`);
+    let plugin;
+    try {
+      plugin = JSON.parse(storedZipEntry(archive.bytes, '.codex-plugin/plugin.json').toString('utf8'));
+    } catch (error) {
+      throw new Error(`${archiveName}: invalid internal plugin manifest: ${error.message}`);
+    }
+    if (plugin.name !== artifact.listingId || plugin.version !== release.version) {
+      throw new Error(`${archiveName}: internal plugin identity does not match ${artifact.listingId}@${release.version}`);
+    }
 
     const submission = readJson(join(root, 'submissions', `${artifact.listingId}.json`));
     if (submission.listingId !== artifact.listingId || !sameJson(submission.artifact, artifact)) {

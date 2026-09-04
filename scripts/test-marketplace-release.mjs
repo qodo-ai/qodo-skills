@@ -17,8 +17,8 @@ import {
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const releasePreflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
 const context = {
-  tag: 'v1.0.2',
-  version: '1.0.2',
+  tag: 'v1.0.12',
+  version: '1.0.12',
   commit: '0123456789abcdef0123456789abcdef01234567',
   release: {},
 };
@@ -40,6 +40,14 @@ function storedZipEntries(path) {
   }
   assert.equal(archive.readUInt32LE(offset), 0x02014b50, 'local entries must end at the central directory');
   return entries;
+}
+
+function verifyPacketFails(output, pattern) {
+  const result = spawnSync(process.execPath, ['verify-codex-packet.mjs'], {
+    cwd: output, encoding: 'utf8', timeout: 5_000,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, pattern);
 }
 
 assert.deepEqual(
@@ -129,7 +137,7 @@ try {
   assert.equal(release.artifacts.length, 2);
   assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /protected GitHub environment approval/);
   assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /Privacy:/);
-  assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /qodo-codex-plugin-1\.0\.2\.zip/);
+  assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /qodo-codex-plugin-1\.0\.12\.zip/);
   assert.equal(
     JSON.parse(readFileSync(join(prepared.output, 'listings', 'qodo', '.codex-plugin', 'plugin.json'), 'utf8')).name,
     'qodo',
@@ -163,7 +171,7 @@ try {
   assert.equal(createHash('sha256').update(coreArchive).digest('hex'), coreSubmission.artifact.sha256);
   assert.match(
     readFileSync(join(prepared.output, 'bundles', 'SHA256SUMS'), 'utf8'),
-    new RegExp(`^${coreSubmission.artifact.sha256}  qodo-codex-plugin-1\\.0\\.2\\.zip`, 'm'),
+    new RegExp(`^${coreSubmission.artifact.sha256}  qodo-codex-plugin-1\\.0\\.12\\.zip`, 'm'),
   );
   for (const line of readFileSync(join(prepared.output, 'bundles', 'SHA256SUMS'), 'utf8').trim().split('\n')) {
     const match = line.match(/^([0-9a-f]{64})  ([a-z0-9.-]+\.zip)$/);
@@ -172,23 +180,6 @@ try {
       createHash('sha256').update(readFileSync(join(prepared.output, 'bundles', match[2]))).digest('hex'),
       match[1],
     );
-  }
-  const sha256sumProbe = spawnSync('sha256sum', ['--version'], { encoding: 'utf8', timeout: 5_000 });
-  if (!sha256sumProbe.error && sha256sumProbe.status === 0) {
-    const verification = spawnSync('sha256sum', ['-c', 'SHA256SUMS'], {
-      cwd: join(prepared.output, 'bundles'),
-      encoding: 'utf8',
-      timeout: 5_000,
-    });
-    assert.equal(verification.status, 0, verification.stderr);
-  } else if (process.platform !== 'win32') {
-    const verification = spawnSync('shasum', ['-a', '256', '-c', 'SHA256SUMS'], {
-      cwd: join(prepared.output, 'bundles'),
-      encoding: 'utf8',
-      timeout: 5_000,
-    });
-    if (verification.error && verification.error.code !== 'ENOENT') throw verification.error;
-    if (!verification.error) assert.equal(verification.status, 0, verification.stderr);
   }
   const packetVerification = spawnSync(process.execPath, ['verify-codex-packet.mjs'], {
     cwd: prepared.output,
@@ -221,13 +212,7 @@ try {
   const repeatSubmission = JSON.parse(readFileSync(repeatSubmissionPath, 'utf8'));
   repeatSubmission.artifact.sha256 = '0'.repeat(64);
   writeFileSync(repeatSubmissionPath, `${JSON.stringify(repeatSubmission, null, 2)}\n`);
-  const tamperedVerification = spawnSync(process.execPath, ['verify-codex-packet.mjs'], {
-    cwd: repeat.output,
-    encoding: 'utf8',
-    timeout: 5_000,
-  });
-  assert.equal(tamperedVerification.status, 1);
-  assert.match(tamperedVerification.stderr, /submission artifact metadata mismatch/);
+  verifyPacketFails(repeat.output, /submission artifact metadata mismatch/);
 
   const incomplete = prepareMarketplace('codex', context, join(temporaryRoot, 'incomplete'));
   const incompleteReleasePath = join(incomplete.output, 'release.json');
@@ -241,13 +226,22 @@ try {
     .split('\n')
     .filter((line) => line && !line.endsWith(`  ${removedArtifact.path.slice('bundles/'.length)}`));
   writeFileSync(checksumPath, `${retainedChecksums.join('\n')}\n`);
-  const incompleteVerification = spawnSync(process.execPath, ['verify-codex-packet.mjs'], {
-    cwd: incomplete.output,
-    encoding: 'utf8',
-    timeout: 5_000,
-  });
-  assert.equal(incompleteVerification.status, 1);
-  assert.match(incompleteVerification.stderr, /exactly one artifact per Codex listing/);
+  verifyPacketFails(incomplete.output, /exactly one artifact per Codex listing/);
+
+  const swapped = prepareMarketplace('codex', context, join(temporaryRoot, 'swapped'));
+  const swappedReleasePath = join(swapped.output, 'release.json');
+  const swappedRelease = JSON.parse(readFileSync(swappedReleasePath, 'utf8'));
+  const [firstArtifact, secondArtifact] = swappedRelease.artifacts;
+  [firstArtifact.listingId, secondArtifact.listingId] = [secondArtifact.listingId, firstArtifact.listingId];
+  writeFileSync(swappedReleasePath, `${JSON.stringify(swappedRelease, null, 2)}\n`);
+  for (const artifact of swappedRelease.artifacts) {
+    const submissionPath = join(swapped.output, 'submissions', `${artifact.listingId}.json`);
+    const submission = JSON.parse(readFileSync(submissionPath, 'utf8'));
+    submission.listingId = artifact.listingId;
+    submission.artifact = artifact;
+    writeFileSync(submissionPath, `${JSON.stringify(submission, null, 2)}\n`);
+  }
+  verifyPacketFails(swapped.output, /internal plugin identity does not match/);
   assert.throws(() => prepareMarketplace('codex', context, output), /already exists/);
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
