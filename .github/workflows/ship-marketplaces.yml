@@ -307,7 +307,8 @@ jobs:
           {
             echo '## Codex portal publication required'
             echo
-            echo "Download \`marketplace-codex-${RELEASE_TAG}\`, upload the two listing packets through the OpenAI plugin portal, wait for review, and publish the approved version."
+            echo "Download \`marketplace-codex-${RELEASE_TAG}\`. From its packet root, run \`node verify-codex-packet.mjs\`, then upload the ZIP named by each \`submissions/<listing>.json\`."
+            echo 'Update the existing `qodo` listing; submit `qodo-standards` separately as an optional initial listing. Wait for review, then explicitly publish each approved version.'
             echo 'Approve the protected `marketplace-codex` environment only after that external step is complete.'
           } >> "${GITHUB_STEP_SUMMARY}"
 

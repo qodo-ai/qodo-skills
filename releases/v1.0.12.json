@@ -1,0 +1,10 @@
+{
+  "version": "1.0.12",
+  "summary": "Add deterministic checksum-bound Codex portal upload bundles.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}

@@ -1,5 +1,6 @@
 /** Test marketplace selection, packaging, provider verification, and workflow gates. */
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
@@ -21,6 +22,25 @@ const context = {
   commit: '0123456789abcdef0123456789abcdef01234567',
   release: {},
 };
+
+function storedZipEntries(path) {
+  const archive = readFileSync(path);
+  const entries = new Map();
+  let offset = 0;
+  while (archive.readUInt32LE(offset) === 0x04034b50) {
+    assert.equal(archive.readUInt16LE(offset + 8), 0, 'provider bundle entries must use stored mode');
+    const size = archive.readUInt32LE(offset + 18);
+    const nameLength = archive.readUInt16LE(offset + 26);
+    const extraLength = archive.readUInt16LE(offset + 28);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength + extraLength;
+    const name = archive.subarray(nameStart, nameStart + nameLength).toString('utf8');
+    entries.set(name, archive.subarray(dataStart, dataStart + size));
+    offset = dataStart + size;
+  }
+  assert.equal(archive.readUInt32LE(offset), 0x02014b50, 'local entries must end at the central directory');
+  return entries;
+}
 
 assert.deepEqual(
   resolveSelection({ claude: 'true', codex: false, kiro: true, all: false }),
@@ -106,8 +126,10 @@ try {
   const release = JSON.parse(readFileSync(join(prepared.output, 'release.json'), 'utf8'));
   assert.equal(release.providerMode, 'reviewed-portal-snapshot');
   assert.equal(release.listings.length, 2);
+  assert.equal(release.artifacts.length, 2);
   assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /protected GitHub environment approval/);
   assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /Privacy:/);
+  assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /qodo-codex-plugin-1\.0\.2\.zip/);
   assert.equal(
     JSON.parse(readFileSync(join(prepared.output, 'listings', 'qodo', '.codex-plugin', 'plugin.json'), 'utf8')).name,
     'qodo',
@@ -127,6 +149,8 @@ try {
   const standardsSubmission = JSON.parse(readFileSync(join(prepared.output, 'submissions', 'qodo-standards.json'), 'utf8'));
   assert.equal(coreSubmission.releaseType, 'update');
   assert.equal(standardsSubmission.releaseType, 'initial');
+  assert.equal(coreSubmission.artifact.listingId, 'qodo');
+  assert.equal(standardsSubmission.artifact.listingId, 'qodo-standards');
   assert.equal(coreSubmission.positiveTests.length, 5);
   assert.equal(coreSubmission.negativeTests.length, 3);
   assert.equal(standardsSubmission.positiveTests.length, 5);
@@ -134,6 +158,96 @@ try {
   assert.equal(coreSubmission.listing.starterPrompts.length, 4);
   assert.equal(standardsSubmission.listing.starterPrompts.length, 2);
   assert.ok(!JSON.stringify(coreSubmission).includes('password'));
+  const coreArchivePath = join(prepared.output, coreSubmission.artifact.path);
+  const coreArchive = readFileSync(coreArchivePath);
+  assert.equal(createHash('sha256').update(coreArchive).digest('hex'), coreSubmission.artifact.sha256);
+  assert.match(
+    readFileSync(join(prepared.output, 'bundles', 'SHA256SUMS'), 'utf8'),
+    new RegExp(`^${coreSubmission.artifact.sha256}  qodo-codex-plugin-1\\.0\\.2\\.zip`, 'm'),
+  );
+  for (const line of readFileSync(join(prepared.output, 'bundles', 'SHA256SUMS'), 'utf8').trim().split('\n')) {
+    const match = line.match(/^([0-9a-f]{64})  ([a-z0-9.-]+\.zip)$/);
+    assert.ok(match, `invalid checksum record: ${line}`);
+    assert.equal(
+      createHash('sha256').update(readFileSync(join(prepared.output, 'bundles', match[2]))).digest('hex'),
+      match[1],
+    );
+  }
+  const sha256sumProbe = spawnSync('sha256sum', ['--version'], { encoding: 'utf8', timeout: 5_000 });
+  if (!sha256sumProbe.error && sha256sumProbe.status === 0) {
+    const verification = spawnSync('sha256sum', ['-c', 'SHA256SUMS'], {
+      cwd: join(prepared.output, 'bundles'),
+      encoding: 'utf8',
+      timeout: 5_000,
+    });
+    assert.equal(verification.status, 0, verification.stderr);
+  } else if (process.platform !== 'win32') {
+    const verification = spawnSync('shasum', ['-a', '256', '-c', 'SHA256SUMS'], {
+      cwd: join(prepared.output, 'bundles'),
+      encoding: 'utf8',
+      timeout: 5_000,
+    });
+    if (verification.error && verification.error.code !== 'ENOENT') throw verification.error;
+    if (!verification.error) assert.equal(verification.status, 0, verification.stderr);
+  }
+  const packetVerification = spawnSync(process.execPath, ['verify-codex-packet.mjs'], {
+    cwd: prepared.output,
+    encoding: 'utf8',
+    timeout: 5_000,
+  });
+  assert.equal(packetVerification.status, 0, packetVerification.stderr);
+  assert.equal(JSON.parse(packetVerification.stdout).verified.length, 2);
+  const coreEntries = storedZipEntries(coreArchivePath);
+  assert.deepEqual(
+    coreEntries.get('.codex-plugin/plugin.json'),
+    readFileSync(join(prepared.output, 'listings', 'qodo', '.codex-plugin', 'plugin.json')),
+  );
+  assert.ok(coreEntries.has('skills/qodo-review/SKILL.md'));
+  assert.ok(!coreEntries.has('skills/qodo-get-rules/SKILL.md'));
+  assert.ok(!coreEntries.has('skills/find-skills/SKILL.md'));
+  const standardsEntries = storedZipEntries(join(prepared.output, standardsSubmission.artifact.path));
+  assert.ok(standardsEntries.has('skills/qodo-get-rules/SKILL.md'));
+  assert.ok(!standardsEntries.has('skills/qodo-review/SKILL.md'));
+
+  const repeat = prepareMarketplace('codex', context, join(temporaryRoot, 'repeat'));
+  for (const artifact of release.artifacts) {
+    assert.deepEqual(
+      readFileSync(join(prepared.output, artifact.path)),
+      readFileSync(join(repeat.output, artifact.path)),
+      `${artifact.listingId} provider bundle must be byte-for-byte deterministic`,
+    );
+  }
+  const repeatSubmissionPath = join(repeat.output, 'submissions', 'qodo.json');
+  const repeatSubmission = JSON.parse(readFileSync(repeatSubmissionPath, 'utf8'));
+  repeatSubmission.artifact.sha256 = '0'.repeat(64);
+  writeFileSync(repeatSubmissionPath, `${JSON.stringify(repeatSubmission, null, 2)}\n`);
+  const tamperedVerification = spawnSync(process.execPath, ['verify-codex-packet.mjs'], {
+    cwd: repeat.output,
+    encoding: 'utf8',
+    timeout: 5_000,
+  });
+  assert.equal(tamperedVerification.status, 1);
+  assert.match(tamperedVerification.stderr, /submission artifact metadata mismatch/);
+
+  const incomplete = prepareMarketplace('codex', context, join(temporaryRoot, 'incomplete'));
+  const incompleteReleasePath = join(incomplete.output, 'release.json');
+  const incompleteRelease = JSON.parse(readFileSync(incompleteReleasePath, 'utf8'));
+  const removedArtifact = incompleteRelease.artifacts.pop();
+  writeFileSync(incompleteReleasePath, `${JSON.stringify(incompleteRelease, null, 2)}\n`);
+  rmSync(join(incomplete.output, removedArtifact.path));
+  rmSync(join(incomplete.output, 'submissions', `${removedArtifact.listingId}.json`));
+  const checksumPath = join(incomplete.output, 'bundles', 'SHA256SUMS');
+  const retainedChecksums = readFileSync(checksumPath, 'utf8')
+    .split('\n')
+    .filter((line) => line && !line.endsWith(`  ${removedArtifact.path.slice('bundles/'.length)}`));
+  writeFileSync(checksumPath, `${retainedChecksums.join('\n')}\n`);
+  const incompleteVerification = spawnSync(process.execPath, ['verify-codex-packet.mjs'], {
+    cwd: incomplete.output,
+    encoding: 'utf8',
+    timeout: 5_000,
+  });
+  assert.equal(incompleteVerification.status, 1);
+  assert.match(incompleteVerification.stderr, /exactly one artifact per Codex listing/);
   assert.throws(() => prepareMarketplace('codex', context, output), /already exists/);
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
@@ -147,6 +261,9 @@ assert.ok((workflow.match(/type: boolean/g) ?? []).length >= 4);
 assert.match(workflow, /fromJSON\(needs\.plan\.outputs\.matrix\)/);
 assert.match(workflow, /has_verifiable/);
 assert.match(workflow, /name: marketplace-codex/);
+assert.match(workflow, /node verify-codex-packet\.mjs/);
+assert.match(workflow, /Update the existing `qodo` listing/);
+assert.match(workflow, /qodo-standards.*optional initial listing/);
 assert.match(workflow, /name: marketplace-\$\{\{ matrix\.provider \}\}/);
 assert.match(workflow, /required_reviewers/);
 assert.match(workflow, /verify-provider-visible/);
