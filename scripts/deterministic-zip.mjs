@@ -99,6 +99,51 @@ function endRecord(entryCount, centralSize, centralOffset) {
   return record;
 }
 
+/** Read only our deterministic ZIP32 format, validating both extractor inventories. */
+export function readDeterministicZip(archive) {
+  const entries = new Map();
+  const centralParts = [];
+  let offset = 0;
+  let previousName;
+  const invalid = (reason) => { throw new Error(`Invalid deterministic ZIP: ${reason}`); };
+  while (offset + 4 <= archive.length && archive.readUInt32LE(offset) === 0x04034b50) {
+    if (offset + 30 > archive.length) invalid('truncated local header');
+    const nameLength = archive.readUInt16LE(offset + 26);
+    const size = archive.readUInt32LE(offset + 18);
+    const nameStart = offset + 30;
+    const dataStart = nameStart + nameLength;
+    const dataEnd = dataStart + size;
+    if (dataEnd > archive.length) invalid('truncated local entry');
+    const nameBytes = archive.subarray(nameStart, dataStart);
+    const name = nameBytes.toString('utf8');
+    if (!Buffer.from(name, 'utf8').equals(nameBytes) || /[\\\x00:]/.test(name) ||
+        name.split('/').some((part) => !part || part === '.' || part === '..')) {
+      invalid('unsafe or malformed entry name');
+    }
+    if (previousName !== undefined && name <= previousName) invalid('duplicate or unordered entry');
+    const data = archive.subarray(dataStart, dataEnd);
+    const checksum = crc32(data);
+    if (!archive.subarray(offset, nameStart).equals(localHeader(nameBytes, data, checksum))) {
+      invalid('local header, sizes or CRC do not match the stored entry');
+    }
+    centralParts.push(centralHeader(nameBytes, data, checksum, offset), nameBytes);
+    entries.set(name, data);
+    if (entries.size > 0xffff) invalid('too many ZIP32 entries');
+    previousName = name;
+    offset = dataEnd;
+  }
+  if (entries.size === 0) invalid('missing local entries');
+  const central = Buffer.concat(centralParts);
+  const centralEnd = offset + central.length;
+  if (!archive.subarray(offset, centralEnd).equals(central)) {
+    invalid('central directory does not match local entries');
+  }
+  if (!archive.subarray(centralEnd).equals(endRecord(entries.size, central.length, offset))) {
+    invalid('end record, directory bounds or archive length do not match');
+  }
+  return entries;
+}
+
 export function createDeterministicZip(sourceRoot, outputPath) {
   const root = resolve(sourceRoot);
   const stat = lstatSync(root);

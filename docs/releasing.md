@@ -167,7 +167,9 @@ For Codex, upload the archive named by each `submissions/<listing>.json` record 
 `release.json`, its submission record, and `bundles/SHA256SUMS` by running
 `node verify-codex-packet.mjs` from the packet root. The verifier is included in the packet, uses
 only Node built-ins, and rejects inconsistent metadata, hashes, sizes, missing/extra archives,
-invalid starter prompts, missing branding, and submission/manifest interface drift. The ZIP
+invalid starter prompts, missing branding, and submission/manifest interface drift. It also checks
+local headers, CRCs, the full central directory and end record against the same deterministic ZIP
+inventory, so extractor-visible names cannot bypass manifest checks. The ZIP
 contains only the native `.codex-plugin/plugin.json`, without a wrapper or generic root manifest.
 The latter remains in the source projections for non-portal consumers.
 

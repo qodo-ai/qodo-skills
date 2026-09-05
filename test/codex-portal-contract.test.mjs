@@ -74,6 +74,60 @@ function repack(output, mutate) {
     release.artifacts.map((entry) => `${entry.sha256}  ${entry.path.slice(8)}\n`).join(''));
 }
 
+function mutateArchive(output, mutate) {
+  const release = json(join(output, 'release.json'));
+  const artifact = release.artifacts.find((entry) => entry.listingId === 'qodo');
+  const path = join(output, artifact.path);
+  const bytes = readFileSync(path);
+  const centralOffset = bytes.readUInt32LE(bytes.length - 6);
+  const changed = mutate(bytes, centralOffset) ?? bytes;
+  writeFileSync(path, changed);
+  artifact.sha256 = createHash('sha256').update(changed).digest('hex');
+  artifact.sizeBytes = changed.length;
+  writeJson(join(output, 'release.json'), release);
+  const submissionPath = join(output, 'submissions/qodo.json');
+  const submission = json(submissionPath);
+  submission.artifact = artifact;
+  writeJson(submissionPath, submission);
+  writeFileSync(join(output, 'bundles/SHA256SUMS'),
+    release.artifacts.map((entry) => `${entry.sha256}  ${entry.path.slice(8)}\n`).join(''));
+}
+
+test('central-only generic manifest is rejected with all packet hashes rebound', () => packetFixture((output) => {
+  repack(output, (plugin, path) => writeJson(join(path, 'plubin.json'), plugin));
+  mutateArchive(output, (bytes, centralOffset) => {
+    const nameOffset = bytes.indexOf(Buffer.from('plubin.json'), centralOffset);
+    assert.ok(nameOffset > centralOffset);
+    Buffer.from('plugin.json').copy(bytes, nameOffset);
+  });
+  assert.throws(() => verifyCodexPacket(output), /central directory does not match/);
+}));
+
+for (const [name, mutate] of [
+  ['central flags', (bytes, offset) => { bytes[offset + 8] ^= 1; }],
+  ['central method', (bytes, offset) => { bytes[offset + 10] ^= 1; }],
+  ['central CRC', (bytes, offset) => { bytes[offset + 16] ^= 1; }],
+  ['central size', (bytes, offset) => { bytes[offset + 20] ^= 1; }],
+  ['central local offset', (bytes, offset) => { bytes[offset + 42] ^= 1; }],
+  ['extra central entry', (bytes, offset) => {
+    const firstEnd = offset + 46 + bytes.readUInt16LE(offset + 28);
+    return Buffer.concat([bytes.subarray(0, -22), bytes.subarray(offset, firstEnd), bytes.subarray(-22)]);
+  }],
+  ['local CRC', (bytes) => { bytes[14] ^= 1; }],
+  ['local flags', (bytes) => { bytes[6] ^= 1; }],
+  ['local name', (bytes) => { bytes[30] = '/'.charCodeAt(0); }],
+  ['end record count', (bytes) => { bytes[bytes.length - 14] ^= 1; }],
+  ['end record offset', (bytes) => { bytes[bytes.length - 6] ^= 1; }],
+  ['truncated central directory', (bytes, offset) => bytes.subarray(0, offset + 10)],
+  ['truncated end record', (bytes) => bytes.subarray(0, -1)],
+  ['trailing bytes', (bytes) => Buffer.concat([bytes, Buffer.from('extra')])],
+]) {
+  test(`ZIP verification rejects ${name} with all packet hashes rebound`, () => packetFixture((output) => {
+    mutateArchive(output, mutate);
+    assert.throws(() => verifyCodexPacket(output), /Invalid deterministic ZIP/);
+  }));
+}
+
 test('portable verifier and generated skill interfaces remain complete', () => packetFixture((output) => {
   const run = spawnSync(process.execPath, ['verify-codex-packet.mjs'], { cwd: output, encoding: 'utf8' });
   assert.equal(run.status, 0, run.stderr);

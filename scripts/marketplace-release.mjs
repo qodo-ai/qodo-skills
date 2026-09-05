@@ -220,6 +220,7 @@ export function prepareMarketplace(providerId, context, outputPath) {
     }
     cpSync(join(root, 'scripts', 'verify-codex-packet.mjs'), join(output, 'verify-codex-packet.mjs'));
     cpSync(join(root, 'scripts', 'codex-portal-contract.mjs'), join(output, 'codex-portal-contract.mjs'));
+    cpSync(join(root, 'scripts', 'deterministic-zip.mjs'), join(output, 'deterministic-zip.mjs'));
     verifyCodexPacket(output);
   }
   return { output, release };
