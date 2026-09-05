@@ -337,6 +337,10 @@ the generated `agents/openai.yaml` files configure their UI. See [releasing](rel
 portal warnings and the packaging-only patch procedure. v1.0.12 was rejected for four prompts;
 do not retry that ZIP or overwrite it. Use the next reviewed immutable patch.
 
+Marketplace artwork does not extend the enterprise archive protocol. Its schema-v1 projection
+omits the Codex image fields/files and the Kiro banner/README image block so current QAR's strict
+allowlists continue to accept it; all skill content and membership are preserved.
+
 Gate: company-owned provider-visible identity; exact qodo-skills release snapshot; fresh install;
 explicitly tested replacement of the personally owned version without duplicate skills; core-only
 membership; optional standards separate; normal CLI login/runtime behavior. Record any user action

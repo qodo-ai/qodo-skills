@@ -171,6 +171,12 @@ invalid starter prompts, missing branding, and submission/manifest interface dri
 contains only the native `.codex-plugin/plugin.json`, without a wrapper or generic root manifest.
 The latter remains in the source projections for non-portal consumers.
 
+Enterprise schema v1 is a separate consumer contract: current QAR rejects unrecognized
+projection files and Codex interface fields. The enterprise builder omits directory-only
+Codex artwork/references and the Kiro banner/README image block; it preserves all skills,
+native manifests, starter prompts and provenance. Public marketplace packages retain the
+artwork. Do not extend the enterprise schema's allowlist implicitly with a marketplace change.
+
 Codex listing presentation is configured in `distribution/codex-submissions.json`:
 `starterSkills` explicitly selects at most three installed skills, whose prompts remain authored
 once in the catalog. It does not change installed skill membership. `shortDescription` is limited
