@@ -322,6 +322,13 @@ Use the all-provider run's Codex packet, update the existing Qodo
 listing through the OpenAI portal, wait for review, and publish. Only after publication may the
 release owner approve `marketplace-codex`.
 
+The packet contains one deterministic, checksum-bound upload archive per listing. Upload the archive
+named in `submissions/qodo.json` to the existing `qodo` record. Treat
+`submissions/qodo-standards.json` and its archive as a separate initial listing; never fold Standards
+into core or install it by default. Immediately before each upload, run
+`node verify-codex-packet.mjs` from the packet root; it requires the archive bytes and every recorded
+digest, size, listing id, and release identity to agree.
+
 Gate: provider-visible identity unchanged; exact qodo-skills release snapshot; fresh install;
 upgrade from the current qodo-in-harness-backed version; core-only membership; optional standards
 separate; normal CLI login/runtime behavior.

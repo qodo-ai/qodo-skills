@@ -2,6 +2,8 @@
 import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createDeterministicZip } from './deterministic-zip.mjs';
+import { verifyCodexPacket } from './verify-codex-packet.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json'), 'utf8'));
@@ -93,8 +95,15 @@ function desiredClaudeEntry(listing, context) {
   };
 }
 
-function submissionMarkdown(selectedProvider, context) {
+function submissionMarkdown(selectedProvider, context, artifacts = []) {
   const packages = selectedProvider.listings.map((listing) => `- \`${listing.id}\` from \`${listing.sourcePath}\``).join('\n');
+  const uploadFiles = artifacts.length === 0 ? [] : [
+    '',
+    '## Upload files',
+    '',
+    ...artifacts.map((artifact) => `- \`${artifact.path}\` — SHA-256 \`${artifact.sha256}\``),
+    '- Verify every digest against `bundles/SHA256SUMS` immediately before upload.',
+  ];
   const completion = selectedProvider.mode === 'reviewed-portal-snapshot'
     ? 'Publication requires review and an explicit publish action in the provider portal. The protected GitHub environment approval is the release-owner attestation for that external step.'
     : 'Publication is complete only after the provider-visible directory resolves every listing to this exact release commit.';
@@ -113,6 +122,7 @@ function submissionMarkdown(selectedProvider, context) {
     '## Listings',
     '',
     packages,
+    ...uploadFiles,
     '',
     '## Completion rule',
     '',
@@ -132,6 +142,26 @@ export function prepareMarketplace(providerId, context, outputPath) {
       errorOnExist: true,
     });
   }
+  const artifacts = [];
+  if (providerId === 'codex') {
+    const bundlesRoot = join(output, 'bundles');
+    mkdirSync(bundlesRoot);
+    for (const listing of selectedProvider.listings) {
+      const archiveName = `${listing.id}-codex-plugin-${context.version}.zip`;
+      const path = join(bundlesRoot, archiveName);
+      const bundle = createDeterministicZip(join(listingsRoot, listing.id), path);
+      artifacts.push({
+        listingId: listing.id,
+        path: `bundles/${archiveName}`,
+        sha256: bundle.sha256,
+        sizeBytes: bundle.sizeBytes,
+      });
+    }
+    writeFileSync(
+      join(bundlesRoot, 'SHA256SUMS'),
+      `${artifacts.map((artifact) => `${artifact.sha256}  ${artifact.path.slice('bundles/'.length)}`).join('\n')}\n`,
+    );
+  }
   const release = {
     schemaVersion: 1,
     provider: providerId,
@@ -146,9 +176,10 @@ export function prepareMarketplace(providerId, context, outputPath) {
       termsOfService: catalog.package.termsOfServiceUrl,
     },
     listings: selectedProvider.listings,
+    artifacts,
   };
   writeJson(join(output, 'release.json'), release);
-  writeFileSync(join(output, 'SUBMISSION.md'), submissionMarkdown(selectedProvider, context));
+  writeFileSync(join(output, 'SUBMISSION.md'), submissionMarkdown(selectedProvider, context, artifacts));
   if (providerId === 'claude') {
     writeJson(join(output, 'directory-entries.json'), selectedProvider.listings.map((entry) => desiredClaudeEntry(entry, context)));
   }
@@ -179,8 +210,11 @@ export function prepareMarketplace(providerId, context, outputPath) {
           starterPrompts: skills.map((skill) => skill.defaultPrompt),
         },
         ...submission,
+        artifact: artifacts.find((artifact) => artifact.listingId === listing.id),
       });
     }
+    cpSync(join(root, 'scripts', 'verify-codex-packet.mjs'), join(output, 'verify-codex-packet.mjs'));
+    verifyCodexPacket(output);
   }
   return { output, release };
 }

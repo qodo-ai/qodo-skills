@@ -153,7 +153,7 @@ cross-tag releases.
 | Provider | Automation | Completion evidence |
 |---|---|---|
 | Claude Code | packet generation, protected submission pause, then official catalog verification | both selected listings expose the released commit/path |
-| Codex | exact portal packet plus protected release-owner gate | portal review/publish completed, then protected environment approved |
+| Codex | exact portal packet with deterministic per-listing ZIPs, SHA-256 checksums, and protected release-owner gate | portal review/publish completed, then protected environment approved |
 | Kiro | packet generation, protected release-branch promotion, then live directory verification | selected Powers expose `marketplace-kiro` at the released commit and paths |
 
 The action prepares every selected packet first. Claude and Kiro verification jobs then wait in
@@ -162,6 +162,14 @@ without starting a second workflow; after approval, the job verifies the live li
 it is not the selected release. Codex stays human-gated because its documented flow requires portal
 submission, review, and explicit publication. Its `marketplace-codex` approval is an attestation
 after provider publication, not a substitute for it. All three environments require reviewers.
+
+For Codex, upload the archive named by each `submissions/<listing>.json` record and verify it against
+`release.json`, its submission record, and `bundles/SHA256SUMS` by running
+`node verify-codex-packet.mjs` from the packet root. The verifier is included in the packet, uses
+only Node built-ins, and rejects inconsistent metadata, hashes, sizes, missing archives, and extra
+archives. Each archive root contains `.codex-plugin/plugin.json`
+directly, with no extra wrapper directory. Update the existing `qodo` listing rather than creating a
+duplicate. `qodo-standards` is a separate initial listing and remains optional for users.
 
 Kiro's provider listing must point to `marketplace-kiro`, not `main`. After protected-environment
 approval, the workflow advances that protected branch without force to the immutable release SHA
