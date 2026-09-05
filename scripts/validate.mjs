@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { stampSkillProvenance } from './skill-provenance.mjs';
+import { validateCodexPortalManifest } from './codex-portal-contract.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const errors = [];
@@ -200,6 +201,13 @@ if (JSON.stringify(codexSubmissionPackages) !== JSON.stringify(codexListingPacka
   fail('Codex submission metadata must cover every Codex listing exactly once');
 }
 for (const submission of codexSubmissions.listings ?? []) {
+  try {
+    const path = `codex-packages/${submission.package}`;
+    validateCodexPortalManifest(json(`${path}/.codex-plugin/plugin.json`),
+      (asset) => readFileSync(join(root, path, asset)));
+  } catch (error) {
+    fail(error.message);
+  }
   if ((submission.positiveTests ?? []).length < 5) {
     fail(`${submission.package}: Codex submission requires at least five positive tests`);
   }

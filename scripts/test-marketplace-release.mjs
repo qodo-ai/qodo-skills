@@ -16,9 +16,10 @@ import {
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const releasePreflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
+const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const context = {
-  tag: 'v1.0.12',
-  version: '1.0.12',
+  tag: `v${version}`,
+  version,
   commit: '0123456789abcdef0123456789abcdef01234567',
   release: {},
 };
@@ -137,7 +138,7 @@ try {
   assert.equal(release.artifacts.length, 2);
   assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /protected GitHub environment approval/);
   assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /Privacy:/);
-  assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /qodo-codex-plugin-1\.0\.12\.zip/);
+  assert.ok(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8').includes(`qodo-codex-plugin-${version}.zip`));
   assert.equal(
     JSON.parse(readFileSync(join(prepared.output, 'listings', 'qodo', '.codex-plugin', 'plugin.json'), 'utf8')).name,
     'qodo',
@@ -155,7 +156,7 @@ try {
   assert.doesNotMatch(codexSkill, /qodo help workflow/);
   const coreSubmission = JSON.parse(readFileSync(join(prepared.output, 'submissions', 'qodo.json'), 'utf8'));
   const standardsSubmission = JSON.parse(readFileSync(join(prepared.output, 'submissions', 'qodo-standards.json'), 'utf8'));
-  assert.equal(coreSubmission.releaseType, 'update');
+  assert.equal(coreSubmission.releaseType, 'initial');
   assert.equal(standardsSubmission.releaseType, 'initial');
   assert.equal(coreSubmission.artifact.listingId, 'qodo');
   assert.equal(standardsSubmission.artifact.listingId, 'qodo-standards');
@@ -163,16 +164,14 @@ try {
   assert.equal(coreSubmission.negativeTests.length, 3);
   assert.equal(standardsSubmission.positiveTests.length, 5);
   assert.equal(standardsSubmission.negativeTests.length, 3);
-  assert.equal(coreSubmission.listing.starterPrompts.length, 4);
+  assert.equal(coreSubmission.listing.starterPrompts.length, 3);
   assert.equal(standardsSubmission.listing.starterPrompts.length, 2);
   assert.ok(!JSON.stringify(coreSubmission).includes('password'));
   const coreArchivePath = join(prepared.output, coreSubmission.artifact.path);
   const coreArchive = readFileSync(coreArchivePath);
   assert.equal(createHash('sha256').update(coreArchive).digest('hex'), coreSubmission.artifact.sha256);
-  assert.match(
-    readFileSync(join(prepared.output, 'bundles', 'SHA256SUMS'), 'utf8'),
-    new RegExp(`^${coreSubmission.artifact.sha256}  qodo-codex-plugin-1\\.0\\.12\\.zip`, 'm'),
-  );
+  assert.ok(readFileSync(join(prepared.output, 'bundles', 'SHA256SUMS'), 'utf8')
+    .split('\n').includes(`${coreSubmission.artifact.sha256}  qodo-codex-plugin-${version}.zip`));
   for (const line of readFileSync(join(prepared.output, 'bundles', 'SHA256SUMS'), 'utf8').trim().split('\n')) {
     const match = line.match(/^([0-9a-f]{64})  ([a-z0-9.-]+\.zip)$/);
     assert.ok(match, `invalid checksum record: ${line}`);

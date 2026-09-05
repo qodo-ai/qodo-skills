@@ -166,10 +166,30 @@ after provider publication, not a substitute for it. All three environments requ
 For Codex, upload the archive named by each `submissions/<listing>.json` record and verify it against
 `release.json`, its submission record, and `bundles/SHA256SUMS` by running
 `node verify-codex-packet.mjs` from the packet root. The verifier is included in the packet, uses
-only Node built-ins, and rejects inconsistent metadata, hashes, sizes, missing archives, and extra
-archives. Each archive root contains `.codex-plugin/plugin.json`
-directly, with no extra wrapper directory. Update the existing `qodo` listing rather than creating a
-duplicate. `qodo-standards` is a separate initial listing and remains optional for users.
+only Node built-ins, and rejects inconsistent metadata, hashes, sizes, missing/extra archives,
+invalid starter prompts, missing branding, and submission/manifest interface drift. The ZIP
+contains only the native `.codex-plugin/plugin.json`, without a wrapper or generic root manifest.
+The latter remains in the source projections for non-portal consumers.
+
+Codex listing presentation is configured in `distribution/codex-submissions.json`:
+`starterSkills` explicitly selects at most three installed skills, whose prompts remain authored
+once in the catalog. It does not change installed skill membership. `shortDescription` is limited
+to 30 characters. Branding is vendored under `distribution/assets/codex/`. Run `npm run adapters`
+after changes and use `release:prepare -- --package patch --summary "..."` for packaging-only fixes.
+Do not edit a published ZIP or replace an immutable release.
+
+For the ownership cutover, submit `qodo` as an initial company-owned listing using **Business — Qodo**
+in the company organization. The earlier listing was personally owned; its removal was requested,
+not confirmed. Do not assume its installed users migrate automatically. Once the company listing
+is live, change its release type to `update` for subsequent releases of that same record.
+`qodo-standards` remains a separate optional listing.
+
+The portal may warn about `metadata` in SKILL.md. Preserve Qodo's provenance/version fields:
+they are not UI configuration. Each skill already ships its generated `agents/openai.yaml`
+interface, including the explicit-only resolver compatibility alias. Portal acceptance and review
+are still required; local checks do not guarantee approval. The
+[OpenAI submission errors reference](https://developers.openai.com/plugins/deploy/submission-errors)
+(checked: 2026-09-05) is the contract behind these checks.
 
 Kiro's provider listing must point to `marketplace-kiro`, not `main`. After protected-environment
 approval, the workflow advances that protected branch without force to the immutable release SHA

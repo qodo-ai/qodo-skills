@@ -8,6 +8,7 @@ import {
 import { createHash } from 'node:crypto';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateCodexPortalManifest } from './codex-portal-contract.mjs';
 
 function readRegularFile(path) {
   const stat = lstatSync(path);
@@ -70,6 +71,9 @@ function storedZipEntry(archive, targetName) {
     const dataEnd = dataStart + compressedSize;
     if (dataEnd > archive.length) throw new Error('Codex bundle contains a truncated ZIP entry');
     const name = archive.subarray(nameStart, nameStart + nameLength).toString('utf8');
+    if (name === 'plugin.json' || name === '.claude-plugin/plugin.json') {
+      throw new Error('Codex portal bundle must contain only the native Codex manifest');
+    }
     if (name === targetName) {
       if (target) throw new Error(`Codex bundle contains duplicate ${targetName} entries`);
       target = archive.subarray(dataStart, dataEnd);
@@ -133,10 +137,15 @@ export function verifyCodexPacket(packetRoot) {
     if (plugin.name !== artifact.listingId || plugin.version !== release.version) {
       throw new Error(`${archiveName}: internal plugin identity does not match ${artifact.listingId}@${release.version}`);
     }
+    validateCodexPortalManifest(plugin, (path) => storedZipEntry(archive.bytes, path));
 
     const submission = readJson(join(root, 'submissions', `${artifact.listingId}.json`));
     if (submission.listingId !== artifact.listingId || !sameJson(submission.artifact, artifact)) {
       throw new Error(`${artifact.listingId}: submission artifact metadata mismatch`);
+    }
+    if (!sameJson(submission.listing?.starterPrompts, plugin.interface.defaultPrompt) ||
+        submission.listing?.shortDescription !== plugin.interface.shortDescription) {
+      throw new Error(`${artifact.listingId}: submission interface does not match the ZIP manifest`);
     }
     if (!sameJson(submission.release, {
       tag: release.tag,
