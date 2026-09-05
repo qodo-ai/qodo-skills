@@ -4,8 +4,10 @@
   "listings": [
     {
       "package": "qodo",
-      "releaseType": "update",
-      "releaseNotes": "Move the existing Qodo listing to the canonical qodo-skills source and ship setup, code intelligence, local review, and pull-request review resolution as one reviewed snapshot.",
+      "releaseType": "initial",
+      "shortDescription": "Code intelligence and review",
+      "starterSkills": ["qodo-codebase-wisdom", "qodo-review", "qodo-review-resolver"],
+      "releaseNotes": "Initial company-owned Qodo submission from qodo-ai/qodo-skills: setup, code intelligence, local review, and pull-request review resolution. Requires the authenticated local Qodo CLI. This does not update or automatically migrate installations of the earlier personally owned listing.",
       "testAccountRequirements": "A reviewer Qodo account with access to the supplied public demo repository and pull request. Credentials must be supplied privately in the OpenAI portal and must not require MFA, email confirmation, SMS, or private-network access.",
       "positiveTests": [
         {
@@ -60,6 +62,8 @@
     {
       "package": "qodo-standards",
       "releaseType": "initial",
+      "shortDescription": "Team rules and standards",
+      "starterSkills": ["qodo-get-rules", "qodo-manage-standards"],
       "releaseNotes": "Introduce Qodo Standards as a separate opt-in listing so rules discovery and standards administration are never installed with the default Qodo package.",
       "testAccountRequirements": "A reviewer Qodo account in the supplied test workspace with readable review standards plus permission to create and edit designated disposable test rules. Credentials must be supplied privately in the OpenAI portal without MFA, email confirmation, SMS, or private-network access.",
       "positiveTests": [

@@ -77,6 +77,30 @@ function collectTree(sourceRoot, archiveRoot, files) {
   }
 }
 
+function collectProjection(provider, source, archiveRoot, files) {
+  const projection = [];
+  collectTree(source, archiveRoot, projection);
+  for (const file of projection) {
+    // Enterprise schema v1 predates marketplace directory artwork. Preserve QAR's
+    // exact metadata/payload allowlist without changing the public projection.
+    if (provider === 'codex' && file.path === `${archiveRoot}/assets/qodo.png`) continue;
+    if (provider === 'kiro' && file.path === `${archiveRoot}/Qodo-Kiro.png`) continue;
+    if (provider === 'kiro' && file.path === `${archiveRoot}/README.md`) {
+      file.payload = Buffer.from(file.payload.toString('utf8').replace(
+        /^<p align="center">\r?\n  <img src="\.\/Qodo-Kiro\.png"[^\r\n]*>\r?\n<\/p>\r?\n\r?\n/,
+        '',
+      ));
+    }
+    if (provider === 'codex' && file.path === `${archiveRoot}/.codex-plugin/plugin.json`) {
+      const plugin = JSON.parse(file.payload.toString('utf8'));
+      delete plugin.interface.composerIcon;
+      delete plugin.interface.logo;
+      file.payload = Buffer.from(`${JSON.stringify(plugin, null, 2)}\n`);
+    }
+    files.push(file);
+  }
+}
+
 function writeField(header, offset, length, value) {
   const encoded = Buffer.from(value);
   if (encoded.length > length) throw new Error(`Tar field is too long: ${value}`);
@@ -239,7 +263,7 @@ export function buildEnterpriseBundle({ output, commit, releaseIndex }, reposito
       codex: join(repositoryRoot, 'codex-packages', installPackage.name),
       kiro: join(repositoryRoot, installPackage.name === 'qodo' ? 'kiro-power' : 'kiro-power-standards'),
     };
-    for (const [provider, source] of Object.entries(sources)) collectTree(source, roots[provider], files);
+    for (const [provider, source] of Object.entries(sources)) collectProjection(provider, source, roots[provider], files);
     for (const skill of installPackage.skills) {
       collectTree(
         join(repositoryRoot, 'skills', skill),

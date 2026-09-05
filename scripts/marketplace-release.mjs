@@ -1,9 +1,10 @@
 /** Prepare and verify one immutable release against official marketplace contracts. */
-import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { appendFileSync, cpSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDeterministicZip } from './deterministic-zip.mjs';
 import { verifyCodexPacket } from './verify-codex-packet.mjs';
+import { codexListingInterface } from './codex-portal-contract.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json'), 'utf8'));
@@ -147,6 +148,9 @@ export function prepareMarketplace(providerId, context, outputPath) {
     const bundlesRoot = join(output, 'bundles');
     mkdirSync(bundlesRoot);
     for (const listing of selectedProvider.listings) {
+      // The portal upload has one authoritative native manifest, not a second
+      // generic manifest requiring provider conversion. Source projections stay intact.
+      rmSync(join(listingsRoot, listing.id, 'plugin.json'));
       const archiveName = `${listing.id}-codex-plugin-${context.version}.zip`;
       const path = join(bundlesRoot, archiveName);
       const bundle = createDeterministicZip(join(listingsRoot, listing.id), path);
@@ -190,7 +194,7 @@ export function prepareMarketplace(providerId, context, outputPath) {
       const submission = codexSubmissions.listings.find((entry) => entry.package === listing.package);
       if (!submission) throw new Error(`Codex submission metadata is missing ${listing.package}`);
       const details = packageDetails(listing.package);
-      const skills = details.skills.map((name) => catalog.skills.find((entry) => entry.name === name));
+      const ui = codexListingInterface(catalog, submission);
       writeJson(join(submissionsRoot, `${listing.id}.json`), {
         schemaVersion: 1,
         listingId: listing.id,
@@ -203,17 +207,20 @@ export function prepareMarketplace(providerId, context, outputPath) {
         listing: {
           displayName: details.displayName,
           description: details.description,
+          shortDescription: ui.shortDescription,
           website: catalog.package.homepage,
           support: catalog.package.supportUrl,
           privacyPolicy: catalog.package.privacyPolicyUrl,
           termsOfService: catalog.package.termsOfServiceUrl,
-          starterPrompts: skills.map((skill) => skill.defaultPrompt),
+          starterPrompts: ui.defaultPrompt,
         },
         ...submission,
         artifact: artifacts.find((artifact) => artifact.listingId === listing.id),
       });
     }
     cpSync(join(root, 'scripts', 'verify-codex-packet.mjs'), join(output, 'verify-codex-packet.mjs'));
+    cpSync(join(root, 'scripts', 'codex-portal-contract.mjs'), join(output, 'codex-portal-contract.mjs'));
+    cpSync(join(root, 'scripts', 'deterministic-zip.mjs'), join(output, 'deterministic-zip.mjs'));
     verifyCodexPacket(output);
   }
   return { output, release };

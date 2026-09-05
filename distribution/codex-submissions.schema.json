@@ -14,10 +14,18 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["package", "releaseType", "releaseNotes", "testAccountRequirements", "positiveTests", "negativeTests"],
+        "required": ["package", "releaseType", "shortDescription", "starterSkills", "releaseNotes", "testAccountRequirements", "positiveTests", "negativeTests"],
         "properties": {
           "package": { "type": "string", "pattern": "^qodo(?:-[a-z0-9-]+)?$" },
           "releaseType": { "enum": ["initial", "update"] },
+          "shortDescription": { "type": "string", "minLength": 1, "maxLength": 30, "pattern": "^[^\\r\\n]+$" },
+          "starterSkills": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^qodo-[a-z0-9-]+$" }
+          },
           "releaseNotes": { "type": "string", "minLength": 1 },
           "testAccountRequirements": { "type": "string", "minLength": 1 },
           "positiveTests": {

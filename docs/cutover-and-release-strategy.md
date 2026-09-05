@@ -105,8 +105,8 @@ rollback.
 
 - Confirm the existing provider-visible `qodo` listing identity in Claude, Codex, and Kiro.
 - Record each current version, source commit/path, and reinstall/rollback procedure.
-- Confirm Codex can update the existing listing from `qodo-in-harness` to the released
-  `qodo-skills/codex-packages/qodo` snapshot without a new identity.
+- For Codex, confirm the company-owned publisher identity and the disposition of the earlier
+  personally owned listing. Do not assume an in-place ownership transfer or automatic user migration.
 - Create protected GitHub environments `marketplace-claude`, `marketplace-kiro`, and
   `marketplace-codex` with required release-owner reviewers.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
@@ -297,7 +297,8 @@ so a contender can advance only the exact owner commit it inspected and cleanup 
 replacement. A later dispatch may supersede a stale owner only after GitHub marks its run completed.
 This avoids GitHub's lossy single-pending queue, launch races, and old-tag rerun semantics.
 
-- Preserve the existing `qodo` listing identity and repoint it to the generated core path.
+- Preserve existing Claude/Kiro listing identities and the core name `qodo`. Codex's approved
+  personal-to-company ownership transition uses the separate gate below.
 - Publish `qodo-standards` only as a separate optional listing.
 - Kiro uses its current Agent Plugins power contract (`plugin.json` plus nested `skills/`), not the
   retired `POWER.md`/`steering/` package layout.
@@ -318,20 +319,32 @@ strictly forward-only because the protected release branch cannot be rewound.
 
 ### 4. Promote Codex and deprecate the old source
 
-Use the all-provider run's Codex packet, update the existing Qodo
-listing through the OpenAI portal, wait for review, and publish. Only after publication may the
-release owner approve `marketplace-codex`.
+Use the all-provider run's Codex packet to submit the company-owned Qodo listing through the
+OpenAI portal under **Business — Qodo**, then wait for review and publish. The earlier listing was
+personally owned; removal has been requested, not confirmed. This is an initial company submission,
+not an update to that personal record. Only after publication may the release owner approve
+`marketplace-codex`. Confirm OpenAI's product-specific review path for local-CLI-dependent plugins.
 
 The packet contains one deterministic, checksum-bound upload archive per listing. Upload the archive
-named in `submissions/qodo.json` to the existing `qodo` record. Treat
+named in `submissions/qodo.json` to the company-owned `qodo` record. Treat
 `submissions/qodo-standards.json` and its archive as a separate initial listing; never fold Standards
 into core or install it by default. Immediately before each upload, run
 `node verify-codex-packet.mjs` from the packet root; it requires the archive bytes and every recorded
-digest, size, listing id, and release identity to agree.
+digest, size, listing id, release identity, and submission interface to agree. ZIPs contain only
+the native Codex manifest, at most three explicitly selected starter prompts, and Qodo branding.
+All four core skills plus the resolver alias remain installed. Keep skill provenance metadata;
+the generated `agents/openai.yaml` files configure their UI. See [releasing](releasing.md) for
+portal warnings and the packaging-only patch procedure. v1.0.12 was rejected for four prompts;
+do not retry that ZIP or overwrite it. Use the next reviewed immutable patch.
 
-Gate: provider-visible identity unchanged; exact qodo-skills release snapshot; fresh install;
-upgrade from the current qodo-in-harness-backed version; core-only membership; optional standards
-separate; normal CLI login/runtime behavior.
+Marketplace artwork does not extend the enterprise archive protocol. Its schema-v1 projection
+omits the Codex image fields/files and the Kiro banner/README image block so current QAR's strict
+allowlists continue to accept it; all skill content and membership are preserved.
+
+Gate: company-owned provider-visible identity; exact qodo-skills release snapshot; fresh install;
+explicitly tested replacement of the personally owned version without duplicate skills; core-only
+membership; optional standards separate; normal CLI login/runtime behavior. Record any user action
+required for replacement; do not promise an automatic upgrade across publisher identities.
 
 After the gate passes:
 
@@ -340,8 +353,8 @@ After the gate passes:
 3. retain history and rollback artifacts for two normal release cycles;
 4. archive only after those cycles remain healthy.
 
-Rollback: while the window is open, restore the existing listing to the recorded last-good source
-or ship a new canonical patch. Never create a second core listing.
+Rollback: pause the company submission or ship a new last-good patch through the company record.
+Do not recreate a personal listing or claim the old publisher's record can be edited by the company.
 
 ### 5. Migrate existing CLI-first users
 

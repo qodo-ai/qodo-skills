@@ -1,6 +1,6 @@
 {
   "name": "qodo",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Qodo setup, code intelligence, and review workflows.",
   "author": {
     "name": "Qodo",
@@ -20,7 +20,12 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Qodo",
-    "shortDescription": "Qodo setup, code intelligence, and review workflows.",
+    "shortDescription": "Code intelligence and review",
+    "defaultPrompt": [
+      "Use $qodo-codebase-wisdom to explain how this code works and cite the evidence.",
+      "Use $qodo-review to review my local changes before I push them.",
+      "Use $qodo-review-resolver to show me the current Qodo review findings."
+    ],
     "longDescription": "Qodo setup, code intelligence, and review workflows.",
     "developerName": "Qodo",
     "category": "Developer Tools",
@@ -34,11 +39,7 @@
     "privacyPolicyURL": "https://www.qodo.ai/privacy-policy/",
     "termsOfServiceURL": "https://www.qodo.ai/terms/",
     "brandColor": "#6D4AFF",
-    "defaultPrompt": [
-      "Use $qodo-setup to connect my Qodo account and verify this coding agent.",
-      "Use $qodo-codebase-wisdom to explain how this code works and cite the evidence.",
-      "Use $qodo-review to review my local changes before I push them.",
-      "Use $qodo-review-resolver to show me the current Qodo review findings."
-    ]
+    "composerIcon": "./assets/qodo.png",
+    "logo": "./assets/qodo.png"
   }
 }

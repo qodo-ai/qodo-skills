@@ -11,12 +11,14 @@ import {
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stampSkillProvenance } from './skill-provenance.mjs';
+import { codexListingInterface, validateCodexPortalManifest } from './codex-portal-contract.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const check = process.argv.includes('--check');
 const stale = [];
 const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json'), 'utf8'));
 const marketplaces = JSON.parse(readFileSync(join(root, 'distribution', 'marketplaces.json'), 'utf8'));
+const codexSubmissions = JSON.parse(readFileSync(join(root, 'distribution', 'codex-submissions.json'), 'utf8'));
 const pkg = catalog.package;
 const author = {
   name: 'Qodo',
@@ -123,7 +125,7 @@ function codexManifest(value) {
     skills: './skills/',
     interface: {
       displayName: value.displayName,
-      shortDescription: value.description,
+      ...codexListingInterface(catalog, codexSubmissions.listings.find((entry) => entry.package === value.name)),
       longDescription: value.description,
       developerName: author.name,
       category: 'Developer Tools',
@@ -132,7 +134,8 @@ function codexManifest(value) {
       privacyPolicyURL: pkg.privacyPolicyUrl,
       termsOfServiceURL: pkg.termsOfServiceUrl,
       brandColor: pkg.brandColor,
-      defaultPrompt: value.skills.map((name) => catalog.skills.find((skill) => skill.name === name).defaultPrompt),
+      composerIcon: './assets/qodo.png',
+      logo: './assets/qodo.png',
     },
   };
 }
@@ -166,7 +169,10 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
     ['plugin.json', `${JSON.stringify(pluginManifest(value), null, 2)}\n`],
   ]);
   if (adapterSet === 'codex') {
-    files.set('.codex-plugin/plugin.json', `${JSON.stringify(codexManifest(value), null, 2)}\n`);
+    const manifest = codexManifest(value);
+    files.set('assets/qodo.png', readFileSync(join(root, 'distribution', 'assets', 'codex', 'qodo.png')));
+    validateCodexPortalManifest(manifest, (path) => files.get(path));
+    files.set('.codex-plugin/plugin.json', `${JSON.stringify(manifest, null, 2)}\n`);
   } else if (adapterSet === 'claude') {
     files.set('.claude-plugin/plugin.json', `${JSON.stringify({
       name: listing('claude', value.name).id,

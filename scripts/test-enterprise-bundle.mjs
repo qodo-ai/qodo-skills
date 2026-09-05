@@ -142,6 +142,25 @@ try {
     assert.ok([...files.keys()].some((path) => path.startsWith(`qodo-enterprise/${provider}/qodo-standards/`)));
   }
   const core = manifest.packages.find((entry) => entry.name === 'qodo');
+  assert.ok(!files.has('qodo-enterprise/kiro/qodo/Qodo-Kiro.png'));
+  assert.doesNotMatch(files.get('qodo-enterprise/kiro/qodo/README.md').toString(), /Qodo-Kiro\.png/);
+  assert.match(readFileSync(join(root, 'kiro-power/README.md'), 'utf8'), /Qodo-Kiro\.png/);
+  // Current QAR schema v1 uses exact interface and non-skill file allowlists.
+  // Directory-only artwork must not silently extend that enterprise protocol.
+  const codexInterfaceFields = ['displayName', 'shortDescription', 'longDescription',
+    'developerName', 'category', 'capabilities', 'websiteURL', 'privacyPolicyURL',
+    'termsOfServiceURL', 'brandColor', 'defaultPrompt'].sort();
+  for (const packageName of ['qodo', 'qodo-standards']) {
+    const codexRoot = `qodo-enterprise/codex/${packageName}`;
+    const plugin = JSON.parse(files.get(`${codexRoot}/.codex-plugin/plugin.json`));
+    assert.deepEqual(Object.keys(plugin.interface).sort(), codexInterfaceFields);
+    assert.ok(plugin.interface.defaultPrompt.length <= 3);
+    assert.ok(files.has(`${codexRoot}/plugin.json`));
+    assert.ok(![...files.keys()].some((path) => path.startsWith(`${codexRoot}/assets/`)));
+    const publicPlugin = JSON.parse(readFileSync(join(root, 'codex-packages', packageName, '.codex-plugin/plugin.json')));
+    assert.equal(publicPlugin.interface.logo, './assets/qodo.png');
+    assert.ok(readFileSync(join(root, 'codex-packages', packageName, 'assets/qodo.png')).length > 0);
+  }
   const standards = manifest.packages.find((entry) => entry.name === 'qodo-standards');
   assert.equal(core.default, true);
   assert.equal(standards.default, false);

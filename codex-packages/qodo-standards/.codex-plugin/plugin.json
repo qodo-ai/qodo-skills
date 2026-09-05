@@ -1,6 +1,6 @@
 {
   "name": "qodo-standards",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Optional Qodo rules discovery and standards administration workflows.",
   "author": {
     "name": "Qodo",
@@ -20,7 +20,11 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Qodo Standards",
-    "shortDescription": "Optional Qodo rules discovery and standards administration workflows.",
+    "shortDescription": "Team rules and standards",
+    "defaultPrompt": [
+      "Use $qodo-get-rules to load the Qodo standards relevant to this task.",
+      "Use $qodo-manage-standards to capture this convention as a Qodo standard."
+    ],
     "longDescription": "Optional Qodo rules discovery and standards administration workflows.",
     "developerName": "Qodo",
     "category": "Developer Tools",
@@ -32,9 +36,7 @@
     "privacyPolicyURL": "https://www.qodo.ai/privacy-policy/",
     "termsOfServiceURL": "https://www.qodo.ai/terms/",
     "brandColor": "#6D4AFF",
-    "defaultPrompt": [
-      "Use $qodo-get-rules to load the Qodo standards relevant to this task.",
-      "Use $qodo-manage-standards to capture this convention as a Qodo standard."
-    ]
+    "composerIcon": "./assets/qodo.png",
+    "logo": "./assets/qodo.png"
   }
 }
