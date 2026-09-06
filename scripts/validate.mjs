@@ -12,17 +12,18 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { stampSkillProvenance } from './skill-provenance.mjs';
 import { validateCodexPortalManifest } from './codex-portal-contract.mjs';
+import { validateSkillDelivery } from './skill-delivery.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const errors = [];
 const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
-const valueMomentHeadings = new Map([
-  ['qodo-setup', '# ✅ Qodo Ready'],
-  ['qodo-codebase-wisdom', '# 🧭 Qodo Codebase Insight'],
-  ['qodo-get-rules', '# 📋 Qodo Rules Loaded'],
-  ['qodo-manage-standards', '# 🛡️ Qodo Review Standards'],
-  ['qodo-review', '# 🔍 Qodo Pre-PR Review'],
-  ['qodo-review-resolver', '# 🔎 Qodo PR Review'],
+const deliverySections = new Map([
+  ['qodo-setup', '4. Hand off'],
+  ['qodo-codebase-wisdom', 'Deliver'],
+  ['qodo-get-rules', 'Output, then apply'],
+  ['qodo-manage-standards', 'Report the verified outcome'],
+  ['qodo-review', 'Present the review result'],
+  ['qodo-review-resolver', 'Present the review state'],
 ]);
 const forbiddenRuntimeBypass = new RegExp([
   ['QODO', '_', 'API', '_KEY'].join(''), '|',
@@ -257,7 +258,7 @@ for (const skill of catalog.skills ?? []) {
   if (installPackage && recommended !== installPackage.default) {
     fail(`${skill.name}: recommended must match install package ${installPackage.name} default state`);
   }
-  const expectedHeading = valueMomentHeadings.get(skill.name);
+  const deliveryHeading = deliverySections.get(skill.name);
   const skillText = readFileSync(skillPath, 'utf8').replace(/\r\n/g, '\n');
   const frontmatterText = skillText.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
   if (!/^description: [^\n]+$/m.test(frontmatterText)) {
@@ -298,10 +299,7 @@ for (const skill of catalog.skills ?? []) {
       fail('qodo-review: successful async polling must emit the completed result before cleanup');
     }
   }
-  const headingCount = expectedHeading ? skillText.split(expectedHeading).length - 1 : 0;
-  if (!expectedHeading || headingCount !== 1) {
-    fail(`${skill.name}: expected exactly one branded value-moment heading ${expectedHeading ?? '<unregistered>'}`);
-  }
+  for (const error of validateSkillDelivery(skillText, deliveryHeading)) fail(`${skill.name}: ${error}`);
 }
 
 const expectedVersions = [

@@ -47,10 +47,12 @@ one stable `qodo read *` pattern, and the CLI catalog classification controls re
 reclassified write therefore remains prompted automatically. Run `npm run adapters` and `npm test`
 to regenerate and verify the permission template.
 
-Operational skills also expose one meaningful branded value moment. Follow
-`docs/architecture.md`: one `# <emoji> Qodo <outcome>` block after a verified result, with useful
-scope/count/freshness fields and no promotional or repeated banners. Add the expected heading to
-the validator when introducing a skill.
+Each canonical skill owns its result-presentation instructions in `skills/<name>/SKILL.md`.
+Follow the skill's task-specific prose pattern and keep Qodo attribution tied to its actual
+contribution. The validator checks that the delivery section exists, includes Qodo attribution,
+and has no branded Markdown heading; it does not prescribe the response's exact wording or
+establish its quality. When adding a skill, register its delivery section in the validator and
+review representative outputs for useful content, accurate attribution, and preserved gates.
 
 ## Pull requests
 

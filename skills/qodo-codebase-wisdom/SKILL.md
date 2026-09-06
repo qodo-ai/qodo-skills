@@ -4,7 +4,7 @@ description: Understand how code works, how a change was done before, and which 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.2"
+  version: "1.1.3"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -61,7 +61,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.2 --distribution skills-sh
+qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.3 --distribution skills-sh
 qodo read codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
 qodo read codebase grep --repo owner/repo --pattern "chargeCard" --json
 qodo read codebase read-file --repo owner/repo --path src/pay.py --json
@@ -143,20 +143,24 @@ change → `codebase get-pr --number <n>` → name the cause with evidence.
 
 ## Deliver
 
-Lead with one compact value block, then put code, paths, and diffs underneath it:
+Use natural prose: **answer → context accessed through Qodo → practical implication**.
+Lead with the answer or important limitation. Mention Qodo once within a useful sentence about
+how retrieved context informed the answer: a related implementation, dependency, prior change,
+or design discussion. You performed the investigation and reached the conclusion; Qodo provided
+the tools to access the context. Do not attribute tracing or reasoning to Qodo.
 
-```
-# 🧭 Qodo Codebase Insight
+Adapt these sentence patterns to the evidence; do not print placeholders or force every pattern:
 
-**Answer:** <the bottom line in plain language>
-**Scope:** <repos, refs, or date range actually checked>
-**Evidence:** <N cited locations, or "not found in the checked scope">
----
-```
+- “I checked [related components] with Qodo and found [relationship].”
+- “The [discussion/change] I found through Qodo explains why [decision].”
+- “[Answer]. This matches [implementation/history] I retrieved through Qodo.”
 
-Render this once, only after the investigation has an evidence-backed answer. The Qodo header
-identifies where the cross-repository evidence came from; the fields make the result auditable.
-Do not show it for auth/tool failures or use it to decorate an uncertain answer.
+Connect the evidence to what the user should understand or do next. Describe only the scope
+actually checked; a single-file lookup does not establish cross-repository understanding.
+For empty or failed retrievals, state the checked scope and limitation plainly. Never invent
+context or certainty to complete the pattern. Scale detail to the question, with code and diffs
+below the explanation when useful. Do not add branded headings, emoji banners, slogans, badges,
+footers, or repeated summary blocks during progress updates.
 
 - Keep the answer understandable to a non-engineering reader; put technical detail below it.
 - **Cite everything** — repo, `path:line`, PR number, commit SHA. When a fact has no locatable
