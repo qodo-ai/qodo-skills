@@ -5,7 +5,7 @@
   "package": {
     "name": "qodo",
     "displayName": "Qodo for coding agents",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "homepage": "https://www.qodo.ai",
@@ -58,7 +58,7 @@
   "skills": [
     {
       "name": "qodo-setup",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "recommended": true,
       "displayName": "Set up Qodo",
       "shortDescription": "Connect the Qodo runtime and verify this agent is ready.",
@@ -66,7 +66,7 @@
     },
     {
       "name": "qodo-codebase-wisdom",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "recommended": true,
       "displayName": "Qodo Codebase Wisdom",
       "shortDescription": "Understand code, history, and cross-repo impact.",
@@ -74,7 +74,7 @@
     },
     {
       "name": "qodo-get-rules",
-      "version": "1.1.2",
+      "version": "1.1.3",
       "recommended": false,
       "displayName": "Qodo Rules",
       "shortDescription": "Load the standards that apply to the current change.",
@@ -82,7 +82,7 @@
     },
     {
       "name": "qodo-manage-standards",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "recommended": false,
       "displayName": "Qodo Standards Manager",
       "shortDescription": "Create and maintain Qodo Review Standards.",
@@ -90,7 +90,7 @@
     },
     {
       "name": "qodo-review",
-      "version": "1.9.5",
+      "version": "1.9.6",
       "recommended": true,
       "displayName": "Qodo Local Review",
       "shortDescription": "Review local changes before opening a pull request.",
@@ -98,7 +98,7 @@
     },
     {
       "name": "qodo-review-resolver",
-      "version": "1.4.3",
+      "version": "1.4.4",
       "recommended": true,
       "displayName": "Qodo Review Resolver",
       "shortDescription": "Read and resolve Qodo pull-request findings.",

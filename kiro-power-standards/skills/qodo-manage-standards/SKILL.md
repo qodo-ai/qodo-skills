@@ -4,7 +4,7 @@ description: Create, edit, and administer Qodo Review Standards from conversatio
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.2"
+  version: "1.0.3"
   recommended: "false"
   package: "qodo-standards"
   distribution: "kiro-power"
@@ -64,7 +64,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.2 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.3 --distribution kiro-power --host kiro
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
@@ -213,21 +213,26 @@ accepted, rejected, and left pending — so the user knows the end state without
 
 ## Report the verified outcome
 
-After a read or mutation returns structured results, lead with one compact summary:
+Use natural prose: **verified change → scope and status → policy intent → anything still
+pending**. Mention Qodo once as the place the team manages its standards. Name the standard and
+describe the actual change, connecting it to the convention or decision the user intended to
+capture. State the affected scopes and resulting status, with rule links or ids where useful.
 
-```
-# 🛡️ Qodo Review Standards
+Adapt this pattern: “Updated [standard] in Qodo from [old value] to [new value] for [scope].
+This captures our decision to [policy intent]. [Verified state and any remaining action].”
+For read-only requests, explain what exists and where it applies without implying a mutation.
+Use lists for multiple changes; no branded headings, emoji banners, slogans, footers, or repeated
+summary blocks.
 
-**Outcome:** <what was found or changed>
-**Scope:** <workspace or repository scopes involved>
-**State:** <active, inactive, pending, rejected, or mixed counts>
----
-```
+Preserve distinctions between submitted, pending, active, inactive, and rejected/deleted.
+Use the response's actual state and succeeded/matched counts; report partial success and identify
+exceptions, skipped items, and unresolved work. Never turn a successful HTTP response or a
+dry-run into a completed change, or a pending suggestion into an active rule. Active configuration
+does not establish that a particular review has already used the standard.
 
-Use the response's actual state and succeeded/matched counts; never turn a successful HTTP
-response into a stronger claim. Render the block once per user-requested operation, not before
-the confirmation gate and not for auth, permission, validation, or transport failures. Put rule
-names, ids, before/after fields, dry-run details, and skipped items below it.
+Before a write, present the exact proposed change and scope for the existing approval gate;
+afterward, report the verified result. For auth, permission, validation, or transport failures,
+state the actual blocker and next action rather than a successful outcome.
 
 ## Configuration
 

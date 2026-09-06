@@ -17,6 +17,7 @@ import {
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const releasePreflight = readFileSync(join(root, 'scripts', 'verify-release-prerequisites.sh'), 'utf8');
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
+const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json'), 'utf8'));
 const context = {
   tag: `v${version}`,
   version,
@@ -147,9 +148,10 @@ try {
     join(prepared.output, 'listings', 'qodo', 'skills', 'qodo-codebase-wisdom', 'SKILL.md'),
     'utf8',
   );
-  assert.match(
-    codexSkill,
-    /--skill qodo-codebase-wisdom --skill-version 1\.1\.2 --distribution marketplace --host codex/,
+  const wisdomVersion = catalog.skills.find((skill) => skill.name === 'qodo-codebase-wisdom').version;
+  assert.ok(
+    codexSkill.includes(`--skill qodo-codebase-wisdom --skill-version ${wisdomVersion} --distribution marketplace --host codex`),
+    'the Codex package must carry the catalog skill version and host provenance',
   );
   assert.match(codexSkill, /instruction_mode: "embedded"/);
   assert.match(codexSkill, /## Handle a skill update notice/);

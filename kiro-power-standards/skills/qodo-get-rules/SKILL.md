@@ -4,7 +4,7 @@ description: Load the coding rules from Qodo most relevant to the current coding
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.2"
+  version: "1.1.3"
   recommended: "false"
   package: "qodo-standards"
   distribution: "kiro-power"
@@ -62,7 +62,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.2 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.3 --distribution kiro-power --host kiro
 qodo read rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json
@@ -162,21 +162,20 @@ imposing another repo's standards.
 
 ## Output, then apply
 
-Print the loaded rules before writing code:
+Use **relevant standards retrieved through Qodo → implications for this change → application
+or justified deviations**. Before coding, mention Qodo naturally once as the way you retrieved
+the organization's standards; the standards belong to the organization. Explain each applicable
+rule in terms of the current task, preserving its name, reference, supplied severity, and every
+applicable requirement when condensing the wording. Link or cite the returned reference when
+available; do not invent missing identifiers or severities.
 
-```
-# 📋 Qodo Rules Loaded
+Adapt this pattern: “I loaded your team's [topic] standards through Qodo. For this change,
+[rule] means [implementation choice and reason].” Use a short list for multiple rules, without
+branded headings, emoji banners, slogans, footers, or repeated summary blocks. State briefly
+when no standards apply; do not imply retrieval succeeded after a tool failure. Distinguish
+standards **loaded** from standards **applied**; loading alone does not establish compliance.
 
-Rules loaded: **<N>** (ranked by relevance to your task)
-
-- **<name>** [<SEVERITY if present>]: <content>
-...
----
-```
-
-(Empty result: "No relevant rules found for this task. Proceeding without rule
-constraints.") Then apply every returned rule to the code you produce. When a rule
-carries a severity:
+Apply the applicable rules to the code you produce. When a rule carries a severity:
 
 | Severity | Enforcement |
 |---|---|
@@ -184,8 +183,10 @@ carries a severity:
 | **WARNING** | Comply by default; briefly explain any deliberate skip in your response |
 | **RECOMMENDATION** | Apply when appropriate; mention only if it shaped a design decision |
 
-After the code is written, report which rules were applied and which WARNING rules were
-skipped and why. If none applied, say "No Qodo rules were applicable to this code change."
+After coding, report which rules shaped the implementation and the evidence of their application,
+without repeating the entire list. Explain permitted deviations, including skipped WARNING rules,
+using the user's decisions and implementation evidence; resolve ERROR conflicts through the gate
+above. If none applied, say so plainly.
 
 ## Configuration
 

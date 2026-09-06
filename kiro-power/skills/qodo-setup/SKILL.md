@@ -4,7 +4,7 @@ description: Connect Qodo to the current local coding agent — verify the Qodo 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.5"
+  version: "1.0.6"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -28,7 +28,7 @@ the managed tools. Never ask the user to paste credentials into chat.
 ## Instructions
 
 Follow the four-stage workflow below: preserve lifecycle notices, resolve the runtime, authenticate
-the user, verify identity and tool readiness, then show the branded handoff exactly once.
+the user, verify identity and tool readiness, then give a concise handoff with one next action.
 
 ## Handle a skill update notice
 
@@ -86,7 +86,7 @@ current skill and user files unchanged.
 
 ## 2. Check authentication
 
-Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.5 --distribution kiro-power --host kiro`.
+Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.6 --distribution kiro-power --host kiro`.
 
 In a sandboxed environment, any failed `whoami` can be a blocked keychain rather than a logged-out
 user. Ask for approval to retry that exact read-only command once outside the sandbox. The approval
@@ -124,8 +124,8 @@ connected, and stop without invoking other Qodo skills.
 After login, run both:
 
 ```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.5 --distribution kiro-power --host kiro
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.5 --distribution kiro-power --host kiro
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.6 --distribution kiro-power --host kiro
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.6 --distribution kiro-power --host kiro
 ```
 
 Read the structured results. Readiness requires both a successful authenticated identity
@@ -156,20 +156,17 @@ successful readiness claim.
 
 ## 4. Hand off
 
-When both checks pass, show this once using counts from the refreshed catalog:
+Use **verified readiness → one relevant next action** in plain prose. Confirm that Qodo is
+connected and ready only after both identity and tool-catalog checks succeed. For example,
+when local review is available: “Qodo is connected and ready. To start, ask ‘Review my local
+changes.’” Mention Qodo naturally once; no branded headings, emoji banners, slogans, badges,
+footers, or repeated summary blocks.
 
-```
-# ✅ Qodo Ready
-
-Account: **connected**
-Managed tools: **<N> available**
-Runtime: **<version from qodo --version>**
----
-```
-
-Only show the ready block after both identity and catalog checks succeed. It is a verified
-handoff, not a startup banner: do not show it while login is pending, after a partial setup, or
-when the tool count is unknown. Then offer the shortest relevant next action:
+Include workspace or deployment details when they help confirm the correct connection. Keep
+tool counts and runtime versions out of the normal success response; use them for diagnostics
+when relevant. For partial setup, name the actual blocker and safe next step without claiming
+readiness. Choose one relevant next action from capabilities actually available to this user
+and skills loaded in this session; the following are alternatives, not a menu to print:
 
 - “Review my local changes” → `qodo-review`
 - “Load our coding standards” → use `qodo-get-rules` only when it is available. Otherwise,
