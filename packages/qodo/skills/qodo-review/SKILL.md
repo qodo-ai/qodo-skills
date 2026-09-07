@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening a pull request, using the 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.9.6"
+  version: "1.10.0"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -56,7 +56,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.9.6 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review --skill-version 1.10.0 --distribution marketplace --host claude-code
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -232,11 +232,11 @@ while :; do status=0; qodo review status "$id" --json > "$QODO_REVIEW_TMP/result
   inside that window. Past it, `qodo review status` cannot tell "expired" from "never existed" or
   "belongs to someone else" — the runtime answers all three identically, on purpose — so it reports
   all of them and you re-run.
-- **Re-submitting an unchanged diff replays, it does not re-run.** The submission is keyed by its
+- **Re-submitting the exact same request replays its operation.** The submission is keyed by its
   content, so running `--async` twice on the same diff within the hour hands back the *first*
   operation id rather than starting (and billing) a second review. This is deliberate: it's what
   stops a lost response from double-running an expensive deep review. Any real edit changes the
-  diff and starts a fresh run.
+  request and starts a fresh run; collecting a checkpoint also changes the next request.
 - **Hold on to the operation id.** It's the only handle to the result. Nothing else can recover it.
 
 **The operation id is not the `trace` id.** `qodo` prints a `trace <id>` line on failures — that's
@@ -272,16 +272,22 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 - The **branch name**, **HEAD commit**, and a **description** synthesized from your commit messages.
 - Any **ticket refs** and **session context** you attach (below).
 
-It prints each finding as `[category/level] title — file`; `--json` emits `{ findings }`, adding `meta`
-when the engine returns it.
+`--json` returns `findings` from this call, with optional `meta` and `finding_state` on newer engines.
+For repeated reviews, read `finding_state.introduced` **and** `.still_open`; an empty `findings`
+array alone does not mean clean. `.resolved` records detected fixes; `.dismissed` preserves dismissals.
+If `finding_state.complete` or `meta.coverage.complete` is false, report the incomplete coverage.
 
-`meta` (optional — older engines omit it) reports **coverage, not findings**: `meta.reviewers.ran` /
-`.skipped` — which review dimensions ran vs **self-skipped for missing input** (e.g. `ui` self-skips
-with no Figma link, `spec` with no spec URL, `cross_repo` with no relations); `meta.depth` — the tier
-used; `meta.safety_net.reinjected` — how many must-fix findings the no-excuse floor forced back. Use
-coverage to decide follow-up: if a dimension you care about self-skipped, re-run with the missing
-input (a `--ticket`/spec/Figma URL) or `--deep`.
-
+`meta.analysis.mode` is `full`, `incremental`, or `reused`. Reused means the same reviewed snapshot
+and compatible context; earlier open findings remain open. The CLI privately saves the submitted patch.
+It advances its checkpoint after collecting an eligible result, including via `review status`.
+Failed or older completions cannot replace a newer checkpoint.
+Keep the same base, path scope, depth and context during a fix loop. Changed context, expired or
+unverifiable checkpoints, and unsupported deltas fall back to full review. Never fabricate a checkpoint.
+For a fresh assessment use `qodo review --full` (confirm support with `--help`); add `--deep` for depth.
+Older engines omit these fields: use their findings and coverage without claiming reuse.
+`meta.reviewers.ran` / `.skipped`, `meta.depth`, and `meta.safety_net.reinjected` describe coverage.
+A reused result has no new reviewer execution. Attach missing input for a material skipped dimension.
+Never remove context merely to make an incremental checkpoint eligible.
 ## Choose the review depth (per-run flag)
 
 Depth is a per-run flag, fresh each time — there is no saved default. With **no flag** the depth is
@@ -295,7 +301,6 @@ Depth is a per-run flag, fresh each time — there is no saved default. With **n
 - **No flag (auto)** — omit both when you're unsure, or to let the system pick the tier.
 
 `--deep` and `--fast` are mutually exclusive — passing both is an error.
-
 **Reproducibility & cost.** `auto` picks a tier per run and isn't deterministic run-to-run, so in an
 automated or repeatable loop pass an explicit `--fast`/`--deep`; keep `auto` for one-off interactive
 checks. Manage cost with **depth**, not by dropping context: during a tight fix/re-review loop prefer
@@ -425,9 +430,8 @@ until it finishes**. One rule follows, and breaking it produces a failure that r
   under "Run it so the user sees progress" above, and backgrounding is also what lets you stream
   status.
 
-**Concurrent reviews of the same repo are fine.** Two runs on one repo do not supersede or cancel
-each other — they are independent, and each returns its own findings. Don't serialize them for
-safety that isn't needed.
+**Concurrent reviews can complete independently.** For the same owner/repository/branch, only the
+newest checkpoint run can publish finding updates; an older result may report `superseded`.
 
 The failure shapes are distinct, so read which one you got instead of guessing:
 
@@ -486,7 +490,7 @@ context or widen authority merely to obtain a green result.
   `origin/main`.
 - **Background long runs so the connection survives** — a canceled run means it was interrupted or
   lost its connection, never that the repo is too big (see "When a run takes minutes" above).
-  Concurrent reviews of the same repo don't interfere; no need to serialize them.
+  Collect each result; a superseded run does not advance the incremental baseline.
 - **Never strip context to beat the clock.** Dropping `--context-file` doesn't make a run faster —
   it just buys a worse review. Give it more time, or `--fast`; keep the context either way.
 - An `MT-TOOL-LOOP` or `MT-RATE-LIMITED` error means stop/back off and change approach, not retry.
