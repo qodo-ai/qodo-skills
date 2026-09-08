@@ -18,12 +18,20 @@ const entries = provider.listings.map(({ id, sourcePath }) => ({
   repositoryBranch: provider.sourceRef,
 }));
 
-function flightDocument(records, { split = false } = {}) {
-  const row = `34:${JSON.stringify(['$', 'div', null, { id: 'browse-powers', cards: records }])}\n`;
+function flightPayload(value, { split = false } = {}) {
+  const row = `34:${JSON.stringify(value)}\n`;
   const middle = Math.floor(row.length / 2);
   const chunks = split ? [row.slice(0, middle), row.slice(middle)] : [row];
   return `<html><body>${chunks.map((chunk) =>
     `<script>self.__next_f.push(${JSON.stringify([1, chunk])})</script>`).join('')}</body></html>`;
+}
+
+function directoryElement(records) {
+  return ['$', '$L37', null, { id: 'browse-powers', cards: records }];
+}
+
+function flightDocument(records, options) {
+  return flightPayload(directoryElement(records), options);
 }
 
 test('captured Kiro HTML recognizes qodo and reports its actual main branch', () => {
@@ -50,6 +58,51 @@ test('unrelated script metadata cannot stand in for missing directory cards', ()
     JSON.stringify({ powers: [], metadata: entries }),
     flightDocument(entries).replace('browse-powers', 'unrelated-section')]) {
     assert.throws(() => verifyKiroDocument(document, context), /provider listing is missing/);
+  }
+});
+
+test('directory cards are found through component children, including nested child arrays', () => {
+  const tree = ['$', 'main', null, {
+    children: [null, ['$', 'div', null, { children: [directoryElement(entries)] }]],
+  }];
+  assert.deepEqual(verifyKiroDocument(flightPayload(tree, { split: true }), context)
+    .map(({ id }) => id), ['qodo', 'qodo-standards']);
+});
+
+test('nested browse-powers metadata cannot satisfy the complete release verifier', async (t) => {
+  const directory = { id: 'browse-powers', cards: entries };
+  const metadata = { analytics: { cachedDirectory: directory } };
+  const jsonScript = (value) => `<script type="application/json">${JSON.stringify(value)}</script>`;
+  const documents = [
+    JSON.stringify(metadata),
+    jsonScript(metadata),
+    jsonScript({ id: 'browse-powers', cards: [], metadata }),
+    jsonScript({ children: directory }),
+    flightPayload(metadata),
+    flightPayload(['$', 'main', null, { metadata, children: directoryElement([]) }]),
+    flightPayload(['$', 'main', null, { metadata: directoryElement(entries), children: directoryElement([]) }]),
+    flightPayload(['$', 'main', null, { children: directory }]),
+    flightPayload(['unrelated', '$L37', null, directory]),
+  ];
+  let document;
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    if (url === provider.directoryUrl) return new Response(document);
+    assert.equal(url, 'https://api.github.com/repos/qodo-ai/qodo-skills/commits/marketplace-kiro');
+    return new Response(JSON.stringify({ sha: context.commit }));
+  });
+  for (document of documents) {
+    await assert.rejects(verifyMarketplace('kiro', context), /provider listing is missing/);
+  }
+});
+
+test('unrelated metadata cannot add conflicting cards to a valid directory', () => {
+  const stale = entries.map((entry) => ({ ...entry, repositoryBranch: 'main' }));
+  const metadata = { id: 'browse-powers', cards: stale };
+  const directory = { id: 'browse-powers', cards: entries, metadata };
+  for (const document of [JSON.stringify(directory),
+    `<script type="application/json">${JSON.stringify(directory)}</script>`,
+    flightPayload(['$', 'main', null, { metadata, children: directoryElement(entries) }])]) {
+    assert.equal(verifyKiroDocument(document, context).length, 2);
   }
 });
 

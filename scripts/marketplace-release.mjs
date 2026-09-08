@@ -263,22 +263,37 @@ export function verifyClaudeDocument(document, context, selectedProvider = provi
 
 function embeddedObjectRecords(text) {
   const records = [];
-  const collect = (value) => {
-    if (!value || typeof value !== 'object') return;
-    if (value.id === 'browse-powers' && Array.isArray(value.cards)) records.push(...value.cards);
-    for (const nested of Object.values(value)) collect(nested);
+  const collectDirectory = (value) => {
+    if (value?.id === 'browse-powers' && Array.isArray(value.cards)) records.push(...value.cards);
   };
-  const parse = (value, standalone = false) => {
+  const collectElements = (value) => {
+    if (!Array.isArray(value)) return;
+    if (value[0] !== '$') {
+      for (const child of value) collectElements(child);
+      return;
+    }
+    // Flight element tuples carry props at index 3. Only children establish
+    // component ancestry; arbitrary props may contain cached or unrelated cards.
+    const [, type, key, props] = value;
+    if (value.length !== 4 || typeof type !== 'string' || (key !== null && typeof key !== 'string')
+      || !props || typeof props !== 'object' || Array.isArray(props)) return;
+    collectDirectory(props);
+    collectElements(props.children);
+  };
+  const parse = (value, format = 'directory') => {
     try {
       const document = JSON.parse(value);
-      if (standalone && Array.isArray(document)) records.push(...document);
-      else if (standalone && Array.isArray(document?.powers)) records.push(...document.powers);
-      else collect(document);
+      if (format === 'packet' && Array.isArray(document)) records.push(...document);
+      else if (format === 'packet' && Array.isArray(document?.powers)) records.push(...document.powers);
+      else if (format === 'flight') collectElements(document);
+      // Direct JSON directory documents have an explicit root envelope. Never
+      // search arbitrary nested metadata for another object with the same id.
+      else collectDirectory(document);
     } catch {
       // Ignore non-JSON data; never execute scripts from the provider page.
     }
   };
-  parse(text, true);
+  parse(text, 'packet');
   const flightChunks = [];
   for (const [, script] of text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)) {
     parse(script);
@@ -294,7 +309,7 @@ function embeddedObjectRecords(text) {
   }
   for (const row of flightChunks.join('').split('\n')) {
     const match = row.match(/^[0-9a-f]+:([\[{].*)$/i);
-    if (match) parse(match[1]);
+    if (match) parse(match[1], 'flight');
   }
   return records;
 }
