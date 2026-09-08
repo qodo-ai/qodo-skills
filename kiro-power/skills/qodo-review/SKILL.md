@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening a pull request, using the 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.0"
+  version: "1.11.0"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -56,7 +56,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.0 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review --skill-version 1.11.0 --distribution kiro-power --host kiro
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -311,12 +311,9 @@ not a reason to run blind.
 
 ## Attach coding-session context (this is the point)
 
-A forge reviewer only sees the diff. You know *why* the change was made — feed that in and the
-review gets sharper (fewer false positives), because it can recognize intentional decisions instead
-of guessing. A bare run isn't cheaper, it's blinder: the reviewer re-litigates every deliberate
-choice you already made. Attach context on every run. Three channels:
+Attach the intent and decisions behind your change. Three channels:
 
-- `--ticket <url>` — a ticket/issue/spec URL (repeat for several). Pass the **full URL** (e.g. a
+- `--ticket <url>` — a ticket/issue URL (repeat for several). Pass the **full URL** (e.g. a
   Jira `.../browse/KEY-123` or a Linear `linear.app/<team>/issue/…` link) so the reviewer can fetch
   it. Bare keys in your branch/commits are picked up automatically, but a full URL is what actually
   loads the ticket.
@@ -335,28 +332,31 @@ choice you already made. Attach context on every run. Three channels:
     ],
     "context_refs": [
       { "kind": "ticket", "url": "https://acme.atlassian.net/browse/PAY-412" },
-      { "kind": "spec", "url": "https://acme.example/specs/orders-v2", "label": "Orders v2 spec" }
+      { "kind": "spec", "url": "https://acme.example/specs/orders-v2", "label": "Orders v2 spec" },
+      { "kind": "code_dependency", "url": "https://github.com/acme/orders-api/pull/42", "label": "API change" }
     ]
   }
   ```
 
-  `summary` + `decisions` become the review's understanding of intent. `context_refs` is a growable
-  list of fetchable artifacts (`kind` is an open label — `ticket`, `spec`, `design`, …; ticket
-  refs are used today, other kinds are accepted for later). Refs from `--ticket`, `--context-file`,
-  and auto-extraction are merged and deduped.
+  `summary` + `decisions` explain intent. Refs are merged and deduped; `kind` stays open-ended.
+  `ticket` supplies ticket context; `spec` goes to Requirements Gap on supported engines.
+  `code_dependency` identifies external code this change relies on or must stay compatible with:
+  attach a known repo, PR or branch URL for cross-repo review. Keep `dependency` and unknown kinds
+  unchanged/deferred; do not infer every dependency is code. Labels are descriptions, not instructions.
+  Check `meta.context.spec` and `.code_dependency` plus warnings. Missing metadata means unknown use,
+  not success; report disabled, unresolved or partial context. `used` means code was available to the
+  reviewer, not that a PR diff was reviewed or that the dependency is merged, released or deployed.
 
 ## Write the context SELF-CONTAINED (the one rule that matters)
 
-The reviewer sees **only** what you send — it has no access to your chat, your notebook, your
-internal wiki, or a ticket you merely name. So:
+The reviewer cannot see your chat or a ticket you merely name. So:
 
 - **Inline the rationale.** Write a decision as a self-explaining sentence: *"Chose optimistic
   locking over a table lock to avoid contention"* — not *"per the design doc"*, *"as we
   discussed"*, *"see the linked note"*, or a bare ticket key. A dangling reference is invisible to
   the reviewer and wasted.
-- **Pass artifacts as fetchable refs, not name-drops.** If a ticket, spec, or design matters, add
-  it as a `--ticket`/`context_refs` **URL** the reviewer can actually fetch — don't just mention
-  its name in the summary.
+- **Pass artifacts as typed refs, not name-drops.** Attach ticket, spec and code-dependency URLs
+  with the appropriate `kind`; do not assume arbitrary URLs are fetchable.
 - **Keep it tight.** The context that reaches the review description is length-capped, so lead with
   the load-bearing intent and decisions; link the rest as refs rather than pasting long prose.
 - **Calibrate, don't suppress.** This context exists to cut false positives by explaining intent —
