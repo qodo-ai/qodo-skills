@@ -208,8 +208,7 @@ copy and recoverable predecessor; marketplace skills remain owned by their host.
 Gate: `npm test`, immutable release verification, tag-scoped canary and production compatibility
 assets plus exact same-origin `version.json` pointers, four canonical core capabilities, standards
 opt-in, full embedded body/provenance checks, and skills.sh project/global update without package
-broadening. Marketplace packages may also expose the generated `qodo-pr-resolver` compatibility
-name, which is the same canonical resolver workflow and not a fifth capability.
+broadening. Every distribution exposes exactly the catalog's skill names for each package.
 
 Rollback: publish a new immutable patch. Never replace the release asset.
 
@@ -310,8 +309,8 @@ This avoids GitHub's lossy single-pending queue, launch races, and old-tag rerun
   day-to-day `main`.
 - Wait for provider-visible exact commit/path before behavioral acceptance.
 
-Gate per provider: fresh install, in-place upgrade, exactly four canonical core capabilities plus
-the expected generated resolver compatibility alias (five core-package skill entries), optional standards absence,
+Gate per provider: fresh install, in-place upgrade, exactly four canonical core skill entries,
+optional standards absence,
 setup/login, one read workflow, one approval-gated write workflow, update and new-session activation.
 
 Rollback: publish/repoint to a new last-good patch through the provider-supported flow. Kiro is

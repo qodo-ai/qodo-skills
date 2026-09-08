@@ -29,6 +29,15 @@ test('rejects displayName and other fields outside Agent Plugins 1.0', () => {
   assert.match(validate({ ...validManifest, displayName: 'Qodo Code Review' }).join('\n'), /unsupported Agent Plugins field displayName/);
 });
 
+test('requires the manifest name to match the Kiro listing id', () => {
+  const errors = validateKiroPowerContract({
+    manifest: validManifest,
+    entries: ['plugin.json', 'skills/qodo-review/SKILL.md'],
+    expectedName: 'qodo-standards',
+  }, 'kiro-power-standards');
+  assert.match(errors.join('\n'), /name must match Kiro listing id qodo-standards/);
+});
+
 test('requires Kiro publication metadata and a packaged skill', () => {
   const manifest = { ...validManifest, description: '', author: {}, keywords: [] };
   const errors = validate(manifest, ['plugin.json']).join('\n');

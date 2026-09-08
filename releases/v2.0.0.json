@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "summary": "Remove the qodo-pr-resolver compatibility skill; use qodo-review-resolver. Align every plugin and bundle with its canonical package skill inventory.",
+  "package": {
+    "change": "major"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}

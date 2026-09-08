@@ -27,7 +27,7 @@ function isNonEmptyString(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-export function validateKiroPowerContract({ manifest, entries }, label = 'Kiro Power') {
+export function validateKiroPowerContract({ manifest, entries, expectedName }, label = 'Kiro Power') {
   const errors = [];
   const files = new Set(entries);
 
@@ -47,6 +47,9 @@ export function validateKiroPowerContract({ manifest, entries }, label = 'Kiro P
   }
   if (!isNonEmptyString(manifest.name) || !/^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(manifest.name)) {
     errors.push(`${label}/plugin.json: name must be a valid Agent Plugins identifier`);
+  }
+  if (expectedName && manifest.name !== expectedName) {
+    errors.push(`${label}/plugin.json: name must match Kiro listing id ${expectedName}`);
   }
   if (!isNonEmptyString(manifest.version)) errors.push(`${label}/plugin.json: version must be a non-empty string`);
   if (!isNonEmptyString(manifest.description)) errors.push(`${label}/plugin.json: description must be a non-empty string`);

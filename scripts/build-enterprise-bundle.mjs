@@ -282,6 +282,10 @@ export function buildEnterpriseBundle({ output, commit, releaseIndex }, reposito
       if (missing.length > 0) {
         throw new Error(`${installPackage.name}: ${provider} projection is missing ${missing.join(', ')}`);
       }
+      const unexpected = skills.filter((skill) => !installPackage.skills.includes(skill));
+      if (unexpected.length > 0) {
+        throw new Error(`${installPackage.name}: ${provider} projection has unexpected skills ${unexpected.join(', ')}`);
+      }
     }
     return {
       name: installPackage.name,
