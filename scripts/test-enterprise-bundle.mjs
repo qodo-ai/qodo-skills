@@ -1,7 +1,7 @@
 /** Verify deterministic enterprise release assets and package isolation. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -166,15 +166,15 @@ try {
   assert.equal(standards.default, false);
   assert.ok(!core.skills.includes('qodo-get-rules'));
   assert.deepEqual(standards.skills.sort(), ['qodo-get-rules', 'qodo-manage-standards']);
-  assert.deepEqual(core.projectionSkills.portable, core.skills);
-  for (const provider of ['claude', 'codex', 'kiro']) {
-    assert.deepEqual(
-      core.projectionSkills[provider],
-      [...core.skills, 'qodo-pr-resolver'].sort(),
-    );
-  }
   for (const provider of ['claude', 'codex', 'kiro', 'portable']) {
-    assert.deepEqual(standards.projectionSkills[provider], standards.skills);
+    for (const pkg of [core, standards]) {
+      assert.deepEqual([...pkg.projectionSkills[provider]].sort(), [...pkg.skills].sort());
+      const prefix = `${pkg.roots[provider]}/skills/`;
+      const installedSkills = [...files.keys()]
+        .filter((path) => path.startsWith(prefix) && path.endsWith('/SKILL.md'))
+        .map((path) => path.slice(prefix.length, -'/SKILL.md'.length));
+      assert.deepEqual(installedSkills.sort(), [...pkg.skills].sort());
+    }
   }
 
   const skillFiles = [...files].filter(([path]) => path.endsWith('/SKILL.md'));
@@ -190,6 +190,26 @@ try {
 } finally {
   rmSync(firstRoot, { recursive: true, force: true });
   rmSync(secondRoot, { recursive: true, force: true });
+}
+
+const driftRoot = mkdtempSync(join(tmpdir(), 'qodo-enterprise-drift-'));
+try {
+  for (const path of ['distribution', 'skills', 'packages', 'codex-packages', 'kiro-power', 'kiro-power-standards']) {
+    cpSync(join(root, path), join(driftRoot, path), { recursive: true });
+  }
+  for (const [provider, packageRoot] of [
+    ['claude', 'packages/qodo'], ['codex', 'codex-packages/qodo'], ['kiro', 'kiro-power'],
+  ]) {
+    const unexpected = join(driftRoot, packageRoot, 'skills', 'qodo-get-rules');
+    cpSync(join(driftRoot, 'skills/qodo-get-rules'), unexpected, { recursive: true });
+    assert.throws(
+      () => buildEnterpriseBundle({ output: join(driftRoot, 'output'), commit }, driftRoot),
+      new RegExp(`qodo: ${provider} projection has unexpected skills qodo-get-rules`),
+    );
+    rmSync(unexpected, { recursive: true });
+  }
+} finally {
+  rmSync(driftRoot, { recursive: true, force: true });
 }
 
 console.log('Enterprise bundle tests passed.');

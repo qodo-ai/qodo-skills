@@ -362,10 +362,6 @@ if (claudeMarketplace.plugins?.find((entry) => entry.name === 'qodo-standards')?
 if (json('packages/qodo/.claude-plugin/plugin.json').name !== claudeCoreId) {
   fail('Claude core package manifest must preserve the qodo identity');
 }
-const legacyCodexAdapter = readFileSync(join(root, 'codex-packages/qodo/skills/qodo-pr-resolver/agents/openai.yaml'), 'utf8');
-if (!/\$qodo-pr-resolver/.test(legacyCodexAdapter) || !/^  allow_implicit_invocation: false$/m.test(legacyCodexAdapter)) {
-  fail('Codex qodo-pr-resolver compatibility alias must be explicit-only');
-}
 
 for (const unsafeRoot of ['plugin.json', '.codex-plugin/plugin.json', '.claude-plugin/plugin.json', 'gemini-extension.json']) {
   if (existsSync(join(root, unsafeRoot))) fail(`${unsafeRoot}: root package would expose optional skills automatically`);
@@ -391,6 +387,15 @@ for (const path of [
 }
 
 for (const installPackage of catalog.installPackages ?? []) {
+  for (const packageRoot of [
+    `packages/${installPackage.name}`, `codex-packages/${installPackage.name}`,
+    installPackage.name === catalog.package.name ? 'kiro-power' : 'kiro-power-standards',
+  ]) {
+    const names = readdirSync(join(root, packageRoot, 'skills')).sort();
+    if (JSON.stringify(names) !== JSON.stringify([...installPackage.skills].sort())) {
+      fail(`${packageRoot}: generated skill inventory must match the catalog`);
+    }
+  }
   for (const skillName of installPackage.skills) {
     const skill = catalog.skills.find((entry) => entry.name === skillName);
     const generated = [
