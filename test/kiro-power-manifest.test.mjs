@@ -15,9 +15,9 @@ test('the core Kiro Power uses the requested review metadata', () => {
   assert.equal(manifest.name, listing.id);
   assert.equal(manifest.displayName, listing.displayName);
   assert.equal(manifest.description, listing.description);
-  assert.equal(listing.displayName, 'Qodo Code Review');
+  assert.equal(listing.displayName, 'Qodo AI Code Review and Governance');
   assert.equal(
     listing.description,
-    'Qodo code review, code intelligence, and PR resolution workflows for your local agent.',
+    'AI code review inside Kiro. Catches bugs, cross-repo breakages, and standards gaps in local changes before a PR is opened, then resolves findings on PRs already in flight with fix suggestions you apply in Kiro. Shorter review cycles, fewer issues reaching main.',
   );
 });

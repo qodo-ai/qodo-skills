@@ -53,8 +53,8 @@
           "package": "qodo",
           "id": "qodo",
           "sourcePath": "kiro-power",
-          "displayName": "Qodo Code Review",
-          "description": "Qodo code review, code intelligence, and PR resolution workflows for your local agent."
+          "displayName": "Qodo AI Code Review and Governance",
+          "description": "AI code review inside Kiro. Catches bugs, cross-repo breakages, and standards gaps in local changes before a PR is opened, then resolves findings on PRs already in flight with fix suggestions you apply in Kiro. Shorter review cycles, fewer issues reaching main."
         },
         {
           "package": "qodo-standards",

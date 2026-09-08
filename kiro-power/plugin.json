@@ -1,9 +1,9 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qodo",
-  "displayName": "Qodo Code Review",
+  "displayName": "Qodo AI Code Review and Governance",
   "version": "2.0.1",
-  "description": "Qodo code review, code intelligence, and PR resolution workflows for your local agent.",
+  "description": "AI code review inside Kiro. Catches bugs, cross-repo breakages, and standards gaps in local changes before a PR is opened, then resolves findings on PRs already in flight with fix suggestions you apply in Kiro. Shorter review cycles, fewer issues reaching main.",
   "author": {
     "name": "Qodo",
     "email": "support@qodo.ai",
