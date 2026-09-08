@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening a pull request, using the 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.0"
+  version: "1.10.1"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -56,26 +56,26 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.0 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review --skill-version 1.10.1 --distribution kiro-power --host kiro
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
 EOF
-qodo review --context-file ctx.json          # same, context from a file
+CTX=".qodo/session-context/$(git symbolic-ref -q --short HEAD || git rev-parse --short HEAD).json"
 qodo review --ticket <TICKET_URL> ...        # add a ticket URL (repeatable)
 qodo review --json ...                       # machine-readable findings
 qodo review src/ test/ ...                    # limit to paths (git pathspecs)
 qodo review --base origin/develop ...        # diff against a different base
 qodo review --deep                           # thorough; use `qodo review --fast` instead for speed
 qodo review                                  # BARE — only when there is truly nothing to say (rare)
-qodo review --context-file ctx.json --async  # submit with context, print an operation id, exit 0
+qodo review --context-file "$CTX" --async    # submit with context, print an operation id, exit 0
 qodo review status <operation-id>            # collect an --async result (exit 2 = still running)
 qodo review --help                           # exact flags (renders offline)
 ```
 
-You can also keep `.qodo/session-context.json` (same JSON shape) updated at the repo root — it is auto-attached to every run, so even a bare `qodo review` carries your context. An explicit
-`--context-file` overrides it; the file itself is never part of the reviewed diff. Don't commit it
-(add `.qodo/` to `.gitignore` or `.git/info/exclude`).
+Keep this branch's context at `.qodo/session-context/<branch>.json` (branch `/` → directories;
+detached HEAD in CI → short SHA) and pass it with `--context-file`: works on every CLI; a current
+one auto-attaches it. A repo-wide `.qodo/session-context.json` outlives its change, so CLIs skip it.
 Add `--json` to anything you parse, and a **long shell timeout** — runs take minutes (see below).
 **Confirm the exact flags with `qodo review --help`** (offline) — the examples here are illustrative.
 
@@ -109,7 +109,7 @@ the process exits — never block on a foreground tail. `tail --pid` is GNU-only
 in PowerShell use a background job + `Get-Content -Wait`, or just take the foreground fallback below.
 
 - **Context via a file, not stdin.** Backgrounding + redirection fights a stdin heredoc, so put the
-  context in `.qodo/session-context.json` (auto-attached) or pass `--context-file .qodo/ctx.json`.
+  context in `.qodo/session-context/<branch>.json` and pass it with `--context-file`.
   `.qodo/` is always excluded from the reviewed diff and should be gitignored.
 - **Launch it in the background** so your turn isn't blocked, then **read the growing per-run
   `progress.ndjson`** and give the user short status lines. Each line is one JSON
@@ -187,7 +187,7 @@ is alive; you collect the result later with `qodo review status <operation-id>`.
 
 ```
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'This async recipe requires jq; install it or use the live qodo review flow.' >&2; exit 1; }
-QODO_REVIEW_CONTEXT="${QODO_REVIEW_CONTEXT:-.qodo/session-context.json}"
+QODO_REVIEW_CONTEXT="${QODO_REVIEW_CONTEXT:-.qodo/session-context/$(git symbolic-ref -q --short HEAD || git rev-parse --short HEAD).json}"
 [ -f "$QODO_REVIEW_CONTEXT" ] || { printf '%s\n' "Write the required review context to $QODO_REVIEW_CONTEXT (or set QODO_REVIEW_CONTEXT to its path)." >&2; exit 1; }
 if ! submission="$(qodo review --context-file "$QODO_REVIEW_CONTEXT" --async --json --deep)"; then printf '%s\n' "$submission" >&2; exit 1; fi
 if ! id="$(printf '%s\n' "$submission" | jq -er '.operation_id | select(type == "string" and length > 0)')"; then printf '%s\n' "$submission" >&2; exit 1; fi
@@ -260,7 +260,7 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
    uncommitted edits and untracked new files are included automatically.
 3. **Write your context.** Before running, capture the session narrative — a 2–3 sentence summary
    of what you changed and why, plus the decisions you made along the way — as the context JSON
-   (stdin heredoc, a file, or `.qodo/session-context.json`). You always have this: you just wrote
+   (stdin heredoc, or `.qodo/session-context/<branch>.json`). You always have this: you just wrote
    the code. Run bare only when there is genuinely nothing to say.
 
 ## What gets reviewed
@@ -304,7 +304,7 @@ Depth is a per-run flag, fresh each time — there is no saved default. With **n
 **Reproducibility & cost.** `auto` picks a tier per run and isn't deterministic run-to-run, so in an
 automated or repeatable loop pass an explicit `--fast`/`--deep`; keep `auto` for one-off interactive
 checks. Manage cost with **depth**, not by dropping context: during a tight fix/re-review loop prefer
-`--fast` and reuse the same context (the same ctx.json, or the ambient `.qodo/session-context.json` —
+`--fast` and reuse the same context (this branch's `.qodo/session-context/<branch>.json` —
 updated if the loop changed a decision); save `--deep` (a multi-model ensemble) for the final pre-PR
 check. Context does add a second, no-excuse safety pass — that's the price of a calibrated review,
 not a reason to run blind.
@@ -320,9 +320,9 @@ choice you already made. Attach context on every run. Three channels:
   Jira `.../browse/KEY-123` or a Linear `linear.app/<team>/issue/…` link) so the reviewer can fetch
   it. Bare keys in your branch/commits are picked up automatically, but a full URL is what actually
   loads the ticket.
-- `.qodo/session-context.json` at the repo root — the **ambient** channel (same JSON shape as
-  below). Auto-attached to every run when present and no `--context-file` is given. Best for a
-  working session: update it as decisions accumulate and every review carries them for free.
+- `.qodo/session-context/<branch>.json` — the **ambient** channel (same JSON shape as below),
+  scoped to one branch so it cannot outlive its change. A current CLI auto-attaches it and sweeps
+  contexts for deleted branches; passing it explicitly works on every CLI version.
 - `--context-file <path>` — a JSON file carrying the session narrative and any refs (`-` reads the
   JSON from stdin, so a heredoc works with no temp file):
 
