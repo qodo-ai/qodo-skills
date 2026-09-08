@@ -178,11 +178,11 @@ contains only the native `.codex-plugin/plugin.json`, without a wrapper or gener
 The latter remains in the source projections for non-portal consumers.
 
 Enterprise schema v1 is a separate consumer contract: current QAR rejects unrecognized
-projection files and Codex interface fields. The enterprise builder omits directory-only
-Codex artwork/references and the Kiro banner/README image block and directory-only `displayName`;
-it preserves all skills,
-native manifests, starter prompts and provenance. Public marketplace packages retain the
-artwork. Do not extend the enterprise schema's allowlist implicitly with a marketplace change.
+projection files and Codex interface fields. The enterprise builder omits Codex directory artwork
+and references. It also omits Kiro's banner, README image block, and directory-only `displayName`.
+It preserves all skills, native manifests, starter prompts and provenance. Public marketplace
+packages retain their artwork and display metadata. Do not extend the enterprise schema's
+allowlist implicitly with a marketplace change.
 
 Codex listing presentation is configured in `distribution/codex-submissions.json`:
 `starterSkills` explicitly selects at most three installed skills, whose prompts remain authored

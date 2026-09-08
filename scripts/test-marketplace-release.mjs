@@ -106,12 +106,14 @@ const kiroDocument = JSON.stringify({
     {
       name: 'qodo',
       repositoryUrl: 'https://github.com/qodo-ai/qodo-skills/tree/marketplace-kiro/kiro-power',
+      repositoryCloneUrl: 'git@github.com:qodo-ai/qodo-skills.git',
       pathInRepo: 'kiro-power',
       repositoryBranch: 'marketplace-kiro',
     },
     {
       name: 'qodo-standards',
       repositoryUrl: 'https://github.com/qodo-ai/qodo-skills/tree/marketplace-kiro/kiro-power-standards',
+      repositoryCloneUrl: 'git@github.com:qodo-ai/qodo-skills.git',
       pathInRepo: 'kiro-power-standards',
       repositoryBranch: 'marketplace-kiro',
     },

@@ -11,6 +11,7 @@ const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json
 const marketplaceCatalog = JSON.parse(readFileSync(join(root, 'distribution', 'marketplaces.json'), 'utf8'));
 const codexSubmissions = JSON.parse(readFileSync(join(root, 'distribution', 'codex-submissions.json'), 'utf8'));
 const repositoryUrl = 'https://github.com/qodo-ai/qodo-skills';
+const repositoryCloneUrl = 'git@github.com:qodo-ai/qodo-skills.git';
 
 function argumentMap(argv) {
   const values = new Map();
@@ -193,7 +194,7 @@ export function prepareMarketplace(providerId, context, outputPath) {
       displayName: listing.displayName ?? packageDetails(listing.package).displayName,
       description: listing.description ?? packageDetails(listing.package).description,
       repositoryUrl: `${repositoryUrl}/tree/${selectedProvider.sourceRef}/${listing.sourcePath}`,
-      repositoryCloneUrl: 'git@github.com:qodo-ai/qodo-skills.git',
+      repositoryCloneUrl,
       pathInRepo: listing.sourcePath,
       repositoryBranch: selectedProvider.sourceRef,
     })));
@@ -314,6 +315,10 @@ export function verifyKiroDocument(document, context, selectedProvider = provide
       }
       if (entry.repositoryUrl !== repository) {
         throw new Error(`Kiro ${listing.id}: expected repository ${repository}, found ${entry.repositoryUrl ?? '<missing>'}`);
+      }
+      if (entry.repositoryCloneUrl !== repositoryCloneUrl
+        && normalizeRepositoryUrl(entry.repositoryCloneUrl) !== repositoryUrl) {
+        throw new Error(`Kiro ${listing.id}: expected clone repository ${repositoryUrl}, found ${entry.repositoryCloneUrl ?? '<missing>'}`);
       }
     }
     results.push({ id: listing.id, state: 'provider-visible', source: repository, branch: sourceRef });

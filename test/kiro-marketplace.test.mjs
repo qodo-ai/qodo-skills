@@ -13,6 +13,7 @@ const context = { tag: `v${version}`, version, commit: 'a'.repeat(40), release: 
 const entries = provider.listings.map(({ id, sourcePath }) => ({
   name: id,
   repositoryUrl: `https://github.com/qodo-ai/qodo-skills/tree/${provider.sourceRef}/${sourcePath}`,
+  repositoryCloneUrl: 'git@github.com:qodo-ai/qodo-skills.git',
   pathInRepo: sourcePath,
   repositoryBranch: provider.sourceRef,
 }));
@@ -103,13 +104,24 @@ test('provider verification still requires the protected branch to equal the rel
   assert.ok(results.every(({ commit }) => commit === context.commit));
 });
 
+test('clone URLs must identify the same repository as the displayed tree', () => {
+  const https = entries.map((entry) => ({ ...entry, repositoryCloneUrl: 'https://github.com/qodo-ai/qodo-skills.git' }));
+  assert.equal(verifyKiroDocument(flightDocument(https), context).length, 2);
+  for (const repositoryCloneUrl of [undefined, 'git@github.com:unrelated/repo.git',
+    'https://github.com/unrelated/repo.git', 'https://github.com.evil.test/qodo-ai/qodo-skills.git']) {
+    assert.throws(() => verifyKiroDocument(flightDocument([
+      { ...entries[0], repositoryCloneUrl }, entries[1],
+    ]), context), /expected clone repository/);
+  }
+});
+
 test('Kiro release packet provides directory entries from the canonical marketplace contract', () => {
   const temporaryRoot = mkdtempSync(join(tmpdir(), 'qodo-kiro-packet-'));
   try {
     const packet = prepareMarketplace('kiro', context, join(temporaryRoot, 'packet'));
     const desired = JSON.parse(readFileSync(join(packet.output, 'directory-entries.json'), 'utf8'));
-    assert.deepEqual(desired.map(({ name, repositoryUrl, pathInRepo, repositoryBranch }) =>
-      ({ name, repositoryUrl, pathInRepo, repositoryBranch })), entries);
+    assert.deepEqual(desired.map(({ name, repositoryUrl, repositoryCloneUrl, pathInRepo, repositoryBranch }) =>
+      ({ name, repositoryUrl, repositoryCloneUrl, pathInRepo, repositoryBranch })), entries);
     assert.equal(verifyKiroDocument(JSON.stringify(desired), context).length, 2);
     assert.equal(desired[0].displayName, provider.listings[0].displayName);
     assert.equal(desired[0].description, provider.listings[0].description);
