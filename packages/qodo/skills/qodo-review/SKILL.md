@@ -61,7 +61,7 @@ qodo review --context-file - <<'EOF'         # review local changes vs origin/ma
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
 EOF
-CTX=".qodo/session-context/$(git branch --show-current).json"; qodo review --context-file "$CTX"
+CTX=".qodo/session-context/$(git symbolic-ref -q --short HEAD || git rev-parse --short HEAD).json"
 qodo review --ticket <TICKET_URL> ...        # add a ticket URL (repeatable)
 qodo review --json ...                       # machine-readable findings
 qodo review src/ test/ ...                    # limit to paths (git pathspecs)
@@ -73,9 +73,9 @@ qodo review status <operation-id>            # collect an --async result (exit 2
 qodo review --help                           # exact flags (renders offline)
 ```
 
-Keep this branch's context at `.qodo/session-context/<branch>.json` (branch `/` → directories) and
-pass it with `--context-file`: works on every CLI, and a current one also auto-attaches it. A single
-repo-wide `.qodo/session-context.json` outlives its change, so current CLIs no longer attach it.
+Keep this branch's context at `.qodo/session-context/<branch>.json` (branch `/` → directories;
+detached HEAD in CI → short SHA) and pass it with `--context-file`: works on every CLI; a current
+one auto-attaches it. A repo-wide `.qodo/session-context.json` outlives its change, so CLIs skip it.
 Add `--json` to anything you parse, and a **long shell timeout** — runs take minutes (see below).
 **Confirm the exact flags with `qodo review --help`** (offline) — the examples here are illustrative.
 
@@ -187,7 +187,7 @@ is alive; you collect the result later with `qodo review status <operation-id>`.
 
 ```
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'This async recipe requires jq; install it or use the live qodo review flow.' >&2; exit 1; }
-QODO_REVIEW_CONTEXT="${QODO_REVIEW_CONTEXT:-.qodo/session-context/$(git branch --show-current).json}"
+QODO_REVIEW_CONTEXT="${QODO_REVIEW_CONTEXT:-.qodo/session-context/$(git symbolic-ref -q --short HEAD || git rev-parse --short HEAD).json}"
 [ -f "$QODO_REVIEW_CONTEXT" ] || { printf '%s\n' "Write the required review context to $QODO_REVIEW_CONTEXT (or set QODO_REVIEW_CONTEXT to its path)." >&2; exit 1; }
 if ! submission="$(qodo review --context-file "$QODO_REVIEW_CONTEXT" --async --json --deep)"; then printf '%s\n' "$submission" >&2; exit 1; fi
 if ! id="$(printf '%s\n' "$submission" | jq -er '.operation_id | select(type == "string" and length > 0)')"; then printf '%s\n' "$submission" >&2; exit 1; fi
