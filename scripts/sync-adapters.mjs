@@ -12,6 +12,7 @@ import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { stampSkillProvenance } from './skill-provenance.mjs';
 import { codexListingInterface, validateCodexPortalManifest } from './codex-portal-contract.mjs';
+import { assertKiroPowerContract } from './kiro-power-contract.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const check = process.argv.includes('--check');
@@ -270,6 +271,12 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
           .replace(/^  allow_implicit_invocation: true$/m, '  allow_implicit_invocation: false'),
       );
     }
+  }
+  if (adapterSet === 'kiro') {
+    assertKiroPowerContract({
+      manifest: JSON.parse(files.get('plugin.json')),
+      entries: [...files.keys()],
+    }, value.name);
   }
   return files;
 }

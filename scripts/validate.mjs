@@ -13,6 +13,7 @@ import addFormats from 'ajv-formats';
 import { stampSkillProvenance } from './skill-provenance.mjs';
 import { validateCodexPortalManifest } from './codex-portal-contract.mjs';
 import { validateSkillDelivery } from './skill-delivery.mjs';
+import { validateKiroPowerContract } from './kiro-power-contract.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const errors = [];
@@ -121,6 +122,17 @@ if (!semver.test(catalog.runtime?.minimumCliVersion ?? '')) {
 const kiroProvider = marketplaces.providers?.find((provider) => provider.id === 'kiro');
 if (kiroProvider?.mode !== 'protected-release-branch' || kiroProvider?.sourceRef !== 'marketplace-kiro') {
   fail('Kiro marketplace must use the protected marketplace-kiro release branch');
+}
+for (const listing of kiroProvider?.listings ?? []) {
+  const listingRoot = join(root, listing.sourcePath);
+  const entries = existsSync(listingRoot)
+    ? walk(listingRoot).map((path) => relative(listingRoot, path).split('\\').join('/'))
+    : [];
+  const manifest = json(`${listing.sourcePath}/plugin.json`);
+  for (const error of validateKiroPowerContract({ manifest, entries }, listing.sourcePath)) fail(error);
+  if (manifest.name !== listing.id) {
+    fail(`${listing.sourcePath}/plugin.json: name must match Kiro listing id ${listing.id}`);
+  }
 }
 for (const field of ['repository', 'homepage', 'supportUrl', 'privacyPolicyUrl', 'termsOfServiceUrl']) {
   if (!String(catalog.package?.[field] ?? '').startsWith('https://')) {
