@@ -1,0 +1,16 @@
+{
+  "version": "1.1.1",
+  "summary": "Scope the review session context to a branch so it cannot outlive the change it describes.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.10.1",
+      "change": "patch"
+    }
+  ]
+}
