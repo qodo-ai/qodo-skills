@@ -194,7 +194,7 @@ is live, change its release type to `update` for subsequent releases of that sam
 
 The portal may warn about `metadata` in SKILL.md. Preserve Qodo's provenance/version fields:
 they are not UI configuration. Each skill already ships its generated `agents/openai.yaml`
-interface, including the explicit-only resolver compatibility alias. Portal acceptance and review
+interface. Every package contains only its catalog's canonical skill names. Portal acceptance and review
 are still required; local checks do not guarantee approval. The
 [OpenAI submission errors reference](https://developers.openai.com/plugins/deploy/submission-errors)
 (checked: 2026-09-05) is the contract behind these checks.
@@ -223,8 +223,7 @@ choice, not a separate release selector. Never replace the core listing during a
 For every selected provider, record:
 
 1. provider-visible exact commit/path and version;
-2. fresh core install with four canonical capabilities plus the expected `qodo-pr-resolver`
-   compatibility alias (five installed skill entries total);
+2. fresh core install with exactly four canonical skill entries;
 3. upgrade from the currently published version without duplicates;
 4. Qodo Standards absent until explicitly installed;
 5. `qodo-setup`, one read workflow, and one approval-gated write workflow;
@@ -240,6 +239,12 @@ representative non-marketplace agents, including multi-agent and project/global 
 `--skill` selection so the optional package cannot appear by accident.
 
 ## 6. QAR enterprise channel
+
+When adopting v2.0.0, update QAR's reviewed `infra/skills-bundle/topology.json` together with
+`infra/skills-bundle/bundle.lock.json`. Remove `qodo-pr-resolver` from the core Claude, Codex, and
+Kiro `projectionSkills`; portable already uses canonical names. QAR requires an exact topology
+match, so its current v1.1.0 topology rejects the new bundle. Update the pin only after the new
+immutable assets are published and verified; changing topology alone breaks the existing pin.
 
 Every immutable skills release carries `qodo-enterprise-manifest.json`, the deterministic
 `qodo-enterprise-bundle-v<version>.tar.gz`, separate core/Standards Agent Skills Discovery v0.2

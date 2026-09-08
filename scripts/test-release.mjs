@@ -159,7 +159,7 @@ try {
       '--skill', 'qodo-review=patch',
     ], { cwd: repositoryRoot, stdio: 'pipe' }),
     (error) => {
-      assert.match(String(error.stderr), /missing qodo-review-resolver compatibility source/);
+      assert.match(String(error.stderr), /qodo-review-resolver: SKILL.md is required/);
       return true;
     },
   );
@@ -295,15 +295,15 @@ try {
       assert.equal(completedReview.status, null, completedReview.stderr);
     }
   }
-  const legacyResolver = readFileSync(
-    join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-pr-resolver', 'SKILL.md'),
-    'utf8',
-  );
-  assert.match(legacyResolver, /^name: qodo-pr-resolver$/m);
-  assert.match(legacyResolver, /Compatibility alias for explicit qodo-pr-resolver requests/);
-  assert.match(legacyResolver, /alias_for: "qodo-review-resolver"/);
-  assert.match(legacyResolver, /canonical qodo-review-resolver release-index identity/);
-  assert.match(legacyResolver, /--skill qodo-review-resolver .*--distribution marketplace --host claude-code/);
+  for (const pkg of sourceCatalog.installPackages) {
+    for (const packageRoot of [
+      `packages/${pkg.name}`, `codex-packages/${pkg.name}`,
+      pkg.name === 'qodo' ? 'kiro-power' : 'kiro-power-standards',
+    ]) {
+      const names = readdirSync(join(repositoryRoot, packageRoot, 'skills')).sort();
+      assert.deepEqual(names, [...pkg.skills].sort(), `${packageRoot}: skill inventory must match the catalog`);
+    }
+  }
   const releaseIndexPath = join(repositoryRoot, 'distribution', 'qodo-skills-index.json');
   const releaseIndexText = readFileSync(releaseIndexPath, 'utf8');
   const releaseIndex = JSON.parse(releaseIndexText);

@@ -11,11 +11,16 @@ import {
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const { output, checksum, bundle } = buildCliManagedBundle(root);
+const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json'), 'utf8'));
 
 assert.equal(bundle.schemaVersion, 1);
 assert.equal(bundle.distribution, 'qodo-cli-managed');
 assert.equal(bundle.packageVersion, JSON.parse(readFileSync(join(root, 'package.json'))).version);
-assert.deepEqual(Object.keys(bundle.skills), [...Object.keys(bundle.skills)].sort());
+assert.deepEqual(Object.keys(bundle.skills), catalog.skills.map((skill) => skill.name).sort());
+for (const pkg of catalog.installPackages) {
+  const skills = Object.entries(bundle.skills).filter(([, skill]) => skill.package === pkg.name);
+  assert.deepEqual(skills.map(([name]) => name).sort(), [...pkg.skills].sort());
+}
 assert.equal(readFileSync(join(root, 'distribution', 'qodo-cli-managed-bundle.json'), 'utf8'), output);
 assert.equal(readFileSync(join(root, 'distribution', 'qodo-cli-managed-bundle.json.sha256'), 'utf8'), checksum);
 assert.equal(
