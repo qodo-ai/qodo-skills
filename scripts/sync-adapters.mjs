@@ -98,12 +98,14 @@ function installPackage(name) {
   return value;
 }
 
-function pluginManifest(value) {
+function pluginManifest(value, adapterSet) {
+  const kiroListing = adapterSet === 'kiro' ? listing('kiro', value.name) : undefined;
   return {
     $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
     name: value.name,
+    ...(kiroListing ? { displayName: kiroListing.displayName } : {}),
     version: pkg.version,
-    description: value.description,
+    description: kiroListing?.description ?? value.description,
     author,
     homepage: pkg.homepage,
     repository: pkg.repository,
@@ -166,7 +168,7 @@ function kiroReadPermissionProfile() {
 
 function generatedPackageFiles(value, adapterSet = 'claude') {
   const files = new Map([
-    ['plugin.json', `${JSON.stringify(pluginManifest(value), null, 2)}\n`],
+    ['plugin.json', `${JSON.stringify(pluginManifest(value, adapterSet), null, 2)}\n`],
   ]);
   if (adapterSet === 'codex') {
     const manifest = codexManifest(value);

@@ -1,0 +1,10 @@
+{
+  "version": "2.0.1",
+  "summary": "Add Kiro display names and descriptions to root plugin manifests.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}
