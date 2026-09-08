@@ -145,6 +145,12 @@ try {
   assert.ok(!files.has('qodo-enterprise/kiro/qodo/Qodo-Kiro.png'));
   assert.doesNotMatch(files.get('qodo-enterprise/kiro/qodo/README.md').toString(), /Qodo-Kiro\.png/);
   assert.match(readFileSync(join(root, 'kiro-power/README.md'), 'utf8'), /Qodo-Kiro\.png/);
+  for (const packageName of ['qodo', 'qodo-standards']) {
+    const plugin = JSON.parse(files.get(`qodo-enterprise/kiro/${packageName}/plugin.json`));
+    assert.deepEqual(Object.keys(plugin).sort(), ['$schema', 'author', 'description', 'homepage',
+      'keywords', 'license', 'name', 'repository', 'version'].sort());
+  }
+  assert.ok(JSON.parse(readFileSync(join(root, 'kiro-power/plugin.json'), 'utf8')).displayName);
   // Current QAR schema v1 uses exact interface and non-skill file allowlists.
   // Directory-only artwork must not silently extend that enterprise protocol.
   const codexInterfaceFields = ['displayName', 'shortDescription', 'longDescription',

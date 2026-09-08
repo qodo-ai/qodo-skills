@@ -187,6 +187,17 @@ export function prepareMarketplace(providerId, context, outputPath) {
   if (providerId === 'claude') {
     writeJson(join(output, 'directory-entries.json'), selectedProvider.listings.map((entry) => desiredClaudeEntry(entry, context)));
   }
+  if (providerId === 'kiro') {
+    writeJson(join(output, 'directory-entries.json'), selectedProvider.listings.map((listing) => ({
+      name: listing.id,
+      displayName: listing.displayName ?? packageDetails(listing.package).displayName,
+      description: listing.description ?? packageDetails(listing.package).description,
+      repositoryUrl: `${repositoryUrl}/tree/${selectedProvider.sourceRef}/${listing.sourcePath}`,
+      repositoryCloneUrl: 'git@github.com:qodo-ai/qodo-skills.git',
+      pathInRepo: listing.sourcePath,
+      repositoryBranch: selectedProvider.sourceRef,
+    })));
+  }
   if (providerId === 'codex') {
     const submissionsRoot = join(output, 'submissions');
     mkdirSync(submissionsRoot);
@@ -249,13 +260,6 @@ export function verifyClaudeDocument(document, context, selectedProvider = provi
   return results;
 }
 
-function normalizedEmbeddedJson(text) {
-  return text
-    .replaceAll('\\u002F', '/')
-    .replaceAll('\\u0026', '&')
-    .replaceAll('\\"', '"');
-}
-
 function embeddedObjectRecords(text) {
   const records = [];
   const collect = (value) => {
@@ -263,39 +267,36 @@ function embeddedObjectRecords(text) {
     if (!Array.isArray(value)) records.push(value);
     for (const nested of Object.values(value)) collect(nested);
   };
-  try {
-    collect(JSON.parse(text));
-  } catch {
-    // Provider pages may contain escaped JSON records inside HTML/script text.
-  }
-  const starts = [];
-  let quoted = false;
-  let escaped = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (quoted) {
-      if (escaped) escaped = false;
-      else if (char === '\\') escaped = true;
-      else if (char === '"') quoted = false;
-      continue;
+  const parse = (value) => {
+    try {
+      collect(JSON.parse(value));
+    } catch {
+      // Ignore non-JSON data; never execute scripts from the provider page.
     }
-    if (char === '"') quoted = true;
-    else if (char === '{') starts.push(index);
-    else if (char === '}' && starts.length > 0) {
-      const start = starts.pop();
+  };
+  parse(text);
+  const flightChunks = [];
+  for (const [, script] of text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)) {
+    parse(script);
+    // Next.js serializes Flight data as JSON strings, possibly split across pushes.
+    const pushes = /self\.__next_f\.push\(\s*\[\s*1\s*,\s*("(?:[^"\\]|\\.)*")\s*\]\s*\)/g;
+    for (const [, chunk] of script.matchAll(pushes)) {
       try {
-        collect(JSON.parse(text.slice(start, index + 1)));
+        flightChunks.push(JSON.parse(chunk));
       } catch {
-        // Not every brace-delimited provider-page fragment is JSON.
+        // Malformed data cannot establish a provider listing.
       }
     }
+  }
+  for (const row of flightChunks.join('').split('\n')) {
+    const match = row.match(/^[0-9a-f]+:([\[{].*)$/i);
+    if (match) parse(match[1]);
   }
   return records;
 }
 
 export function verifyKiroDocument(document, context, selectedProvider = provider('kiro')) {
-  const normalized = normalizedEmbeddedJson(document);
-  const records = embeddedObjectRecords(normalized);
+  const records = embeddedObjectRecords(document);
   const results = [];
   const sourceRef = selectedProvider.sourceRef;
   if (!sourceRef) throw new Error('Kiro marketplace contract is missing sourceRef');
@@ -303,10 +304,12 @@ export function verifyKiroDocument(document, context, selectedProvider = provide
     const repository = `${repositoryUrl}/tree/${sourceRef}/${listing.sourcePath}`;
     const entry = records.find((candidate) => candidate.name === listing.id);
     if (!entry) throw new Error(`Kiro ${listing.id}: provider listing is missing`);
-    if (entry.repositoryUrl !== repository) throw new Error(`Kiro ${listing.id}: wrong repository`);
     if (entry.pathInRepo !== listing.sourcePath) throw new Error(`Kiro ${listing.id}: expected path ${listing.sourcePath}`);
     if (entry.repositoryBranch !== sourceRef) {
-      throw new Error(`Kiro ${listing.id}: expected branch ${sourceRef}`);
+      throw new Error(`Kiro ${listing.id}: expected branch ${sourceRef}, found ${entry.repositoryBranch ?? '<missing>'}`);
+    }
+    if (entry.repositoryUrl !== repository) {
+      throw new Error(`Kiro ${listing.id}: expected repository ${repository}, found ${entry.repositoryUrl ?? '<missing>'}`);
     }
     results.push({ id: listing.id, state: 'provider-visible', source: repository, branch: sourceRef });
   }
