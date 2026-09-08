@@ -52,7 +52,9 @@
         {
           "package": "qodo",
           "id": "qodo",
-          "sourcePath": "kiro-power"
+          "sourcePath": "kiro-power",
+          "displayName": "Qodo Code Review",
+          "description": "Qodo code review, code intelligence, and PR resolution workflows for your local agent."
         },
         {
           "package": "qodo-standards",
