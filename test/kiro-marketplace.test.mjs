@@ -18,7 +18,7 @@ const entries = provider.listings.map(({ id, sourcePath }) => ({
 }));
 
 function flightDocument(records, { split = false } = {}) {
-  const row = `34:${JSON.stringify(['$', 'div', null, { cards: records }])}\n`;
+  const row = `34:${JSON.stringify(['$', 'div', null, { id: 'browse-powers', cards: records }])}\n`;
   const middle = Math.floor(row.length / 2);
   const chunks = split ? [row.slice(0, middle), row.slice(middle)] : [row];
   return `<html><body>${chunks.map((chunk) =>
@@ -36,9 +36,19 @@ test('captured Kiro HTML recognizes qodo and reports its actual main branch', ()
 
 test('accepts both listings in raw JSON, JSON script data, and split Next.js data', () => {
   const json = JSON.stringify({ powers: entries });
-  for (const document of [json, `<script type="application/json">${json}</script>`,
+  const directory = JSON.stringify({ id: 'browse-powers', cards: entries });
+  for (const document of [json, `<script type="application/json">${directory}</script>`,
     flightDocument(entries), flightDocument(entries, { split: true })]) {
     assert.deepEqual(verifyKiroDocument(document, context).map(({ id }) => id), ['qodo', 'qodo-standards']);
+  }
+});
+
+test('unrelated script metadata cannot stand in for missing directory cards', () => {
+  const metadata = `<script type="application/json">${JSON.stringify(entries)}</script>`;
+  for (const document of [metadata, metadata + flightDocument([]),
+    JSON.stringify({ powers: [], metadata: entries }),
+    flightDocument(entries).replace('browse-powers', 'unrelated-section')]) {
+    assert.throws(() => verifyKiroDocument(document, context), /provider listing is missing/);
   }
 });
 
@@ -74,6 +84,9 @@ test('requires each listing to carry the configured path, branch and repository 
     { name: 'qodo' }, { ...entries[0], name: 'unrelated' }, entries[1],
   ]), context), /expected path kiro-power/);
   assert.throws(() => verifyKiroDocument(flightDocument([entries[0]]), context), /qodo-standards.*missing/);
+  assert.throws(() => verifyKiroDocument(flightDocument([
+    ...entries, { ...entries[0], repositoryBranch: 'main' },
+  ]), context), /expected branch marketplace-kiro, found main/);
 });
 
 test('provider verification still requires the protected branch to equal the release commit', async (t) => {

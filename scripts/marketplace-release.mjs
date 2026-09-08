@@ -264,17 +264,20 @@ function embeddedObjectRecords(text) {
   const records = [];
   const collect = (value) => {
     if (!value || typeof value !== 'object') return;
-    if (!Array.isArray(value)) records.push(value);
+    if (value.id === 'browse-powers' && Array.isArray(value.cards)) records.push(...value.cards);
     for (const nested of Object.values(value)) collect(nested);
   };
-  const parse = (value) => {
+  const parse = (value, standalone = false) => {
     try {
-      collect(JSON.parse(value));
+      const document = JSON.parse(value);
+      if (standalone && Array.isArray(document)) records.push(...document);
+      else if (standalone && Array.isArray(document?.powers)) records.push(...document.powers);
+      else collect(document);
     } catch {
       // Ignore non-JSON data; never execute scripts from the provider page.
     }
   };
-  parse(text);
+  parse(text, true);
   const flightChunks = [];
   for (const [, script] of text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)) {
     parse(script);
@@ -302,14 +305,16 @@ export function verifyKiroDocument(document, context, selectedProvider = provide
   if (!sourceRef) throw new Error('Kiro marketplace contract is missing sourceRef');
   for (const listing of selectedProvider.listings) {
     const repository = `${repositoryUrl}/tree/${sourceRef}/${listing.sourcePath}`;
-    const entry = records.find((candidate) => candidate.name === listing.id);
-    if (!entry) throw new Error(`Kiro ${listing.id}: provider listing is missing`);
-    if (entry.pathInRepo !== listing.sourcePath) throw new Error(`Kiro ${listing.id}: expected path ${listing.sourcePath}`);
-    if (entry.repositoryBranch !== sourceRef) {
-      throw new Error(`Kiro ${listing.id}: expected branch ${sourceRef}, found ${entry.repositoryBranch ?? '<missing>'}`);
-    }
-    if (entry.repositoryUrl !== repository) {
-      throw new Error(`Kiro ${listing.id}: expected repository ${repository}, found ${entry.repositoryUrl ?? '<missing>'}`);
+    const entries = records.filter((candidate) => candidate?.name === listing.id);
+    if (!entries.length) throw new Error(`Kiro ${listing.id}: provider listing is missing`);
+    for (const entry of entries) {
+      if (entry.pathInRepo !== listing.sourcePath) throw new Error(`Kiro ${listing.id}: expected path ${listing.sourcePath}`);
+      if (entry.repositoryBranch !== sourceRef) {
+        throw new Error(`Kiro ${listing.id}: expected branch ${sourceRef}, found ${entry.repositoryBranch ?? '<missing>'}`);
+      }
+      if (entry.repositoryUrl !== repository) {
+        throw new Error(`Kiro ${listing.id}: expected repository ${repository}, found ${entry.repositoryUrl ?? '<missing>'}`);
+      }
     }
     results.push({ id: listing.id, state: 'provider-visible', source: repository, branch: sourceRef });
   }
