@@ -1,0 +1,16 @@
+{
+  "version": "2.0.7",
+  "summary": "Update Qodo skills and marketplace packages.\n- docs(review): supply code dependency description hints (#89)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.10.1",
+      "change": "patch"
+    }
+  ]
+}
