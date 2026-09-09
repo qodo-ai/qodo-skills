@@ -1,10 +1,10 @@
 ---
 name: qodo-setup
-description: Connect Qodo to the current local coding agent — verify the Qodo CLI, guide a secure installation when it is missing, complete browser login, and confirm managed tools are ready. Use after installing the Qodo plugin, when the user asks to set up or connect Qodo, or when another Qodo skill reports that the CLI is missing or logged out.
+description: Set up Qodo in a local coding agent — install the CLI, sign in, and verify tools. Use after plugin installation, on a setup request, or when another Qodo skill finds a missing CLI or login.
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.6"
+  version: "1.0.7"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -14,34 +14,18 @@ metadata:
 
 ## Description
 
-Turn a marketplace install into one guided first-use flow: find the local runtime,
-authenticate the human through Qodo's browser login, and verify that this agent can use
-the managed tools. Never ask the user to paste credentials into chat.
+Complete setup in this conversation: find or install the CLI, sign in, and verify tools.
+Plugin installation does not connect an account.
 
 ## Prerequisites
 
-- The Qodo plugin or skills.sh package is installed for the current coding agent.
-- The user is present to approve a checksum-verified CLI install and complete browser login.
-- No credential, token, or invented installer checksum is copied into the conversation.
+A local shell and a user for browser sign-in. Never request or read credentials.
 
 ## Instructions
 
-Follow the four-stage workflow below: preserve lifecycle notices, resolve the runtime, authenticate
-the user, verify identity and tool readiness, then give a concise handoff with one next action.
+Resolve `references/...` links relative to this installed `SKILL.md` directory.
 
-## Handle a skill update notice
-
-A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When
-`code` is `qodo_skill_update_available`, keep the command's result and finish the current
-task. Then follow the notice's `steps`: do read-only inventory first, resolve the installed
-Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
-once before any mutation. If the user declines, keep the current version usable.
-
-Never invoke a different lifecycle owner, guess a placeholder, or install an optional package
-implicitly. After an approved update, ask for the host restart named by the notice; the current
-session may still have the old skill loaded.
-
-## 1. Find the runtime
+### 1. Find or install the runtime
 
 Run:
 
@@ -49,131 +33,66 @@ Run:
 qodo --version
 ```
 
-If a POSIX shell reports `qodo: command not found`, retry the standard user-scoped location:
+If missing, try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version` on POSIX.
+For PowerShell or a missing CLI, read [runtime.md](references/runtime.md).
+Install through that procedure and continue here without requiring a second setup request.
+A setup request covers the CLI install; honor host approvals and user restrictions.
+Plugin installation alone does not authorize installing software.
+
+Keep the working executable as `<qodo>`. Require Qodo CLI **0.1.0-next.37 or newer**.
+If older or unparseable, follow the runtime reference before any authenticated command.
+
+### 2. Connect
+
+Run:
 
 ```sh
-"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.7 --distribution skills-sh
 ```
 
-In Windows PowerShell, use the native launcher:
+If successful, retain the verified identity and continue to step 3 without repeating it.
+For a failed check, read [authentication.md](references/authentication.md) to distinguish
+missing credentials, sandbox access, and other failures before choosing login.
 
-```powershell
-$qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
-& (Join-Path $qodoHome 'bin/qodo.cmd') --version
-```
+For Qodo Cloud, announce and run `<qodo> login` when signed out. For any customer deployment,
+read the authentication reference first: preserve its exact login endpoint and never guess
+or fall back to Cloud. Wait for login to finish, then rerun the identity command above.
+Browser opening alone is not success.
 
-Keep the working command for every later step. Do not rewrite PATH automatically.
+Remember the execution context where identity or login worked. Use that context for later
+credential-dependent commands, requesting each required host approval; a diagnostic approval
+does not grant blanket permission. Do not repeat a known-failing sandbox probe after login.
+Stop on cancellation or denied permission.
 
-If neither command exists, tell the user:
+### 3. Verify tools
 
-> The Qodo skill is installed, but its local runtime is not. Obtain the checksum-verified Qodo CLI
-> from https://get.qodo.ai or your organization's Qodo administrator, then ask me to “Set up Qodo”
-> again.
-
-Stop there. Do not invent a checksum, pipe a remote script into a shell, use a package from
-an unofficial registry, or install software without the user's approval.
-
-If an executable was found, evaluate its output before continuing. The unadorned version probe is
-intentionally compatible with older Qodo CLIs. This skill requires Qodo CLI **0.1.0-next.37 or newer**.
-If the version is older or cannot be parsed, do not run `whoami` or `login` and do not
-describe the failure as an authentication problem. Explain that the skill is newer than the runtime,
-show `<qodo> update` as the update command for the runtime's already-recorded origin, and ask once
-before running it. For a customer deployment, keep its organization-provided update origin; never
-switch it to the public service. After an approved update, rerun the unadorned version probe and
-continue only when it satisfies the minimum. If the user declines or the update fails, stop with the
-current skill and user files unchanged.
-
-## 2. Check authentication
-
-Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.6 --distribution skills-sh`.
-
-In a sandboxed environment, any failed `whoami` can be a blocked keychain rather than a logged-out
-user. Ask for approval to retry that exact read-only command once outside the sandbox. The approval
-applies only to that diagnostic retry. If it succeeds, continue normally; only treat the user as
-logged out when the approved retry also fails.
-
-- Success and an identified account: continue to verification.
-- After the sandbox diagnostic above when applicable, `Not logged in`, missing credentials, or a
-  non-zero authentication result: choose the login path below. Do not run login until its
-  deployment endpoint is resolved.
-- An `unknown command` or `unknown option` after the successful version gate is a runtime-contract
-  failure, not an authentication failure. Report the exact error and stop; do not send the user
-  through login.
-
-Choose the login command before opening a browser:
-
-- For Qodo Cloud, run `<qodo> login`.
-- For a customer deployment, preserve the exact deployment-specific command the installer,
-  administrator, or user provided, such as `<qodo> login --auth-url <their-url>`.
-- Plain `<qodo> login` is also safe for a customer deployment only when this interaction has
-  explicit evidence that CLI 0.1.0-next.37 or newer already retained that endpoint—for example,
-  an earlier `qodo logout` reported that it kept the auth endpoint. The CLI resolves a retained
-  endpoint before the cloud default; never merely assume one was retained.
-- If a customer deployment is known but no exact command, endpoint, or retained-endpoint evidence
-  is available, stop and tell the user to obtain the login command from their Qodo administrator.
-  Never probe or fall back to Qodo Cloud.
-
-`qodo login` may open a browser. Tell the user what is happening before you run it. Wait for
-the command to finish; never claim login succeeded from a browser opening alone. If the
-user cancels or login fails, preserve the error message, explain that Qodo is still not
-connected, and stop without invoking other Qodo skills.
-
-## 3. Verify readiness
-
-After login, run both:
+Only after identity succeeds, run:
 
 ```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.6 --distribution skills-sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.6 --distribution skills-sh
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.7 --distribution skills-sh
 ```
 
-Read the structured results. Readiness requires both a successful authenticated identity
-and a usable tool catalog. A successful process launch by itself is not enough.
-
-If catalog refresh fails while `whoami` succeeds, report that authentication is complete
-but managed tools are not ready, including the returned error and the safe retry
-`qodo tools --refresh`. Do not send the user through login again unless `whoami` fails.
+Require a successful, nonempty usable catalog. Inspect structured results with bounded output
+(exit status, error, tool count and relevant names); do not dump every tool schema.
+If refresh fails, report that sign-in succeeded but tools are unavailable, with the exact error
+and `<qodo> tools --refresh` as the retry. Do not log in again for a catalog failure.
 
 ## Configuration
 
-Keep the first working Qodo executable path and any explicit `--auth-url` for the entire setup.
-Stamp exact skill/version/distribution provenance on the first Qodo call. Marketplace or skills.sh
-owns this skill package; the CLI owns login, runtime, and tool-catalog refresh.
-
-When the host is Kiro and safe reads prompt repeatedly, explain the optional persistent rule before
-the next read. The only broad pattern to offer is `<qodo> read *`: that CLI gateway rejects every
-managed tool not explicitly marked non-mutating by the live catalog. Keep the version probe as its
-own exact `<qodo> --version` rule. Never suggest `<qodo> *` or `<qodo> codebase *`, and never edit
-Kiro permission files from the agent. The user may choose Kiro's **Always allow** action and scope,
-or review the generated `qodo-read-only.permissions.yaml` supplied with the Qodo Power.
+Keep executable, deployment, execution context and provenance throughout setup.
+The CLI owns credentials, transport and runtime updates; the package's
+lifecycle owner updates skills. For `QODO_NOTICE` updates or repeated Kiro read approvals,
+read [host-recovery.md](references/host-recovery.md) only when encountered.
 
 ## Error Handling
 
-Stop on missing runtime, canceled login, failed identity, or unavailable tools and report the exact
-safe next action. Never convert a browser opening, process launch, or partial catalog refresh into a
-successful readiness claim.
+Give the actual error and one next action. Never report readiness after a failed
+identity, canceled login or unavailable catalog. Never disable the keychain, copy credentials,
+change host permission files, or offer unrestricted command approvals to make setup pass.
 
 ## 4. Hand off
 
-Use **verified readiness → one relevant next action** in plain prose. Confirm that Qodo is
-connected and ready only after both identity and tool-catalog checks succeed. For example,
-when local review is available: “Qodo is connected and ready. To start, ask ‘Review my local
-changes.’” Mention Qodo naturally once; no branded headings, emoji banners, slogans, badges,
-footers, or repeated summary blocks.
-
-Include workspace or deployment details when they help confirm the correct connection. Keep
-tool counts and runtime versions out of the normal success response; use them for diagnostics
-when relevant. For partial setup, name the actual blocker and safe next step without claiming
-readiness. Choose one relevant next action from capabilities actually available to this user
-and skills loaded in this session; the following are alternatives, not a menu to print:
-
-- “Review my local changes” → `qodo-review`
-- “Load our coding standards” → use `qodo-get-rules` only when it is available. Otherwise,
-  explain that it belongs to the optional **Qodo Standards** add-on; install that add-on through
-  the current agent marketplace, or use `qodo agents install --standards --json` to detect local
-  compatible agents and print their separate exact skills.sh commands without installing anything.
-- “Explain this codebase” → `qodo-codebase-wisdom`
-- “Show the Qodo findings on this PR” → `qodo-review-resolver`
-
-Do not run one of those workflows until the user asks. Setup establishes capability; it
-does not infer permission to review, edit, post, or administer standards.
+Confirm verified readiness in plain prose, then suggest one next action supported by the
+catalog and loaded skills, e.g. “Qodo is connected and ready. Ask ‘Explain this codebase.’”
+Mention account or deployment when useful. Omit routine versions, counts and repeated summaries.
+Do not launch another workflow or install optional Standards during setup.
