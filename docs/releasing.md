@@ -1,34 +1,57 @@
 # Releasing Qodo skills
 
-## 1. Prepare one atomic pull request
+Start with the [Actions guide](../.github/workflows/README.md) to find the right workflow.
 
-Edit only canonical files under `skills/` and catalog metadata, then run:
+## 1. Merge source changes, then review one release PR
+
+Contributors edit canonical files under `skills/` and catalog display metadata, open a normal PR,
+wait for checks, and merge. Existing versions and generated files stay unchanged. No local commands,
+Node installation, or Conventional Commit format are required. New skills need a canonical file,
+catalog entry with an initial version, and the existing skill-specific validation coverage.
+
+**CI: Validate distribution** generates an ephemeral release preview for source PRs and main pushes,
+then runs the full validation matrix. It rejects edits to generated files, mismatched source versions,
+unsupported removals, missing catalog entries, and incomplete release data. A prepared release PR
+is checked directly without regenerating away mistakes in its committed artifacts.
+
+After successful main-push validation, **Release: Prepare PR** maintains one PR from
+`automation/skills-release`. It follows the Release Please pattern using this repository's existing
+Node generator; it does not require the stock Release Please action or another version manifest.
+The baseline is the first-parent commit that added the current immutable release record. All source
+changes since that snapshot are accumulated: existing changed skills get one patch bump, new skills
+use `initial` and a package minor, and packaging-only changes get a package patch. Reverted changes
+drop out; if none remain, the bot closes its release PR. Source changes to artifact builders are
+included even when skill bodies did not change.
+
+The bot only executes code already merged to main, checks that main still matches the validated run,
+and uses an explicit lease on its fixed branch. It never commits to contributor branches. Repeated
+runs preserve the same proposed version and do not push an identical tree on the same base. If an
+unrecognized branch already occupies that name, it stops for inspection. **Prepare skills release
+PR** also offers a main-only manual rerun. If initial branch publication succeeded but PR creation
+failed, inspect and delete the orphan branch in GitHub, then rerun the action.
+
+A release owner selects **Approve workflows to run** if shown in the release PR merge box, waits
+for the current checks, reviews the generated packages and release record, and merges. GitHub's
+repository-token PR events require this approval; see [the trigger documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+The repository must permit Actions to create pull requests. No extra App credentials are needed for
+release-PR preparation. Updates to the bot PR are regenerated; source edits belong in ordinary PRs.
+
+Kiro reads `main/kiro-power` and `main/kiro-power-standards`. Only the release PR updates these generated
+snapshots. Canonical `skills/` on main can contain unreleased changes. Consumers that intentionally
+read canonical main directly see those source changes earlier.
+
+For explicit minor/major releases or recovery, a maintainer can still prepare a complete release PR:
 
 ```sh
-npm run release:prepare -- \
-  --summary "Improve local review guidance" \
-  --skill qodo-review=patch
+npm run release:prepare -- --summary "Explain the compatibility change" --skill qodo-review=minor
 npm test
 ```
 
-`release:prepare` increments the affected skill and package versions, regenerates Claude, Codex,
-Kiro, and release-index artifacts, and writes `releases/v<version>.json`. CI requires a version bump
-for skill bodies, generated projections, marketplace packaging, and artifact-generating automation;
-it also rejects generated drift, a thin loader, package leakage, or an incomplete release record.
-Operational release publication and validation code can advance independently because it changes no
-installed package bytes—this separation is what permits a reviewed fix to resume an existing tagged
-draft without inventing or moving a package version.
-The marketplace helper is an exception: `marketplace-release.mjs` also builds provider packets,
-and **Ship marketplaces** executes it from the selected immutable release tag. A fix to that
-helper requires a packaging patch (`--package patch`); rerunning an older tag still uses its old
-verifier even after the fix merges to `main`.
-
-The pull request must state:
-
-- user-visible behavior and compatibility impact;
-- canonical skills and packages changed;
-- native hosts actually tested;
-- any provider acceptance still pending.
+Do not merge competing prepared releases. Close the bot PR before coordinating a manual release;
+automation resumes from its release record after merge. Removal remains unsupported until an
+immutable removal record is designed. Operational publisher and validator changes can advance
+independently when they do not change installed packages. `marketplace-release.mjs` builds provider
+packets and is versioned: its fixes enter the next release, since shipping executes the selected tag.
 
 ## 2. Publish an immutable GitHub release
 
@@ -68,12 +91,14 @@ immutable-release settings endpoint, so the workflow mints a short-lived, reposi
 token for that pre-publication check. The checked-in audit, runtime preflight, and publication programs are covered behaviorally:
 missing credentials, disabled immutability, duplicate/invalid rulesets, forbidden creation rules,
 draft corruption, draft resume, publication, and immutable retry all fail closed.
-After the compatible CLI release is live and the skills PR is merged, a release owner dispatches
-**Release skills** from the current `main` head. Rerunning it is idempotent, including recovery when
-a prior run created the protected tag and draft but stopped before publication. The workflow:
+Merging a release record onto main starts **Release: Publish skills** automatically. The existing
+`marketplace-kiro` approval and runtime compatibility preflight still apply; a missing compatible CLI
+release blocks publication. Rerun the captured release run after resolving a transient failure.
+Manual dispatch remains available for a fully prepared main snapshot or reviewed draft recovery.
+Ordinary source merges do not start publication. The workflow:
 
-1. requires the dispatched SHA to be the exact `main` head before and after validation; a merge
-   after that final check does not change the validated release SHA;
+1. captures the release commit and verifies it remains an ancestor of main before publication;
+   subsequent source merges do not change the validated SHA or enter that release;
 2. installs the lockfile-pinned validation dependencies and validates the release package;
 3. uses the protected release App to verify repository immutability, then requires the exact
    protected-tag ruleset before creating any tag or release;
@@ -134,7 +159,7 @@ patch release; it is never accepted as a successful release.
 ## 3. Ship selected marketplaces
 
 Once the protected compatibility pointer advertises the immutable tag, the hourly
-**Marketplace auto-start** watcher dispatches **Ship marketplaces** once with `all`. The action
+**Marketplaces: Start shipping** watcher dispatches **Marketplaces: Ship release** once with `all`. The action
 validates the tag/version, downloads the advertised compatibility index and bundle, verifies their
 checksums and release identity, and byte-compares all four files with the immutable GitHub release
 assets before regenerating the exact provider packet. It rejects a tag below the highest successful
@@ -161,7 +186,7 @@ cross-tag releases.
 
 The action prepares every selected packet first. Claude and Kiro shipping jobs then wait in
 `marketplace-claude` and `marketplace-kiro` for the release owner's handoff approval.
-Kiro's source follows ordinary merges to `main`; shipping does not advance a separate branch.
+Kiro's generated source changes with release PR merges to `main`; shipping does not advance a separate branch.
 New Kiro shipments require a release with the main-source contract (v2.0.4 onward); an older
 contract is rejected before preparation rather than silently skipping its required promotion.
 These jobs finish with **awaiting provider verification**; public catalog propagation does not fail
@@ -170,7 +195,7 @@ Codex stays human-gated because its documented flow requires portal
 submission, review, and explicit publication. Its `marketplace-codex` approval is an attestation
 after provider publication, not a substitute for it. All three environments require reviewers.
 
-**Verify marketplace visibility** is a separate read-only workflow. It runs after successful
+**Marketplaces: Verify listings** is a separate read-only workflow. It runs after successful
 shipping, every 15 minutes, and on manual dispatch. Its default target is the highest successfully
 shipped tag **per provider**, using the selected provider's successful job in that shipping attempt.
 A Codex-only run cannot advance the Claude/Kiro target; rerunning an older tag cannot move it back.
@@ -225,7 +250,7 @@ Codex listing presentation is configured in `distribution/codex-submissions.json
 `starterSkills` explicitly selects at most three installed skills, whose prompts remain authored
 once in the catalog. It does not change installed skill membership. `shortDescription` is limited
 to 30 characters. Branding is vendored under `distribution/assets/codex/`. Run `npm run adapters`
-after changes and use `release:prepare -- --package patch --summary "..."` for packaging-only fixes.
+after changes; merged packaging fixes are collected in the next release PR.
 Do not edit a published ZIP or replace an immutable release.
 
 For the ownership cutover, submit `qodo` as an initial company-owned listing using **Business — Qodo**
@@ -256,7 +281,7 @@ legacy Kiro branch ruleset is required by marketplace shipping. Immutable releas
 keeps its separate App audit, protected approval, and no-bypass tag protections.
 
 Core listing identity remains `qodo`; Qodo Standards remains the separately installable
-`qodo-standards` listing. **Ship marketplaces** selects providers, not individual listings, and
+`qodo-standards` listing. **Marketplaces: Ship release** selects providers, not individual listings, and
 ships every configured listing for each selected provider together. Optionality is an installation
 choice, not a separate release selector. Never replace the core listing during a source migration.
 

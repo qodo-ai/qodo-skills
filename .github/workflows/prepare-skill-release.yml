@@ -1,0 +1,45 @@
+name: 'Release: Prepare PR'
+
+on:
+  workflow_run:
+    workflows: ['CI: Validate distribution']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: qodo-skills-release-pr
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      github.repository == 'qodo-ai/qodo-skills' &&
+      ((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository) ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out validated main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Install locked validation dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Prepare the accumulated release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/run-skill-release.mjs

@@ -190,8 +190,8 @@ verify_release_assets() {
 require_current_main() {
   require_exact_release_checkout
   git fetch origin main --no-tags
-  if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
-    echo 'Refusing to publish: main advanced while this release was being validated.' >&2
+  if ! git merge-base --is-ancestor "${GITHUB_SHA}" "$(git rev-parse origin/main)"; then
+    echo 'Refusing to publish: the captured release commit no longer belongs to main.' >&2
     exit 1
   fi
 }

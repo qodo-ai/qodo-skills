@@ -145,7 +145,7 @@ test('uses the target release contract instead of assuming the current checkout 
 
 test('observer is independent, read-only, bounded, and cannot turn mismatches green', () => {
   const workflow = readFileSync(new URL('../.github/workflows/verify-marketplace-visibility.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /workflow_run:[\s\S]*workflows: \[Ship marketplaces\]/);
+  assert.match(workflow, /workflow_run:[\s\S]*workflows: \['Marketplaces: Ship release'\]/);
   assert.match(workflow, /cron: '8,23,38,53 \* \* \* \*'/);
   assert.match(workflow, /actions: read\s+contents: read/);
   assert.match(workflow, /fail-fast: false/);

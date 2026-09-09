@@ -182,10 +182,12 @@ copy and recoverable predecessor; marketplace skills remain owned by their host.
   changes require a package release, every semantic-version delta must match its release record,
   catalog-only bumps cannot disappear from release notes, `initial` cannot target an existing
   skill, and deletion is blocked until the release schema defines an explicit tombstone.
-- After the compatible CLI is live, dispatch **Release skills** manually from current `main`; the
-  workflow verifies the selected SHA is current before and after validation, pushes a protected
-  annotated tag, verifies its peeled remote SHA, creates or resumes a draft, verifies both assets
-  before publication, and then re-verifies the immutable tag and assets after publication.
+- Contributors merge canonical source PRs; **Release: Prepare PR** collects their versions and
+  generated packages in one release PR. Merging its release record starts **Release: Publish skills**.
+  The compatible CLI must be available and the existing protected approval still applies. Publication
+  verifies the captured commit remains on main, pushes a protected annotated tag, verifies its peeled
+  SHA, creates or resumes a draft, and verifies every asset before and after immutable publication.
+  Manual dispatch remains a recovery control; see the [Actions guide](../.github/workflows/README.md).
 - CI executes those checked-in preflight and publication programs with a stateful fake GitHub CLI,
   including credential/ruleset failures, corrupted draft rejection and resume, successful
   publication, and idempotent immutable verification. The release asset inventory includes a

@@ -1,10 +1,10 @@
-name: Verify marketplace visibility
+name: 'Marketplaces: Verify listings'
 
 on:
   schedule:
     - cron: '8,23,38,53 * * * *'
   workflow_run:
-    workflows: [Ship marketplaces]
+    workflows: ['Marketplaces: Ship release']
     types: [completed]
     branches: [main]
   workflow_dispatch:
