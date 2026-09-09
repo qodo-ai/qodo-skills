@@ -2,23 +2,50 @@
 
 ## Change a skill
 
-1. Edit only `skills/<name>/SKILL.md` for workflow behavior.
-2. Keep the file below 500 lines and use the `qodo-` lowercase-kebab name.
-3. Keep authentication and API transport behind the `qodo` command.
-4. Prepare the release atomically:
+You can update an existing skill entirely in GitHub. No Node installation or local commands are
+required.
 
-   ```sh
-   npm run release:prepare -- \
-     --summary "Explain the user-visible improvement." \
-     --skill qodo-review=patch
-   ```
+1. Open `skills/<name>/SKILL.md`, click the pencil, and edit the instructions. For Codebase Wisdom,
+   the file is `skills/qodo-codebase-wisdom/SKILL.md`.
+2. Choose **Create a new branch for this commit and start a pull request** in this repository.
+   Describe the behavior you changed. Leave version numbers and generated files to automation.
+3. **Prepare skill update** automatically bumps the changed skills and package by one patch,
+   regenerates the marketplace copies, and adds the release record to the same PR.
+4. A reviewer selects **Approve workflows to run** in the PR merge box after the bot commit.
+   Wait for the checks on that commit, review the change, and merge. The first checks may report
+   stale generated files while preparation is running; the checks on the bot commit are the ones
+   that must pass.
 
-   Repeat `--skill <name>=<patch|minor|major>` when one change affects several skills. Use
-   `<name>=initial` for a newly added skill; pull-request validation rejects `initial` for an
-   existing one. For marketplace-only packaging changes, use `--package patch` instead.
-5. Review the generated catalog, manifests, skill frontmatter, and immutable
-   `releases/v<version>.json` record.
-6. Run `npm test`.
+Further instruction edits refresh that same prepared version. If main has advanced, use GitHub's
+**Update branch** and resolve any conflicts before preparation runs again. Maintainers can rerun
+the preparation action after a transient failure. Review the action summary if no commit appears.
+
+Automatic preparation covers edits to existing `SKILL.md` files on same-repository PRs. New or
+removed skills, supporting-file changes, catalog/display metadata, mixed code changes, and intentional
+minor/major releases need maintainer preparation. Contributors can still open those PRs in GitHub;
+a maintainer handles the packaging. Existing manually prepared releases are left intact. Never edit
+the generated marketplace copies yourself.
+
+Keep skill files below 500 lines and keep authentication and API transport behind the `qodo`
+command. Merging updates Kiro's main source; immutable release publication and the remaining
+marketplace handoffs still follow [the release process](docs/releasing.md).
+
+## Maintainer preparation
+
+The local tooling remains available for structural changes, larger version bumps, and recovery:
+
+```sh
+npm run release:prepare -- \
+  --summary "Explain the user-visible improvement." \
+  --skill qodo-review=patch
+```
+
+Repeat `--skill <name>=<patch|minor|major>` when one change affects several skills. Use
+`<name>=initial` for a newly added skill; pull-request validation rejects `initial` for an
+existing one. For marketplace-only packaging changes, use `--package patch` instead.
+
+Review the generated catalog, manifests, skill frontmatter, and immutable
+`releases/v<version>.json` record, then run `npm test`.
 
 Do not edit generated manifests or `skills/*/agents/openai.yaml` by hand. Change their
 source metadata in the catalog, then regenerate.

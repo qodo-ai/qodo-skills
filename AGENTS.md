@@ -11,7 +11,11 @@
 - Keep every source file below 500 lines; extract focused references or scripts when needed.
 - Use Node built-ins for repository automation. Do not add a runtime dependency without a
   documented need and approval.
-- Prepare release-bound changes with `npm run release:prepare -- --summary ... --skill
+- Existing skill instruction PRs can be authored entirely in GitHub: `Prepare skill update`
+  adds patch versions, generated files, and a release record to the same PR. Contributors do not
+  need Node or local commands. A reviewer approves workflows on the bot commit before merging.
+- For structural changes, intentional minor/major releases, or local maintainer work, prepare
+  release-bound changes with `npm run release:prepare -- --summary ... --skill
   <name>=<initial|patch|minor|major>` so package, skill, adapter, and release-record versions stay
   atomic. Use `initial` only for a newly added skill.
 - Run `npm test` and available host-native validators before handoff.

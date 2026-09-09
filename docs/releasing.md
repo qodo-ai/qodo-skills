@@ -2,7 +2,20 @@
 
 ## 1. Prepare one atomic pull request
 
-Edit only canonical files under `skills/` and catalog metadata, then run:
+For routine instruction edits, contributors edit `skills/<name>/SKILL.md` in GitHub and open a
+same-repository PR. `Prepare skill update` runs trusted main-branch tooling, reads the PR's skill
+text as data, and commits the generated patch release to that PR. It never executes PR scripts
+with write credentials. Repeated runs refresh the same version, and publication uses an expected
+head SHA so a concurrent edit cannot be overwritten.
+
+The repository token creates PR check runs awaiting **Approve workflows to run** in the merge
+box. A reviewer approves them and waits for the complete existing validation matrix on the new
+commit. This follows [GitHub's token-trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+No extra App credentials or contributor Node installation are required. If main advances, update
+the PR branch in GitHub; preparation refuses stale bases. New skills, supporting files, catalog
+metadata, mixed code changes, and minor/major releases stay with the maintainer path below.
+
+For maintainer preparation, edit canonical files under `skills/` and catalog metadata, then run:
 
 ```sh
 npm run release:prepare -- \

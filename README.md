@@ -17,6 +17,13 @@ runtime updates, and a compact stale-skill notice; it never installs or rewrites
 
 Qodo Standards stays a separate opt-in package. Updating the core package never installs it.
 
+## Contribute a skill update
+
+Edit `skills/<name>/SKILL.md` directly in GitHub and open a PR from a new branch in this repository.
+**Prepare skill update** adds patch versions, generated marketplace files, and the release record
+to your PR. A reviewer approves the checks on the bot commit, reviews, and merges. Contributors
+do not need Node or local commands. See [Contributing](CONTRIBUTING.md) for the complete flow.
+
 ## Install
 
 Use the official Qodo listing in Claude Code, Codex, or Kiro. The marketplace owns installation
