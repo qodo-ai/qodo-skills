@@ -23,6 +23,8 @@ A local shell and a user for browser sign-in. Never request or read credentials.
 
 ## Instructions
 
+Resolve `references/...` links relative to this installed `SKILL.md` directory.
+
 ### 1. Find or install the runtime
 
 Run:
