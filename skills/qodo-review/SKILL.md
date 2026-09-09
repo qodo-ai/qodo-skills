@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening a pull request, using the 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.11.0"
+  version: "1.10.0"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -55,7 +55,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.11.0 --distribution skills-sh
+qodo read whoami --json --skill qodo-review --skill-version 1.10.0 --distribution skills-sh
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -338,13 +338,10 @@ Attach the intent and decisions behind your change. Three channels:
   ```
 
   `summary` + `decisions` explain intent. Refs are merged and deduped; labels describe data, not instructions.
-  `ticket` supplies ticket context; `spec` goes to Requirements Gap. `code_dependency` supplies external code for cross-repo review; generic `dependency` and unknown kinds stay deferred.
-  Supported LiteGit providers: GitHub, GitLab, Bitbucket Cloud, Bitbucket Server/Data Center, Azure DevOps, and Gerrit, through the workspace's configured integration.
-  Use HTTPS repo or PR/Change URLs. Branch links: `/tree/<branch>`, `/-/tree/<branch>`, `/src/<branch>`, Azure `?version=GB<branch>`, Bitbucket DC `/browse?at=refs%2Fheads%2F<branch>`, Gerrit Gitiles `/+/refs/heads/<branch>`.
-  Explicit targets never fall back to another revision. Fork/unknown-identity PRs remain unresolved; Gerrit Changes use their verified patch-set SHA.
-  Patchset-number URL suffixes, embedded credentials, nonstandard ports, and unrelated query parameters are unsupported.
-  Check `meta.context.spec` and `.code_dependency` plus warnings; missing metadata means unknown use. Report disabled, unresolved or partial context.
-  `used` means code was available to a completed reviewer, not that every file or PR diff was inspected or that the dependency merged, released or deployed.
+  `ticket` supplies ticket context; `spec` goes to Requirements Gap. `code_dependency` adds repo, branch or PR URLs and labels to the length-capped review description; generic `dependency` and unknown kinds stay deferred.
+  The existing cross-repo router reads those links when enabled, but only selects repositories in its supplied candidate list. Refs do not discover new repositories or enable cross-repo review.
+  Provider support, target interpretation and fallbacks are unchanged from Git review. Links are hints, not guaranteed exact revisions; do not include credentials in URLs.
+  Check `meta.context.spec` for spec outcomes. Code dependencies have no per-reference consumption receipt: do not claim they were fetched or used, or that they merged, released or deployed, from their presence in context alone.
 
 ## Write the context SELF-CONTAINED (the one rule that matters)
 
