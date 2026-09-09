@@ -1,0 +1,10 @@
+{
+  "version": "2.0.3",
+  "summary": "Separate marketplace shipping from scheduled provider visibility verification.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}

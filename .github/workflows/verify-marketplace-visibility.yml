@@ -1,0 +1,93 @@
+name: Verify marketplace visibility
+
+on:
+  schedule:
+    - cron: '8,23,38,53 * * * *'
+  workflow_run:
+    workflows: [Ship marketplaces]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Immutable release to inspect (empty uses latest successful shipment per provider)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: qodo-marketplace-visibility
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: >-
+      github.repository == 'qodo-ai/qodo-skills' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      (github.event_name != 'workflow_run' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_targets: ${{ steps.plan.outputs.has_targets }}
+    steps:
+      - name: Check out trusted verification automation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Resolve immutable provider targets
+        id: plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: node scripts/plan-marketplace-verification.mjs
+
+  verify:
+    name: Verify ${{ matrix.provider }} (${{ matrix.tag }})
+    needs: plan
+    if: needs.plan.outputs.has_targets == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out trusted verification automation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Read the immutable release contract
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ matrix.commit }}
+          path: release-source
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Require exact provider-visible listings
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PROVIDER: ${{ matrix.provider }}
+          RELEASE_TAG: ${{ matrix.tag }}
+          RELEASE_COMMIT: ${{ matrix.commit }}
+          RELEASE_CATALOG: release-source/distribution/marketplaces.json
+        run: node scripts/verify-marketplace-visibility.mjs

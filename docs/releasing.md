@@ -156,16 +156,48 @@ cross-tag releases.
 
 | Provider | Automation | Completion evidence |
 |---|---|---|
-| Claude Code | packet generation, protected submission pause, then official catalog verification | both selected listings expose the released commit/path |
+| Claude Code | packet generation and protected handoff; separate scheduled catalog verification | both selected listings expose the released commit/path |
 | Codex | exact portal packet with deterministic per-listing ZIPs, SHA-256 checksums, and protected release-owner gate | portal review/publish completed, then protected environment approved |
-| Kiro | packet generation, protected release-branch promotion, then live directory verification | selected Powers expose `marketplace-kiro` at the released commit and paths |
+| Kiro | packet generation and protected release-branch promotion; separate scheduled directory verification | selected Powers expose `marketplace-kiro` at the released commit and paths |
 
-The action prepares every selected packet first. Claude and Kiro verification jobs then wait in
-`marketplace-claude` and `marketplace-kiro` so a release owner can complete any provider submission
-without starting a second workflow; after approval, the job verifies the live listing and fails if
-it is not the selected release. Codex stays human-gated because its documented flow requires portal
+The action prepares every selected packet first. Claude and Kiro shipping jobs then wait in
+`marketplace-claude` and `marketplace-kiro` for the release owner's handoff/promotion approval.
+Kiro's job advances the protected release branch. These jobs finish with **awaiting provider
+verification**; public catalog propagation does not fail shipping or hold its release lock.
+Preparation, protection checks, and promotion errors still fail shipping. Codex stays human-gated because its documented flow requires portal
 submission, review, and explicit publication. Its `marketplace-codex` approval is an attestation
 after provider publication, not a substitute for it. All three environments require reviewers.
+
+**Verify marketplace visibility** is a separate read-only workflow. It runs after successful
+shipping, every 15 minutes, and on manual dispatch. Its default target is the highest successfully
+shipped tag **per provider**, using the selected provider's successful job in that shipping attempt.
+A Codex-only run cannot advance the Claude/Kiro target; rerunning an older tag cannot move it back.
+Without successful shipping evidence, the provider is reported as unverified and is not checked.
+The observer does not approve environments, acquire shipping locks, promote branches, or publish.
+
+Each check validates release immutability and resolves its exact commit. The current trusted
+verifier reads the marketplace contract from that commit, so later code fixes work without
+silently changing the release's expected paths or branch. Claude and Kiro run independently;
+wrong/missing listings, stale pins, branch mismatches, and request failures fail the observer.
+Its job summaries retain the expected tag/SHA and the mismatch. A green shipping run means our
+shipping steps completed; provider acceptance requires a green visibility check as well.
+
+For an already published release whose old shipping run failed on visibility, inspect it without
+repeating promotion or approval:
+
+```sh
+gh workflow run verify-marketplace-visibility.yml --ref main -f release_tag=v2.0.2
+```
+
+An explicit tag is a manual inspection, not evidence of successful shipping. Leave it empty for
+normal tracking. Both workflows must be merged onto the default branch for their new behavior;
+rerunning an old shipping run continues to use its original workflow definition.
+
+Anthropic's official catalog already tracks both `qodo` and `qodo-standards` in
+[`releases-only`](https://github.com/anthropics/claude-plugins-official/blob/517b2fcd1b60fa2181ac52dcf8492361ba341180/.github/bump-tracking.json).
+Its daily [SHA updater](https://github.com/anthropics/claude-plugins-official/blob/517b2fcd1b60fa2181ac52dcf8492361ba341180/.github/workflows/bump-plugin-shas.yml)
+opens update PRs; checks and upstream merge still determine when listings become visible.
+The observer verifies the resulting catalog rather than assuming a schedule or PR proves publication.
 
 For Codex, upload the archive named by each `submissions/<listing>.json` record and verify it against
 `release.json`, its submission record, and `bundles/SHA256SUMS` by running
