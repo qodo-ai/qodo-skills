@@ -110,6 +110,11 @@ try {
       const skillArchiveFiles = tarFiles(firstSkillArchive);
       assert.ok(skillArchiveFiles.has('SKILL.md'));
       assert.match(skillArchiveFiles.get('SKILL.md').toString(), /  distribution: "enterprise-bundle"/);
+      // Progressive disclosure must work after installing an individual skill archive.
+      for (const [, reference] of skillArchiveFiles.get('SKILL.md').toString().matchAll(/\]\((references\/[^)]+\.md)\)/g)) {
+        const source = readFileSync(join(root, 'skills', entry.name, reference), 'utf8').replace(/\r\n/g, '\n');
+        assert.equal(skillArchiveFiles.get(reference)?.toString().replace(/\r\n/g, '\n'), source);
+      }
       assert.ok([...skillArchiveFiles.keys()].every((path) => !path.startsWith('qodo-enterprise/')));
     }
   }

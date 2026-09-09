@@ -285,10 +285,15 @@ for (const skill of catalog.skills ?? []) {
     fail(`${skill.name}: runtime gate must name catalog minimumCliVersion`);
   }
   if (skill.name === 'qodo-setup') {
-    const chooseLogin = skillText.indexOf('Choose the login command before opening a browser:');
-    const cloudLogin = skillText.indexOf('For Qodo Cloud, run `<qodo> login`.');
-    const customerLogin = skillText.indexOf('For a customer deployment, preserve the exact deployment-specific command');
-    const failClosed = skillText.indexOf('Never probe or fall back to Qodo Cloud.');
+    // Our entrypoint regression budget; conditional procedures are loaded on demand.
+    if (Buffer.byteLength(skillText, 'utf8') > 4000) {
+      fail('qodo-setup: main prompt exceeds 4000 UTF-8 bytes; move conditional detail to references');
+    }
+    const authentication = readFileSync(join(root, 'skills', skill.name, 'references', 'authentication.md'), 'utf8');
+    const chooseLogin = authentication.indexOf('Choose the login command before opening a browser:');
+    const cloudLogin = authentication.indexOf('For Qodo Cloud, run `<qodo> login`.');
+    const customerLogin = authentication.indexOf('For a customer deployment, preserve the exact deployment-specific command');
+    const failClosed = authentication.indexOf('Never probe or fall back to Qodo Cloud.');
     if (!(chooseLogin >= 0 && cloudLogin > chooseLogin && customerLogin > cloudLogin && failClosed > customerLogin)) {
       fail('qodo-setup: login guidance must branch by deployment and fail closed before opening a browser');
     }
@@ -426,7 +431,9 @@ for (const installPackage of catalog.installPackages ?? []) {
       });
       if (text !== expected) fail(`${path}: generated skill differs from the canonical embedded playbook`);
       if (text.includes('qodo help workflow ')) fail(`${path}: released skill must not load instructions at runtime`);
-      if (!text.includes('## Handle a skill update notice')) fail(`${path}: embedded playbook is incomplete`);
+      const notice = skillName === 'qodo-setup'
+        ? readFileSync(join(dirname(join(root, path)), 'references', 'host-recovery.md'), 'utf8') : text;
+      if (!notice.includes('## Handle a skill update notice')) fail(`${path}: embedded playbook is incomplete`);
       if (!text.includes(`--distribution ${distribution} --host ${host}`)) {
         fail(`${path}: missing exact lifecycle and host provenance`);
       }
