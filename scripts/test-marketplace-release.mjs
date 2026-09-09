@@ -305,7 +305,6 @@ assert.match(workflow, /approved provider handoff succeeded/);
 const protectionAudit = readFileSync(join(root, 'scripts', 'audit-release-protections.sh'), 'utf8');
 assert.doesNotMatch(protectionAudit, /\.can_admins_bypass/);
 assert.doesNotMatch(protectionAudit, /prevent_self_review/);
-assert.doesNotMatch(protectionAudit, /deployment-branch-policies/);
 assert.match(protectionAudit, /\.type == "required_reviewers"/);
 assert.match(protectionAudit, /QODO_SKILLS_RELEASE_APP_PRIVATE_KEY/);
 assert.match(protectionAudit, /\.permissions == \{"administration":"read","contents":"write","metadata":"read"\}/);
@@ -324,7 +323,7 @@ if (process.platform !== 'win32') {
     if (probe.error && probe.error.code !== 'ENOENT') throw probe.error;
   }
   if (!bashProbe.error && !jqProbe.error) {
-    const preflightFixture = mkdtempSync(join(tmpdir(), 'qodo-kiro-preflight-'));
+    const preflightFixture = mkdtempSync(join(tmpdir(), 'qodo-release-preflight-'));
     try {
       const bin = join(preflightFixture, 'bin');
       mkdirSync(bin);
@@ -335,15 +334,17 @@ if [[ "$*" == "api /apps/qodo-skills-release-bot" ]]; then
   printf '{"id":12345,"slug":"qodo-skills-release-bot","owner":{"login":"qodo-ai"},"permissions":{"administration":"read","contents":"write","metadata":"read"}}\\n'
 elif [[ "$*" == *"immutable-releases --jq .enabled"* ]]; then
   printf '%s\\n' "\${QODO_TEST_IMMUTABLE_RELEASES:-true}"
-elif [[ "$*" == "api repos/qodo-ai/qodo-skills/environments/marketplace-kiro" ]]; then
-  if [[ "\${QODO_TEST_MISSING_REVIEWER:-}" == 1 ]]; then
+elif [[ "$*" == "api repos/qodo-ai/qodo-skills/environments/skills-release" ]]; then
+  if [[ -n "\${QODO_TEST_RELEASE_ENVIRONMENT:-}" ]]; then
+    printf '%s\\n' "$QODO_TEST_RELEASE_ENVIRONMENT"
+  elif [[ "\${QODO_TEST_MISSING_REVIEWER:-}" == 1 ]]; then
     printf '{"can_admins_bypass":true,"deployment_branch_policy":{"protected_branches":true,"custom_branch_policies":false},"protection_rules":[]}\\n'
   else
     printf '{"can_admins_bypass":true,"deployment_branch_policy":{"protected_branches":true,"custom_branch_policies":false},"protection_rules":[{"type":"required_reviewers","prevent_self_review":false,"reviewers":[{}]}]}\\n'
   fi
 elif [[ "$*" == *"variables/QODO_SKILLS_RELEASE_APP_ID --jq .value"* ]]; then
   printf '%s\\n' "\${QODO_TEST_ENVIRONMENT_APP_ID:-12345}"
-elif [[ "$*" == *"environments/marketplace-kiro/secrets --jq"* ]]; then
+elif [[ "$*" == *"environments/skills-release/secrets --jq"* ]]; then
   printf 'true\\n'
 elif [[ "$*" == *"orgs/qodo-ai/installations?per_page=100"* ]]; then
   if [[ "\${QODO_TEST_MISSING_INSTALLATION:-}" != 1 ]]; then
@@ -380,6 +381,26 @@ fi
       });
       assert.equal(validAudit.status, 0, validAudit.stderr);
       assert.match(validAudit.stdout, /app_id=12345 tag_ruleset=78/);
+      for (const policy of [
+        null,
+        undefined,
+        {},
+        { protected_branches: false, custom_branch_policies: false },
+        { protected_branches: false, custom_branch_policies: true },
+        { protected_branches: true, custom_branch_policies: true },
+        { protected_branches: true },
+        { protected_branches: 'true', custom_branch_policies: 'false' },
+      ]) {
+        const invalidPolicyAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
+          encoding: 'utf8', timeout: 5_000,
+          env: { ...auditEnvironment, QODO_TEST_RELEASE_ENVIRONMENT: JSON.stringify({
+            deployment_branch_policy: policy,
+            protection_rules: [{ type: 'required_reviewers', reviewers: [{}] }],
+          }) },
+        });
+        assert.equal(invalidPolicyAudit.status, 1, `Audit accepted policy: ${JSON.stringify(policy)}`);
+        assert.match(invalidPolicyAudit.stderr, /deployments from protected branches only/);
+      }
       const missingInstallationAudit = spawnSync('bash', [join(root, 'scripts', 'audit-release-protections.sh')], {
         encoding: 'utf8', env: { ...auditEnvironment, QODO_TEST_MISSING_INSTALLATION: '1' }, timeout: 5_000,
       });
