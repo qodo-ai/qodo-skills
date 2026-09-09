@@ -108,11 +108,13 @@ rollback.
 - For Codex, confirm the company-owned publisher identity and the disposition of the earlier
   personally owned listing. Do not assume an in-place ownership transfer or automatic user migration.
 - Create protected GitHub environments `marketplace-claude`, `marketplace-kiro`, and
-  `marketplace-codex` with required release-owner reviewers.
+  `marketplace-codex` with required release-owner reviewers for provider handoffs. Create a separate
+  `skills-release` environment with required reviewers and protected-branch restrictions for
+  immutable skills publication.
 - Enable immutable releases in `qodo-ai/qodo-skills`.
 - Install the dedicated `qodo-skills-release-bot` GitHub App on `qodo-ai/qodo-skills` with only
   `Administration: read`, `Contents: write`, and `Metadata: read`. Store its App id and private key only in the protected
-  `marketplace-kiro` environment as `QODO_SKILLS_RELEASE_APP_ID` and
+  `skills-release` environment as `QODO_SKILLS_RELEASE_APP_ID` and
   `QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`, and require at least one release reviewer. For the initial
   cutover, admin bypass remains enabled, self-review is allowed, and protected branches may deploy;
   the team accepts this weaker approval posture and can harden it independently later.
