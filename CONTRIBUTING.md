@@ -26,8 +26,8 @@ minor/major releases need maintainer preparation. Contributors can still open th
 a maintainer handles the packaging. Existing manually prepared releases are left intact. Never edit
 the generated marketplace copies yourself.
 
-Keep skill files below 500 lines and keep authentication and API transport behind the `qodo`
-command. Merging updates Kiro's main source; immutable release publication and the remaining
+Keep skill files below 500 lines and follow the existing guidance in their canonical definitions.
+Merging updates Kiro's main source; immutable release publication and the remaining
 marketplace handoffs still follow [the release process](docs/releasing.md).
 
 ## Maintainer preparation

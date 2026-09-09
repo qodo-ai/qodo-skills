@@ -56,7 +56,7 @@ export async function runPreparation({ repository, number, base, request = api,
   // These commands still run the trusted base scripts and dependency manifest.
   run('npm', ['run', 'check'], { cwd: root, stdio: 'inherit' });
   run('git', ['-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com',
-    '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Validate prepared skill release'], { cwd: root, stdio: 'inherit' });
+    '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '--quiet', '-m', 'Validate prepared skill release'], { cwd: root, stdio: 'inherit' });
   run(process.execPath, ['scripts/validate-diff.mjs', base], { cwd: root, stdio: 'inherit' });
   const current = await request(`repos/${repository}/pulls/${number}`);
   if (!eligible(current, repository) || current.head.sha !== head || current.head.ref !== pr.head.ref || current.base.sha !== base) {
@@ -68,13 +68,15 @@ export async function runPreparation({ repository, number, base, request = api,
       input: {
         branch: { repositoryNameWithOwner: repository, branchName: pr.head.ref },
         expectedHeadOid: head,
-        message: { headline: `chore(skills): prepare v${result.version} for PR #${number}` },
-        fileChanges: { additions: result.additions },
+        message: { headline: result.version ? `chore(skills): prepare v${result.version} for PR #${number}`
+          : `chore(skills): remove reverted release preparation for PR #${number}` },
+        fileChanges: { additions: result.additions, deletions: result.deletions ?? [] },
       },
     },
   });
   const commit = response.data.createCommitOnBranch.commit;
-  log(`Prepared v${result.version} in [${commit.oid.slice(0, 7)}](${commit.url}). A reviewer must select **Approve workflows to run** in the PR merge box, then wait for the checks before merging. No local commands are required.`);
+  const outcome = result.version ? `Prepared v${result.version}` : 'Removed release preparation for reverted instructions';
+  log(`${outcome} in [${commit.oid.slice(0, 7)}](${commit.url}). A reviewer must select **Approve workflows to run** in the PR merge box, then wait for the checks before merging. No local commands are required.`);
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {

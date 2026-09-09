@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { prepareRelease } from './prepare-release.mjs';
+import { incrementVersion, prepareRelease, releaseTransaction } from './prepare-release.mjs';
 
 const shaPattern = /^[a-f0-9]{40}$/;
 const generatedPath = /^(?:\.agents\/plugins\/|\.claude-plugin\/|codex-packages\/|kiro-power(?:-standards)?\/|packages\/|distribution\/(?:catalog\.json|qodo-skills-index\.json(?:\.sha256)?|qodo-cli-managed-bundle\.json(?:\.sha256)?)$|package(?:-lock)?\.json$|plugin\.json$|gemini-extension\.json$|releases\/v\d+\.\d+\.\d+\.json$|skills\/[^/]+\/agents\/openai\.yaml$)/;
@@ -50,6 +50,29 @@ function packageWithoutVersion(text) {
   return JSON.stringify(value);
 }
 
+function previousGeneratedPaths(root, base, catalog, release, summary) {
+  const known = new Map(catalog.skills.map((skill) => [skill.name, skill]));
+  if (release.version !== incrementVersion(catalog.package.version, 'patch')
+    || release.package?.change !== 'patch' || !Array.isArray(release.skills) || !release.skills.length
+    || new Set(release.skills.map(({ name }) => name)).size !== release.skills.length
+    || release.skills.some((skill) => !known.has(skill.name) || skill.change !== 'patch'
+      || skill.version !== incrementVersion(known.get(skill.name).version, 'patch'))) {
+    throw new Error('The previous automatic release is not a patch of the current base; maintainer reconciliation is required.');
+  }
+  // Reproduce only its ownership from trusted base content, never old PR code or metadata.
+  const snapshot = releaseTransaction(root);
+  try {
+    prepareRelease(['--summary', summary, ...release.skills.flatMap(({ name }) => ['--skill', `${name}=patch`])], root);
+    return new Set([
+      ...names(git(root, 'diff', '--name-only', '-z', base)),
+      ...names(git(root, 'ls-files', '--others', '--exclude-standard', '-z')),
+    ]);
+  } finally {
+    snapshot.rollback();
+    snapshot.close();
+  }
+}
+
 export function prepareSkillPullRequest({ root, base, head, number }) {
   if (!shaPattern.test(base) || !shaPattern.test(head) || !Number.isSafeInteger(number) || number < 1) {
     throw new Error('Expected full base/head commit SHAs and a positive PR number.');
@@ -80,34 +103,42 @@ export function prepareSkillPullRequest({ root, base, head, number }) {
     }
   }
   const summary = `Update skill instructions (PR #${number})`;
+  let previous = new Set();
   if (headCatalog.package.version !== catalog.package.version) {
     const releasePath = `releases/v${headCatalog.package.version}.json`;
     const release = JSON.parse(file(root, head, releasePath));
     if (release.summary !== summary) {
       return { status: 'skipped', reason: 'This PR already contains a maintainer-prepared release.' };
     }
+    previous = previousGeneratedPaths(root, base, catalog, release, summary);
   }
   const edits = sourcePaths.flatMap((path) => {
     const skill = known.get(path);
     const text = normalizeVersion(file(root, head, path), skill.version);
     return text === normalizeVersion(file(root, base, path), skill.version) ? [] : [{ path, skill, text }];
   });
-  if (!edits.length) return { status: 'skipped', reason: 'No skill behavior changes remain.' };
+  if (!edits.length && !previous.size) return { status: 'skipped', reason: 'No skill behavior changes remain.' };
   for (const { path, text } of edits) writeFileSync(join(root, path), text);
-  const release = prepareRelease([
+  const release = edits.length ? prepareRelease([
     '--summary', summary,
     ...edits.flatMap(({ skill }) => ['--skill', `${skill.name}=patch`]),
-  ], root);
+  ], root) : null;
   git(root, 'add', '--all');
   const generated = new Set(names(git(root, 'diff', '--cached', '--name-only', '-z', base)));
   // Only replace files actually owned by this generation, never a broad directory tree.
-  const unexpected = changed.filter((path) => !generated.has(path));
+  const owned = new Set([...generated, ...previous]);
+  const unexpected = changed.filter((path) => !owned.has(path));
   if (unexpected.length) throw new Error(`Preparation would discard unrelated edits: ${unexpected.join(', ')}`);
   const updates = names(git(root, 'diff', '--cached', '--name-only', '-z', head));
-  const additions = updates.map((path) => {
-    if (!generated.has(path)) throw new Error(`Refusing to write a file outside the generated change: ${path}`);
+  const deletions = [];
+  const additions = updates.flatMap((path) => {
+    if (!owned.has(path)) throw new Error(`Refusing to write a file outside the generated change: ${path}`);
+    if (!git(root, 'ls-files', '--', path).trim()) {
+      deletions.push({ path });
+      return [];
+    }
     const content = readFileSync(join(root, path));
-    return { path, contents: content.toString('base64') };
+    return [{ path, contents: content.toString('base64') }];
   });
-  return { status: additions.length ? 'prepared' : 'unchanged', version: release.version, additions };
+  return { status: updates.length ? 'prepared' : 'unchanged', version: release?.version ?? null, additions, deletions };
 }

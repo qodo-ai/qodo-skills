@@ -82,6 +82,46 @@ test('multiple existing skills share one release and CRLF inputs remain supporte
   assert.deepEqual(release.skills.map(({ name }) => name).sort(), ['qodo-codebase-wisdom', 'qodo-review']);
 });
 
+test('partial and complete reversions reconcile versions, projections and the new release record', (t) => {
+  const f = fixture(t);
+  const second = 'skills/qodo-review/SKILL.md';
+  f.edit();
+  f.edit(second);
+  const original = f.prepare(f.commit('two skills'));
+  const bot = f.commit('prepared release');
+  const revertBody = (path) => {
+    const baseText = f.git('show', `${f.base}:${path}`);
+    const current = readFileSync(join(f.root, path), 'utf8');
+    const versionLine = current.match(/^  version: .+$/m)[0];
+    writeFileSync(join(f.root, path), `${baseText.replace(/^  version: .+$/m, versionLine)}\n`);
+  };
+  revertBody(wisdom);
+  const partial = f.prepare(f.commit('revert one skill body'));
+  assert.equal(partial.status, 'prepared');
+  assert.equal(partial.version, original.version);
+  assert.equal(readFileSync(join(f.root, wisdom), 'utf8').trim(), f.git('show', `${f.base}:${wisdom}`));
+  const release = JSON.parse(readFileSync(join(f.root, `releases/v${partial.version}.json`)));
+  assert.deepEqual(release.skills.map(({ name }) => name), ['qodo-review']);
+  f.commit('partial reconciliation');
+  execFileSync(process.execPath, ['scripts/validate-diff.mjs', f.base], { cwd: f.root });
+  // A complete revert after the original two-skill bot commit restores the exact base tree.
+  f.git('reset', '--hard', bot);
+  revertBody(wisdom);
+  revertBody(second);
+  const revertedHead = f.commit('revert all instruction bodies');
+  const complete = f.prepare(revertedHead);
+  assert.equal(complete.status, 'prepared');
+  assert.equal(complete.version, null);
+  assert.deepEqual(complete.deletions, [{ path: `releases/v${original.version}.json` }]);
+  assert.equal(f.git('diff', '--cached', '--name-only', f.base), '');
+  // Apply the API payload to the real reverted head and verify that no stale release survives.
+  f.git('reset', '--hard', revertedHead);
+  for (const { path, contents } of complete.additions) writeFileSync(join(f.root, path), Buffer.from(contents, 'base64'));
+  for (const { path } of complete.deletions) rmSync(join(f.root, path));
+  f.commit('complete reconciliation');
+  assert.equal(f.git('diff', '--name-only', f.base), '');
+});
+
 test('PR scripts are neither executed nor overwritten', (t) => {
   const f = fixture(t);
   f.edit();
@@ -170,6 +210,17 @@ test('publication uses the exact inspected PR head and only appends the generate
   assert.equal(writes[0].body.variables.input.expectedHeadOid, f.head);
   assert.equal(writes[0].body.variables.input.branch.branchName, f.pr.head.ref);
   assert.ok(f.calls.some(({ args }) => args?.[0] === 'scripts/validate-diff.mjs'));
+});
+
+test('publishes complete-revert deletions and can validate the unchanged base tree', async () => {
+  const f = driverFixture();
+  f.options.prepare = () => ({ status: 'prepared', version: null, additions: [],
+    deletions: [{ path: 'releases/v2.0.5.json' }] });
+  await runPreparation(f.options);
+  const input = f.calls.find(({ body }) => body).body.variables.input;
+  assert.deepEqual(input.fileChanges.deletions, [{ path: 'releases/v2.0.5.json' }]);
+  assert.match(input.message.headline, /remove reverted/);
+  assert.ok(f.calls.some(({ args }) => args?.includes('--allow-empty')));
 });
 
 test('forks, closed PRs, changed heads and moved bases cannot publish a commit', async () => {
