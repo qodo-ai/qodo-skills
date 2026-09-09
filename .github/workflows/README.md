@@ -14,6 +14,8 @@ the existing publication and marketplace gates. Contributors do not need to star
 | [Marketplaces: Verify listings](verify-marketplace-visibility.yml) | Shipping succeeds, or the 15-minute check runs | Inspect provider visibility now |
 
 These six workflows cover separate steps. **Publish skills** creates the immutable GitHub release.
+Its approval and App credentials belong to the **skills-release** environment. The
+**marketplace-claude**, **marketplace-kiro**, and **marketplace-codex** environments gate provider handoffs.
 The CLI repository then promotes its compatibility pointer through the existing production approval.
 **Start shipping** waits for that pointer; **Ship release** prepares provider packets and waits for
 handoff approvals. **Verify listings** reports when external directories expose the release.

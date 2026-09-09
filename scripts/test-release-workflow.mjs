@@ -76,7 +76,7 @@ const publishedDownload = releaseSource.indexOf('gh release download', draftPubl
 const publishedVerification = releaseSource.indexOf('verify_release_assets "${PUBLISHED_VERIFY_DIR}"', publishedDownload);
 assert.match(protectionAudit, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/, 'the administrator audit must check repository immutability');
 assert.match(preflight, /repos\/\$\{GITHUB_REPOSITORY\}\/immutable-releases/, 'the protected App token must verify immutability before publication');
-assert.match(workflow, /environment:\s*\n\s*name: marketplace-kiro/);
+assert.match(workflow, /environment:\s*\n\s*name: skills-release/);
 assert.match(workflow, /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1/);
 assert.match(workflow, /permission-administration: read/);
 assert.match(workflow, /Mint installation-wide read-only release preflight token/);

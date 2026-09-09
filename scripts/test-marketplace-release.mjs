@@ -324,7 +324,7 @@ if (process.platform !== 'win32') {
     if (probe.error && probe.error.code !== 'ENOENT') throw probe.error;
   }
   if (!bashProbe.error && !jqProbe.error) {
-    const preflightFixture = mkdtempSync(join(tmpdir(), 'qodo-kiro-preflight-'));
+    const preflightFixture = mkdtempSync(join(tmpdir(), 'qodo-release-preflight-'));
     try {
       const bin = join(preflightFixture, 'bin');
       mkdirSync(bin);
@@ -335,7 +335,7 @@ if [[ "$*" == "api /apps/qodo-skills-release-bot" ]]; then
   printf '{"id":12345,"slug":"qodo-skills-release-bot","owner":{"login":"qodo-ai"},"permissions":{"administration":"read","contents":"write","metadata":"read"}}\\n'
 elif [[ "$*" == *"immutable-releases --jq .enabled"* ]]; then
   printf '%s\\n' "\${QODO_TEST_IMMUTABLE_RELEASES:-true}"
-elif [[ "$*" == "api repos/qodo-ai/qodo-skills/environments/marketplace-kiro" ]]; then
+elif [[ "$*" == "api repos/qodo-ai/qodo-skills/environments/skills-release" ]]; then
   if [[ "\${QODO_TEST_MISSING_REVIEWER:-}" == 1 ]]; then
     printf '{"can_admins_bypass":true,"deployment_branch_policy":{"protected_branches":true,"custom_branch_policies":false},"protection_rules":[]}\\n'
   else
@@ -343,7 +343,7 @@ elif [[ "$*" == "api repos/qodo-ai/qodo-skills/environments/marketplace-kiro" ]]
   fi
 elif [[ "$*" == *"variables/QODO_SKILLS_RELEASE_APP_ID --jq .value"* ]]; then
   printf '%s\\n' "\${QODO_TEST_ENVIRONMENT_APP_ID:-12345}"
-elif [[ "$*" == *"environments/marketplace-kiro/secrets --jq"* ]]; then
+elif [[ "$*" == *"environments/skills-release/secrets --jq"* ]]; then
   printf 'true\\n'
 elif [[ "$*" == *"orgs/qodo-ai/installations?per_page=100"* ]]; then
   if [[ "\${QODO_TEST_MISSING_INSTALLATION:-}" != 1 ]]; then

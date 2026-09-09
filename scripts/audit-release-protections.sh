@@ -20,29 +20,29 @@ if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/immutable-releases" --jq '.enabled')
   exit 1
 fi
 
-ENVIRONMENT_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-kiro")"
+ENVIRONMENT_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/environments/skills-release")"
 if [[ "$(jq '
   any(.protection_rules[]?;
     .type == "required_reviewers" and
     (.reviewers | type == "array" and length >= 1)
   )
 ' <<< "${ENVIRONMENT_JSON}")" != 'true' ]]; then
-  echo 'marketplace-kiro must require at least one release reviewer.' >&2
+  echo 'skills-release must require at least one release reviewer.' >&2
   exit 1
 fi
 
 RELEASE_APP_ID="$(gh api \
-  "repos/${GITHUB_REPOSITORY}/environments/marketplace-kiro/variables/QODO_SKILLS_RELEASE_APP_ID" \
+  "repos/${GITHUB_REPOSITORY}/environments/skills-release/variables/QODO_SKILLS_RELEASE_APP_ID" \
   --jq '.value')"
 if [[ ! "${RELEASE_APP_ID}" =~ ^[0-9]+$ ]]; then
-  echo 'marketplace-kiro must define numeric QODO_SKILLS_RELEASE_APP_ID.' >&2
+  echo 'skills-release must define numeric QODO_SKILLS_RELEASE_APP_ID.' >&2
   exit 1
 fi
 
-if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-kiro/secrets" --jq '
+if [[ "$(gh api "repos/${GITHUB_REPOSITORY}/environments/skills-release/secrets" --jq '
   [.secrets[].name] | index("QODO_SKILLS_RELEASE_APP_PRIVATE_KEY") != null
 ')" != 'true' ]]; then
-  echo 'marketplace-kiro must define QODO_SKILLS_RELEASE_APP_PRIVATE_KEY.' >&2
+  echo 'skills-release must define QODO_SKILLS_RELEASE_APP_PRIVATE_KEY.' >&2
   exit 1
 fi
 

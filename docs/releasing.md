@@ -60,11 +60,11 @@ Do not place an administrator PAT or a shared QAR release credential in this pub
 The normal release workflow uses its scoped `GITHUB_TOKEN` for publication. Pre-publication
 immutability verification uses a dedicated `qodo-skills-release-bot` GitHub App
 with only `Administration: read`, `Contents: write`, and `Metadata: read`; the protected
-`marketplace-kiro` environment stores its numeric App id as
+`skills-release` environment stores its numeric App id as
 `QODO_SKILLS_RELEASE_APP_ID` and its private key as
 `QODO_SKILLS_RELEASE_APP_PRIVATE_KEY`. The workflow mints a short-lived token restricted to
 `qodo-ai/qodo-skills` only after environment approval. The release workflow uses the same
-`marketplace-kiro` gate to mint an Administration-read token and verify immutability before it
+`skills-release` gate to mint an Administration-read token and verify immutability before it
 creates a tag or draft; publication still uses the normal scoped workflow token.
 
 Before the first release and after any protection change, a repository administrator must run:
@@ -80,8 +80,11 @@ require its complete repository list to be exactly `qodo-ai/qodo-skills`; GitHub
 only to an App installation token, not to the administrator's normal OAuth/PAT session. The token is
 revoked by the action after the job. No administrator credential is stored in Actions.
 Kiro reads `main`; marketplace shipping does not mint an App write token or promote a separate
-branch. The existing `marketplace-kiro` environment name remains the release-approval/credential
-boundary for immutable publication; it does not select Kiro's source branch. The unused legacy
+branch. The `skills-release` environment gates immutable publication and holds its App credentials;
+`marketplace-kiro` gates Kiro's provider handoff. Configure `skills-release` with required reviewers,
+protected-branch restrictions, and both App settings before using the release workflow. Keep the
+existing `marketplace-kiro` environment for provider handoffs and its credentials while older release
+runs still reference it. Neither environment selects Kiro's source branch. The unused legacy
 branch and its ruleset do not need to be deleted or changed for this transition.
 Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
 `refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
@@ -92,7 +95,7 @@ token for that pre-publication check. The checked-in audit, runtime preflight, a
 missing credentials, disabled immutability, duplicate/invalid rulesets, forbidden creation rules,
 draft corruption, draft resume, publication, and immutable retry all fail closed.
 Merging a release record onto main starts **Release: Publish skills** automatically. The existing
-`marketplace-kiro` approval and runtime compatibility preflight still apply; a missing compatible CLI
+`skills-release` approval and runtime compatibility preflight still apply; a missing compatible CLI
 release blocks publication. Rerun the captured release run after resolving a transient failure.
 Manual dispatch remains available for a fully prepared main snapshot or reviewed draft recovery.
 Ordinary source merges do not start publication. The workflow:
