@@ -91,6 +91,11 @@ function collectProjection(provider, source, archiveRoot, files) {
         '',
       ));
     }
+    if (provider === 'kiro' && file.path === `${archiveRoot}/plugin.json`) {
+      const plugin = JSON.parse(file.payload.toString('utf8'));
+      delete plugin.displayName;
+      file.payload = Buffer.from(`${JSON.stringify(plugin, null, 2)}\n`);
+    }
     if (provider === 'codex' && file.path === `${archiveRoot}/.codex-plugin/plugin.json`) {
       const plugin = JSON.parse(file.payload.toString('utf8'));
       delete plugin.interface.composerIcon;

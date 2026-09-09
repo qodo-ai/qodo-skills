@@ -18,6 +18,10 @@ it also rejects generated drift, a thin loader, package leakage, or an incomplet
 Operational release publication and validation code can advance independently because it changes no
 installed package bytes—this separation is what permits a reviewed fix to resume an existing tagged
 draft without inventing or moving a package version.
+The marketplace helper is an exception: `marketplace-release.mjs` also builds provider packets,
+and **Ship marketplaces** executes it from the selected immutable release tag. A fix to that
+helper requires a packaging patch (`--package patch`); rerunning an older tag still uses its old
+verifier even after the fix merges to `main`.
 
 The pull request must state:
 
@@ -174,10 +178,11 @@ contains only the native `.codex-plugin/plugin.json`, without a wrapper or gener
 The latter remains in the source projections for non-portal consumers.
 
 Enterprise schema v1 is a separate consumer contract: current QAR rejects unrecognized
-projection files and Codex interface fields. The enterprise builder omits directory-only
-Codex artwork/references and the Kiro banner/README image block; it preserves all skills,
-native manifests, starter prompts and provenance. Public marketplace packages retain the
-artwork. Do not extend the enterprise schema's allowlist implicitly with a marketplace change.
+projection files and Codex interface fields. The enterprise builder omits Codex directory artwork
+and references. It also omits Kiro's banner, README image block, and directory-only `displayName`.
+It preserves all skills, native manifests, starter prompts and provenance. Public marketplace
+packages retain their artwork and display metadata. Do not extend the enterprise schema's
+allowlist implicitly with a marketplace change.
 
 Codex listing presentation is configured in `distribution/codex-submissions.json`:
 `starterSkills` explicitly selects at most three installed skills, whose prompts remain authored
@@ -203,6 +208,13 @@ Kiro's provider listing must point to `marketplace-kiro`, not `main`. After prot
 approval, the workflow advances that protected branch without force to the immutable release SHA
 using a freshly minted, repository-scoped `qodo-skills-release-bot` installation token, then
 requires the live directory and branch head to match exactly.
+The Kiro packet includes `directory-entries.json` with the configured source URLs, paths, branches,
+and package descriptions. When migrating a listing from `main`, promote the protected branch to
+the selected release **before** requesting the directory update, so users cannot be switched to
+an older package. Ask Kiro to update the existing `qodo` entry and add the separate optional
+`qodo-standards` entry using that packet. The verifier reads JSON documents and Next.js Flight data
+embedded in directory HTML without executing provider scripts. A branch mismatch is separate from
+a missing listing; neither a prepared packet nor a successful promotion proves directory acceptance.
 Before any branch mutation, a checked-in preflight requires exactly one active **Kiro marketplace
 release** branch ruleset with update/deletion/force-push protection, no exclusions, and exactly one
 always-bypass release identity. The bypass must be the dedicated App's `Integration` actor, while
