@@ -1,6 +1,9 @@
-name: Release skills
+name: 'Release: Publish skills'
 
 on:
+  push:
+    branches: [main]
+    paths: ['releases/v*.json']
   workflow_dispatch:
 
 permissions:
@@ -40,12 +43,12 @@ jobs:
             }
           done
 
-      - name: Require the exact merged main commit
+      - name: Require the captured release commit to belong to main
         run: |
           set -euo pipefail
           git fetch origin main --no-tags
-          if [[ "$(git rev-parse origin/main)" != "${GITHUB_SHA}" ]]; then
-            echo 'Refusing to publish: GITHUB_SHA is not the current merged main commit.' >&2
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" "$(git rev-parse origin/main)"; then
+            echo 'Refusing to publish: the captured release commit is not on main.' >&2
             exit 1
           fi
 

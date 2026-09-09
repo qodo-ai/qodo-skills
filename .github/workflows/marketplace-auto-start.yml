@@ -1,4 +1,4 @@
-name: Start marketplace release when compatibility is live
+name: 'Marketplaces: Start shipping'
 
 on:
   schedule:

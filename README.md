@@ -17,6 +17,14 @@ runtime updates, and a compact stale-skill notice; it never installs or rewrites
 
 Qodo Standards stays a separate opt-in package. Updating the core package never installs it.
 
+## Contribute a skill update
+
+Edit `skills/<name>/SKILL.md` directly in GitHub, open a PR, wait for CI, and merge.
+Contributors do not need Node or local commands. Automation collects merged changes into one
+separate release PR with versions and generated marketplace packages. A release owner merges
+that PR to start protected publication. See [Contributing](CONTRIBUTING.md) for the complete flow.
+The [Actions guide](.github/workflows/README.md) explains the six workflows and when to use them.
+
 ## Install
 
 Use the official Qodo listing in Claude Code, Codex, or Kiro. The marketplace owns installation
