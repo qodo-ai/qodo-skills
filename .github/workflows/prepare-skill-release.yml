@@ -1,8 +1,8 @@
-name: Prepare skills release PR
+name: 'Release: Prepare PR'
 
 on:
   workflow_run:
-    workflows: [Validate distribution]
+    workflows: ['CI: Validate distribution']
     types: [completed]
     branches: [main]
   workflow_dispatch:

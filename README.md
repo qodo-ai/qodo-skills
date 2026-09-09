@@ -23,6 +23,7 @@ Edit `skills/<name>/SKILL.md` directly in GitHub, open a PR, wait for CI, and me
 Contributors do not need Node or local commands. Automation collects merged changes into one
 separate release PR with versions and generated marketplace packages. A release owner merges
 that PR to start protected publication. See [Contributing](CONTRIBUTING.md) for the complete flow.
+The [Actions guide](.github/workflows/README.md) explains the six workflows and when to use them.
 
 ## Install
 

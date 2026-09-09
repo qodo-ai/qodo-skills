@@ -1,4 +1,4 @@
-name: Release skills
+name: 'Release: Publish skills'
 
 on:
   push:

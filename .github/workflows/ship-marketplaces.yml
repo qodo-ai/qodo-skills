@@ -1,4 +1,4 @@
-name: Ship marketplaces
+name: 'Marketplaces: Ship release'
 run-name: Ship marketplaces ${{ inputs.release_tag }}
 
 on:
@@ -231,7 +231,7 @@ jobs:
             echo "## ${PROVIDER}: awaiting provider verification"
             echo
             echo "Release preparation and approved provider handoff succeeded for \`${RELEASE_TAG}\` at \`$(git rev-parse HEAD)\`."
-            echo 'Public listing verification runs independently in **Verify marketplace visibility**, after shipping and every 15 minutes.'
+            echo 'Public listing verification runs independently in **Marketplaces: Verify listings**, after shipping and every 15 minutes.'
             echo 'Shipping success does not attest that the provider catalog has updated.'
           } >> "${GITHUB_STEP_SUMMARY}"
 

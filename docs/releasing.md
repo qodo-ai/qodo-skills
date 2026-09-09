@@ -1,5 +1,7 @@
 # Releasing Qodo skills
 
+Start with the [Actions guide](../.github/workflows/README.md) to find the right workflow.
+
 ## 1. Merge source changes, then review one release PR
 
 Contributors edit canonical files under `skills/` and catalog display metadata, open a normal PR,
@@ -7,12 +9,12 @@ wait for checks, and merge. Existing versions and generated files stay unchanged
 Node installation, or Conventional Commit format are required. New skills need a canonical file,
 catalog entry with an initial version, and the existing skill-specific validation coverage.
 
-**Validate distribution** generates an ephemeral release preview for source PRs and main pushes,
+**CI: Validate distribution** generates an ephemeral release preview for source PRs and main pushes,
 then runs the full validation matrix. It rejects edits to generated files, mismatched source versions,
 unsupported removals, missing catalog entries, and incomplete release data. A prepared release PR
 is checked directly without regenerating away mistakes in its committed artifacts.
 
-After successful main-push validation, **Prepare skills release PR** maintains one PR from
+After successful main-push validation, **Release: Prepare PR** maintains one PR from
 `automation/skills-release`. It follows the Release Please pattern using this repository's existing
 Node generator; it does not require the stock Release Please action or another version manifest.
 The baseline is the first-parent commit that added the current immutable release record. All source
@@ -89,7 +91,7 @@ immutable-release settings endpoint, so the workflow mints a short-lived, reposi
 token for that pre-publication check. The checked-in audit, runtime preflight, and publication programs are covered behaviorally:
 missing credentials, disabled immutability, duplicate/invalid rulesets, forbidden creation rules,
 draft corruption, draft resume, publication, and immutable retry all fail closed.
-Merging a release record onto main starts **Release skills** automatically. The existing
+Merging a release record onto main starts **Release: Publish skills** automatically. The existing
 `marketplace-kiro` approval and runtime compatibility preflight still apply; a missing compatible CLI
 release blocks publication. Rerun the captured release run after resolving a transient failure.
 Manual dispatch remains available for a fully prepared main snapshot or reviewed draft recovery.
@@ -157,7 +159,7 @@ patch release; it is never accepted as a successful release.
 ## 3. Ship selected marketplaces
 
 Once the protected compatibility pointer advertises the immutable tag, the hourly
-**Marketplace auto-start** watcher dispatches **Ship marketplaces** once with `all`. The action
+**Marketplaces: Start shipping** watcher dispatches **Marketplaces: Ship release** once with `all`. The action
 validates the tag/version, downloads the advertised compatibility index and bundle, verifies their
 checksums and release identity, and byte-compares all four files with the immutable GitHub release
 assets before regenerating the exact provider packet. It rejects a tag below the highest successful
@@ -193,7 +195,7 @@ Codex stays human-gated because its documented flow requires portal
 submission, review, and explicit publication. Its `marketplace-codex` approval is an attestation
 after provider publication, not a substitute for it. All three environments require reviewers.
 
-**Verify marketplace visibility** is a separate read-only workflow. It runs after successful
+**Marketplaces: Verify listings** is a separate read-only workflow. It runs after successful
 shipping, every 15 minutes, and on manual dispatch. Its default target is the highest successfully
 shipped tag **per provider**, using the selected provider's successful job in that shipping attempt.
 A Codex-only run cannot advance the Claude/Kiro target; rerunning an older tag cannot move it back.
@@ -279,7 +281,7 @@ legacy Kiro branch ruleset is required by marketplace shipping. Immutable releas
 keeps its separate App audit, protected approval, and no-bypass tag protections.
 
 Core listing identity remains `qodo`; Qodo Standards remains the separately installable
-`qodo-standards` listing. **Ship marketplaces** selects providers, not individual listings, and
+`qodo-standards` listing. **Marketplaces: Ship release** selects providers, not individual listings, and
 ships every configured listing for each selected provider together. Optionality is an installation
 choice, not a separate release selector. Never replace the core listing during a source migration.
 

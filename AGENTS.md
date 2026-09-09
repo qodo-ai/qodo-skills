@@ -13,7 +13,7 @@
   documented need and approval.
 - Contributors edit canonical skills and catalog metadata in ordinary PRs, leaving existing
   versions and generated packages unchanged. CI builds a temporary preview; after merge,
-  `Prepare skills release PR` collects changes into one bot-owned release PR. No local setup
+  `Release: Prepare PR` collects changes into one bot-owned release PR. No local setup
   or commands are required for contributors.
 - Only the release PR commits versions, generated packages, and `releases/v<version>.json`.
   Kiro reads the generated `main/kiro-power` and `main/kiro-power-standards` snapshots.

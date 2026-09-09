@@ -83,7 +83,7 @@ export async function runSkillRelease({ repository, base, root = process.cwd(), 
   const body = `${releaseMarker}\nRelease v${result.version} collects the unreleased changes on main.\n\n`
     + `${releasePlan.summary}\n\n`
     + 'Generated from main `' + base + '`, after release `' + releasePlan.baseline + '`.\n\n'
-    + 'Approve workflows to run in the merge box, wait for all checks, then merge this PR to start **Release skills**. '
+    + 'Approve workflows to run in the merge box, wait for all checks, then merge this PR to start **Release: Publish skills**. '
     + 'Publication and marketplace handoffs retain their protected approvals. '
     + 'Kiro reads the generated packages under main when this PR merges.\n\n'
     + 'This PR is refreshed automatically; make skill edits in ordinary source PRs.';

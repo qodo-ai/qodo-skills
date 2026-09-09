@@ -1,4 +1,4 @@
-name: Validate distribution
+name: 'CI: Validate distribution'
 
 on:
   pull_request:

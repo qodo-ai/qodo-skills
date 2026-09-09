@@ -11,7 +11,7 @@ You can update a skill entirely in GitHub. No Node installation or local command
 3. Wait for CI, review, and merge. You are finished.
 
 CI generates a temporary package to test your changes without committing it to your PR.
-After a successful merge, **Prepare skills release PR** creates or refreshes one separate release
+After a successful merge, **Release: Prepare PR** creates or refreshes one separate release
 PR with all unreleased changes. It bumps each changed existing skill once by a patch, handles new
 skills as initial versions, and regenerates every distribution. A release owner reviews and merges
 that PR when ready. No special commit-message format is required.
@@ -79,6 +79,6 @@ review representative outputs for useful content, accurate attribution, and pres
 Source PRs describe the user-visible behavior, compatibility impact, and hosts actually tested.
 The separate release PR carries versions, generated files, and the immutable release record.
 A release owner selects **Approve workflows to run** if GitHub shows that prompt on a bot update,
-waits for checks on the latest commit, and merges. This starts **Release skills**, which retains its
+waits for checks on the latest commit, and merges. This starts **Release: Publish skills**, which retains its
 protected approval and compatibility checks. Do not call a package published until publication
-succeeds; provider visibility is reported separately by **Verify marketplace listings**.
+succeeds; provider visibility is reported separately by **Marketplaces: Verify listings**.

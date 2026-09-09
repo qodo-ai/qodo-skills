@@ -192,7 +192,7 @@ test('CI refuses dirty checkouts and documentation-only changes need no release'
 
 test('write-scoped preparation only consumes successful main pushes; PR validation uses read permissions', () => {
   const workflow = readFileSync(join(source, '.github/workflows/prepare-skill-release.yml'), 'utf8');
-  assert.match(workflow, /workflows: \[Validate distribution\]/);
+  assert.match(workflow, /workflows: \['CI: Validate distribution'\]/);
   for (const guard of ["github.event.workflow_run.conclusion == 'success'", "github.event.workflow_run.event == 'push'",
     "github.event.workflow_run.head_branch == 'main'", 'github.event.workflow_run.head_repository.full_name == github.repository']) {
     assert.ok(workflow.includes(guard));
