@@ -354,8 +354,7 @@ async function fetchText(url) {
   return response.text();
 }
 
-export async function verifyMarketplace(providerId, context) {
-  const selectedProvider = provider(providerId);
+export async function verifyMarketplace(providerId, context, selectedProvider = provider(providerId)) {
   if (selectedProvider.mode === 'reviewed-portal-snapshot') {
     throw new Error(`${selectedProvider.displayName} has no documented publishing API; use the protected marketplace-codex environment after portal publication`);
   }

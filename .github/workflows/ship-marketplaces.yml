@@ -185,7 +185,7 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-${{ matrix.provider }}" \
             --jq 'any(.protection_rules[]?; .type == "required_reviewers")' | grep -qx true
 
-  verify-provider-visible:
+  ship-provider:
     needs: [plan, prepare, verify-provider-environment]
     if: needs.plan.outputs.has_verifiable == 'true'
     concurrency:
@@ -269,20 +269,19 @@ jobs:
               -f ref="refs/heads/${SOURCE_REF}" -f sha="${RELEASE_SHA}" >/dev/null
           fi
 
-      - name: Require exact provider-visible source
+      - name: Record shipment awaiting provider verification
         env:
-          GITHUB_TOKEN: ${{ github.token }}
           PROVIDER: ${{ matrix.provider }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
-          for tool in git node; do
-            command -v "${tool}" >/dev/null 2>&1 || { echo "Provider verification requires ${tool}." >&2; exit 1; }
-          done
-          node scripts/marketplace-release.mjs verify \
-            --provider "${PROVIDER}" \
-            --tag "${RELEASE_TAG}" \
-            --commit "$(git rev-parse HEAD)"
+          {
+            echo "## ${PROVIDER}: awaiting provider verification"
+            echo
+            echo "Release preparation and approved shipping steps succeeded for \`${RELEASE_TAG}\` at \`$(git rev-parse HEAD)\`."
+            echo 'Public listing verification runs independently in **Verify marketplace visibility**, after shipping and every 15 minutes.'
+            echo 'Shipping success does not attest that the provider catalog has updated.'
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   codex-gate:
     needs: [plan, prepare]
@@ -344,7 +343,7 @@ jobs:
       - plan
       - prepare
       - verify-provider-environment
-      - verify-provider-visible
+      - ship-provider
       - codex-gate
       - codex-release-owner-attestation
     if: >-
