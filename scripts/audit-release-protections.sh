@@ -31,6 +31,14 @@ if [[ "$(jq '
   exit 1
 fi
 
+if [[ "$(jq '
+  .deployment_branch_policy.protected_branches == true and
+  .deployment_branch_policy.custom_branch_policies == false
+' <<< "${ENVIRONMENT_JSON}")" != 'true' ]]; then
+  echo 'skills-release must allow deployments from protected branches only.' >&2
+  exit 1
+fi
+
 RELEASE_APP_ID="$(gh api \
   "repos/${GITHUB_REPOSITORY}/environments/skills-release/variables/QODO_SKILLS_RELEASE_APP_ID" \
   --jq '.value')"
