@@ -89,6 +89,10 @@ export function prepareSkillPullRequest({ root, base, head, number }) {
   if (unsupported.length) {
     return { status: 'skipped', reason: `Maintainer preparation required for mixed or structural changes: ${unsupported.join(', ')}` };
   }
+  const removed = sourcePaths.filter((path) => !git(root, 'ls-tree', '--name-only', head, '--', path).trim());
+  if (removed.length) {
+    return { status: 'skipped', reason: `Removed skills require maintainer preparation: ${removed.join(', ')}` };
+  }
   if (git(root, 'merge-base', base, head).trim() !== base) {
     throw new Error('This PR is behind main. Use Update branch in GitHub, resolve any conflicts, and preparation will run again.');
   }

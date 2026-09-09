@@ -132,6 +132,16 @@ test('PR scripts are neither executed nor overwritten', (t) => {
   assert.equal(f.git('status', '--porcelain'), '');
 });
 
+test('removed skill sources use the maintainer path without attempting to read deleted files', (t) => {
+  const f = fixture(t);
+  rmSync(join(f.root, wisdom));
+  f.edit('skills/qodo-review/SKILL.md');
+  const result = f.prepare(f.commit('remove one skill and edit another'));
+  assert.equal(result.status, 'skipped');
+  assert.match(result.reason, /Removed skills require maintainer preparation/);
+  assert.equal(f.git('status', '--porcelain'), '');
+});
+
 test('preserves dependency and npm script edits instead of treating them as generated version changes', (t) => {
   const f = fixture(t);
   for (const path of ['package.json', 'package-lock.json']) {
