@@ -34,9 +34,9 @@ function flightDocument(records, options) {
   return flightPayload(directoryElement(records), options);
 }
 
-test('captured Kiro HTML recognizes qodo and reports its actual main branch', () => {
+test('captured Kiro HTML accepts the main source and still reports missing Standards', () => {
   assert.throws(() => verifyKiroDocument(fixture, context),
-    /Kiro qodo: expected branch marketplace-kiro, found main/);
+    /Kiro qodo-standards: provider listing is missing/);
   const currentProvider = { ...provider, sourceRef: 'main', listings: [provider.listings[0]] };
   assert.equal(verifyKiroDocument(fixture, context, currentProvider)[0].branch, 'main');
   assert.throws(() => verifyKiroDocument(fixture, context, { ...provider, sourceRef: 'main' }),
@@ -87,7 +87,7 @@ test('nested browse-powers metadata cannot satisfy the complete release verifier
   let document;
   t.mock.method(globalThis, 'fetch', async (url) => {
     if (url === provider.directoryUrl) return new Response(document);
-    assert.equal(url, 'https://api.github.com/repos/qodo-ai/qodo-skills/commits/marketplace-kiro');
+    assert.equal(url, 'https://api.github.com/repos/qodo-ai/qodo-skills/commits/main');
     return new Response(JSON.stringify({ sha: context.commit }));
   });
   for (document of documents) {
@@ -96,7 +96,7 @@ test('nested browse-powers metadata cannot satisfy the complete release verifier
 });
 
 test('unrelated metadata cannot add conflicting cards to a valid directory', () => {
-  const stale = entries.map((entry) => ({ ...entry, repositoryBranch: 'main' }));
+  const stale = entries.map((entry) => ({ ...entry, repositoryBranch: 'obsolete' }));
   const metadata = { id: 'browse-powers', cards: stale };
   const directory = { id: 'browse-powers', cards: entries, metadata };
   for (const document of [JSON.stringify(directory),
@@ -127,7 +127,7 @@ test('page prose and malformed scripts cannot establish listings or execute code
 test('requires each listing to carry the configured path, branch and repository in one record', () => {
   const invalid = [
     [{ ...entries[0], pathInRepo: 'wrong' }, /expected path kiro-power/],
-    [{ ...entries[0], repositoryBranch: 'main' }, /expected branch marketplace-kiro, found main/],
+    [{ ...entries[0], repositoryBranch: 'obsolete' }, /expected branch main, found obsolete/],
     [{ ...entries[0], repositoryUrl: 'https://github.com/unrelated/repo' }, /expected repository/],
     [{ name: 'qodo' }, /expected path kiro-power/],
   ];
@@ -139,22 +139,44 @@ test('requires each listing to carry the configured path, branch and repository 
   ]), context), /expected path kiro-power/);
   assert.throws(() => verifyKiroDocument(flightDocument([entries[0]]), context), /qodo-standards.*missing/);
   assert.throws(() => verifyKiroDocument(flightDocument([
-    ...entries, { ...entries[0], repositoryBranch: 'main' },
-  ]), context), /expected branch marketplace-kiro, found main/);
+    ...entries, { ...entries[0], repositoryBranch: 'obsolete' },
+  ]), context), /expected branch main, found obsolete/);
 });
 
-test('provider verification still requires the protected branch to equal the release commit', async (t) => {
+test('main is a moving source and verification records its observed commit', async (t) => {
   let branchCommit = 'b'.repeat(40);
   t.mock.method(globalThis, 'fetch', async (url) => {
     if (url === provider.directoryUrl) return new Response(flightDocument(entries));
+    assert.equal(url, 'https://api.github.com/repos/qodo-ai/qodo-skills/commits/main');
+    return new Response(JSON.stringify({ sha: branchCommit }));
+  });
+  for (const commit of ['b'.repeat(40), context.commit]) {
+    branchCommit = commit;
+    const results = await verifyMarketplace('kiro', context);
+    assert.equal(results.length, 2);
+    assert.ok(results.every((entry) => entry.commit === commit && entry.branch === 'main'));
+  }
+  for (const invalid of [undefined, 'main', '', 'b'.repeat(39)]) {
+    branchCommit = invalid;
+    await assert.rejects(verifyMarketplace('kiro', context), /could not resolve a valid commit for main/);
+  }
+});
+
+test('older immutable contracts retain their exact release-branch requirement', async (t) => {
+  const previous = { ...provider, mode: 'protected-release-branch', sourceRef: 'marketplace-kiro' };
+  const previousEntries = entries.map((entry) => ({ ...entry,
+    repositoryBranch: previous.sourceRef,
+    repositoryUrl: entry.repositoryUrl.replace('/tree/main/', '/tree/marketplace-kiro/'),
+  }));
+  let branchCommit = 'b'.repeat(40);
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    if (url === provider.directoryUrl) return new Response(flightDocument(previousEntries));
     assert.equal(url, 'https://api.github.com/repos/qodo-ai/qodo-skills/commits/marketplace-kiro');
     return new Response(JSON.stringify({ sha: branchCommit }));
   });
-  await assert.rejects(verifyMarketplace('kiro', context), /Kiro follows marketplace-kiro.*not release commit/);
+  await assert.rejects(verifyMarketplace('kiro', context, previous), /not release commit/);
   branchCommit = context.commit;
-  const results = await verifyMarketplace('kiro', context);
-  assert.equal(results.length, 2);
-  assert.ok(results.every(({ commit }) => commit === context.commit));
+  assert.equal((await verifyMarketplace('kiro', context, previous)).length, 2);
 });
 
 test('clone URLs must identify the same repository as the displayed tree', () => {
@@ -176,6 +198,8 @@ test('Kiro release packet provides directory entries from the canonical marketpl
     assert.deepEqual(desired.map(({ name, repositoryUrl, repositoryCloneUrl, pathInRepo, repositoryBranch }) =>
       ({ name, repositoryUrl, repositoryCloneUrl, pathInRepo, repositoryBranch })), entries);
     assert.equal(verifyKiroDocument(JSON.stringify(desired), context).length, 2);
+    assert.match(readFileSync(join(packet.output, 'SUBMISSION.md'), 'utf8'), /moving source/);
+    assert.ok(desired.every((entry) => entry.repositoryBranch === 'main'));
     assert.equal(desired[0].displayName, provider.listings[0].displayName);
     assert.equal(desired[0].description, provider.listings[0].description);
   } finally {

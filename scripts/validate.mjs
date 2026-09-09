@@ -119,8 +119,8 @@ if (!semver.test(catalog.runtime?.minimumCliVersion ?? '')) {
   fail('runtime minimumCliVersion must be semantic version');
 }
 const kiroProvider = marketplaces.providers?.find((provider) => provider.id === 'kiro');
-if (kiroProvider?.mode !== 'protected-release-branch' || kiroProvider?.sourceRef !== 'marketplace-kiro') {
-  fail('Kiro marketplace must use the protected marketplace-kiro release branch');
+if (kiroProvider?.mode !== 'provider-tracked-branch' || kiroProvider?.sourceRef !== 'main') {
+  fail('Kiro marketplace must track the main branch');
 }
 for (const field of ['repository', 'homepage', 'supportUrl', 'privacyPolicyUrl', 'termsOfServiceUrl']) {
   if (!String(catalog.package?.[field] ?? '').startsWith('https://')) {

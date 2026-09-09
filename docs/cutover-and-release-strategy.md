@@ -125,13 +125,10 @@ rollback.
 - Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
   `refs/tags/v*`; tag creation is allowed, but updates and deletion are blocked. Release preflight
   searches every ruleset page and rejects duplicate matches or a creation restriction.
-- Create exactly one active **Kiro marketplace release** ruleset for
-  `refs/heads/marketplace-kiro`: block creation, update, deletion, and force-push; exclude
-  nothing; and grant always-bypass only to the dedicated App's `Integration` actor. The approved
-  workflow mints a short-lived token scoped to this repository and advances the branch without a
-  force push. The release workflow uses the same protected App only to verify repository
-  immutability before creating a tag or draft. Repoint both existing Kiro listing URLs from `main` to this branch before the first
-  marketplace-owned release.
+- Kiro listings use `main/kiro-power` and `main/kiro-power-standards`. Marketplace shipping
+  does not create or advance a separate branch. The release workflow still uses its protected
+  App to verify repository immutability before creating a tag or draft; no branch-promotion
+  credential or legacy Kiro branch ruleset is required for the listings.
 
 Gate: every item is verified from provider/repository state. A source manifest is not evidence of
 a live marketplace listing.
@@ -304,17 +301,16 @@ This avoids GitHub's lossy single-pending queue, launch races, and old-tag rerun
 - Kiro packages a generated, user-reviewed permission template for the stable `qodo read *`
   gateway. The runtime admits only catalog entries explicitly marked non-mutating, so new read
   tools do not require another permission-pattern release; all other Qodo commands remain on ask.
-- Kiro follows the protected `marketplace-kiro` branch, which the approved release job advances
-  fast-forward to the immutable tag before verifying the provider-visible listing. It never follows
-  day-to-day `main`.
-- Wait for provider-visible exact commit/path before behavioral acceptance.
+- Kiro follows `main`, independently of immutable release timing. Verify both listing paths and
+  record the observed `main` commit; do not require equality with the reference release commit.
+- Wait for provider-visible source/path evidence before behavioral acceptance. Claude remains
+  pinned to its exact released commit.
 
 Gate per provider: fresh install, in-place upgrade, exactly four canonical core skill entries,
 optional standards absence,
 setup/login, one read workflow, one approval-gated write workflow, update and new-session activation.
 
-Rollback: publish/repoint to a new last-good patch through the provider-supported flow. Kiro is
-strictly forward-only because the protected release branch cannot be rewound.
+Rollback: publish/repoint to a new last-good patch through the provider-supported flow. For Kiro, revert through an ordinary reviewed commit on `main`; do not rewrite branch history.
 
 ### 4. Promote Codex and deprecate the old source
 
@@ -395,10 +391,10 @@ optional skills are discoverable but never auto-installed.
 | Gate | Evidence required | Blocks |
 |---|---|---|
 | Source | exact merged heads, full CI, generated-drift checks | GitHub release |
-| Repository | successful administrator audit, dedicated repository-scoped release App, immutable releases enabled, no-bypass `v*` tag ruleset, protected `marketplace-kiro` branch, protected tag SHA, and post-publication immutable asset bytes | all promotion |
+| Repository | successful administrator audit, dedicated repository-scoped release App, immutable releases enabled, no-bypass `v*` tag ruleset, protected tag SHA, and post-publication immutable asset bytes | all promotion |
 | Automation | protected compatibility pointer, one marketplace run per tag, one reviewed QAR tuple PR, credential-isolated tuple validation | downstream promotion |
 | Claude | official catalog exact SHA/path | Claude completion |
-| Kiro | live Agent Plugins power on `marketplace-kiro` at the exact release SHA/path | Kiro completion |
+| Kiro | both live Agent Plugins listings on `main` at the configured paths, with its observed SHA recorded | Kiro completion |
 | Codex | portal review + publish + protected attestation | Codex completion and old-repo deprecation |
 | Behavior | fresh install, upgrade, package isolation, setup/read/write/update | provider sign-off |
 | Migration | no duplicate/shadowed skill; cleanup preserves user changes | broad rollout |
@@ -416,7 +412,7 @@ declared scope, and cannot route a marketplace-owned ID through skills.sh.
 Go only when:
 
 - CLI and skills PR heads are independently green and review-clean;
-- release immutability, the dedicated least-privilege release App, protected `marketplace-kiro`, and
+- release immutability, the dedicated least-privilege release App and
   all three marketplace environment protections are configured;
 - rollback identities/artifacts are recorded;
 - selected provider publication owners are available;

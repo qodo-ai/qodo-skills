@@ -108,7 +108,9 @@ function submissionMarkdown(selectedProvider, context, artifacts = []) {
   ];
   const completion = selectedProvider.mode === 'reviewed-portal-snapshot'
     ? 'Publication requires review and an explicit publish action in the provider portal. The protected GitHub environment approval is the release-owner attestation for that external step.'
-    : 'Publication is complete only after the provider-visible directory resolves every listing to this exact release commit.';
+    : selectedProvider.mode === 'provider-tracked-branch'
+      ? `Directory acceptance requires every listing to use the configured repository, ${selectedProvider.sourceRef} branch and package path. This is a moving source; record its observed commit separately from this packet's immutable release commit.`
+      : 'Publication is complete only after the provider-visible directory resolves every listing to this exact release commit.';
   return [
     `# ${selectedProvider.displayName} marketplace release`,
     '',
@@ -368,7 +370,10 @@ export async function verifyMarketplace(providerId, context, selectedProvider = 
     const source = JSON.parse(await fetchText(
       `https://api.github.com/repos/qodo-ai/qodo-skills/commits/${encodeURIComponent(sourceRef)}`,
     ));
-    if (source.sha !== context.commit) {
+    if (!/^[a-f0-9]{40}$/.test(source.sha ?? '')) {
+      throw new Error(`Kiro could not resolve a valid commit for ${sourceRef}`);
+    }
+    if (selectedProvider.mode !== 'provider-tracked-branch' && source.sha !== context.commit) {
       throw new Error(`Kiro follows ${sourceRef} at ${source.sha ?? '<missing>'}, not release commit ${context.commit}`);
     }
     return results.map((result) => ({ ...result, commit: source.sha }));
@@ -422,7 +427,9 @@ async function main(argv) {
     writeSummary([
       `## ${provider(providerId).displayName} marketplace verified`,
       '',
-      `All selected listings resolve to \`${context.tag}\` at \`${context.commit}\`.`,
+      provider(providerId).mode === 'provider-tracked-branch'
+        ? `All configured listings track \`${provider(providerId).sourceRef}\`, observed at \`${results[0].commit}\`. This is a moving source, not a release pin.`
+        : `All selected listings resolve to \`${context.tag}\` at \`${context.commit}\`.`,
     ]);
     console.log(JSON.stringify(results));
     return;
