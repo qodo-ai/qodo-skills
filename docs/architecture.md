@@ -65,7 +65,8 @@ its package in the catalog. The resolver is `qodo-review-resolver` in every dist
 byte-compares every generated skill against that deterministic projection and rejects any
 `qodo help workflow` loader. Kiro uses the current Agent Plugins contract (`plugin.json` plus
 `skills/`); the retired `POWER.md`/`steering/` layout is not regenerated. Its public listing follows
-only the protected `marketplace-kiro` release branch, never mutable day-to-day `main`.
+`main/kiro-power` and `main/kiro-power-standards`. These are moving sources; verification records
+the observed `main` commit independently of immutable release pins.
 
 ## Runtime contract
 

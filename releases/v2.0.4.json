@@ -1,0 +1,10 @@
+{
+  "version": "2.0.4",
+  "summary": "Use main for Kiro marketplace packages and verify its moving source independently.",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}

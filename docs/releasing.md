@@ -35,7 +35,7 @@ The pull request must state:
 The repository administrator must enable GitHub release immutability before the first release.
 Do not place an administrator PAT or a shared QAR release credential in this public repository.
 The normal release workflow uses its scoped `GITHUB_TOKEN` for publication. Pre-publication
-immutability verification and Kiro promotion use a dedicated `qodo-skills-release-bot` GitHub App
+immutability verification uses a dedicated `qodo-skills-release-bot` GitHub App
 with only `Administration: read`, `Contents: write`, and `Metadata: read`; the protected
 `marketplace-kiro` environment stores its numeric App id as
 `QODO_SKILLS_RELEASE_APP_ID` and its private key as
@@ -52,15 +52,14 @@ GITHUB_REPOSITORY=qodo-ai/qodo-skills scripts/audit-release-protections.sh
 
 The audit uses the administrator's existing `gh` session to verify otherwise hidden bypass actors,
 the dedicated App identity and permissions, one active selected-repository installation, presence of
-an environment reviewer, release immutability, and exact ruleset shapes. The protected release and
-Kiro workflows separately mint an installation-wide token narrowed to read-only Administration and
+an environment reviewer, release immutability, and exact ruleset shapes. The protected release workflow mints an installation-wide token narrowed to read-only Administration and
 require its complete repository list to be exactly `qodo-ai/qodo-skills`; GitHub exposes that list
 only to an App installation token, not to the administrator's normal OAuth/PAT session. The token is
 revoked by the action after the job. No administrator credential is stored in Actions.
-Protect creation, update, deletion, and force-push on `refs/heads/marketplace-kiro`, with the release
-App as the sole always-bypass actor. This prevents another repository writer from claiming the
-provider-visible branch before the first promotion while still allowing the approved release job to
-create it.
+Kiro reads `main`; marketplace shipping does not mint an App write token or promote a separate
+branch. The existing `marketplace-kiro` environment name remains the release-approval/credential
+boundary for immutable publication; it does not select Kiro's source branch. The unused legacy
+branch and its ruleset do not need to be deleted or changed for this transition.
 Keep exactly one active, no-exclusion, no-bypass **Immutable release tags** ruleset on
 `refs/tags/v*`; it permits creation but blocks every tag update and deletion. The preflight
 paginates the complete repository ruleset collection before resolving that exact ruleset and
@@ -158,13 +157,16 @@ cross-tag releases.
 |---|---|---|
 | Claude Code | packet generation and protected handoff; separate scheduled catalog verification | both selected listings expose the released commit/path |
 | Codex | exact portal packet with deterministic per-listing ZIPs, SHA-256 checksums, and protected release-owner gate | portal review/publish completed, then protected environment approved |
-| Kiro | packet generation and protected release-branch promotion; separate scheduled directory verification | selected Powers expose `marketplace-kiro` at the released commit and paths |
+| Kiro | packet generation and protected handoff; separate scheduled directory verification | selected Powers use `main` and the configured paths; record its observed commit |
 
 The action prepares every selected packet first. Claude and Kiro shipping jobs then wait in
-`marketplace-claude` and `marketplace-kiro` for the release owner's handoff/promotion approval.
-Kiro's job advances the protected release branch. These jobs finish with **awaiting provider
-verification**; public catalog propagation does not fail shipping or hold its release lock.
-Preparation, protection checks, and promotion errors still fail shipping. Codex stays human-gated because its documented flow requires portal
+`marketplace-claude` and `marketplace-kiro` for the release owner's handoff approval.
+Kiro's source follows ordinary merges to `main`; shipping does not advance a separate branch.
+New Kiro shipments require a release with the main-source contract (v2.0.4 onward); an older
+contract is rejected before preparation rather than silently skipping its required promotion.
+These jobs finish with **awaiting provider verification**; public catalog propagation does not fail
+shipping or hold its release lock. Preparation and protection-check errors still fail shipping.
+Codex stays human-gated because its documented flow requires portal
 submission, review, and explicit publication. Its `marketplace-codex` approval is an attestation
 after provider publication, not a substitute for it. All three environments require reviewers.
 
@@ -177,7 +179,10 @@ The observer does not approve environments, acquire shipping locks, promote bran
 
 Each check validates release immutability and resolves its exact commit. The current trusted
 verifier reads the marketplace contract from that commit, so later code fixes work without
-silently changing the release's expected paths or branch. Claude and Kiro run independently;
+silently changing the release's expected paths or branch. Under the moving-source Kiro contract,
+it verifies `main` and records the current source commit; it does not require `main` to stay at
+the reference release SHA. Older immutable contracts retain their original exact-pin checks.
+Claude and Kiro run independently;
 wrong/missing listings, stale pins, branch mismatches, and request failures fail the observer.
 Its job summaries retain the expected tag/SHA and the mismatch. A green shipping run means our
 shipping steps completed; provider acceptance requires a green visibility check as well.
@@ -236,26 +241,19 @@ are still required; local checks do not guarantee approval. The
 [OpenAI submission errors reference](https://developers.openai.com/plugins/deploy/submission-errors)
 (checked: 2026-09-05) is the contract behind these checks.
 
-Kiro's provider listing must point to `marketplace-kiro`, not `main`. After protected-environment
-approval, the workflow advances that protected branch without force to the immutable release SHA
-using a freshly minted, repository-scoped `qodo-skills-release-bot` installation token, then
-requires the live directory and branch head to match exactly.
-The Kiro packet includes `directory-entries.json` with the configured source URLs, paths, branches,
-and package descriptions. When migrating a listing from `main`, promote the protected branch to
-the selected release **before** requesting the directory update, so users cannot be switched to
-an older package. Ask Kiro to update the existing `qodo` entry and add the separate optional
-`qodo-standards` entry using that packet. The verifier reads JSON documents and Next.js Flight data
-embedded in directory HTML without executing provider scripts. A branch mismatch is separate from
-a missing listing; neither a prepared packet nor a successful promotion proves directory acceptance.
-Before any branch mutation, a checked-in preflight requires exactly one active **Kiro marketplace
-release** branch ruleset with update/deletion/force-push protection, no exclusions, and exactly one
-always-bypass release identity. The bypass must be the dedicated App's `Integration` actor, while
-any branch pattern broader than the Kiro source is rejected. The environment must require at least
-one release reviewer. Admin bypass, self-review prevention, and deployment-branch filtering are not
-initial-cutover gates; this accepted posture is weaker than enforcing independent approval and may
-be hardened later without changing the token architecture. The runtime preflight checks all
-settings visible to the short-lived App token; the administrator audit is the authority for hidden
-bypass configuration.
+Kiro's provider listings use `main/kiro-power` for core and `main/kiro-power-standards` for
+optional Standards. `directory-entries.json` carries those source URLs, paths, branches and
+package descriptions. The existing core listing already uses `main`; adding the separate
+`qodo-standards` directory entry still requires provider acceptance.
+
+Kiro follows a moving branch. Merged source changes can therefore become available independently
+of immutable GitHub releases or marketplace handoff approval. The observer validates the full
+repository/path/branch/clone-URL records, resolves `main`, and reports its observed commit. It does
+not claim the source matches the packet's reference release. The verifier reads JSON documents
+and Next.js Flight data embedded in directory HTML without executing provider scripts. A missing
+listing or incorrect source still fails verification. No branch promotion, App write token, or
+legacy Kiro branch ruleset is required by marketplace shipping. Immutable release publication
+keeps its separate App audit, protected approval, and no-bypass tag protections.
 
 Core listing identity remains `qodo`; Qodo Standards remains the separately installable
 `qodo-standards` listing. **Ship marketplaces** selects providers, not individual listings, and
@@ -266,7 +264,7 @@ choice, not a separate release selector. Never replace the core listing during a
 
 For every selected provider, record:
 
-1. provider-visible exact commit/path and version;
+1. provider-visible source path and observed commit/version; distinguish moving Kiro `main` from a release pin;
 2. fresh core install with exactly four canonical skill entries;
 3. upgrade from the currently published version without duplicates;
 4. Qodo Standards absent until explicitly installed;
@@ -329,8 +327,8 @@ retry, and a new agent session.
 - Skill regression: prepare and publish a new patch restoring the last-good behavior, then ship
   that patch through the affected lifecycle owners.
 - Provider packaging regression: publish a new immutable patch containing the last-good packaging,
-  then promote that patch through the provider's supported reviewed update flow. This forward-only
-  rule is mandatory for Kiro because its protected release branch cannot be rewound.
+  then promote that patch through the provider's supported reviewed update flow. For Kiro, restore
+  the last-good source through an ordinary reviewed revert on `main`; do not rewrite history.
 - Runtime regression: use the independent Qodo CLI rollback; do not smuggle a binary change into a
   skill release.
 

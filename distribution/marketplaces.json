@@ -44,8 +44,8 @@
     {
       "id": "kiro",
       "displayName": "Kiro",
-      "mode": "protected-release-branch",
-      "sourceRef": "marketplace-kiro",
+      "mode": "provider-tracked-branch",
+      "sourceRef": "main",
       "submissionUrl": "https://kiro.dev/powers/submit/",
       "directoryUrl": "https://kiro.dev/fr/powers/",
       "listings": [

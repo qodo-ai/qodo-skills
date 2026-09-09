@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { planMarketplaceVerification } from '../scripts/plan-marketplace-verification.mjs';
-import { checkVisibility } from '../scripts/verify-marketplace-visibility.mjs';
+import { checkVisibility, visibilitySummary } from '../scripts/verify-marketplace-visibility.mjs';
 import { verifyClaudeDocument, verifyKiroDocument } from '../scripts/marketplace-release.mjs';
 
 const sha = 'a'.repeat(40);
@@ -149,4 +152,40 @@ test('observer is independent, read-only, bounded, and cannot turn mismatches gr
   assert.match(workflow, /timeout-minutes: 5/);
   assert.doesNotMatch(workflow, /continue-on-error|environment:|secrets\.|contents: write|marketplace-release-lock|create-github-app-token/);
   assert.match(workflow, /RELEASE_CATALOG: release-source\/distribution\/marketplaces.json/);
+});
+
+test('a visible moving branch does not claim it matches the reference release commit', async () => {
+  const observed = 'b'.repeat(40);
+  const result = await checkVisibility('kiro', { tag: 'v2.0.4', commit: sha }, contract,
+    async () => [{ id: 'qodo', branch: 'main', commit: observed }, { id: 'qodo-standards', branch: 'main', commit: observed }]);
+  assert.equal(result.state, 'provider-visible');
+  assert.equal(result.verification, 'branch-source');
+  const summary = visibilitySummary(result);
+  assert.ok(summary.includes(observed));
+  assert.match(summary, /Reference release:.*v2.0.4/);
+  assert.match(summary, /tracks `main`/);
+  assert.doesNotMatch(summary, /Every configured listing resolves to this release/);
+});
+
+test('shipping rejects an old Kiro contract after legacy branch promotion is removed', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/ship-marketplaces.yml', import.meta.url), 'utf8');
+  const guard = workflow.match(/name: Require the Kiro main-source contract[\s\S]*?<<'NODE'\n([\s\S]*?)\n\s+NODE/)[1];
+  const temp = mkdtempSync(join(tmpdir(), 'kiro-shipping-contract-'));
+  try {
+    mkdirSync(join(temp, 'distribution'));
+    const candidate = structuredClone(contract);
+    for (const [mode, sourceRef, status] of [
+      ['provider-tracked-branch', 'main', 0],
+      ['protected-release-branch', 'marketplace-kiro', 1],
+      ['provider-tracked-branch', 'other', 1],
+    ]) {
+      Object.assign(candidate.providers.find((entry) => entry.id === 'kiro'), { mode, sourceRef });
+      writeFileSync(join(temp, 'distribution/marketplaces.json'), JSON.stringify(candidate));
+      const result = spawnSync(process.execPath, ['--input-type=module'], { input: guard, cwd: temp, encoding: 'utf8' });
+      assert.equal(result.status, status, result.stderr);
+      if (status) assert.match(result.stderr, /Select a release whose Kiro contract tracks main/);
+    }
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
 });

@@ -6,7 +6,7 @@
 |---|---|---|
 | Claude Code official listing | Claude marketplace | `packages/qodo` |
 | Codex official listing | Codex marketplace/portal | `codex-packages/qodo` |
-| Kiro official listing | Kiro Powers on protected `marketplace-kiro` | `kiro-power` |
+| Kiro official listing | Kiro Powers tracking `main` | `kiro-power` |
 | Compatible host without a listing | skills.sh | canonical `skills/` |
 
 `qodo-standards` is a separate optional package on every surface. It is never included in core
@@ -54,7 +54,7 @@ change: they become reachable only when the runtime catalog explicitly marks the
 
 For each selected provider, release evidence must include:
 
-- provider-visible version and exact source commit/path;
+- provider-visible version and source commit/path (Kiro tracks `main`; record its observed commit separately from immutable release pins);
 - fresh install;
 - upgrade from the currently published Qodo version;
 - exactly four canonical core skill entries after core-only install, with matching names across
