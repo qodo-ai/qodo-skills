@@ -11,13 +11,15 @@
 - Keep every source file below 500 lines; extract focused references or scripts when needed.
 - Use Node built-ins for repository automation. Do not add a runtime dependency without a
   documented need and approval.
-- Existing skill instruction PRs can be authored entirely in GitHub: `Prepare skill update`
-  adds patch versions, generated files, and a release record to the same PR. Contributors do not
-  need Node or local commands. A reviewer approves workflows on the bot commit before merging.
-- For structural changes, intentional minor/major releases, or local maintainer work, prepare
-  release-bound changes with `npm run release:prepare -- --summary ... --skill
-  <name>=<initial|patch|minor|major>` so package, skill, adapter, and release-record versions stay
-  atomic. Use `initial` only for a newly added skill.
+- Contributors edit canonical skills and catalog metadata in ordinary PRs, leaving existing
+  versions and generated packages unchanged. CI builds a temporary preview; after merge,
+  `Prepare skills release PR` collects changes into one bot-owned release PR. No local setup
+  or commands are required for contributors.
+- Only the release PR commits versions, generated packages, and `releases/v<version>.json`.
+  Kiro reads the generated `main/kiro-power` and `main/kiro-power-standards` snapshots.
+  Merging the release PR starts protected publication; provider visibility is checked separately.
+- `npm run release:prepare` remains an optional maintainer tool for explicit minor/major releases
+  and recovery. Existing skill changes default to patch; new skills use `initial` and a package minor.
 - Run `npm test` and available host-native validators before handoff.
 - Never push, tag, publish, submit to a marketplace, or change external state unless the user
   explicitly authorizes it.

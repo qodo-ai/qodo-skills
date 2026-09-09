@@ -2,37 +2,31 @@
 
 ## Change a skill
 
-You can update an existing skill entirely in GitHub. No Node installation or local commands are
-required.
+You can update a skill entirely in GitHub. No Node installation or local commands are required.
 
-1. Open `skills/<name>/SKILL.md`, click the pencil, and edit the instructions. For Codebase Wisdom,
-   the file is `skills/qodo-codebase-wisdom/SKILL.md`.
-2. Choose **Create a new branch for this commit and start a pull request** in this repository.
-   Describe the behavior you changed. Leave version numbers and generated files to automation.
-3. **Prepare skill update** automatically bumps the changed skills and package by one patch,
-   regenerates the marketplace copies, and adds the release record to the same PR.
-4. A reviewer selects **Approve workflows to run** in the PR merge box after the bot commit.
-   Wait for the checks on that commit, review the change, and merge. The first checks may report
-   stale generated files while preparation is running; the checks on the bot commit are the ones
-   that must pass.
+1. Edit `skills/<name>/SKILL.md`. For Codebase Wisdom, use
+   `skills/qodo-codebase-wisdom/SKILL.md`. Supporting material stays beside the skill;
+   display metadata lives in `distribution/catalog.json`.
+2. Open a PR, describe the behavior change, and leave existing versions and generated files alone.
+3. Wait for CI, review, and merge. You are finished.
 
-Further instruction edits refresh that same prepared version. If main has advanced, use GitHub's
-**Update branch** and resolve any conflicts before preparation runs again. Maintainers can rerun
-the preparation action after a transient failure. Review the action summary if no commit appears.
+CI generates a temporary package to test your changes without committing it to your PR.
+After a successful merge, **Prepare skills release PR** creates or refreshes one separate release
+PR with all unreleased changes. It bumps each changed existing skill once by a patch, handles new
+skills as initial versions, and regenerates every distribution. A release owner reviews and merges
+that PR when ready. No special commit-message format is required.
 
-Automatic preparation covers edits to existing `SKILL.md` files on same-repository PRs. New or
-removed skills, supporting-file changes, catalog/display metadata, mixed code changes, and intentional
-minor/major releases need maintainer preparation. Contributors can still open those PRs in GitHub;
-a maintainer handles the packaging. Existing manually prepared releases are left intact. Never edit
-the generated marketplace copies yourself.
+Kiro reads `main/kiro-power` and `main/kiro-power-standards`. Those generated snapshots change when
+the release PR merges. Canonical `skills/` on main may contain newer, unreleased instructions.
+Publication and marketplace handoffs follow [the release process](docs/releasing.md).
 
-Keep skill files below 500 lines and follow the existing guidance in their canonical definitions.
-Merging updates Kiro's main source; immutable release publication and the remaining
-marketplace handoffs still follow [the release process](docs/releasing.md).
+Keep each source file below 500 lines. Skill removal requires an explicit supported immutable
+removal design before it can merge. Intentional minor or major changes should be coordinated with
+a release owner; ordinary automation defaults to patch releases.
 
 ## Maintainer preparation
 
-The local tooling remains available for structural changes, larger version bumps, and recovery:
+Release owners can optionally use local tooling for explicit larger version bumps and recovery:
 
 ```sh
 npm run release:prepare -- \
@@ -71,8 +65,7 @@ Every Qodo skill must:
 
 Do not add individual Kiro allow patterns when a skill gains a read tool. The generated Power keeps
 one stable `qodo read *` pattern, and the CLI catalog classification controls reachability. A new or
-reclassified write therefore remains prompted automatically. Run `npm run adapters` and `npm test`
-to regenerate and verify the permission template.
+reclassified write therefore remains prompted automatically. CI regenerates and verifies the permission template.
 
 Each canonical skill owns its result-presentation instructions in `skills/<name>/SKILL.md`.
 Follow the skill's task-specific prose pattern and keep Qodo attribution tied to its actual
@@ -83,8 +76,9 @@ review representative outputs for useful content, accurate attribution, and pres
 
 ## Pull requests
 
-Every release-bound pull request is complete: it carries its version and release record. After
-merge, the release workflow validates the exact commit, creates the annotated tag, and creates
-the GitHub Release. Describe the user-visible behavior, compatibility impact, skill/package
-versions, and hosts actually tested. Include native validator output when available. Do not call
-a package “published” until the workflow and external marketplace both show the released version.
+Source PRs describe the user-visible behavior, compatibility impact, and hosts actually tested.
+The separate release PR carries versions, generated files, and the immutable release record.
+A release owner selects **Approve workflows to run** if GitHub shows that prompt on a bot update,
+waits for checks on the latest commit, and merges. This starts **Release skills**, which retains its
+protected approval and compatibility checks. Do not call a package published until publication
+succeeds; provider visibility is reported separately by **Verify marketplace listings**.

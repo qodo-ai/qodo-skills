@@ -30,12 +30,13 @@ jobs:
       - name: Install locked validation dependencies
         run: npm ci
 
+      - name: Prepare source preview or validate the committed release
+        env:
+          SKILLS_PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/prepare-ci-validation.mjs
+
       - name: Validate canonical skills and adapters
         run: npm test
-
-      - name: Validate release versioning
-        if: github.event_name == 'pull_request'
-        run: node scripts/validate-diff.mjs "${{ github.event.pull_request.base.sha }}"
 
   claude:
     runs-on: ubuntu-latest

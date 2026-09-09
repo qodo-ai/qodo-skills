@@ -19,10 +19,10 @@ Qodo Standards stays a separate opt-in package. Updating the core package never 
 
 ## Contribute a skill update
 
-Edit `skills/<name>/SKILL.md` directly in GitHub and open a PR from a new branch in this repository.
-**Prepare skill update** adds patch versions, generated marketplace files, and the release record
-to your PR. A reviewer approves the checks on the bot commit, reviews, and merges. Contributors
-do not need Node or local commands. See [Contributing](CONTRIBUTING.md) for the complete flow.
+Edit `skills/<name>/SKILL.md` directly in GitHub, open a PR, wait for CI, and merge.
+Contributors do not need Node or local commands. Automation collects merged changes into one
+separate release PR with versions and generated marketplace packages. A release owner merges
+that PR to start protected publication. See [Contributing](CONTRIBUTING.md) for the complete flow.
 
 ## Install
 

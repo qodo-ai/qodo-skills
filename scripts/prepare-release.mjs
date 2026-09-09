@@ -212,7 +212,10 @@ export function executeReleaseTransaction(repositoryRoot, operation, options) {
   return result;
 }
 
-export function prepareRelease(argv, repositoryRoot = root) {
+export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD' } = {}) {
+  if (baseCommit !== 'HEAD' && !/^[a-f0-9]{40}$/.test(baseCommit)) {
+    throw new Error('Release base must be HEAD or a full commit SHA.');
+  }
   const options = parseArguments(argv);
   const catalogPath = join(repositoryRoot, 'distribution', 'catalog.json');
   const packagePath = join(repositoryRoot, 'package.json');
@@ -235,18 +238,18 @@ export function prepareRelease(argv, repositoryRoot = root) {
   let headCatalog = { skills: [] };
   let hasHead = false;
   try {
-    execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
+    execFileSync('git', ['rev-parse', '--verify', baseCommit], {
       cwd: repositoryRoot,
       stdio: ['ignore', 'ignore', 'pipe'],
     });
     hasHead = true;
   } catch (error) {
-    if (error.code === 'ENOENT') throw error;
+    if (error.code === 'ENOENT' || baseCommit !== 'HEAD') throw error;
   }
   if (hasHead) {
     let hasHeadCatalog = false;
     try {
-      execFileSync('git', ['cat-file', '-e', 'HEAD:distribution/catalog.json'], {
+      execFileSync('git', ['cat-file', '-e', `${baseCommit}:distribution/catalog.json`], {
         cwd: repositoryRoot,
         stdio: ['ignore', 'ignore', 'pipe'],
       });
@@ -257,7 +260,7 @@ export function prepareRelease(argv, repositoryRoot = root) {
     if (hasHeadCatalog) {
       const headCatalogText = execFileSync(
         'git',
-        ['show', 'HEAD:distribution/catalog.json'],
+        ['show', `${baseCommit}:distribution/catalog.json`],
         { cwd: repositoryRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
       );
       try {
@@ -270,7 +273,7 @@ export function prepareRelease(argv, repositoryRoot = root) {
   const headSkills = new Set((headCatalog.skills ?? []).map((skill) => skill.name));
   for (const [name, bump] of options.skills) {
     if (bump === 'initial' && headSkills.has(name)) {
-      throw new Error(`${name}=initial is only valid for a skill absent from the HEAD catalog`);
+      throw new Error(`${name}=initial is only valid for a skill absent from the ${baseCommit === 'HEAD' ? 'HEAD' : 'release base'} catalog`);
     }
   }
 
