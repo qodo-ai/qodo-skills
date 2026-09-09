@@ -98,12 +98,14 @@ function installPackage(name) {
   return value;
 }
 
-function pluginManifest(value) {
+function pluginManifest(value, adapterSet) {
+  const kiroListing = adapterSet === 'kiro' ? listing('kiro', value.name) : undefined;
   return {
     $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
     name: value.name,
+    ...(kiroListing ? { displayName: kiroListing.displayName } : {}),
     version: pkg.version,
-    description: value.description,
+    description: kiroListing?.description ?? value.description,
     author,
     homepage: pkg.homepage,
     repository: pkg.repository,
@@ -166,7 +168,7 @@ function kiroReadPermissionProfile() {
 
 function generatedPackageFiles(value, adapterSet = 'claude') {
   const files = new Map([
-    ['plugin.json', `${JSON.stringify(pluginManifest(value), null, 2)}\n`],
+    ['plugin.json', `${JSON.stringify(pluginManifest(value, adapterSet), null, 2)}\n`],
   ]);
   if (adapterSet === 'codex') {
     const manifest = codexManifest(value);
@@ -223,6 +225,7 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
   }
   for (const skillName of value.skills) {
     const sourceRoot = join(root, 'skills', skillName);
+    if (!existsSync(join(sourceRoot, 'SKILL.md'))) throw new Error(`${skillName}: SKILL.md is required`);
     const skill = catalog.skills.find((entry) => entry.name === skillName);
     const distribution = adapterSet === 'kiro' ? 'kiro-power' : 'marketplace';
     const host = adapterSet === 'kiro' ? 'kiro' : adapterSet === 'codex' ? 'codex' : 'claude-code';
@@ -239,35 +242,6 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
             host,
           })
           : content,
-      );
-    }
-  }
-  // Preserve the earlier marketplace invocation as a compatibility alias while the canonical skill name
-  // moves from qodo-pr-resolver to qodo-review-resolver. This is generated from
-  // the canonical workflow (never separately authored), and its narrow
-  // description prevents it competing with the canonical skill for new tasks.
-  if (value.name === pkg.name) {
-    const canonical = files.get('skills/qodo-review-resolver/SKILL.md');
-    if (!canonical) throw new Error(`${value.name}: missing qodo-review-resolver compatibility source`);
-    const compatibilityAlias = canonical
-      .replace(/^name:\s*qodo-review-resolver$/m, 'name: qodo-pr-resolver')
-      .replace(
-        /^description:.*$/m,
-        'description: Compatibility alias for explicit qodo-pr-resolver requests. Follow the complete Qodo PR review workflow embedded here and use qodo-review-resolver for new invocations; lifecycle update provenance intentionally uses the canonical qodo-review-resolver release-index identity.',
-      )
-      .replace(/^metadata:$/m, 'metadata:\n  alias_for: "qodo-review-resolver"');
-    files.set('skills/qodo-pr-resolver/SKILL.md', compatibilityAlias);
-    if (adapterSet === 'codex') {
-      const canonicalAdapter = files.get('skills/qodo-review-resolver/agents/openai.yaml');
-      if (!canonicalAdapter) throw new Error(`${value.name}: missing qodo-review-resolver Codex adapter`);
-      if (!/^  allow_implicit_invocation: true$/m.test(canonicalAdapter)) {
-        throw new Error(`${value.name}: qodo-review-resolver Codex adapter must declare implicit invocation`);
-      }
-      files.set(
-        'skills/qodo-pr-resolver/agents/openai.yaml',
-        canonicalAdapter
-          .replace(/\$qodo-review-resolver\b/g, '$qodo-pr-resolver')
-          .replace(/^  allow_implicit_invocation: true$/m, '  allow_implicit_invocation: false'),
       );
     }
   }

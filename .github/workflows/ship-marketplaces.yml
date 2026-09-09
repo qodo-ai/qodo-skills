@@ -101,6 +101,18 @@ jobs:
             --codex "${{ inputs.codex }}" \
             --kiro "${{ inputs.kiro }}"
 
+      - name: Require the Kiro main-source contract
+        if: steps.plan.outputs.kiro == 'true'
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const contract = JSON.parse(readFileSync('distribution/marketplaces.json', 'utf8'));
+          const kiro = contract.providers.find(({ id }) => id === 'kiro');
+          if (kiro?.mode !== 'provider-tracked-branch' || kiro?.sourceRef !== 'main') {
+            throw new Error('Select a release whose Kiro contract tracks main; legacy release-branch promotion is no longer supported.');
+          }
+          NODE
+
   prepare:
     needs: plan
     strategy:
@@ -185,7 +197,7 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/environments/marketplace-${{ matrix.provider }}" \
             --jq 'any(.protection_rules[]?; .type == "required_reviewers")' | grep -qx true
 
-  verify-provider-visible:
+  ship-provider:
     needs: [plan, prepare, verify-provider-environment]
     if: needs.plan.outputs.has_verifiable == 'true'
     concurrency:
@@ -209,80 +221,19 @@ jobs:
         with:
           node-version: 22
 
-      - name: Require dedicated Kiro release App configuration
-        if: matrix.provider == 'kiro'
+      - name: Record shipment awaiting provider verification
         env:
-          RELEASE_APP_ID: ${{ vars.QODO_SKILLS_RELEASE_APP_ID }}
-          RELEASE_APP_PRIVATE_KEY: ${{ secrets.QODO_SKILLS_RELEASE_APP_PRIVATE_KEY }}
-        run: |
-          set -euo pipefail
-          [[ "${RELEASE_APP_ID}" =~ ^[0-9]+$ ]] || { echo 'QODO_SKILLS_RELEASE_APP_ID must be configured in marketplace-kiro.' >&2; exit 1; }
-          test -n "${RELEASE_APP_PRIVATE_KEY}" || { echo 'QODO_SKILLS_RELEASE_APP_PRIVATE_KEY must be configured in marketplace-kiro.' >&2; exit 1; }
-
-      - name: Mint installation-wide read-only Kiro audit token
-        if: matrix.provider == 'kiro'
-        id: kiro-installation-audit-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
-        with:
-          app-id: ${{ vars.QODO_SKILLS_RELEASE_APP_ID }}
-          private-key: ${{ secrets.QODO_SKILLS_RELEASE_APP_PRIVATE_KEY }}
-          owner: qodo-ai
-          permission-administration: read
-
-      - name: Verify Kiro release App installation scope
-        if: matrix.provider == 'kiro'
-        env:
-          GH_TOKEN: ${{ steps.kiro-installation-audit-token.outputs.token }}
-        run: scripts/verify-release-prerequisites.sh
-
-      - name: Mint repository-scoped Kiro release token
-        if: matrix.provider == 'kiro'
-        id: kiro-release-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
-        with:
-          app-id: ${{ vars.QODO_SKILLS_RELEASE_APP_ID }}
-          private-key: ${{ secrets.QODO_SKILLS_RELEASE_APP_PRIVATE_KEY }}
-          owner: qodo-ai
-          repositories: qodo-skills
-          permission-administration: read
-          permission-contents: write
-
-      - name: Advance protected Kiro release source
-        if: matrix.provider == 'kiro'
-        env:
-          GH_TOKEN: ${{ steps.kiro-release-token.outputs.token }}
-          QODO_SKILLS_RELEASE_APP_ID: ${{ vars.QODO_SKILLS_RELEASE_APP_ID }}
-          SOURCE_REF: marketplace-kiro
-        run: |
-          set -euo pipefail
-          for tool in bash gh git jq; do
-            command -v "${tool}" >/dev/null 2>&1 || { echo "Kiro source promotion requires ${tool}." >&2; exit 1; }
-          done
-          test -n "${GH_TOKEN}" || { echo 'The short-lived qodo-skills release App token is required to advance the protected Kiro release branch.' >&2; exit 1; }
-          bash scripts/verify-kiro-release-source.sh
-          RELEASE_SHA="$(git rev-parse HEAD)"
-          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/${SOURCE_REF}" >/dev/null 2>&1; then
-            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/heads/${SOURCE_REF}" \
-              -f sha="${RELEASE_SHA}" -F force=false >/dev/null
-          else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-              -f ref="refs/heads/${SOURCE_REF}" -f sha="${RELEASE_SHA}" >/dev/null
-          fi
-
-      - name: Require exact provider-visible source
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
           PROVIDER: ${{ matrix.provider }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
-          for tool in git node; do
-            command -v "${tool}" >/dev/null 2>&1 || { echo "Provider verification requires ${tool}." >&2; exit 1; }
-          done
-          node scripts/marketplace-release.mjs verify \
-            --provider "${PROVIDER}" \
-            --tag "${RELEASE_TAG}" \
-            --commit "$(git rev-parse HEAD)"
+          {
+            echo "## ${PROVIDER}: awaiting provider verification"
+            echo
+            echo "Release preparation and approved provider handoff succeeded for \`${RELEASE_TAG}\` at \`$(git rev-parse HEAD)\`."
+            echo 'Public listing verification runs independently in **Verify marketplace visibility**, after shipping and every 15 minutes.'
+            echo 'Shipping success does not attest that the provider catalog has updated.'
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   codex-gate:
     needs: [plan, prepare]
@@ -344,7 +295,7 @@ jobs:
       - plan
       - prepare
       - verify-provider-environment
-      - verify-provider-visible
+      - ship-provider
       - codex-gate
       - codex-release-owner-attestation
     if: >-

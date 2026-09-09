@@ -115,20 +115,7 @@ if [[ "$(jq '
   exit 1
 fi
 
-KIRO_RULESET="$(ruleset_json 'Kiro marketplace release' 'branch')"
-if [[ "$(jq --argjson release_app_id "${RELEASE_APP_ID}" '
-  has("bypass_actors") and
-  (.conditions.ref_name.include == ["refs/heads/marketplace-kiro"]) and
-  (.conditions.ref_name.exclude == []) and
-  ([.rules[].type] | sort == ["creation", "deletion", "non_fast_forward", "update"]) and
-  (.bypass_actors == [{"actor_id":$release_app_id,"actor_type":"Integration","bypass_mode":"always"}])
-' <<< "${KIRO_RULESET}")" != 'true' ]]; then
-  echo 'Kiro marketplace release must protect creation/update/deletion/force-push, target only refs/heads/marketplace-kiro, and grant its sole always-bypass to qodo-skills-release-bot.' >&2
-  exit 1
-fi
-
-printf 'Release protections verified: repository=%s app_id=%s tag_ruleset=%s kiro_ruleset=%s\n' \
+printf 'Release protections verified: repository=%s app_id=%s tag_ruleset=%s\n' \
   "${GITHUB_REPOSITORY}" \
   "${RELEASE_APP_ID}" \
-  "$(jq -r '.id' <<< "${TAG_RULESET}")" \
-  "$(jq -r '.id' <<< "${KIRO_RULESET}")"
+  "$(jq -r '.id' <<< "${TAG_RULESET}")"

@@ -13,14 +13,14 @@ const TAG_PATTERN = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const MAX_COMPATIBILITY_ASSET_BYTES = 8 * 1024 * 1024;
 
-function requireTag(tag) {
+export function requireTag(tag) {
   if (typeof tag !== 'string' || !TAG_PATTERN.test(tag)) {
     throw new Error(`invalid stable skills tag: ${JSON.stringify(tag)}`);
   }
   return tag;
 }
 
-function compareTags(left, right) {
+export function compareTags(left, right) {
   const a = TAG_PATTERN.exec(requireTag(left)).slice(1).map(BigInt);
   const b = TAG_PATTERN.exec(requireTag(right)).slice(1).map(BigInt);
   for (let index = 0; index < a.length; index += 1) {
@@ -66,7 +66,7 @@ async function readBytes(
   return Buffer.concat(chunks, length);
 }
 
-async function readJson(fetchImpl, url, token = '') {
+export async function readJson(fetchImpl, url, token = '') {
   try {
     return JSON.parse((await readBytes(fetchImpl, url, token)).toString('utf8'));
   } catch (error) {
@@ -75,7 +75,7 @@ async function readJson(fetchImpl, url, token = '') {
   }
 }
 
-async function readWorkflowRuns(fetchImpl, baseUrl, token) {
+export async function readWorkflowRuns(fetchImpl, baseUrl, token) {
   const runs = [];
   for (let page = 1; page <= 100; page += 1) {
     const payload = await readJson(fetchImpl, `${baseUrl}&page=${page}`, token);

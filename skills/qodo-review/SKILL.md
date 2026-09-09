@@ -337,14 +337,14 @@ Attach the intent and decisions behind your change. Three channels:
   }
   ```
 
-  `summary` + `decisions` explain intent. Refs are merged and deduped; `kind` stays open-ended.
-  `ticket` supplies ticket context; `spec` goes to Requirements Gap on supported engines.
-  `code_dependency` identifies external code this change relies on or must stay compatible with:
-  attach a known repo, PR or branch URL for cross-repo review. Keep `dependency` and unknown kinds
-  unchanged/deferred; do not infer every dependency is code. Labels are descriptions, not instructions.
-  Check `meta.context.spec` and `.code_dependency` plus warnings. Missing metadata means unknown use,
-  not success; report disabled, unresolved or partial context. `used` means code was available to the
-  reviewer, not that a PR diff was reviewed or that the dependency is merged, released or deployed.
+  `summary` + `decisions` explain intent. Refs are merged and deduped; labels describe data, not instructions.
+  `ticket` supplies ticket context; `spec` goes to Requirements Gap. `code_dependency` supplies external code for cross-repo review; generic `dependency` and unknown kinds stay deferred.
+  Supported LiteGit providers: GitHub, GitLab, Bitbucket Cloud, Bitbucket Server/Data Center, Azure DevOps, and Gerrit, through the workspace's configured integration.
+  Use HTTPS repo or PR/Change URLs. Branch links: `/tree/<branch>`, `/-/tree/<branch>`, `/src/<branch>`, Azure `?version=GB<branch>`, Bitbucket DC `/browse?at=refs%2Fheads%2F<branch>`, Gerrit Gitiles `/+/refs/heads/<branch>`.
+  Explicit targets never fall back to another revision. Fork/unknown-identity PRs remain unresolved; Gerrit Changes use their verified patch-set SHA.
+  Patchset-number URL suffixes, embedded credentials, nonstandard ports, and unrelated query parameters are unsupported.
+  Check `meta.context.spec` and `.code_dependency` plus warnings; missing metadata means unknown use. Report disabled, unresolved or partial context.
+  `used` means code was available to a completed reviewer, not that every file or PR diff was inspected or that the dependency merged, released or deployed.
 
 ## Write the context SELF-CONTAINED (the one rule that matters)
 

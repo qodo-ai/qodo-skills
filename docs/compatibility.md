@@ -6,7 +6,7 @@
 |---|---|---|
 | Claude Code official listing | Claude marketplace | `packages/qodo` |
 | Codex official listing | Codex marketplace/portal | `codex-packages/qodo` |
-| Kiro official listing | Kiro Powers on protected `marketplace-kiro` | `kiro-power` |
+| Kiro official listing | Kiro Powers tracking `main` | `kiro-power` |
 | Compatible host without a listing | skills.sh | canonical `skills/` |
 
 `qodo-standards` is a separate optional package on every surface. It is never included in core
@@ -45,20 +45,20 @@ change: they become reachable only when the runtime catalog explicitly marks the
    compatible CLI first, probe without new flags, and degrade to the runtime's recorded update
    origin without misclassifying incompatibility as an authentication failure.
 7. Rollback is a new immutable patch, never mutation of a published tag or asset.
-8. Marketplace core packages retain the generated `qodo-pr-resolver` compatibility alias while
-   `qodo-review-resolver` is canonical. The alias is generated from the same complete workflow and
-   remains only as a compatibility alias for earlier invocations; it is not a second authored skill.
+8. Every distribution exposes exactly its package's canonical skill names. Starting with package
+   v2.0.0, the `qodo-pr-resolver` compatibility skill is removed; update existing prompts to
+   `qodo-review-resolver`. Historical CLI receipt aliases remain migration metadata and do not
+   create additional skills.
 
 ## Acceptance
 
 For each selected provider, release evidence must include:
 
-- provider-visible version and exact source commit/path;
+- provider-visible version and source commit/path (Kiro tracks `main`; record its observed commit separately from immutable release pins);
 - fresh install;
 - upgrade from the currently published Qodo version;
-- exactly four canonical core capabilities after core-only install (the generated
-  `qodo-pr-resolver` name may coexist only as a compatibility alias for
-  `qodo-review-resolver`, never as another capability);
+- exactly four canonical core skill entries after core-only install, with matching names across
+  distributions;
 - Qodo Standards absent until explicitly installed;
 - login/setup, one read workflow, and one approval-gated write workflow;
 - host-owned update followed by a new session;

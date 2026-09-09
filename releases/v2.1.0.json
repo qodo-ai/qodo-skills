@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
-  "summary": "Add explicit code dependency context guidance and consumption checks to pre-PR review",
+  "version": "2.1.0",
+  "summary": "Support explicit code dependencies across LiteGit providers with honest context outcomes",
   "package": {
     "change": "minor"
   },

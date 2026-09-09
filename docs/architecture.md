@@ -60,13 +60,13 @@ Schemas rather than relying only on partial hand-written checks.
 | Earlier CLI-managed roots | checksummed `qodo-cli-managed-bundle.json` release asset | `qodo-cli-managed` |
 
 Generation copies the complete canonical workflow. It changes only distribution/host provenance
-and provider manifests. Core marketplace packages also generate the temporary
-`qodo-pr-resolver` compatibility alias from the canonical `qodo-review-resolver` body so existing
-explicit invocations survive the rename without creating a second authored workflow. Validation
+and provider manifests. Every distribution exposes exactly the canonical skill names assigned to
+its package in the catalog. The resolver is `qodo-review-resolver` in every distribution. Validation
 byte-compares every generated skill against that deterministic projection and rejects any
 `qodo help workflow` loader. Kiro uses the current Agent Plugins contract (`plugin.json` plus
 `skills/`); the retired `POWER.md`/`steering/` layout is not regenerated. Its public listing follows
-only the protected `marketplace-kiro` release branch, never mutable day-to-day `main`.
+`main/kiro-power` and `main/kiro-power-standards`. These are moving sources; verification records
+the observed `main` commit independently of immutable release pins.
 
 ## Runtime contract
 

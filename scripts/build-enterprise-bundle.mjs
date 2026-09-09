@@ -91,6 +91,11 @@ function collectProjection(provider, source, archiveRoot, files) {
         '',
       ));
     }
+    if (provider === 'kiro' && file.path === `${archiveRoot}/plugin.json`) {
+      const plugin = JSON.parse(file.payload.toString('utf8'));
+      delete plugin.displayName;
+      file.payload = Buffer.from(`${JSON.stringify(plugin, null, 2)}\n`);
+    }
     if (provider === 'codex' && file.path === `${archiveRoot}/.codex-plugin/plugin.json`) {
       const plugin = JSON.parse(file.payload.toString('utf8'));
       delete plugin.interface.composerIcon;
@@ -281,6 +286,10 @@ export function buildEnterpriseBundle({ output, commit, releaseIndex }, reposito
       const missing = installPackage.skills.filter((skill) => !skills.includes(skill));
       if (missing.length > 0) {
         throw new Error(`${installPackage.name}: ${provider} projection is missing ${missing.join(', ')}`);
+      }
+      const unexpected = skills.filter((skill) => !installPackage.skills.includes(skill));
+      if (unexpected.length > 0) {
+        throw new Error(`${installPackage.name}: ${provider} projection has unexpected skills ${unexpected.join(', ')}`);
       }
     }
     return {

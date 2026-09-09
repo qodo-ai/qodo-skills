@@ -11,6 +11,7 @@ const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json
 const marketplaceCatalog = JSON.parse(readFileSync(join(root, 'distribution', 'marketplaces.json'), 'utf8'));
 const codexSubmissions = JSON.parse(readFileSync(join(root, 'distribution', 'codex-submissions.json'), 'utf8'));
 const repositoryUrl = 'https://github.com/qodo-ai/qodo-skills';
+const repositoryCloneUrl = 'git@github.com:qodo-ai/qodo-skills.git';
 
 function argumentMap(argv) {
   const values = new Map();
@@ -107,7 +108,9 @@ function submissionMarkdown(selectedProvider, context, artifacts = []) {
   ];
   const completion = selectedProvider.mode === 'reviewed-portal-snapshot'
     ? 'Publication requires review and an explicit publish action in the provider portal. The protected GitHub environment approval is the release-owner attestation for that external step.'
-    : 'Publication is complete only after the provider-visible directory resolves every listing to this exact release commit.';
+    : selectedProvider.mode === 'provider-tracked-branch'
+      ? `Directory acceptance requires every listing to use the configured repository, ${selectedProvider.sourceRef} branch and package path. This is a moving source; record its observed commit separately from this packet's immutable release commit.`
+      : 'Publication is complete only after the provider-visible directory resolves every listing to this exact release commit.';
   return [
     `# ${selectedProvider.displayName} marketplace release`,
     '',
@@ -187,6 +190,17 @@ export function prepareMarketplace(providerId, context, outputPath) {
   if (providerId === 'claude') {
     writeJson(join(output, 'directory-entries.json'), selectedProvider.listings.map((entry) => desiredClaudeEntry(entry, context)));
   }
+  if (providerId === 'kiro') {
+    writeJson(join(output, 'directory-entries.json'), selectedProvider.listings.map((listing) => ({
+      name: listing.id,
+      displayName: listing.displayName ?? packageDetails(listing.package).displayName,
+      description: listing.description ?? packageDetails(listing.package).description,
+      repositoryUrl: `${repositoryUrl}/tree/${selectedProvider.sourceRef}/${listing.sourcePath}`,
+      repositoryCloneUrl,
+      pathInRepo: listing.sourcePath,
+      repositoryBranch: selectedProvider.sourceRef,
+    })));
+  }
   if (providerId === 'codex') {
     const submissionsRoot = join(output, 'submissions');
     mkdirSync(submissionsRoot);
@@ -249,64 +263,80 @@ export function verifyClaudeDocument(document, context, selectedProvider = provi
   return results;
 }
 
-function normalizedEmbeddedJson(text) {
-  return text
-    .replaceAll('\\u002F', '/')
-    .replaceAll('\\u0026', '&')
-    .replaceAll('\\"', '"');
-}
-
 function embeddedObjectRecords(text) {
   const records = [];
-  const collect = (value) => {
-    if (!value || typeof value !== 'object') return;
-    if (!Array.isArray(value)) records.push(value);
-    for (const nested of Object.values(value)) collect(nested);
+  const collectDirectory = (value) => {
+    if (value?.id === 'browse-powers' && Array.isArray(value.cards)) records.push(...value.cards);
   };
-  try {
-    collect(JSON.parse(text));
-  } catch {
-    // Provider pages may contain escaped JSON records inside HTML/script text.
-  }
-  const starts = [];
-  let quoted = false;
-  let escaped = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (quoted) {
-      if (escaped) escaped = false;
-      else if (char === '\\') escaped = true;
-      else if (char === '"') quoted = false;
-      continue;
+  const collectElements = (value) => {
+    if (!Array.isArray(value)) return;
+    if (value[0] !== '$') {
+      for (const child of value) collectElements(child);
+      return;
     }
-    if (char === '"') quoted = true;
-    else if (char === '{') starts.push(index);
-    else if (char === '}' && starts.length > 0) {
-      const start = starts.pop();
+    // Flight element tuples carry props at index 3. Only children establish
+    // component ancestry; arbitrary props may contain cached or unrelated cards.
+    const [, type, key, props] = value;
+    if (value.length !== 4 || typeof type !== 'string' || (key !== null && typeof key !== 'string')
+      || !props || typeof props !== 'object' || Array.isArray(props)) return;
+    collectDirectory(props);
+    collectElements(props.children);
+  };
+  const parse = (value, format = 'directory') => {
+    try {
+      const document = JSON.parse(value);
+      if (format === 'packet' && Array.isArray(document)) records.push(...document);
+      else if (format === 'packet' && Array.isArray(document?.powers)) records.push(...document.powers);
+      else if (format === 'flight') collectElements(document);
+      // Direct JSON directory documents have an explicit root envelope. Never
+      // search arbitrary nested metadata for another object with the same id.
+      else collectDirectory(document);
+    } catch {
+      // Ignore non-JSON data; never execute scripts from the provider page.
+    }
+  };
+  parse(text, 'packet');
+  const flightChunks = [];
+  for (const [, script] of text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)) {
+    parse(script);
+    // Next.js serializes Flight data as JSON strings, possibly split across pushes.
+    const pushes = /self\.__next_f\.push\(\s*\[\s*1\s*,\s*("(?:[^"\\]|\\.)*")\s*\]\s*\)/g;
+    for (const [, chunk] of script.matchAll(pushes)) {
       try {
-        collect(JSON.parse(text.slice(start, index + 1)));
+        flightChunks.push(JSON.parse(chunk));
       } catch {
-        // Not every brace-delimited provider-page fragment is JSON.
+        // Malformed data cannot establish a provider listing.
       }
     }
+  }
+  for (const row of flightChunks.join('').split('\n')) {
+    const match = row.match(/^[0-9a-f]+:([\[{].*)$/i);
+    if (match) parse(match[1], 'flight');
   }
   return records;
 }
 
 export function verifyKiroDocument(document, context, selectedProvider = provider('kiro')) {
-  const normalized = normalizedEmbeddedJson(document);
-  const records = embeddedObjectRecords(normalized);
+  const records = embeddedObjectRecords(document);
   const results = [];
   const sourceRef = selectedProvider.sourceRef;
   if (!sourceRef) throw new Error('Kiro marketplace contract is missing sourceRef');
   for (const listing of selectedProvider.listings) {
     const repository = `${repositoryUrl}/tree/${sourceRef}/${listing.sourcePath}`;
-    const entry = records.find((candidate) => candidate.name === listing.id);
-    if (!entry) throw new Error(`Kiro ${listing.id}: provider listing is missing`);
-    if (entry.repositoryUrl !== repository) throw new Error(`Kiro ${listing.id}: wrong repository`);
-    if (entry.pathInRepo !== listing.sourcePath) throw new Error(`Kiro ${listing.id}: expected path ${listing.sourcePath}`);
-    if (entry.repositoryBranch !== sourceRef) {
-      throw new Error(`Kiro ${listing.id}: expected branch ${sourceRef}`);
+    const entries = records.filter((candidate) => candidate?.name === listing.id);
+    if (!entries.length) throw new Error(`Kiro ${listing.id}: provider listing is missing`);
+    for (const entry of entries) {
+      if (entry.pathInRepo !== listing.sourcePath) throw new Error(`Kiro ${listing.id}: expected path ${listing.sourcePath}`);
+      if (entry.repositoryBranch !== sourceRef) {
+        throw new Error(`Kiro ${listing.id}: expected branch ${sourceRef}, found ${entry.repositoryBranch ?? '<missing>'}`);
+      }
+      if (entry.repositoryUrl !== repository) {
+        throw new Error(`Kiro ${listing.id}: expected repository ${repository}, found ${entry.repositoryUrl ?? '<missing>'}`);
+      }
+      if (entry.repositoryCloneUrl !== repositoryCloneUrl
+        && normalizeRepositoryUrl(entry.repositoryCloneUrl) !== repositoryUrl) {
+        throw new Error(`Kiro ${listing.id}: expected clone repository ${repositoryUrl}, found ${entry.repositoryCloneUrl ?? '<missing>'}`);
+      }
     }
     results.push({ id: listing.id, state: 'provider-visible', source: repository, branch: sourceRef });
   }
@@ -326,8 +356,7 @@ async function fetchText(url) {
   return response.text();
 }
 
-export async function verifyMarketplace(providerId, context) {
-  const selectedProvider = provider(providerId);
+export async function verifyMarketplace(providerId, context, selectedProvider = provider(providerId)) {
   if (selectedProvider.mode === 'reviewed-portal-snapshot') {
     throw new Error(`${selectedProvider.displayName} has no documented publishing API; use the protected marketplace-codex environment after portal publication`);
   }
@@ -341,7 +370,10 @@ export async function verifyMarketplace(providerId, context) {
     const source = JSON.parse(await fetchText(
       `https://api.github.com/repos/qodo-ai/qodo-skills/commits/${encodeURIComponent(sourceRef)}`,
     ));
-    if (source.sha !== context.commit) {
+    if (!/^[a-f0-9]{40}$/.test(source.sha ?? '')) {
+      throw new Error(`Kiro could not resolve a valid commit for ${sourceRef}`);
+    }
+    if (selectedProvider.mode !== 'provider-tracked-branch' && source.sha !== context.commit) {
       throw new Error(`Kiro follows ${sourceRef} at ${source.sha ?? '<missing>'}, not release commit ${context.commit}`);
     }
     return results.map((result) => ({ ...result, commit: source.sha }));
@@ -395,7 +427,9 @@ async function main(argv) {
     writeSummary([
       `## ${provider(providerId).displayName} marketplace verified`,
       '',
-      `All selected listings resolve to \`${context.tag}\` at \`${context.commit}\`.`,
+      provider(providerId).mode === 'provider-tracked-branch'
+        ? `All configured listings track \`${provider(providerId).sourceRef}\`, observed at \`${results[0].commit}\`. This is a moving source, not a release pin.`
+        : `All selected listings resolve to \`${context.tag}\` at \`${context.commit}\`.`,
     ]);
     console.log(JSON.stringify(results));
     return;

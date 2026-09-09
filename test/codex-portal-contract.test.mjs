@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -139,8 +139,8 @@ test('portable verifier and generated skill interfaces remain complete', () => p
     assert.equal(manifest.interface.composerIcon, manifest.interface.logo);
     assert.equal(createHash('sha256').update(readFileSync(join(directory, 'assets/qodo.png'))).digest('hex'),
       '3b55f9064c1bd1c68de454db1c0056baaf3d881946770a94dc7252f3ce1ebeab');
-    const skills = pkg.name === 'qodo' ? [...pkg.skills, 'qodo-pr-resolver'] : pkg.skills;
-    for (const name of skills) {
+    assert.deepEqual(readdirSync(join(directory, 'skills')).sort(), [...pkg.skills].sort());
+    for (const name of pkg.skills) {
       const yaml = readFileSync(join(directory, 'skills', name, 'agents/openai.yaml'), 'utf8');
       for (const field of ['display_name', 'short_description', 'default_prompt']) {
         assert.match(yaml, new RegExp(`^  ${field}: .+`, 'm'));
