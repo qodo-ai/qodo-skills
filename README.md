@@ -6,7 +6,9 @@ The canonical, provider-neutral source for Qodo’s local coding-agent skills.
 
 Every distributed skill contains its complete reviewed workflow. Coding agents do not fetch task
 instructions from the Qodo CLI. The CLI provides authentication, managed tools, offline tool help,
-runtime updates, and a compact stale-skill notice; it never installs or rewrites skills.
+runtime updates, passive skill notices, and verified maintenance through each recorded lifecycle
+owner. Enterprise and historical CLI-managed installations can update automatically; marketplace
+plugins remain owned by their host.
 
 ## Packages
 

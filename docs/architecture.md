@@ -16,9 +16,9 @@ lifecycle UI—not in workflow content or authority.
 | `qodo-skills` | canonical workflow bodies, package membership, versions, provider projections, marketplace packets, and the data-only CLI-managed compatibility bundle | credentials, API transport, installed host state |
 | Marketplace | install, cache, update, rollback, and removal of its Qodo plugin | Qodo runtime binary or login |
 | skills.sh | install, link/copy, scope, update, and removal for agents without a Qodo listing | Qodo runtime binary or login |
-| Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and lifecycle ownership of explicitly selected enterprise roots | public CLI binary contents or silent agent-root mutation |
+| Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and lifecycle ownership of explicitly selected enterprise roots | public CLI binary contents or mutation outside the disclosed maintenance policy |
 | CLI-managed compatibility channel | automatic updates only for byte-exact roots created by a shipped pre-cutover CLI | new installs, missing skills, marketplace/enterprise roots, user-modified copies |
-| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, the compatibility updater, and an authenticated launcher for the pinned enterprise skills engine | authoring or embedding skill bodies, maintaining agent mappings, parsing skill archives, task-time playbooks, marketplace caches, or roots owned by another lifecycle channel |
+| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, the compatibility updater, and an authenticated launcher for the pinned enterprise skills engine | authoring canonical skill bodies, task-time playbooks, marketplace caches, or roots owned by another lifecycle channel |
 
 The enterprise command is a transport launcher, not a second installer implementation. It is
 available only when the CLI's recorded private origin serves QAR's path-scoped discovery feeds and
@@ -27,8 +27,15 @@ The CLI materializes a digest-verified packaging build of exact-pinned `skills@1
 `DO_NOT_TRACK=1`; that engine performs current agent discovery and installation. The client never
 contacts npm, skills.sh, GitHub, or a marketplace, so the same path works in an air-gapped deployment.
 The discovery manifest requires Qodo CLI `0.1.0-next.39` or newer, independently from the older
-package-wide compatibility floor. Updates remain prompted until that engine can prove modified-root
-preservation.
+package-wide compatibility floor. Setup discloses automatic maintenance of the selected enterprise
+installations and packages. The CLI stages verified releases through the pinned engine and updates
+only roots whose source, ownership receipt, directory identity and unmodified file hashes still
+match. Opt-outs remain effective; missing or edited roots and competing owners block maintenance.
+
+For requested manual updates, capable CLIs prepare a complete `--dry-run --json` plan before consent,
+then revalidate its returned `--apply-plan` fingerprint before mutation. A narrow `--agent` request
+cannot silently expand. Separate physical copies remain coupled by the enterprise release receipt;
+optional-package selections remain unchanged.
 
 After an explicit migration command, the CLI may retire only byte-identical copies produced by a
 shipped CLI release. It atomically moves them out of the host skill name into a recoverable hidden

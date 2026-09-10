@@ -335,20 +335,22 @@ allowing a discovery-capable bundle to pair with an incapable CLI.
 
 The archive and discovery feeds are enterprise distribution inputs, not hidden CLI payloads. After
 authentication, the QAR-supplied CLI launches its build-pinned skills engine against the same-origin
-core feed; Standards uses a separate feed and remains explicit. The CLI embeds no skill body,
-agent registry, or archive installer. It forces `DO_NOT_TRACK=1`, and client runtime needs no public
+core feed; Standards uses a separate feed and remains explicit. Canonical skill bodies remain in this repository; the CLI verifies and stages the engine output.
+It forces `DO_NOT_TRACK=1`, and client runtime needs no public
 registry or package-manager access.
 
 The CLI reads QAR's same-origin compact index, CLI-managed bundle, and enterprise pointer. The
 compatibility updater still touches only proven historical CLI-managed roots. The enterprise
-checker never mutates roots in the background or falls back to a public origin. It emits
-`qodo agents update --enterprise`; the user then reviews the lifecycle engine's overwrite summary
-and confirms the update.
+updater uses the disclosed automatic-maintenance policy, respecting opt-outs, and never falls
+back to a public origin. It verifies source, receipt, unmodified files and ownership before replacing
+any recorded copy. Availability, completion and persistent blockers are passive and deduplicated.
+Manual maintenance previews all affected locations and installed packages before one approval; the
+CLI revalidates the approved operation before applying it.
 
 Gate: deterministic rebuild, manifest/archive/discovery digests, no credential or CLI bytes, core
 and Standards isolation, QAR same-origin download, private-origin no-egress behavior,
-telemetry-disabled pinned-helper use at Node 20.6, clean-machine delegated import, prompted update,
-retry, and a new agent session.
+telemetry-disabled pinned-helper use at Node 20.6, clean-machine delegated import, verified automatic maintenance, full-scope manual approval,
+retry, and loading updated instructions in a new agent session.
 
 ## Rollback
 

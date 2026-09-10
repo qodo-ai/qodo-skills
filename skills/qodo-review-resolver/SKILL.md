@@ -56,9 +56,9 @@ present open findings, apply only approved fixes, and record only outcomes actua
 
 ## Handle a skill update notice
 
-Treat `QODO_NOTICE` availability as passive information: retain the result and continue the task.
+Treat `QODO_NOTICE` availability and completion as passive information: retain the result and continue the task.
 Do not inventory or ask to update because of a notice, even if an older CLI says to ask.
-Mention it at most once; dismissal does not disable updates.
+Mention each update event at most once; dismissal does not disable updates.
 Qodo automatically maintains verified enterprise installations under their recorded policy,
 source and opt-outs. Other installations retain their lifecycle owner; do not replace it.
 Only for requested maintenance, inspect `<qodo> agents update --help`. When supported, preview

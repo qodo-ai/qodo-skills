@@ -38,17 +38,16 @@ marketplace/skills.sh package. Codex discovery checks both its current shared ro
 
 ## Update notices
 
-The CLI refreshes only a compact checksummed version index. When a loaded skill is older, the
-command still succeeds and emits `QODO_NOTICE`. The skill must:
+The CLI emits passive, deduplicated availability and completion notices. Continue the task without
+inventory or unsolicited update questions. Old loaded instructions do not prove installed files
+are stale. Enterprise installations use their disclosed automatic-maintenance policy, verified
+source and opt-outs; other installations keep their lifecycle owner.
 
-1. keep the successful result and finish the task;
-2. inventory the lifecycle owner read-only;
-3. preserve package, agent, and project/global scope;
-4. show a fully resolved update command or host UI action;
-5. ask once before mutation;
-6. request a new agent session after update.
-
-Declining an update leaves the current skill usable. The CLI never silently performs the update.
+For requested maintenance, inspect command support, preview the full packages and physical scope
+with `qodo agents update --enterprise --dry-run --json`, then use the returned `--apply-plan` command
+only with authorization covering that operation. Older CLIs use interactive enterprise maintenance.
+Never expand a narrow approval or add optional packages. Dismissing a notice or declining a manual
+update does not disable the existing automatic policy. New sessions load updated files when convenient.
 
 ## Runtime compatibility
 
