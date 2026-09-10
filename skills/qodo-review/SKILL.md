@@ -404,6 +404,10 @@ this check exists to catch. Either way apply exactly what the evaluation decided
 it (fix the sound ones; skip the wrong/deliberate ones with a reason), and report what you applied
 and what you skipped.
 
+When the user explicitly authorizes declining a local finding, follow
+[Record local triage](references/local-triage.md) to persist the decision. A conversational
+"skip" alone is not a stored dismissal and must not be reported as one.
+
 Re-run `qodo review` after applying to confirm the diff comes back clean. Commit/push per the user's
 workflow — ask before pushing unless they've told you to.
 
