@@ -74,14 +74,17 @@ qodo agents install --agent cursor --standards --json
 
 ## Update
 
+The coding-agent conversation is the primary experience. Agents run the CLI without a TTY,
+resolve the complete operation and request only missing human approval in the conversation.
+Users need not type commands, paths or an agent-ID list.
+
 - Marketplace install: apply the Qodo update in that host, then start a new session.
 - skills.sh install: inventory the installed scope with `npx skills list --json` and
   `npx skills list -g --json`, then run a scope-preserving skills.sh update/re-add command.
 - Verified enterprise install: Qodo maintains recorded copies under the disclosed automatic policy.
-  For requested maintenance, check `qodo agents update --help` first. When planning is supported,
-  `qodo agents update --enterprise` previews the full operation before confirmation; scripts use
-  `--dry-run --json` followed by the returned `--apply-plan ... --yes` command. With an older CLI,
-  use its interactive `qodo agents update --enterprise` flow instead of passing unsupported flags.
+  For requested maintenance, the agent checks `qodo agents update --help`, then uses
+  `--enterprise --dry-run --json` and the exact returned `--apply-plan` command after resolving
+  any still-needed approval. Direct terminal users can choose `qodo agents update --enterprise`.
 - Qodo CLI: updates independently through `qodo update` and its background runtime updater.
 
 Availability and completion notices on stderr are passive: continue the task without inventory
@@ -89,6 +92,15 @@ or an unsolicited update question. Automatic maintenance follows the existing di
 source and opt-outs. Only requested manual maintenance requires resolving the full operation
 before any additional consent; reuse approval that already covers it. New sessions load updated
 files when convenient.
+
+If the installed CLI lacks planning, the agent inspects `qodo update --help` and uses the supported
+`qodo update --check --json` to establish the available CLI release and recorded source. Explain
+the runtime prerequisite and request only missing authorization before one `qodo update --json`.
+Skill-update consent alone does not authorize a CLI upgrade. Never override source or channel;
+recheck version and planning support afterward. A failed/unsupported check, no available update,
+failed upgrade or missing planning support ends this maintenance attempt with a conversational
+blocker, without a terminal handoff or reinstall. CLI-only consent does not authorize the subsequent
+skills operation; resolve its complete plan and reuse any approval covering that scope.
 
 ## Repository layout
 

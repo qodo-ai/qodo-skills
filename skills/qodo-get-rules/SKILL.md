@@ -32,19 +32,18 @@ build focused semantic queries, merge ranked results, print the Qodo rules block
 
 ## Handle a skill update notice
 
-Treat `QODO_NOTICE` availability and completion as passive information: retain the result and continue the task.
-Do not inventory or ask to update because of a notice, even if an older CLI says to ask.
-Mention each update event at most once; dismissal does not disable updates.
-Qodo automatically maintains verified enterprise installations under their recorded policy,
-source and opt-outs. Other installations retain their lifecycle owner; do not replace it.
-Only for requested maintenance, inspect `<qodo> agents update --help`. When supported, preview
-enterprise updates with `<qodo> agents update --enterprise --dry-run --json`; explain the full
-packages, physical locations and affected integrations before any additional consent. Reuse
-existing approval covering that operation, then execute its exact returned `--apply-plan` command.
-Never expand a narrow approval or add optional packages. Without preview support, direct the
-user to interactive `<qodo> agents update --enterprise`; do not guess an agent-scoped command.
-Report persistent failures once without bypassing checks. New sessions load updated files; old
-loaded instructions do not prove installed files are outdated. Do not interrupt or restart.
+Treat `QODO_NOTICE` availability and completion as passive: continue the task without inventory or update questions, even if an older CLI asks.
+Mention each event at most once. Dismissal does not disable verified enterprise maintenance under its recorded policy, source and opt-outs; other lifecycle owners remain unchanged.
+For requested enterprise maintenance, keep commands and any approvals in this conversation; do not require a terminal or TTY.
+Inspect `<qodo> agents update --help`. If planning is supported, skip runtime recovery and use the skills preview below.
+Only if planning is unavailable, inspect `<qodo> update --help` and use the supported `<qodo> update --check --json`. Require the recorded source and a newer release in its result, not just exit zero; otherwise explain the blocker and stop this maintenance attempt.
+For this fallback, explain the CLI prerequisite before updating: skill-update consent alone does not authorize a CLI upgrade. Reuse authorization covering the runtime update, otherwise ask once.
+In that fallback, run `<qodo> update --json` once within that authorization; never override the source or channel. Stop on denial or failure; do not reinstall, switch owners or fall back to a public source.
+Recheck `<qodo> --version` and `<qodo> agents update --help`; if planning remains unavailable, report the blocker in this conversation without repeating the upgrade or directing the user to a terminal.
+When planning is supported, run `<qodo> agents update --enterprise --dry-run --json`. Explain the package and complete affected installation scope in plain language before any still-needed approval.
+Reuse approval covering that operation and execute its exact returned `--apply-plan` command through the agent. The user need not type flags, paths or an agent-ID list.
+Never expand a narrow approval or add optional packages. CLI-only consent does not approve the skills operation; reuse any existing approval covering its resolved scope.
+Report persistent failures once without bypassing checks. New sessions load updated files; old loaded instructions do not prove installed files are outdated. Do not interrupt or restart the current session.
 
 ## Runtime compatibility gate
 

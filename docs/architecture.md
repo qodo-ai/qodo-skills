@@ -32,10 +32,21 @@ installations and packages. The CLI stages verified releases through the pinned 
 only roots whose source, ownership receipt, directory identity and unmodified file hashes still
 match. Opt-outs remain effective; missing or edited roots and competing owners block maintenance.
 
-For requested manual updates, capable CLIs prepare a complete `--dry-run --json` plan before consent,
-then revalidate its returned `--apply-plan` fingerprint before mutation. A narrow `--agent` request
+Coding agents are the primary CLI consumers; non-TTY execution still supports human consent in
+the conversation. Ordinary tool calls drive verified automatic maintenance. For requested updates,
+the agent obtains a complete `--dry-run --json` plan before any still-needed approval, then executes
+the returned command with JSON output. The CLI revalidates its `--apply-plan` fingerprint before
+mutation. Users need not operate a terminal or supply an agent list. A narrow `--agent` request
 cannot silently expand. Separate physical copies remain coupled by the enterprise release receipt;
 optional-package selections remain unchanged.
+
+When planning is missing, the agent checks runtime update capabilities and the available release
+from the recorded source. A runtime upgrade is a distinct prerequisite: reuse authorization that
+covers it or ask once, preserving source and channel. After one attempt, recheck the version and
+planning capability. Failed checks/upgrades or continued incompatibility stop this maintenance
+attempt with a conversational explanation. Do not substitute a terminal handoff, reinstall, public
+source or guessed agent-scoped update. Resolve the skills plan afterward and obtain only consent
+still missing for its actual scope; runtime-only consent cannot expand into a skills update.
 
 After an explicit migration command, the CLI may retire only byte-identical copies produced by a
 shipped CLI release. It atomically moves them out of the host skill name into a recoverable hidden
