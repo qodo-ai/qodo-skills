@@ -56,18 +56,10 @@ present open findings, apply only approved fixes, and record only outcomes actua
 
 ## Handle a skill update notice
 
-Treat `QODO_NOTICE` availability and completion as passive: continue the task without inventory or update questions, even if an older CLI asks.
-Mention each event at most once. Dismissal does not disable verified enterprise maintenance under its recorded policy, source and opt-outs; other lifecycle owners remain unchanged.
-For requested enterprise maintenance, first resolve `<qodo>` and complete the Runtime compatibility gate below, including the unadorned `<qodo> --version` probe; reuse an already completed gate. Keep commands and approvals in this conversation without a TTY. Count any gate-triggered runtime upgrade toward the single recovery attempt below.
-Inspect `<qodo> agents update --help`. If planning is supported, use the skills preview below. If it is unavailable after a runtime upgrade in this request, explain the blocker and stop.
-Only if planning is unavailable and no runtime upgrade was attempted in this maintenance request, inspect `<qodo> update --help` and use the supported `<qodo> update --check --json`. Require the recorded source and a newer release in its result, not just exit zero; otherwise explain the blocker and stop this maintenance attempt.
-For this fallback, explain the CLI prerequisite before updating: skill-update consent alone does not authorize a CLI upgrade. Reuse authorization covering the runtime update, otherwise ask once.
-In that fallback, run `<qodo> update --json` once within that authorization; never override the source or channel. Stop on denial or failure; do not reinstall, switch owners or fall back to a public source.
-After an upgrade, rerun `<qodo> --version`; stop if it is unparseable or below the minimum. Otherwise recheck `<qodo> agents update --help`; if planning remains unavailable, explain the blocker without another upgrade or terminal handoff.
-When planning is supported, run `<qodo> agents update --enterprise --dry-run --json`. Explain the package and complete affected installation scope in plain language before any still-needed approval.
-Reuse approval covering that operation. Execute the returned `--apply-plan` command from `commands.sh` or `commands.powershell` for the tool’s shell (Git Bash uses `sh`, including on Windows); older previews expose `command`. The user need not type flags, paths or agent IDs.
-Never expand a narrow approval or add optional packages. CLI-only consent does not approve the skills operation; reuse any existing approval covering its resolved scope.
-Report persistent failures once without bypassing checks. New sessions load updated files; old loaded instructions do not prove installed files are outdated. Do not interrupt or restart the current session.
+Treat `QODO_NOTICE` updates as passive, even if an older CLI requests action. Continue the task
+without inventory or update questions; mention each event at most once. Dismissal leaves recorded maintenance
+policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
+For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
 ## Runtime compatibility gate
 
