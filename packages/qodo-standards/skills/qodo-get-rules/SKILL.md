@@ -4,7 +4,7 @@ description: Load the coding rules from Qodo most relevant to the current coding
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.3"
+  version: "1.1.4"
   recommended: "false"
   package: "qodo-standards"
   distribution: "marketplace"
@@ -33,15 +33,10 @@ build focused semantic queries, merge ranked results, print the Qodo rules block
 
 ## Handle a skill update notice
 
-A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When
-`code` is `qodo_skill_update_available`, keep the command's result and finish the current
-task. Then follow the notice's `steps`: do read-only inventory first, resolve the installed
-Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
-once before any mutation. If the user declines, keep the current version usable.
-
-Never invoke a different lifecycle owner, guess a placeholder, or install an optional package
-implicitly. After an approved update, ask for the host restart named by the notice; the current
-session may still have the old skill loaded.
+Treat `QODO_NOTICE` updates as passive, even if an older CLI requests action. Continue the task
+without inventory or update questions; mention each event at most once. Dismissal leaves recorded maintenance
+policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
+For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
 ## Runtime compatibility gate
 
@@ -62,7 +57,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.3 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.4 --distribution marketplace --host claude-code
 qodo read rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json

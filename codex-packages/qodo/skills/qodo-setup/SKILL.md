@@ -1,10 +1,10 @@
 ---
 name: qodo-setup
-description: Set up Qodo in a local coding agent — install the CLI, sign in, and verify tools. Use after plugin installation, on a setup request, or when another Qodo skill finds a missing CLI or login.
+description: Set up Qodo in a coding agent — install the CLI, sign in, and verify tools. Use after plugin installation, on setup requests, or when a Qodo skill finds a missing CLI or login.
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.7"
+  version: "1.0.8"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -15,16 +15,18 @@ metadata:
 
 ## Description
 
-Complete setup in this conversation: find or install the CLI, sign in, and verify tools.
-Plugin installation does not connect an account.
+Install, connect and verify Qodo in this conversation. Plugin installation does not connect an account.
 
 ## Prerequisites
 
-A local shell and a user for browser sign-in. Never request or read credentials.
+A shell and browser sign-in. Never request or read credentials.
 
 ## Instructions
 
 Resolve `references/...` links relative to this installed `SKILL.md` directory.
+Runtime/login setup does not authorize enterprise installation or maintenance.
+For a separately requested enterprise install, disclose selected installations, packages and verified-source
+automatic maintenance before approval. Preserve opt-outs, edits, owners and optional-package choices.
 
 ### 1. Find or install the runtime
 
@@ -36,9 +38,8 @@ qodo --version
 
 If missing, try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version` on POSIX.
 For PowerShell or a missing CLI, read [runtime.md](references/runtime.md).
-Install through that procedure and continue here without requiring a second setup request.
-A setup request covers the CLI install; honor host approvals and user restrictions.
-Plugin installation alone does not authorize installing software.
+Follow that procedure and continue. Setup requests cover CLI installation, subject to host
+approvals and user restrictions. Plugin installation alone is not authorization.
 
 Keep the working executable as `<qodo>`. Require Qodo CLI **0.1.0-next.37 or newer**.
 If older or unparseable, follow the runtime reference before any authenticated command.
@@ -48,7 +49,7 @@ If older or unparseable, follow the runtime reference before any authenticated c
 Run:
 
 ```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.7 --distribution marketplace --host codex
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.8 --distribution marketplace --host codex
 ```
 
 If successful, retain the verified identity and continue to step 3 without repeating it.
@@ -70,7 +71,7 @@ Stop on cancellation or denied permission.
 Only after identity succeeds, run:
 
 ```sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.7 --distribution marketplace --host codex
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.8 --distribution marketplace --host codex
 ```
 
 Require a successful, nonempty usable catalog. Inspect structured results with bounded output
@@ -80,7 +81,6 @@ and `<qodo> tools --refresh` as the retry. Do not log in again for a catalog fai
 
 ## Configuration
 
-Keep executable, deployment, execution context and provenance throughout setup.
 The CLI owns credentials, transport and runtime updates; the package's
 lifecycle owner updates skills. For `QODO_NOTICE` updates or repeated Kiro read approvals,
 read [host-recovery.md](references/host-recovery.md) only when encountered.
