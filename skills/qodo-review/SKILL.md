@@ -28,21 +28,16 @@ This is the **pre-PR** half of the review loop. After the PR exists, switch to r
 
 ## Instructions
 
-Follow the workflow below: preserve notices, attach self-contained context, show progress, use a
-suitable timeout, read the structured result, and act on findings.
+Preserve notices, attach self-contained context, show progress, use a suitable timeout,
+read the structured result, and act on findings.
 
 ## Handle a skill update notice
-
-A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When `code` is
-`qodo_skill_update_available`, keep the command's result and finish the current task. Then follow the
-notice's `steps`: do read-only inventory first, resolve the installed Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
-once before any mutation. If the user declines, keep the current version usable.
-
-Never invoke a different lifecycle owner, guess a placeholder, or install an optional package implicitly. After an approved update, ask for the host restart named by the notice; the current
-session may still have the old skill loaded.
+Treat `QODO_NOTICE` updates as passive, even if an older CLI requests action. Continue the task
+without inventory or update questions; mention each event at most once. Dismissal leaves recorded maintenance
+policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
+For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
 ## Runtime compatibility gate
-
 Resolve the executable using this skill's command-not-found fallback, then run `<qodo> --version`
 with no provenance flags. This skill requires Qodo CLI **0.1.0-next.37 or newer**. If older or
 unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure. Show

@@ -16,9 +16,9 @@ lifecycle UI—not in workflow content or authority.
 | `qodo-skills` | canonical workflow bodies, package membership, versions, provider projections, marketplace packets, and the data-only CLI-managed compatibility bundle | credentials, API transport, installed host state |
 | Marketplace | install, cache, update, rollback, and removal of its Qodo plugin | Qodo runtime binary or login |
 | skills.sh | install, link/copy, scope, update, and removal for agents without a Qodo listing | Qodo runtime binary or login |
-| Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and lifecycle ownership of explicitly selected enterprise roots | public CLI binary contents or silent agent-root mutation |
+| Enterprise bundle / QAR | immutable offline skill package, reviewed pin, same-origin download, and lifecycle ownership of explicitly selected enterprise roots | public CLI binary contents or mutation outside the disclosed maintenance policy |
 | CLI-managed compatibility channel | automatic updates only for byte-exact roots created by a shipped pre-cutover CLI | new installs, missing skills, marketplace/enterprise roots, user-modified copies |
-| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, the compatibility updater, and an authenticated launcher for the pinned enterprise skills engine | authoring or embedding skill bodies, maintaining agent mappings, parsing skill archives, task-time playbooks, marketplace caches, or roots owned by another lifecycle channel |
+| Qodo CLI | login, credentials, managed-tool catalog, tool invocation, offline tool help, runtime update, stale-skill notices, the compatibility updater, and an authenticated launcher for the pinned enterprise skills engine | authoring canonical skill bodies, task-time playbooks, marketplace caches, or roots owned by another lifecycle channel |
 
 The enterprise command is a transport launcher, not a second installer implementation. It is
 available only when the CLI's recorded private origin serves QAR's path-scoped discovery feeds and
@@ -27,8 +27,26 @@ The CLI materializes a digest-verified packaging build of exact-pinned `skills@1
 `DO_NOT_TRACK=1`; that engine performs current agent discovery and installation. The client never
 contacts npm, skills.sh, GitHub, or a marketplace, so the same path works in an air-gapped deployment.
 The discovery manifest requires Qodo CLI `0.1.0-next.39` or newer, independently from the older
-package-wide compatibility floor. Updates remain prompted until that engine can prove modified-root
-preservation.
+package-wide compatibility floor. Setup discloses automatic maintenance of the selected enterprise
+installations and packages. The CLI stages verified releases through the pinned engine and updates
+only roots whose source, ownership receipt, directory identity and unmodified file hashes still
+match. Opt-outs remain effective; missing or edited roots and competing owners block maintenance.
+
+Coding agents are the primary CLI consumers; non-TTY execution still supports human consent in
+the conversation. Ordinary tool calls drive verified automatic maintenance. For requested updates,
+the agent obtains a complete `--dry-run --json` plan before any still-needed approval, then executes
+the returned command with JSON output. The CLI revalidates its `--apply-plan` fingerprint before
+mutation. Users need not operate a terminal or supply an agent list. A narrow `--agent` request
+cannot silently expand. Separate physical copies remain coupled by the enterprise release receipt;
+optional-package selections remain unchanged.
+
+When planning is missing, the agent checks runtime update capabilities and the available release
+from the recorded source. A runtime upgrade is a distinct prerequisite: reuse authorization that
+covers it or ask once, preserving source and channel. After one attempt, recheck the version and
+planning capability. Failed checks/upgrades or continued incompatibility stop this maintenance
+attempt with a conversational explanation. Do not substitute a terminal handoff, reinstall, public
+source or guessed agent-scoped update. Resolve the skills plan afterward and obtain only consent
+still missing for its actual scope; runtime-only consent cannot expand into a skills update.
 
 After an explicit migration command, the CLI may retire only byte-identical copies produced by a
 shipped CLI release. It atomically moves them out of the host skill name into a recoverable hidden
@@ -121,7 +139,9 @@ Production-usage data prioritizes smoke testing but does not define an allowlist
 - Generated paths are repository-relative and validated against traversal.
 - Release assets are checksummed and releases must be immutable.
 - Marketplace packets contain no credentials.
-- A stale notice never mutates; it requires read-only inventory and explicit approval.
+- Availability and completion notices remain passive; they do not trigger inventory or approval
+  requests. Verified automatic maintenance uses the disclosed standing policy. Requested manual
+  maintenance resolves the full operation before any additional consent.
 - Optional packages are never pulled in by update.
 - A CLI-managed update requires an exact shipped fingerprint or an existing ownership receipt;
   modified copies and marketplace/enterprise roots are preserved.

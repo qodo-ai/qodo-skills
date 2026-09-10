@@ -32,15 +32,10 @@ contract, resolve the repository, narrow the search, and return only evidence-ba
 
 ## Handle a skill update notice
 
-A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When
-`code` is `qodo_skill_update_available`, keep the command's result and finish the current
-task. Then follow the notice's `steps`: do read-only inventory first, resolve the installed
-Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
-once before any mutation. If the user declines, keep the current version usable.
-
-Never invoke a different lifecycle owner, guess a placeholder, or install an optional package
-implicitly. After an approved update, ask for the host restart named by the notice; the current
-session may still have the old skill loaded.
+Treat `QODO_NOTICE` updates as passive, even if an older CLI requests action. Continue the task
+without inventory or update questions; mention each event at most once. Dismissal leaves recorded maintenance
+policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
+For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
 ## Runtime compatibility gate
 

@@ -248,10 +248,15 @@ Rollback: publish a new immutable patch. Never replace the release asset.
   newest tested release that both supports discovery v0.2 and executes at Qodo's Node 20.6 floor.
   It materializes that helper by SHA-256 under Qodo's private runtime directory and forces
   `DO_NOT_TRACK=1`. No npm, npx, skills.sh, GitHub, or marketplace access occurs on the client.
-- Background maintenance checks only the QAR version pointer. When newer content exists it emits
-  the exact `qodo agents update --enterprise` action. Updates are never unattended: the user sees
-  the lifecycle engine's overwrite summary and confirms it. This remains the policy until the
-  upstream engine can prove modified-root preservation; local edits are not silently discarded.
+- Setup discloses automatic maintenance of the selected enterprise installations and packages from
+  the recorded organization origin. Background maintenance verifies release metadata, receipt,
+  unchanged files, directory identities and ownership before updating all coupled physical copies.
+  It preserves opt-outs, local edits and optional-package choices. Notices are passive and
+  deduplicated; persistent verification failures remain visible without an unrelated consent flow.
+- Requested manual maintenance resolves the complete operation before confirmation. Capable CLIs
+  support `qodo agents update --enterprise --dry-run --json` and the returned `--apply-plan` command;
+  an intervening source, owner, release or file change invalidates approval. A narrow unattended
+  agent request cannot silently authorize other installations. Older CLIs retain interactive updates.
 - The discovery manifest declares `minimumCliVersion: 0.1.0-next.39` independently from the
   package-wide `.37` minimum. QAR rejects the feed until its CLI lock reaches that version.
 
@@ -378,14 +383,16 @@ deleted.
 
 ## Update experience after cutover
 
-1. The marketplace or skills.sh publishes/observes the new complete skill.
-2. The CLI’s daily bounded metadata refresh may notice that the loaded skill version is stale. For
-   enterprise installs this is a detached QAR pointer check, never an unattended root mutation.
-3. The current Qodo command succeeds and emits `QODO_NOTICE` on stderr.
-4. The skill finishes the current task, inventories its lifecycle owner read-only, shows the fully
-   resolved scope-preserving action, and asks once.
-5. The lifecycle owner updates the skill. For skills.sh-owned roots, the shown action is the exact
-   `qodo agents update --agent <ids> --yes` command; the user then starts a new agent session.
+1. Each lifecycle owner publishes or observes a new complete release.
+2. The CLI checks enterprise releases during ordinary use and automatically maintains verified
+   recorded copies under the disclosed policy. Marketplace and skills.sh installations retain
+   their lifecycle owner; their compact version index does not authorize a new installer.
+3. Availability, completion and persistent blocker notices remain passive and deduplicated.
+   Continue the current task without inventory or an unsolicited update question.
+4. Requested enterprise maintenance previews all affected locations and installed packages before
+   any additional consent. Apply only the unchanged approved plan; reuse authorization that covers it.
+5. Dismissing information or declining a one-time manual update does not disable automatic
+   maintenance. New coding-agent sessions load updated files when convenient.
 
 The CLI never runs `npx skills` in the background and never rewrites marketplace files. New
 optional skills are discoverable but never auto-installed.
