@@ -23,9 +23,9 @@ A shell and browser sign-in. Never request or read credentials.
 ## Instructions
 
 Resolve `references/...` links relative to this installed `SKILL.md` directory.
-Before enterprise installation, disclose automatic maintenance of the selected installations and
-packages from the verified organization source, respecting opt-outs. Setup consent covers this
-policy; it never permits overwriting edits, changing owners or adding optional packages.
+Runtime/login setup does not authorize enterprise installation or maintenance.
+For a separately requested enterprise install, disclose selected installations, packages and verified-source
+automatic maintenance before approval. Preserve opt-outs, edits, owners and optional-package choices.
 
 ### 1. Find or install the runtime
 
