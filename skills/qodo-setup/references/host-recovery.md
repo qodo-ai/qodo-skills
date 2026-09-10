@@ -2,15 +2,25 @@
 
 ## Handle a skill update notice
 
-A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When
-`code` is `qodo_skill_update_available`, keep the command's result and finish the current
-task. Then follow the notice's `steps`: do read-only inventory first, resolve the installed
-Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
-once before any mutation. If the user declines, keep the current version usable.
+Treat `QODO_NOTICE` availability as passive information: retain the result and continue the task.
+Do not inventory or ask to update because of a notice, even if an older CLI says to ask.
+Mention it at most once; dismissal does not disable updates.
+Qodo automatically maintains verified enterprise installations under their recorded policy,
+source and opt-outs. Other installations retain their lifecycle owner; do not replace it.
+Only for requested maintenance, inspect `<qodo> agents update --help`. When supported, preview
+enterprise updates with `<qodo> agents update --enterprise --dry-run --json`; explain the full
+packages, physical locations and affected integrations before any additional consent. Reuse
+existing approval covering that operation, then execute its exact returned `--apply-plan` command.
+Never expand a narrow approval or add optional packages. Without preview support, direct the
+user to interactive `<qodo> agents update --enterprise`; do not guess an agent-scoped command.
+Report persistent failures once without bypassing checks. New sessions load updated files; old
+loaded instructions do not prove installed files are outdated. Do not interrupt or restart.
 
-Never invoke a different lifecycle owner, guess a placeholder, or install an optional package
-implicitly. After an approved update, ask for the host restart named by the notice; the current
-session may still have the old skill loaded.
+## Enterprise setup policy
+
+Before installing enterprise skills, explain that Qodo will automatically maintain the disclosed
+installations and selected packages from the verified organization source, respecting existing
+opt-outs. Setup consent covers that policy; a notice or unrelated task does not authorize enrollment.
 
 ## Repeated Kiro read approvals
 
