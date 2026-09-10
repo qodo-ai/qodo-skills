@@ -19,8 +19,11 @@ qodo pr-review-session dismiss --finding-ids ID1,ID2 --local-review-id REVIEW_ID
   --reason rejected --explanation "The caller enforces the required limit." --json
 ```
 
-5. Inspect every result. `dismissed` or `already_dismissed` confirms the stored decision;
-   `reconciled: false` means downstream synchronization needs a retry of that exact request.
+5. Inspect every result and report the returned stored `reason` and `explanation`.
+   `already_dismissed` preserves the original decision: compare those returned values with
+   the request. If they differ, say the prior dismissal remains; do not claim the new reason
+   or explanation was saved. `reconciled: false` means downstream synchronization needs
+   a retry of that exact request.
    `conflict` or `not_found` is not success. For a stale review reference, review again and
    reassess the finding before acting on the new result.
 
