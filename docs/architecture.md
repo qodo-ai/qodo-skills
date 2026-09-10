@@ -128,7 +128,9 @@ Production-usage data prioritizes smoke testing but does not define an allowlist
 - Generated paths are repository-relative and validated against traversal.
 - Release assets are checksummed and releases must be immutable.
 - Marketplace packets contain no credentials.
-- A stale notice never mutates; it requires read-only inventory and explicit approval.
+- Availability and completion notices remain passive; they do not trigger inventory or approval
+  requests. Verified automatic maintenance uses the disclosed standing policy. Requested manual
+  maintenance resolves the full operation before any additional consent.
 - Optional packages are never pulled in by update.
 - A CLI-managed update requires an exact shipped fingerprint or an existing ownership receipt;
   modified copies and marketplace/enterprise roots are preserved.

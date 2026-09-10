@@ -77,11 +77,16 @@ qodo agents install --agent cursor --standards --json
 - Marketplace install: apply the Qodo update in that host, then start a new session.
 - skills.sh install: inventory the installed scope with `npx skills list --json` and
   `npx skills list -g --json`, then run a scope-preserving skills.sh update/re-add command.
+- Verified enterprise install: Qodo maintains recorded copies under the disclosed automatic policy.
+  Requested maintenance uses `qodo agents update --enterprise` for a full preview and confirmation;
+  scripts use `--dry-run --json` followed by the returned `--apply-plan ... --yes` command.
 - Qodo CLI: updates independently through `qodo update` and its background runtime updater.
 
-When a skill is stale, a successful Qodo command may emit a structured `QODO_NOTICE` on stderr.
-The loaded skill finishes the current task, inventories its lifecycle owner, shows the exact
-scoped update action, and asks before any mutation.
+Availability and completion notices on stderr are passive: continue the task without inventory
+or an unsolicited update question. Automatic maintenance follows the existing disclosed policy,
+source and opt-outs. Only requested manual maintenance requires resolving the full operation
+before any additional consent; reuse approval that already covers it. New sessions load updated
+files when convenient.
 
 ## Repository layout
 
