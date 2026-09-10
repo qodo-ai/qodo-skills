@@ -11,7 +11,7 @@ For this fallback, explain the CLI prerequisite before updating: skill-update co
 In that fallback, run `<qodo> update --json` once within that authorization; never override the source or channel. Stop on denial or failure; do not reinstall, switch owners or fall back to a public source.
 Recheck `<qodo> --version` and `<qodo> agents update --help`; if planning remains unavailable, report the blocker in this conversation without repeating the upgrade or directing the user to a terminal.
 When planning is supported, run `<qodo> agents update --enterprise --dry-run --json`. Explain the package and complete affected installation scope in plain language before any still-needed approval.
-Reuse approval covering that operation and execute its exact returned `--apply-plan` command through the agent. The user need not type flags, paths or an agent-ID list.
+Reuse approval covering that operation. Execute the returned `--apply-plan` command from `commands.sh` or `commands.powershell` for the tool’s shell (Git Bash uses `sh`, including on Windows); older previews expose `command`. The user need not type flags, paths or agent IDs.
 Never expand a narrow approval or add optional packages. CLI-only consent does not approve the skills operation; reuse any existing approval covering its resolved scope.
 Report persistent failures once without bypassing checks. New sessions load updated files; old loaded instructions do not prove installed files are outdated. Do not interrupt or restart the current session.
 
