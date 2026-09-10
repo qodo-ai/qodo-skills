@@ -78,8 +78,10 @@ qodo agents install --agent cursor --standards --json
 - skills.sh install: inventory the installed scope with `npx skills list --json` and
   `npx skills list -g --json`, then run a scope-preserving skills.sh update/re-add command.
 - Verified enterprise install: Qodo maintains recorded copies under the disclosed automatic policy.
-  Requested maintenance uses `qodo agents update --enterprise` for a full preview and confirmation;
-  scripts use `--dry-run --json` followed by the returned `--apply-plan ... --yes` command.
+  For requested maintenance, check `qodo agents update --help` first. When planning is supported,
+  `qodo agents update --enterprise` previews the full operation before confirmation; scripts use
+  `--dry-run --json` followed by the returned `--apply-plan ... --yes` command. With an older CLI,
+  use its interactive `qodo agents update --enterprise` flow instead of passing unsupported flags.
 - Qodo CLI: updates independently through `qodo update` and its background runtime updater.
 
 Availability and completion notices on stderr are passive: continue the task without inventory
