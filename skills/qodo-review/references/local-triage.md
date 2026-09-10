@@ -9,6 +9,8 @@ batch; a recommendation or a skipped edit alone does not authorize a status chan
 2. Choose the supported reason that matches the decision: `false_positive` for an incorrect
    finding, `intentional` for deliberate behavior, `deferred` for postponed work, or `rejected`
    for an understood concern the developer declines to fix. Record a concise explanation.
+   Batch only findings sharing the same `local_review_id`, reason, and explanation. Use
+   separate calls when their authorized reasons or explanations differ, even within one review.
 3. Check the available write contract with `qodo read tools pr-review-session --json`. If
    `local_review_id` is absent, refresh discovery once with `qodo tools --refresh`. If still
    unsupported, report that the backend cannot persist this local decision yet.
