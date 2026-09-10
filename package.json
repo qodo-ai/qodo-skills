@@ -1,6 +1,6 @@
 {
   "name": "@qodo/agent-skills",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "private": true,
   "description": "Canonical Qodo skills and local coding-agent marketplace adapters.",
   "type": "module",

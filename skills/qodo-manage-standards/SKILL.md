@@ -4,7 +4,7 @@ description: Create, edit, and administer Qodo Review Standards from conversatio
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.3"
+  version: "1.0.4"
   recommended: "false"
   package: "qodo-standards"
   distribution: "skills-sh"
@@ -58,7 +58,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.3 --distribution skills-sh
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.4 --distribution skills-sh
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change

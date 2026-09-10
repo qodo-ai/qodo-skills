@@ -5,7 +5,7 @@ owner: Qodo
 when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
   vendor: qodo
-  version: "1.4.4"
+  version: "1.4.5"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -57,15 +57,10 @@ present open findings, apply only approved fixes, and record only outcomes actua
 
 ## Handle a skill update notice
 
-A Qodo command can emit `QODO_NOTICE <json>` to stderr while still succeeding. When
-`code` is `qodo_skill_update_available`, keep the command's result and finish the current
-task. Then follow the notice's `steps`: do read-only inventory first, resolve the installed
-Qodo package and scope, show the exact lifecycle-owner update command or UI action, and ask
-once before any mutation. If the user declines, keep the current version usable.
-
-Never invoke a different lifecycle owner, guess a placeholder, or install an optional package
-implicitly. After an approved update, ask for the host restart named by the notice; the current
-session may still have the old skill loaded.
+Treat `QODO_NOTICE` updates as passive, even if an older CLI requests action. Continue the task
+without inventory or update questions; mention each event at most once. Dismissal leaves recorded maintenance
+policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
+For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
 ## Runtime compatibility gate
 
@@ -86,7 +81,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                                       # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.4 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.5 --distribution kiro-power --host kiro
 qodo read pr-review-session findings --pr-url <PR_URL> --json       # the review session for a PR
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
 qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explanation "..." --json

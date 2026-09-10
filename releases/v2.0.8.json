@@ -1,0 +1,41 @@
+{
+  "version": "2.0.8",
+  "summary": "Update Qodo skills and marketplace packages.\n- fix: keep skill update notices passive and explain enterprise maintenance (#102)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.8",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-codebase-wisdom",
+      "version": "1.1.4",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-get-rules",
+      "version": "1.1.4",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-manage-standards",
+      "version": "1.0.4",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review",
+      "version": "1.10.2",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.5",
+      "change": "patch"
+    }
+  ]
+}
