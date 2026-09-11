@@ -1,0 +1,10 @@
+{
+  "version": "2.0.9",
+  "summary": "Update Qodo skills and marketplace packages.\n- fix(codex): prepare updates for existing company listings (#105)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}
