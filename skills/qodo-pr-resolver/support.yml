@@ -1,0 +1,30 @@
+schema_version: "1"
+skill: qodo-pr-resolver
+
+# Supported coding agents
+# Vocabulary: claude-code | cursor | windsurf | cline | copilot | codex
+agents:
+  - claude-code
+  - cursor
+  - windsurf
+  - cline
+
+# Supported operating systems
+# Vocabulary: ubuntu | macos | windows
+os:
+  - ubuntu
+  - macos
+  - windows
+
+# Git provider dependency
+# This skill invokes provider-specific CLIs to fetch and resolve PR/MR review comments.
+# Vocabulary: github | gitlab | bitbucket | azure-devops
+git_providers:
+  - github
+  - gitlab
+  - bitbucket
+  - azure-devops
+
+# Custom test commands (optional)
+tests: []
+# e2e: GitHub provider covered by .github/workflows/e2e-qodo-pr-resolver.yml
