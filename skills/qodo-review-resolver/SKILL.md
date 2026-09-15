@@ -149,8 +149,8 @@ per-command permission checks. If it still fails, follow the normal auth trouble
 ### Extended results for audits and investigation
 
 Keep compact reads for routine status polling. When the user needs supporting evidence or more
-detail, inspect `qodo read tools pr-review-session findings --json` for the `extended` boolean,
-then use `qodo read pr-review-session findings --pr-url <PR_URL> --extended --json`.
+detail, inspect `qodo read tools pr-review-session findings --json`. Only if the schema declares
+the `extended` boolean, use `qodo read pr-review-session findings --pr-url <PR_URL> --extended --json`.
 The tool/API input is `extended: true`; omitted or false keeps the compact response.
 This reads more stored data; it does not rerun or deepen the review.
 
@@ -164,7 +164,8 @@ Null evidence means unavailable; an empty citations list contains no recorded ci
 absent evidence field can indicate an older backend: report that limitation without claiming
 the finding has no supporting evidence. If `extended` is absent from the catalog, follow the
 existing one-refresh recovery and check again; if still absent, report that extended reads are
-unavailable. Do not invent an alternative flag or substitute scraped comments.
+unavailable and keep using compact reads. Never send `--extended` to a catalog that lacks it;
+do not invent an alternative flag or substitute scraped comments.
 
 If the result has `qar_operation_result_truncated: true`, report an incomplete read, not an
 empty or clean review. Extended results describe current findings and recorded runs, not an
