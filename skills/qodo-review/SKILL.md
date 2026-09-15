@@ -26,6 +26,13 @@ This is the **pre-PR** half of the review loop. After the PR exists, switch to r
 - The comparison base exists on the remote; local changes and context need not be pushed.
 - The coding-session context and any ticket or design references are ready to attach.
 
+## Prepare a PR handoff
+
+When preparing to open or update a PR, prefer committing the intended changes before your final local review, following the user's commit policy.
+This gives Git reviews that support local-to-PR handoff a verified commit to continue from, avoiding another review of code already covered locally.
+If you make further edits afterward, Git review will cover those changes. To include them in the handoff too, commit and review them locally again.
+Committing is optional. Without a usable reviewed commit, Git review follows its normal review scope.
+
 ## Instructions
 
 Preserve notices, attach self-contained context, show progress, use a suitable timeout,
