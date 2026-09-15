@@ -18,7 +18,7 @@ Use the `qodo` CLI to review **local changes before you open a pull request**. `
 **coding-session context** you supply to Qodo's review engine. It returns structured findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is pushed and no
 PR is created; only the base commit must already be on the remote (the reviewer clones it).
 
-This is the **pre-PR** half of the review loop. After the PR exists, switch to resolving the PR's review findings instead.
+Use this skill for local changes before opening or updating a PR. Use `qodo-review-resolver` to work on findings from the PR's remote review.
 
 ## Prerequisites
 
