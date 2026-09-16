@@ -1,10 +1,10 @@
 ---
 name: qodo-review
-description: Review your LOCAL changes before opening a pull request, using the qodo CLI — send your uncommitted/unpushed diff to Qodo's review engine along with the coding-session context (what you changed and why, plus links to the ticket/spec/design that drove it) that a forge-based reviewer can never see, then evaluate the findings and apply the fixes you approve (or pass `autofix` to apply directly). Use when asked to "review my changes before I push", "pre-PR review", "check this before I open a PR", "review my local diff", or "run qodo review".
+description: Review your LOCAL changes before opening or updating a pull request, using the qodo CLI — send your uncommitted/unpushed diff to Qodo's review engine along with the coding-session context (what you changed and why, plus links to the ticket/spec/design that drove it) that a forge-based reviewer can never see, then evaluate the findings and apply the fixes you approve (or pass `autofix` to apply directly). Use when asked to "review my changes before I push", "pre-PR review", "check this before I open a PR", "review my local diff", or "run qodo review".
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.2"
+  version: "1.10.3"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -15,17 +15,24 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to review **local changes before you open a pull request**. `qodo review` diffs your working tree against a base branch, includes new/untracked files, and sends the diff plus any
+Use the `qodo` CLI to review **local changes before opening or updating a pull request**. `qodo review` diffs your working tree against a base branch, includes new/untracked files, and sends the diff plus any
 **coding-session context** you supply to Qodo's review engine. It returns structured findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is pushed and no
 PR is created; only the base commit must already be on the remote (the reviewer clones it).
 
-This is the **pre-PR** half of the review loop. After the PR exists, switch to resolving the PR's review findings instead.
+Use this skill for local changes before opening or updating a PR. Use `qodo-review-resolver` to work on findings from the PR's remote review.
 
 ## Prerequisites
 
 - The Qodo CLI is installed and authenticated, and the review capability is enabled.
 - The comparison base exists on the remote; local changes and context need not be pushed.
 - The coding-session context and any ticket or design references are ready to attach.
+
+## Prepare a PR handoff
+
+When preparing to open or update a PR, prefer committing the intended changes before your final local review, following the user's commit policy.
+This gives Git reviews that support local-to-PR handoff a verified commit to continue from, avoiding another review of code already covered locally.
+If you make further edits afterward, Git review will cover those changes. To include them in the handoff too, commit and review them locally again.
+Committing is optional. Without a usable reviewed commit, Git review follows its normal review scope.
 
 ## Instructions
 
@@ -51,7 +58,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.2 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review --skill-version 1.10.3 --distribution kiro-power --host kiro
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
