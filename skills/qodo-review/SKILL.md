@@ -4,7 +4,7 @@ description: Review your LOCAL changes before opening or updating a pull request
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.2"
+  version: "1.10.3"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -57,7 +57,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.2 --distribution skills-sh
+qodo read whoami --json --skill qodo-review --skill-version 1.10.3 --distribution skills-sh
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
