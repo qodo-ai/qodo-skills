@@ -257,8 +257,9 @@ after changes; merged packaging fixes are collected in the next release PR.
 Do not edit a published ZIP or replace an immutable release.
 
 Codex publishes the existing company-owned `qodo` listing under **Business — Qodo**.
-Qodo Standards is not submitted to Codex or Kiro. Its generated packages and Codex interface
-metadata remain available for enterprise distribution. The earlier personally owned Codex
+Qodo Standards publication on Codex and Kiro is temporarily paused until the Standards algorithm
+improves. Its generated packages and Codex interface metadata remain available for enterprise
+distribution and later marketplace re-enablement. The earlier personally owned Codex
 listing is a different record; do not assume its installed users migrate automatically.
 
 The portal may warn about `metadata` in SKILL.md. Preserve Qodo's provenance/version fields:
