@@ -99,7 +99,8 @@ function installPackage(name) {
 }
 
 function pluginManifest(value, adapterSet) {
-  const kiroListing = adapterSet === 'kiro' ? listing('kiro', value.name) : undefined;
+  const kiroListing = adapterSet === 'kiro'
+    ? provider('kiro').listings.find((entry) => entry.package === value.name) : undefined;
   return {
     $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
     name: value.name,
@@ -293,9 +294,9 @@ for (const path of legacyAtomicRoots) {
 writeJson('.agents/plugins/marketplace.json', {
   name: 'qodo',
   interface: { displayName: 'Qodo' },
-  plugins: catalog.installPackages.map((value) => ({
-    name: value.name,
-    source: { source: 'local', path: `./codex-packages/${value.name}` },
+  plugins: provider('codex').listings.map((value) => ({
+    name: value.id,
+    source: { source: 'local', path: `./${value.sourcePath}` },
     policy: { installation: 'AVAILABLE', authentication: 'ON_USE' },
     category: 'Developer Tools',
   })),

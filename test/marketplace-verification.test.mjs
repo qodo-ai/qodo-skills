@@ -157,7 +157,7 @@ test('observer is independent, read-only, bounded, and cannot turn mismatches gr
 test('a visible moving branch does not claim it matches the reference release commit', async () => {
   const observed = 'b'.repeat(40);
   const result = await checkVisibility('kiro', { tag: 'v2.0.4', commit: sha }, contract,
-    async () => [{ id: 'qodo', branch: 'main', commit: observed }, { id: 'qodo-standards', branch: 'main', commit: observed }]);
+    async () => [{ id: 'qodo', branch: 'main', commit: observed }]);
   assert.equal(result.state, 'provider-visible');
   assert.equal(result.verification, 'branch-source');
   const summary = visibilitySummary(result);
