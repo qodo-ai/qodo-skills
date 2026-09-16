@@ -256,11 +256,10 @@ to 30 characters. Branding is vendored under `distribution/assets/codex/`. Run `
 after changes; merged packaging fixes are collected in the next release PR.
 Do not edit a published ZIP or replace an immutable release.
 
-The release owner confirmed both company-owned Codex listings published for v2.0.8. Subsequent
-releases use `releaseType: update` for the existing `qodo` and `qodo-standards` records under
-**Business — Qodo**. Update each listing separately; Standards remains optional. The earlier
-personally owned listing is a different record; its removal was requested, not confirmed.
-Do not assume its installed users migrate automatically.
+Codex publishes the existing company-owned `qodo` listing under **Business — Qodo**.
+Qodo Standards is not submitted to Codex or Kiro. Its generated packages and Codex interface
+metadata remain available for enterprise distribution. The earlier personally owned Codex
+listing is a different record; do not assume its installed users migrate automatically.
 
 The portal may warn about `metadata` in SKILL.md. Preserve Qodo's provenance/version fields:
 they are not UI configuration. Each skill already ships its generated `agents/openai.yaml`
@@ -269,10 +268,8 @@ are still required; local checks do not guarantee approval. The
 [OpenAI submission errors reference](https://developers.openai.com/plugins/deploy/submission-errors)
 (checked: 2026-09-05) is the contract behind these checks.
 
-Kiro's provider listings use `main/kiro-power` for core and `main/kiro-power-standards` for
-optional Standards. `directory-entries.json` carries those source URLs, paths, branches and
-package descriptions. The existing core listing already uses `main`; adding the separate
-`qodo-standards` directory entry still requires provider acceptance.
+Kiro's existing core listing automatically follows `main/kiro-power`. No submission is needed
+for ordinary releases. `directory-entries.json` carries its source URL, path, branch and description.
 
 Kiro follows a moving branch. Merged source changes can therefore become available independently
 of immutable GitHub releases or marketplace handoff approval. The observer validates the full
@@ -283,8 +280,7 @@ listing or incorrect source still fails verification. No branch promotion, App w
 legacy Kiro branch ruleset is required by marketplace shipping. Immutable release publication
 keeps its separate App audit, protected approval, and no-bypass tag protections.
 
-Core listing identity remains `qodo`; Qodo Standards remains the separately installable
-`qodo-standards` listing. **Marketplaces: Ship release** selects providers, not individual listings, and
+Core listing identity remains `qodo`. Claude retains its separate optional `qodo-standards` listing. **Marketplaces: Ship release** selects providers, not individual listings, and
 ships every configured listing for each selected provider together. Optionality is an installation
 choice, not a separate release selector. Never replace the core listing during a source migration.
 

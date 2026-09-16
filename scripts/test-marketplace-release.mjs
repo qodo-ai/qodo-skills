@@ -120,7 +120,7 @@ const kiroDocument = JSON.stringify({
   ],
 });
 const kiroResults = verifyKiroDocument(kiroDocument, context);
-assert.equal(kiroResults.length, 2);
+assert.equal(kiroResults.length, 1);
 assert.equal(kiroResults[0].branch, 'main');
 assert.equal(kiroResults[0].commit, undefined);
 assert.throws(() => verifyKiroDocument('{}', context), /Kiro qodo/);
@@ -137,8 +137,8 @@ try {
   const prepared = prepareMarketplace('codex', context, output);
   const release = JSON.parse(readFileSync(join(prepared.output, 'release.json'), 'utf8'));
   assert.equal(release.providerMode, 'reviewed-portal-snapshot');
-  assert.equal(release.listings.length, 2);
-  assert.equal(release.artifacts.length, 2);
+  assert.deepEqual(release.listings.map(({ id }) => id), ['qodo']);
+  assert.equal(release.artifacts.length, 1);
   assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /protected GitHub environment approval/);
   assert.match(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8'), /Privacy:/);
   assert.ok(readFileSync(join(prepared.output, 'SUBMISSION.md'), 'utf8').includes(`qodo-codex-plugin-${version}.zip`));
@@ -159,17 +159,11 @@ try {
   assert.match(codexSkill, /## Handle a skill update notice/);
   assert.doesNotMatch(codexSkill, /qodo help workflow/);
   const coreSubmission = JSON.parse(readFileSync(join(prepared.output, 'submissions', 'qodo.json'), 'utf8'));
-  const standardsSubmission = JSON.parse(readFileSync(join(prepared.output, 'submissions', 'qodo-standards.json'), 'utf8'));
   assert.equal(coreSubmission.releaseType, 'update');
-  assert.equal(standardsSubmission.releaseType, 'update');
   assert.equal(coreSubmission.artifact.listingId, 'qodo');
-  assert.equal(standardsSubmission.artifact.listingId, 'qodo-standards');
   assert.equal(coreSubmission.positiveTests.length, 5);
   assert.equal(coreSubmission.negativeTests.length, 3);
-  assert.equal(standardsSubmission.positiveTests.length, 5);
-  assert.equal(standardsSubmission.negativeTests.length, 3);
   assert.equal(coreSubmission.listing.starterPrompts.length, 3);
-  assert.equal(standardsSubmission.listing.starterPrompts.length, 2);
   assert.ok(!JSON.stringify(coreSubmission).includes('password'));
   const coreArchivePath = join(prepared.output, coreSubmission.artifact.path);
   const coreArchive = readFileSync(coreArchivePath);
@@ -190,7 +184,7 @@ try {
     timeout: 5_000,
   });
   assert.equal(packetVerification.status, 0, packetVerification.stderr);
-  assert.equal(JSON.parse(packetVerification.stdout).verified.length, 2);
+  assert.equal(JSON.parse(packetVerification.stdout).verified.length, 1);
   const coreEntries = storedZipEntries(coreArchivePath);
   assert.deepEqual(
     coreEntries.get('.codex-plugin/plugin.json'),
@@ -199,9 +193,6 @@ try {
   assert.ok(coreEntries.has('skills/qodo-review/SKILL.md'));
   assert.ok(!coreEntries.has('skills/qodo-get-rules/SKILL.md'));
   assert.ok(!coreEntries.has('skills/find-skills/SKILL.md'));
-  const standardsEntries = storedZipEntries(join(prepared.output, standardsSubmission.artifact.path));
-  assert.ok(standardsEntries.has('skills/qodo-get-rules/SKILL.md'));
-  assert.ok(!standardsEntries.has('skills/qodo-review/SKILL.md'));
 
   const repeat = prepareMarketplace('codex', context, join(temporaryRoot, 'repeat'));
   for (const artifact of release.artifacts) {
@@ -231,20 +222,13 @@ try {
   writeFileSync(checksumPath, `${retainedChecksums.join('\n')}\n`);
   verifyPacketFails(incomplete.output, /exactly one artifact per Codex listing/);
 
-  const swapped = prepareMarketplace('codex', context, join(temporaryRoot, 'swapped'));
-  const swappedReleasePath = join(swapped.output, 'release.json');
-  const swappedRelease = JSON.parse(readFileSync(swappedReleasePath, 'utf8'));
-  const [firstArtifact, secondArtifact] = swappedRelease.artifacts;
-  [firstArtifact.listingId, secondArtifact.listingId] = [secondArtifact.listingId, firstArtifact.listingId];
-  writeFileSync(swappedReleasePath, `${JSON.stringify(swappedRelease, null, 2)}\n`);
-  for (const artifact of swappedRelease.artifacts) {
-    const submissionPath = join(swapped.output, 'submissions', `${artifact.listingId}.json`);
-    const submission = JSON.parse(readFileSync(submissionPath, 'utf8'));
-    submission.listingId = artifact.listingId;
-    submission.artifact = artifact;
-    writeFileSync(submissionPath, `${JSON.stringify(submission, null, 2)}\n`);
-  }
-  verifyPacketFails(swapped.output, /internal plugin identity does not match/);
+  const mislabeled = prepareMarketplace('codex', context, join(temporaryRoot, 'mislabeled'));
+  const mislabeledReleasePath = join(mislabeled.output, 'release.json');
+  const mislabeledRelease = JSON.parse(readFileSync(mislabeledReleasePath, 'utf8'));
+  mislabeledRelease.listings[0].id = 'different-plugin';
+  mislabeledRelease.artifacts[0].listingId = 'different-plugin';
+  writeFileSync(mislabeledReleasePath, `${JSON.stringify(mislabeledRelease, null, 2)}\n`);
+  verifyPacketFails(mislabeled.output, /internal plugin identity does not match/);
   assert.throws(() => prepareMarketplace('codex', context, output), /already exists/);
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
@@ -259,8 +243,7 @@ assert.match(workflow, /fromJSON\(needs\.plan\.outputs\.matrix\)/);
 assert.match(workflow, /has_verifiable/);
 assert.match(workflow, /name: marketplace-codex/);
 assert.match(workflow, /node verify-codex-packet\.mjs/);
-assert.match(workflow, /Update the existing company-owned `qodo` and `qodo-standards` listings separately/);
-assert.match(workflow, /Standards remains optional/);
+assert.match(workflow, /Update the existing company-owned `qodo` listing/);
 assert.match(workflow, /name: marketplace-\$\{\{ matrix\.provider \}\}/);
 assert.match(workflow, /required_reviewers/);
 assert.match(workflow, /ship-provider:/);

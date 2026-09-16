@@ -131,8 +131,8 @@ for (const [name, mutate] of [
 test('portable verifier and generated skill interfaces remain complete', () => packetFixture((output) => {
   const run = spawnSync(process.execPath, ['verify-codex-packet.mjs'], { cwd: output, encoding: 'utf8' });
   assert.equal(run.status, 0, run.stderr);
-  assert.equal(JSON.parse(run.stdout).verified.length, 2);
-  for (const pkg of catalog.installPackages) {
+  assert.equal(JSON.parse(run.stdout).verified.length, 1);
+  for (const pkg of catalog.installPackages.filter(({ name }) => name === 'qodo')) {
     const directory = join(output, 'listings', pkg.name);
     assert.throws(() => readFileSync(join(directory, 'plugin.json')), /ENOENT/);
     const manifest = json(join(directory, '.codex-plugin/plugin.json'));

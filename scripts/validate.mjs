@@ -187,19 +187,18 @@ if (JSON.stringify(providerIds) !== JSON.stringify(expectedProviders)) {
 }
 for (const provider of marketplaces.providers ?? []) {
   const listingPackages = (provider.listings ?? []).map((entry) => entry.package).sort();
-  if (JSON.stringify(listingPackages) !== JSON.stringify([...installPackageNames].sort())) {
-    fail(`${provider.id}: listings must cover every install package exactly once`);
+  if (!listingPackages.includes('qodo') || new Set(listingPackages).size !== listingPackages.length
+    || listingPackages.some((name) => !installPackageNames.has(name))) {
+    fail(`${provider.id}: listings must include core and reference distinct known install packages`);
   }
   if (![provider.submissionUrl, provider.directoryUrl].every((url) => String(url).startsWith('https://'))) {
     fail(`${provider.id}: release URLs must use HTTPS`);
   }
 }
 
-const codexProvider = marketplaces.providers?.find((entry) => entry.id === 'codex');
 const codexSubmissionPackages = (codexSubmissions.listings ?? []).map((entry) => entry.package).sort();
-const codexListingPackages = (codexProvider?.listings ?? []).map((entry) => entry.package).sort();
-if (JSON.stringify(codexSubmissionPackages) !== JSON.stringify(codexListingPackages)) {
-  fail('Codex submission metadata must cover every Codex listing exactly once');
+if (JSON.stringify(codexSubmissionPackages) !== JSON.stringify([...installPackageNames].sort())) {
+  fail('Codex interface metadata must cover every install package exactly once');
 }
 for (const submission of codexSubmissions.listings ?? []) {
   try {
@@ -344,9 +343,8 @@ if (codexEntry?.source?.path !== './codex-packages/qodo') fail('Codex marketplac
 if (codexEntry?.policy?.authentication !== 'ON_USE') {
   fail('Codex marketplace authentication must happen on first use');
 }
-const codexStandards = codexMarketplace.plugins?.find((entry) => entry.name === 'qodo-standards');
-if (codexStandards?.source?.path !== './codex-packages/qodo-standards') {
-  fail('Codex marketplace must expose standards as a separate optional plugin');
+if (JSON.stringify(codexMarketplace.plugins?.map(({ name }) => name)) !== JSON.stringify(['qodo'])) {
+  fail('Codex marketplace must expose only the core Qodo plugin');
 }
 
 const claudeMarketplace = json('.claude-plugin/marketplace.json');
