@@ -4,40 +4,40 @@
   "listings": [
     {
       "package": "qodo",
-      "releaseType": "initial",
+      "releaseType": "update",
       "shortDescription": "Code intelligence and review",
       "starterSkills": ["qodo-codebase-wisdom", "qodo-review", "qodo-review-resolver"],
-      "releaseNotes": "Initial company-owned Qodo submission from qodo-ai/qodo-skills: setup, code intelligence, local review, and pull-request review resolution. Requires the authenticated local Qodo CLI. This does not update or automatically migrate installations of the earlier personally owned listing.",
+      "releaseNotes": "Update the existing company-owned Qodo listing from qodo-ai/qodo-skills: setup, code intelligence, local review, and pull-request review resolution. Requires the authenticated local Qodo CLI. This does not update or automatically migrate installations of the earlier personally owned listing.",
       "testAccountRequirements": "A reviewer Qodo account with access to the supplied public demo repository and pull request. Credentials must be supplied privately in the OpenAI portal and must not require MFA, email confirmation, SMS, or private-network access.",
       "positiveTests": [
         {
           "prompt": "Use Qodo to verify that this coding agent is connected and ready.",
           "expectedBehavior": "Invoke qodo-setup, check for the local qodo runtime, authenticate only through qodo login when needed, and verify the current account without inventing credentials.",
-          "expectedResultShape": "A short Qodo Ready summary containing runtime, authentication, and agent-readiness states.",
+          "expectedResultShape": "A concise readiness report covering the runtime, authentication, available tools, and any remaining setup step.",
           "fixtureData": "Reviewer Qodo account; qodo CLI installed in PATH."
         },
         {
           "prompt": "Explain how authentication works in the demo repository and cite the code that supports the explanation.",
           "expectedBehavior": "Invoke qodo-codebase-wisdom, search the indexed demo repository, and ground the explanation in returned source evidence.",
-          "expectedResultShape": "A Qodo Codebase Insight summary followed by an evidence-backed explanation with repository paths or source links.",
+          "expectedResultShape": "An evidence-backed explanation with repository paths or source links, crediting Qodo for the retrieved context.",
           "fixtureData": "Reviewer account with the supplied demo repository indexed by Qodo."
         },
         {
           "prompt": "What other repositories would be affected if the demo repository's authentication contract changed?",
           "expectedBehavior": "Invoke qodo-codebase-wisdom and use Qodo's relationship evidence to identify cross-repository consumers without guessing unsupported dependencies.",
-          "expectedResultShape": "A Qodo Codebase Insight summary and a bounded impact list with evidence for each relationship.",
+          "expectedResultShape": "A bounded impact assessment with evidence for each relationship, crediting Qodo for the retrieved context.",
           "fixtureData": "Reviewer account with access to the supplied related demo repositories."
         },
         {
           "prompt": "Review my uncommitted change before I open a pull request.",
           "expectedBehavior": "Invoke qodo-review, inspect the local diff and session context, run a pre-PR review, and present findings without pushing or opening a pull request.",
-          "expectedResultShape": "A Qodo Pre-PR Review summary with the reviewed change scope and actionable findings or a clean result.",
+          "expectedResultShape": "A review outcome with the checked scope, contextual findings and recommendations, verification, and remaining limitations, crediting Qodo for the concerns it surfaced.",
           "fixtureData": "Supplied demo repository checkout containing the documented uncommitted fixture change."
         },
         {
           "prompt": "Show the current Qodo review findings for the supplied pull request.",
           "expectedBehavior": "Invoke qodo-review-resolver, fetch the structured review session, compare its reviewed commit with the pull-request head, and make no finding-status changes.",
-          "expectedResultShape": "A Qodo PR Review summary containing freshness, reviewed commit, and grouped open and closed findings.",
+          "expectedResultShape": "A review status report naming the reviewed commit, freshness against the PR head, and open or resolved findings, crediting Qodo for the review.",
           "fixtureData": "Reviewer account and the supplied public demo pull-request URL with a completed Qodo review."
         }
       ],
@@ -61,40 +61,40 @@
     },
     {
       "package": "qodo-standards",
-      "releaseType": "initial",
+      "releaseType": "update",
       "shortDescription": "Team rules and standards",
       "starterSkills": ["qodo-get-rules", "qodo-manage-standards"],
-      "releaseNotes": "Introduce Qodo Standards as a separate opt-in listing so rules discovery and standards administration are never installed with the default Qodo package.",
+      "releaseNotes": "Update the existing company-owned Qodo Standards listing. It remains a separate opt-in package for rules discovery and standards administration, never installed with the default Qodo package.",
       "testAccountRequirements": "A reviewer Qodo account in the supplied test workspace with readable review standards plus permission to create and edit designated disposable test rules. Credentials must be supplied privately in the OpenAI portal without MFA, email confirmation, SMS, or private-network access.",
       "positiveTests": [
         {
           "prompt": "Load the Qodo rules most relevant to adding an API endpoint in this repository.",
           "expectedBehavior": "Invoke qodo-get-rules, derive focused semantic queries from the task and repository, retrieve ranked rules, and print the loaded rules before any implementation.",
-          "expectedResultShape": "A Qodo Rules Loaded summary with the number of rules and a relevance-ranked list containing names, severities when present, and content.",
+          "expectedResultShape": "Task-relevant constraints followed by the retrieved rules with names, severities when present, and content, crediting Qodo for the retrieval.",
           "fixtureData": "Reviewer account in the supplied standards workspace and the supplied demo repository checkout."
         },
         {
           "prompt": "Find the security standards that apply to authentication changes in this repository.",
           "expectedBehavior": "Invoke qodo-get-rules and search the resolved repository scope with security- and authentication-focused queries.",
-          "expectedResultShape": "A Qodo Rules Loaded summary containing only supported, relevant standards and their scope evidence.",
+          "expectedResultShape": "Supported authentication constraints and relevant standards with their scope evidence, crediting Qodo for the retrieval.",
           "fixtureData": "Reviewer account in the supplied standards workspace with seeded authentication standards."
         },
         {
           "prompt": "Show the pending Qodo standards suggestions for this workspace.",
           "expectedBehavior": "Invoke qodo-manage-standards in read-only list mode and make no suggestion-state changes.",
-          "expectedResultShape": "A Qodo Review Standards summary listing pending suggestions with stable identifiers and current states.",
+          "expectedResultShape": "Pending suggestions with stable identifiers and current states, attributed to Qodo, with no state changes.",
           "fixtureData": "Reviewer account in the supplied standards workspace with seeded pending suggestions."
         },
         {
           "prompt": "Create a warning-level Qodo standard named Test API timeouts requiring outbound API calls to set an explicit timeout, scoped to the demo repository.",
           "expectedBehavior": "Invoke qodo-manage-standards, derive and confirm the repository scope, inspect metadata, and create exactly the explicitly requested disposable rule.",
-          "expectedResultShape": "A Qodo Review Standards summary containing the created rule identifier, name, severity, state, and repository scope.",
+          "expectedResultShape": "The verified rule creation with its identifier, name, severity, state, repository scope, and policy intent, attributed to Qodo.",
           "fixtureData": "Reviewer account with standards write permission in the disposable test workspace and the supplied demo repository checkout."
         },
         {
           "prompt": "Preview deactivating the two supplied disposable Qodo rule IDs, but do not apply it.",
           "expectedBehavior": "Invoke qodo-manage-standards with the exact supplied identifiers and dry-run semantics only.",
-          "expectedResultShape": "A Qodo Review Standards dry-run summary showing the proposed state changes and confirming that nothing was mutated.",
+          "expectedResultShape": "A preview of the proposed changes to the two rules, attributed to Qodo, confirming that nothing was mutated.",
           "fixtureData": "Reviewer account with standards write permission and two supplied active disposable rule IDs."
         }
       ],

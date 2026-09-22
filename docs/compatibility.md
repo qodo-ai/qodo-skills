@@ -35,6 +35,10 @@ change: they become reachable only when the runtime catalog explicitly marks the
 
 ## Release compatibility rules
 
+These rules apply to prepared releases. Ordinary source PRs leave versions and generated
+packages unchanged; CI validates a temporary release preview. After merge, the bot-owned
+release PR updates versions and regenerates every provider projection before publication.
+
 1. A workflow-body change increments that skill version.
 2. Any skill change increments the package version and regenerates all provider projections.
 3. Generated packages contain the full canonical workflow and match its release version.

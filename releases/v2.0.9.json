@@ -1,0 +1,21 @@
+{
+  "version": "2.0.9",
+  "summary": "Update Qodo skills and marketplace packages.\n- fix(codex): prepare updates for existing company listings (#105)\n- feat: document extended PR review evidence in resolver skill (#107)\n- docs: explain commit preparation for local-to-PR review handoff (#108)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.10.3",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.6",
+      "change": "patch"
+    }
+  ]
+}

@@ -1,11 +1,15 @@
 ---
 name: qodo-review-resolver
-description: Read or resolve a pull request's Qodo review with the qodo CLI — fetch the structured status, reviewed commit SHA, and findings for ANY PR as JSON, then optionally resolve open findings in code and record each outcome, once or in a watch loop until clean. Use this — never `gh`/`curl` scraping of review comments — for "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "what did Qodo flag", "is this review up to date with head", "check before merging", "resolve my PR review", "fix the review findings", or "babysit this PR until it's clean".
+description: Read or resolve a pull request's Qodo review with the qodo CLI — fetch structured status, reviewed commit SHA, and findings for ANY PR as JSON, with optional extended details and citation evidence for audits, then optionally resolve open findings and record outcomes, once or until clean. Use this — never `gh`/`curl` scraping of review comments — for "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "audit the review evidence", "show finding citations", "what did Qodo flag", "is this review up to date with head", "check before merging", "resolve my PR review", "fix the review findings", or "babysit this PR until it's clean".
+triggers:
+  - "Check the Qodo findings on this pull request"
+  - "Audit the citation evidence for these Qodo PR findings"
+  - "Resolve the open Qodo review findings on this PR"
 owner: Qodo
 when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
   vendor: qodo
-  version: "1.4.5"
+  version: "1.4.6"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -22,7 +26,8 @@ arguments:
 
 Use the `qodo` CLI to read a pull request's **review session** — its status, the commit that
 was reviewed, and every finding with its resolution status — for **any** PR (yours or someone
-else's). Reading alone is a valid use: stop after the read to report where a review stands or
+else's). Request extended results when auditing citations or investigating a finding's supporting
+evidence, location, dismissal, or review-run history. Reading alone is a valid use: stop after the read to report where a review stands or
 what it flagged (e.g. to gate a merge on it being clean at head). To go further, **resolve the
 open findings in code**, applying your own judgment (the review is a strong second opinion, not
 gospel) — by default you evaluate the findings and let the user pick which to apply (pass `autofix`
@@ -81,8 +86,9 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                                       # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.5 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.6 --distribution kiro-power --host kiro
 qodo read pr-review-session findings --pr-url <PR_URL> --json       # the review session for a PR
+qodo read pr-review-session findings --pr-url <PR_URL> --extended --json # details, if advertised by tool help
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
 qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explanation "..." --json
 qodo read tools pr-review-session --json                            # exact safe tools + flags (offline)
@@ -144,6 +150,31 @@ per-command permission checks. If it still fails, follow the normal auth trouble
   `attribution_status`, `git_sha`, `review_run_id`, `comment_id` / `inline_comment_id`.
 
 `finding_count: 0` with a non-null session = a clean review.
+
+### Extended results for audits and investigation
+
+Keep compact reads for routine status polling. When the user needs supporting evidence or more
+detail, inspect `qodo read tools pr-review-session findings --json`. Only if the schema declares
+the `extended` boolean, use `qodo read pr-review-session findings --pr-url <PR_URL> --extended --json`.
+The tool/API input is `extended: true`; omitted or false keeps the compact response.
+This reads more stored data; it does not rerun or deepen the review.
+
+Extended results add finding locations and code snippets, dismissal reasons/explanations,
+`review_runs`, and `findings[].evidence` with `explanation` and `citations`. Preserve each
+citation's source type, source reference, text and source-specific metadata in an audit output.
+Correlate evidence with that finding's `id`, `git_sha`, `review_run_id` and `review_source`;
+current findings can originate in earlier runs than `review_session`.
+
+Null evidence means unavailable; an empty citations list contains no recorded citations. An
+absent evidence field can indicate an older backend: report that limitation without claiming
+the finding has no supporting evidence. If `extended` is absent from the catalog, follow the
+existing one-refresh recovery and check again; if still absent, report that extended reads are
+unavailable and keep using compact reads. Never send `--extended` to a catalog that lacks it;
+do not invent an alternative flag or substitute scraped comments.
+
+If the result has `qar_operation_result_truncated: true`, report an incomplete read, not an
+empty or clean review. Extended results describe current findings and recorded runs, not an
+immutable history of every finding revision. Apply the freshness checks below before acting.
 
 ## Read the session state FIRST (before trusting any finding)
 

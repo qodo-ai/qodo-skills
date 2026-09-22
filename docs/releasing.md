@@ -256,11 +256,11 @@ to 30 characters. Branding is vendored under `distribution/assets/codex/`. Run `
 after changes; merged packaging fixes are collected in the next release PR.
 Do not edit a published ZIP or replace an immutable release.
 
-For the ownership cutover, submit `qodo` as an initial company-owned listing using **Business — Qodo**
-in the company organization. The earlier listing was personally owned; its removal was requested,
-not confirmed. Do not assume its installed users migrate automatically. Once the company listing
-is live, change its release type to `update` for subsequent releases of that same record.
-`qodo-standards` remains a separate optional listing.
+The release owner confirmed both company-owned Codex listings published for v2.0.8. Subsequent
+releases use `releaseType: update` for the existing `qodo` and `qodo-standards` records under
+**Business — Qodo**. Update each listing separately; Standards remains optional. The earlier
+personally owned listing is a different record; its removal was requested, not confirmed.
+Do not assume its installed users migrate automatically.
 
 The portal may warn about `metadata` in SKILL.md. Preserve Qodo's provenance/version fields:
 they are not UI configuration. Each skill already ships its generated `agents/openai.yaml`

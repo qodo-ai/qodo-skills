@@ -323,20 +323,20 @@ Rollback: publish/repoint to a new last-good patch through the provider-supporte
 
 ### 4. Promote Codex and deprecate the old source
 
-Use the all-provider run's Codex packet to submit the company-owned Qodo listing through the
-OpenAI portal under **Business — Qodo**, then wait for review and publish. The earlier listing was
-personally owned; removal has been requested, not confirmed. This is an initial company submission,
-not an update to that personal record. Only after publication may the release owner approve
-`marketplace-codex`. Confirm OpenAI's product-specific review path for local-CLI-dependent plugins.
+The release owner confirmed both company-owned Codex listings published for v2.0.8. Use the
+all-provider run's Codex packet to update those existing records under **Business — Qodo**, then
+wait for review and publish each version. The earlier personally owned listing is a different
+record; removal has been requested, not confirmed, and its users do not automatically migrate.
+Only after both publications may the release owner approve `marketplace-codex`.
 
 The packet contains one deterministic, checksum-bound upload archive per listing. Upload the archive
 named in `submissions/qodo.json` to the company-owned `qodo` record. Treat
-`submissions/qodo-standards.json` and its archive as a separate initial listing; never fold Standards
+`submissions/qodo-standards.json` and its archive as an update to the separate optional listing; never fold Standards
 into core or install it by default. Immediately before each upload, run
 `node verify-codex-packet.mjs` from the packet root; it requires the archive bytes and every recorded
 digest, size, listing id, release identity, and submission interface to agree. ZIPs contain only
 the native Codex manifest, at most three explicitly selected starter prompts, and Qodo branding.
-All four core skills plus the resolver alias remain installed. Keep skill provenance metadata;
+All four canonical core skills remain installed. Keep skill provenance metadata;
 the generated `agents/openai.yaml` files configure their UI. See [releasing](releasing.md) for
 portal warnings and the packaging-only patch procedure. v1.0.12 was rejected for four prompts;
 do not retry that ZIP or overwrite it. Use the next reviewed immutable patch.

@@ -5,7 +5,7 @@
   "package": {
     "name": "qodo",
     "displayName": "Qodo for coding agents",
-    "version": "2.0.8",
+    "version": "2.0.9",
     "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "homepage": "https://www.qodo.ai",
@@ -90,18 +90,18 @@
     },
     {
       "name": "qodo-review",
-      "version": "1.10.2",
+      "version": "1.10.3",
       "recommended": true,
       "displayName": "Qodo Local Review",
-      "shortDescription": "Review local changes before opening a pull request.",
+      "shortDescription": "Review coding milestones and local changes before handoff.",
       "defaultPrompt": "Use $qodo-review to review my local changes before I push them."
     },
     {
       "name": "qodo-review-resolver",
-      "version": "1.4.5",
+      "version": "1.4.6",
       "recommended": true,
       "displayName": "Qodo Review Resolver",
-      "shortDescription": "Read and resolve Qodo pull-request findings.",
+      "shortDescription": "Read, audit and resolve Qodo PR findings with citation evidence.",
       "defaultPrompt": "Use $qodo-review-resolver to show me the current Qodo review findings."
     }
   ]
