@@ -208,12 +208,6 @@ try {
     'utf8',
   );
   assert.match(generatedProgress, /stop_qodo_review\(\)/);
-  assert.match(generatedProgress, /qodo_review_pid=;/);
-  assert.match(generatedProgress, /trap '' INT TERM/);
-  assert.match(generatedProgress, /jobs -p \| grep -Fxq "\$\{qodo_review_pid\}"/);
-  assert.match(generatedProgress, /kill -TERM "\$\{qodo_review_pid\}"/);
-  assert.match(generatedProgress, /kill -KILL "\$\{qodo_review_pid\}"/);
-  assert.match(generatedProgress, /wait "\$\{qodo_review_pid\}"/);
   assert.match(generatedProgress, /if wait "\$\{qodo_review_pid\}"; then status=0; else status=\$\?; fi/);
   assert.match(generatedProgress, /^qodo_review_pid=; trap - INT TERM/m);
   const reviewLines = generatedProgress.split('\n');

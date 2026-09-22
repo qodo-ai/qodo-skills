@@ -181,7 +181,15 @@ exit 0 means accepted, not reviewed. Collection uses these exit codes; read any 
 QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
 cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
 trap cleanup_qodo_review EXIT; trap 'exit 130' INT; trap 'exit 143' TERM
-while :; do status=0; qodo review status "$id" --json > "$QODO_REVIEW_TMP/result.json" || status=$?; case "$status" in 0) cat "$QODO_REVIEW_TMP/result.json" || exit 1; break ;; 2) sleep 15 ;; *) cat "$QODO_REVIEW_TMP/result.json" >&2; exit "$status" ;; esac; done
+while :; do
+  status=0; qodo review status "$id" --json > "$QODO_REVIEW_TMP/result.json" || status=$?
+  case "$status" in
+    0) cat "$QODO_REVIEW_TMP/result.json" || exit 1; break ;;
+    2) delay=$(jq -r 'if (.retry_after | type) == "number" and .retry_after > 0 then .retry_after else 15 end' "$QODO_REVIEW_TMP/result.json") || exit 1
+       sleep "$delay" ;;
+    *) cat "$QODO_REVIEW_TMP/result.json" >&2; exit "$status" ;;
+  esac
+done
 ```
 
 **What it costs — know these before you choose it:**
