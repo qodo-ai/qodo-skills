@@ -200,6 +200,8 @@ exit 0 means accepted, not reviewed. Collection uses these exit codes; read any 
 | `1` | Failed, canceled, expired, or no such operation. Read the `error` envelope. | Follow the bounded recovery below; never assume clean. |
 
 ```
+# This collection attempt returns failures to the host for classification under Recover a review.
+# On nonzero exit, preserve the operation ID and emitted error; apply bounded recovery there.
 QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
 cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
 trap cleanup_qodo_review EXIT; trap 'exit 130' INT; trap 'exit 143' TERM
@@ -394,7 +396,10 @@ Commit/push per the user's workflow — ask before pushing unless they've told y
 ## Recover a review
 
 For an accepted async run, collect by operation ID even if the submit process exited. On a status
-transport error, retry collection rather than submitting again. On a confirmed terminal failure,
+transport error, retry collection of the same ID at most once after the returned retry delay
+(or 15 seconds if absent). If collection still fails, preserve the ID for later recovery and report
+the coverage gap; do not submit again or keep polling automatically. The polling example returns
+nonzero errors to the host for this classification and bounded recovery. On a confirmed terminal failure,
 read the error and correct a recoverable cause before retrying at most once, with the selected
 mode and context preserved. Honor entitlement, auth, permission and rate-limit stops; do not retry
 those as transient failures. Further failure or an expired/unavailable result means reporting the
