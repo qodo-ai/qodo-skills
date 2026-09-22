@@ -93,7 +93,7 @@
       "version": "1.10.3",
       "recommended": true,
       "displayName": "Qodo Local Review",
-      "shortDescription": "Review local changes before opening a pull request.",
+      "shortDescription": "Review coding milestones and local changes before handoff.",
       "defaultPrompt": "Use $qodo-review to review my local changes before I push them."
     },
     {
