@@ -61,8 +61,9 @@ it is not guaranteed standard and does not impose a spending cap. There is no `-
   Remove temporary path restrictions that would leave part of the intended change unreviewed.
   If the same snapshot already has completed final coverage with compatible context, use that result.
 - Batch authorized fixes, verify them, then re-review changed work. Keep `--fast` for checkpoint
-  fixes; retain auto or justified deep for final-review fixes and use compatible incremental coverage.
-  Do not downgrade a final review just because it is a fix loop. If work returns to substantial
+  fixes; retain the requested auto or justified deep mode for final-review fixes. Let the engine
+  determine incremental eligibility; auto may route differently on each pass. Do not manually switch
+  final fixes to `--fast` or force `--deep` just to pin auto routing. If work returns to substantial
   implementation, resume light checkpoints and establish final coverage again before handoff.
 - If another pass repeats the same concern without actionable progress, stop the automatic loop and
   report the remaining issue and needed decision/check. Do not buy repeated passes to chase zero.
@@ -132,6 +133,27 @@ is useful, read [connected progress](references/connected-progress.md) and use `
 with a host-native background process. Never combine `--progress` with `--async`.
 A review can take minutes; keep a connected process alive or use async so client exit cannot cancel it.
 If async is unavailable in the installed CLI, keep the selected depth and use the connected fallback.
+
+For connected progress, the canonical execution rules are:
+
+- Attach context through a file; stdin heredocs are unsuitable for background execution.
+- Use a unique per-run temporary directory. Separate the single result JSON on stdout from NDJSON
+  progress on stderr. Poll the growing progress file through the host's nonblocking process tools;
+  never run a foreground `tail` that blocks the agent until completion.
+- Relay short status messages, not raw JSON or model output. Translate events by `kind`:
+  `cli.status` gives a readable message; `tool.activity` gives tool name and outcome;
+  `task.delta` and unknown kinds are occasional generic heartbeats, not one message per event.
+- For `qar.client.reconnecting`, relay attempt/delay and structured close/error codes when present.
+  `qar.client.reconnected` means transport opened; `resubscribeAttempts` counts reattached live tasks.
+  `qar.client.reconnect_failed` signals exhausted retries, not the final error explanation.
+- On `task.done`, inspect `payload.status`; on failure/cancellation or `error`, stop progress relay
+  but keep waiting for process exit. Always read the result envelope, including on nonzero exit:
+  actionable messages/hints such as `closed_preview` may appear only there. Progress is not findings.
+- Capture the process exit status, reap the child and disarm its PID before parsing. On interruption,
+  terminate and reap the active child. Clean up only that run's directory on exit/failure/interruption;
+  never reuse or remove a shared `.qodo/review.*` path.
+- If background progress is unavailable, run foreground with a multi-minute timeout, preserving
+  selected depth and context. Missing progress is not a reason to fail review or downgrade depth.
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
 the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
@@ -254,10 +276,11 @@ If `finding_state.complete` or `meta.coverage.complete` is false, report the inc
 and compatible context; earlier open findings remain open. The CLI privately saves the submitted patch.
 It advances its checkpoint after collecting an eligible result, including via `review status`.
 Failed or older completions cannot replace a newer checkpoint.
-Keep the same base, path scope, depth and context during a fix loop. Changed context, expired or
+Keep the same base, path scope, requested depth mode and context during a fix loop. Changed context, expired or
 unverifiable checkpoints, and unsupported deltas fall back to full review. Never fabricate a checkpoint.
 For a deliberately fresh assessment use `--full` (confirm support with `--help`). It controls scope,
-not depth; it is not needed on every fix. A depth change invalidates compatible checkpoint coverage.
+not depth; it is not needed on every fix. Changing the requested depth mode invalidates compatible
+checkpoint coverage. Auto does not promise a fixed effective tier; rely on returned analysis/coverage.
 Older engines omit these fields: use their findings and coverage without claiming reuse.
 `meta.reviewers.ran` / `.skipped`, `meta.depth`, and `meta.safety_net.reinjected` describe coverage.
 A reused result has no new reviewer execution. Attach missing input for a material skipped dimension.
