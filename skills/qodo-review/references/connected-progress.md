@@ -68,4 +68,3 @@ what it found. Full event reference: `docs/qodo-review.md` ("Live progress on st
 plain foreground `qodo review --json …`, preserving the selected depth and attached context — progress is a UX nicety, not a
 correctness requirement. Allow a multi-minute tool timeout (for example, `timeout: 600000` in
 Claude Code). Don't fail the review over missing progress or downgrade depth to meet a short timeout.
-
