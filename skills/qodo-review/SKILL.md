@@ -360,9 +360,16 @@ After a batch of authorized fixes, verify and re-review changed work using the l
 Assess outstanding findings and coverage before calling the result clean; stop an unproductive loop.
 Commit/push per the user's workflow — ask before pushing unless they've told you to.
 
-## Recover a connected review
+## Recover a review
 
-These connection rules apply to connected execution, not an accepted `--async` run. A review can take
+For an accepted async run, collect by operation ID even if the submit process exited. On a status
+transport error, retry collection rather than submitting again. On a confirmed terminal failure,
+read the error and correct a recoverable cause before retrying at most once, with the selected
+mode and context preserved. Honor entitlement, auth, permission and rate-limit stops; do not retry
+those as transient failures. Further failure or an expired/unavailable result means reporting the
+coverage gap; never claim completion or silently keep buying retries.
+
+The following connection rules apply to connected execution, not an accepted `--async` run. A review can take
 minutes; if the host cannot keep a process alive, choose async rather than repeatedly timing out.
 
 - **Keep the run alive and connected for its whole duration.** The CLI holds a streaming
@@ -416,7 +423,7 @@ Only the review itself is gated — auth (`qodo read whoami`) and the other qodo
 Use `--fast --async --json` for coding checkpoints, auto for ordinary final review,
 and `--deep` only under the stated exceptions. Use `--json --progress` for connected progress and
 an explicit `--base` when origin/main is not correct. Stamp exact skill/version/distribution provenance
-on the first Qodo call and keep session context out of the reviewed diff.
+on the first Qodo call after the unadorned version probe and keep session context out of the reviewed diff.
 
 ## Error Handling
 

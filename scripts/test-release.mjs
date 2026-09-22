@@ -202,16 +202,21 @@ try {
   assert.match(generatedReview, /## Handle a skill update notice/);
   assert.doesNotMatch(generatedReview, /qodo help workflow/);
   assert.match(generatedReview, /--distribution marketplace --host claude-code/);
-  assert.match(generatedReview, /stop_qodo_review\(\)/);
-  assert.match(generatedReview, /qodo_review_pid=;/);
-  assert.match(generatedReview, /trap '' INT TERM/);
-  assert.match(generatedReview, /jobs -p \| grep -Fxq "\$\{qodo_review_pid\}"/);
-  assert.match(generatedReview, /kill -TERM "\$\{qodo_review_pid\}"/);
-  assert.match(generatedReview, /kill -KILL "\$\{qodo_review_pid\}"/);
-  assert.match(generatedReview, /wait "\$\{qodo_review_pid\}"/);
-  assert.match(generatedReview, /if wait "\$\{qodo_review_pid\}"; then status=0; else status=\$\?; fi/);
-  assert.match(generatedReview, /^qodo_review_pid=; trap - INT TERM/m);
-  const reviewLines = generatedReview.split('\n');
+  assert.match(generatedReview, /\[connected progress\]\(references\/connected-progress\.md\)/);
+  const generatedProgress = readFileSync(
+    join(repositoryRoot, 'packages', 'qodo', 'skills', 'qodo-review', 'references', 'connected-progress.md'),
+    'utf8',
+  );
+  assert.match(generatedProgress, /stop_qodo_review\(\)/);
+  assert.match(generatedProgress, /qodo_review_pid=;/);
+  assert.match(generatedProgress, /trap '' INT TERM/);
+  assert.match(generatedProgress, /jobs -p \| grep -Fxq "\$\{qodo_review_pid\}"/);
+  assert.match(generatedProgress, /kill -TERM "\$\{qodo_review_pid\}"/);
+  assert.match(generatedProgress, /kill -KILL "\$\{qodo_review_pid\}"/);
+  assert.match(generatedProgress, /wait "\$\{qodo_review_pid\}"/);
+  assert.match(generatedProgress, /if wait "\$\{qodo_review_pid\}"; then status=0; else status=\$\?; fi/);
+  assert.match(generatedProgress, /^qodo_review_pid=; trap - INT TERM/m);
+  const reviewLines = generatedProgress.split('\n');
   const handlerStart = reviewLines.findIndex((line) => line.startsWith('qodo_review_pid=;'));
   const reviewLaunch = reviewLines.findIndex((line) => line.startsWith('qodo review --json --progress'));
   const pidAssignment = reviewLines.findIndex((line) => line.startsWith('qodo_review_pid=$!;'));
