@@ -1,31 +1,74 @@
 ---
 name: qodo-review
-description: Review your LOCAL changes before opening or updating a pull request, using the qodo CLI — send your uncommitted/unpushed diff to Qodo's review engine along with the coding-session context (what you changed and why, plus links to the ticket/spec/design that drove it) that a forge-based reviewer can never see, then evaluate the findings and apply the fixes you approve (or pass `autofix` to apply directly). Use when asked to "review my changes before I push", "pre-PR review", "check this before I open a PR", "review my local diff", or "run qodo review".
+description: Review local changes with Qodo during substantive coding milestones and before a PR or completed-work handoff. Use light background checkpoints while coding, collect and assess findings with session context, and run a final review before handing off. Also use for "review my local diff", "pre-PR review", or "run qodo review". Use qodo-review-resolver for findings already posted on a PR.
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.3"
+  version: "1.10.4"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
   instruction_mode: "embedded"
 ---
 
-# Pre-PR Review
+# Local Review
 
 ## Description
 
-Use the `qodo` CLI to review **local changes before opening or updating a pull request**. `qodo review` diffs your working tree against a base branch, includes new/untracked files, and sends the diff plus any
+Use the `qodo` CLI to review **local changes during coding and before handing off completed work**. `qodo review` diffs your working tree against a base branch, includes new/untracked files, and sends the diff plus any
 **coding-session context** you supply to Qodo's review engine. It returns structured findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is pushed and no
 PR is created; only the base commit must already be on the remote (the reviewer clones it).
 
-Use this skill for local changes before opening or updating a PR. Use `qodo-review-resolver` to work on findings from the PR's remote review.
+Use this skill for local changes, including unpushed work on an existing PR. Use `qodo-review-resolver`
+to work on findings from the PR's remote review; do not duplicate that review for an unchanged pushed snapshot.
 
 ## Prerequisites
 
 - The Qodo CLI is installed and authenticated, and the review capability is enabled.
 - The comparison base exists on the remote; local changes and context need not be pushed.
 - The coding-session context and any ticket or design references are ready to attach.
+
+## Choose when and how deeply to review
+
+| Situation | Selection |
+|---|---|
+| A coherent milestone during substantive coding | `--fast --async`: light checkpoint; continue useful coding and collect the result. |
+| Ordinary final review before opening/updating a PR or handing off completed work | Omit both depth flags: auto. Collect and assess the result before claiming review completion. |
+| User intent calls for unusually thorough scrutiny, or a known high blast radius warrants it | `--deep`, with a brief reason tied to the request or affected behavior. |
+
+Automatic coding checkpoints always use `--fast`. A deliberate deep review can happen earlier when
+one of the exceptions above applies. A request such as "examine subtle races thoroughly" can justify
+it without the word "deep"; generic "review" or "double-check" does not. Identify concrete impact,
+such as shared authorization, a destructive migration, or a contract used by multiple services.
+Diff size, session length, PR readiness, or a security-related filename alone do not justify deep.
+
+With **no flag**, the CLI omits depth and the reviewer/deployment selects it. Auto can select deep;
+it is not guaranteed standard and does not impose a spending cap. There is no `--standard` flag.
+`--fast` and `--deep` are mutually exclusive; depth is selected anew for each invocation.
+
+## Checkpoints and final handoff
+
+- Review a completed, testable slice when its feedback can guide the remaining work. Do not review
+  unfinished exploration, every edit, trivial changes automatically, or simply because time passed.
+  Respect the user's review scope and budget. A pause for a question or approval is not a final handoff.
+- Keep at most one automatic checkpoint active per task. Retain its operation ID, submitted scope
+  and snapshot/context association in the task's existing state. Poll status at natural pauses while
+  doing useful work; do not launch another review to check progress or re-review unchanged inputs.
+- Collect every submitted result within its retention window. Recheck findings against current code
+  before acting: the working tree may have changed. A superseded result cannot certify newer work.
+  Use the existing CLI lifecycle; no separate sub-agent or scheduler is required.
+- Before final review, collect the outstanding checkpoint and reconcile its findings. Review the
+  full intended change with auto, or justified deep, rather than handing off on a light checkpoint.
+  Remove temporary path restrictions that would leave part of the intended change unreviewed.
+  If the same snapshot already has completed final coverage with compatible context, use that result.
+- Batch authorized fixes, verify them, then re-review changed work. Keep `--fast` for checkpoint
+  fixes; retain the requested auto or justified deep mode for final-review fixes. Let the engine
+  determine incremental eligibility; auto may route differently on each pass. Do not manually switch
+  final fixes to `--fast` or force `--deep` just to pin auto routing. If work returns to substantial
+  implementation, resume light checkpoints and establish final coverage again before handoff.
+- If another pass repeats the same concern without actionable progress, stop the automatic loop and
+  report the remaining issue and needed decision/check. Do not buy repeated passes to chase zero.
+  Pending, failed, partial or superseded review is not clean; surface remaining findings and coverage.
 
 ## Prepare a PR handoff
 
@@ -58,7 +101,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.3 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review --skill-version 1.10.4 --distribution marketplace --host claude-code
 qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
@@ -68,9 +111,10 @@ qodo review --ticket <TICKET_URL> ...        # add a ticket URL (repeatable)
 qodo review --json ...                       # machine-readable findings
 qodo review src/ test/ ...                    # limit to paths (git pathspecs)
 qodo review --base origin/develop ...        # diff against a different base
-qodo review --deep                           # thorough; use `qodo review --fast` instead for speed
+qodo review --fast --async --json --context-file ctx.json # coding checkpoint
+qodo review --json --context-file ctx.json               # final review: auto
+qodo review --deep --json --context-file ctx.json        # only for a justified deep review
 qodo review                                  # BARE — only when there is truly nothing to say (rare)
-qodo review --context-file ctx.json --async  # submit with context, print an operation id, exit 0
 qodo review status <operation-id>            # collect an --async result (exit 2 = still running)
 qodo review --help                           # exact flags (renders offline)
 ```
@@ -78,75 +122,39 @@ qodo review --help                           # exact flags (renders offline)
 You can also keep `.qodo/session-context.json` (same JSON shape) updated at the repo root — it is auto-attached to every run, so even a bare `qodo review` carries your context. An explicit
 `--context-file` overrides it; the file itself is never part of the reviewed diff. Don't commit it
 (add `.qodo/` to `.gitignore` or `.git/info/exclude`).
-Add `--json` to anything you parse, and a **long shell timeout** — runs take minutes (see below).
+Add `--json` to anything you parse. For connected execution, allow a multi-minute timeout or
+background the process; async submission and status collection are separate short calls.
 **Confirm the exact flags with `qodo review --help`** (offline) — the examples here are illustrative.
 
-## Run it so the user sees progress (don't make them wait blind)
+## Choose execution for the selected review
 
-A review takes anywhere from seconds to a few minutes. Run it **foreground and it blocks silently**
-until it finishes — the user just watches a spinner. Instead, run it in the **background** with
-`--progress` and relay the streamed status, so they see it's alive.
+Use `--async` for coding checkpoints: submit, continue useful work, then collect with `review status`.
+For a final review, async is also valid, but collect and assess it before the handoff. If live progress
+is useful, read [connected progress](references/connected-progress.md) and use `--json --progress`
+with a host-native background process. Never combine `--progress` with `--async`.
+A review can take minutes; keep a connected process alive or use async so client exit cannot cancel it.
+If async is unavailable in the installed CLI, keep the selected depth and use the connected fallback.
 
-`qodo review --json --progress` writes the single JSON result to **stdout** and a stream of NDJSON
-progress events to **stderr** (`--progress` requires `--json`). Split the two into files and follow
-the progress one:
-```
-QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
-qodo_review_pid=; qodo_review_pending_status=; cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "${QODO_REVIEW_TMP}" ] && rm -r -- "${QODO_REVIEW_TMP}"; }
-stop_qodo_review() { qodo_review_status=$1; if [ -z "${qodo_review_pid}" ]; then qodo_review_pending_status=${qodo_review_status}; return; fi; trap '' INT TERM; if jobs -p | grep -Fxq "${qodo_review_pid}"; then kill -TERM "${qodo_review_pid}" 2>/dev/null || :; sleep 1; kill -KILL "${qodo_review_pid}" 2>/dev/null || :; wait "${qodo_review_pid}" 2>/dev/null || :; fi; exit "${qodo_review_status}"; }
-trap cleanup_qodo_review EXIT; trap 'stop_qodo_review 130' INT; trap 'stop_qodo_review 143' TERM
-qodo review --json --progress [--deep|--fast] [--ticket <URL> …] [<pathspec>…] \
-  >"${QODO_REVIEW_TMP}/result.json" 2>"${QODO_REVIEW_TMP}/progress.ndjson" &
-qodo_review_pid=$!; [ -z "${qodo_review_pending_status}" ] || stop_qodo_review "${qodo_review_pending_status}"
-tail -n +1 --pid="${qodo_review_pid}" -f "${QODO_REVIEW_TMP}/progress.ndjson" # GNU tail: follows, then STOPS when the review exits
-if wait "${qodo_review_pid}"; then status=0; else status=$?; fi # capture exit — but do NOT abort on non-zero
-qodo_review_pid=; trap - INT TERM                              # disarm the reaped PID before parsing
-# ALWAYS read "${QODO_REVIEW_TMP}/result.json" now: it carries the error envelope (incl. closed_preview).
-# Act on the captured status; after parsing, remove only "${QODO_REVIEW_TMP}", never a shared path.
-```
+For connected progress, the canonical execution rules are:
 
-**This is a POSIX example, and the real follow mechanism is your runtime's, not a literal `tail`.**
-An agent should poll/read the growing progress file with its own background + read-file loop until
-the process exits — never block on a foreground tail. `tail --pid` is GNU-only (macOS/BSD lack it);
-in PowerShell use a background job + `Get-Content -Wait`, or just take the foreground fallback below.
-
-- **Context via a file, not stdin.** Backgrounding + redirection fights a stdin heredoc, so put the
-  context in `.qodo/session-context.json` (auto-attached) or pass `--context-file .qodo/ctx.json`.
-  `.qodo/` is always excluded from the reviewed diff and should be gitignored.
-- **Launch it in the background** so your turn isn't blocked, then **read the growing per-run
-  `progress.ndjson`** and give the user short status lines. Each line is one JSON
-  object; translate by `kind` — never dump raw NDJSON at the user:
-  - `cli.status` → relay its `message` verbatim-ish (it's already human-readable, e.g. *"Reviewing
-    acme/widgets @ a1b2c3d4e — 3247B of local changes · auto depth"*).
-  - `tool.activity` → relay `"<tool_name>: <outcome>"` (e.g. `clone_base: ok`).
-  - `task.delta` → a heartbeat only (just a `task_id`, no content). Emit an occasional *"still
-    analysing…"* — **not** one line per delta.
-  - `qar.client.reconnecting` → relay the reconnect attempt and delay; include the structured
-    `closeCode`/`errorCode` when present. `qar.client.reconnected` means the replacement transport
-    opened; `resubscribeAttempts` is how many live tasks the SDK is re-attaching. On
-    `qar.client.reconnect_failed`, report that retries were exhausted, then keep waiting for the
-    process result envelope.
-  - `task.done` → check `payload.status`: `completed` → *"review complete"*; anything else
-    (`failed`/`cancelled`/…) → the run is over and it failed, so **stop relaying progress — but do
-    not stop waiting.** Let the process exit and read the result file before you report anything.
-    Same for `error`: note the `code` as an early signal and keep waiting. This channel drops the
-    human-readable `message`/`hint` by design (they can land in CI logs), so the *reason* — including
-    `closed_preview` and its enrollment hint — exists only in the result file. Reporting off the
-    progress event alone hands the user a bare failure with the actionable part missing.
-  - **Any other `kind`** (e.g. `agent.spawn`, `state.update`) → treat as a generic heartbeat like
-    `task.delta`; never dump its raw JSON at the user. The set is open — new kinds may appear.
-- **When the process exits, read that run's `result.json`** and proceed exactly as below (findings
-  / `meta` / `hint`, or the `error` envelope — including `closed_preview`, which arrives here, not on
-  the progress stream). Then delete only the unique directory created for that run, including on
-  interruption or failure. Never reuse or remove a fixed/shared `.qodo/review.*` path.
-
-The progress stream is deliberately **coarse** — lifecycle/status and tool outcomes, never finding
-text or model output (it can land in CI logs). It tells the user *what stage the review is at*, not
-what it found. Full event reference: `docs/qodo-review.md` ("Live progress on stderr").
-
-**Fallback:** if you can't run a background command or tail a file in this runtime, just run the
-plain foreground `qodo review --json …` (current behavior) — progress is a UX nicety, not a
-correctness requirement. Don't fail the review over it.
+- Attach context through a file; stdin heredocs are unsuitable for background execution.
+- Use a unique per-run temporary directory. Separate the single result JSON on stdout from NDJSON
+  progress on stderr. Poll the growing progress file through the host's nonblocking process tools;
+  never run a foreground `tail` that blocks the agent until completion.
+- Relay short status messages, not raw JSON or model output. Translate events by `kind`:
+  `cli.status` gives a readable message; `tool.activity` gives tool name and outcome;
+  `task.delta` and unknown kinds are occasional generic heartbeats, not one message per event.
+- For `qar.client.reconnecting`, relay attempt/delay and structured close/error codes when present.
+  `qar.client.reconnected` means transport opened; `resubscribeAttempts` counts reattached live tasks.
+  `qar.client.reconnect_failed` signals exhausted retries, not the final error explanation.
+- On `task.done`, inspect `payload.status`; on failure/cancellation or `error`, stop progress relay
+  but keep waiting for process exit. Always read the result envelope, including on nonzero exit:
+  actionable messages/hints such as `closed_preview` may appear only there. Progress is not findings.
+- Capture the process exit status, reap the child and disarm its PID before parsing. On interruption,
+  terminate and reap the active child. Clean up only that run's directory on exit/failure/interruption;
+  never reuse or remove a shared `.qodo/review.*` path.
+- If background progress is unavailable, run foreground with a multi-minute timeout, preserving
+  selected depth and context. Missing progress is not a reason to fail review or downgrade depth.
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
 the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
@@ -164,24 +172,11 @@ applies only to this single diagnostic retry: do not reuse it, request persisten
 later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
 per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
 
-## Give the run minutes, not seconds
+## Submit and collect with `--async`
 
-`qodo review` clones your base and runs the pipeline server-side, so it routinely outlasts the
-~2-minute default shell timeout a coding agent applies. Backgrounding it is the real answer — the
-recipe is under "Run it so the user sees progress" above. When your runtime can't background and
-you must go foreground, raise the timeout on that call: in Claude Code, `timeout: 600000` (10 min,
-the max). Only `qodo review` needs this; the other qodo commands are fast.
-
-There is no resume: a killed run is re-run whole, with `--fast` if you want it back sooner. The
-`Reviewing <repo> @ <sha> — <N>B …` line is a useful landmark — it prints only once auth, diff, and
-context parsing have all succeeded, so a death *after* it rules those three out as the cause.
-
-## Fire-and-forget with `--async` (unattended, CI, parallel runs)
-
-Everything above keeps a **live connection** open for the whole review. That is the right default
-when someone is watching — it streams progress — but the connection is load-bearing: if it drops
-and doesn't come back within ~2 minutes, the server **cancels the run**. In CI, over a flaky link,
-or when your runtime can't hold a process open for minutes, that's a review you paid for and lost.
+Check support with `qodo review --help`. The following example submits a coding checkpoint. For final
+review omit `--fast`; add `--deep` only under the selection policy above. Attach the same context in
+all modes. Shell snippets illustrate the CLI protocol; use the host's own nonblocking wait mechanism.
 
 `--async` removes the connection from the critical path. It submits the review over HTTP, prints an
 **operation id**, and exits 0 immediately. The run continues server-side whether or not your process
@@ -191,55 +186,56 @@ is alive; you collect the result later with `qodo review status <operation-id>`.
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'This async recipe requires jq; install it or use the live qodo review flow.' >&2; exit 1; }
 QODO_REVIEW_CONTEXT="${QODO_REVIEW_CONTEXT:-.qodo/session-context.json}"
 [ -f "$QODO_REVIEW_CONTEXT" ] || { printf '%s\n' "Write the required review context to $QODO_REVIEW_CONTEXT (or set QODO_REVIEW_CONTEXT to its path)." >&2; exit 1; }
-if ! submission="$(qodo review --context-file "$QODO_REVIEW_CONTEXT" --async --json --deep)"; then printf '%s\n' "$submission" >&2; exit 1; fi
+if ! submission="$(qodo review --context-file "$QODO_REVIEW_CONTEXT" --async --json --fast)"; then printf '%s\n' "$submission" >&2; exit 1; fi
 if ! id="$(printf '%s\n' "$submission" | jq -er '.operation_id | select(type == "string" and length > 0)')"; then printf '%s\n' "$submission" >&2; exit 1; fi
 qodo review status "$id" --json                                # collect it
 ```
 
-Poll until it's done — the exit code is the whole protocol, so you never parse stdout to find out:
+Poll the existing operation until it finishes; do useful work between status checks. Submission
+exit 0 means accepted, not reviewed. Collection uses these exit codes; read any returned retry delay:
 
 | Exit | Meaning | Do |
 |---|---|---|
 | `0` | Finished. Findings rendered — **identical** output to a live run (`{findings, meta}` under `--json`). | Act on the findings as usual. |
-| `2` | Still running. | Wait and poll again. |
-| `1` | Failed, canceled, expired, or no such operation. Read the `error` envelope. | Report it; re-run if appropriate. |
+| `2` | Still running or polling throttled. | Respect `retry_after` when present, then poll the same ID. |
+| `1` | Failed, canceled, expired, or no such operation. Read the `error` envelope. | Follow the bounded recovery below; never assume clean. |
 
 ```
+# This collection attempt returns failures to the host for classification under Recover a review.
+# On nonzero exit, preserve the operation ID and emitted error; apply bounded recovery there.
 QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
 cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
 trap cleanup_qodo_review EXIT; trap 'exit 130' INT; trap 'exit 143' TERM
-while :; do status=0; qodo review status "$id" --json > "$QODO_REVIEW_TMP/result.json" || status=$?; case "$status" in 0) cat "$QODO_REVIEW_TMP/result.json" || exit 1; break ;; 2) sleep 15 ;; *) cat "$QODO_REVIEW_TMP/result.json" >&2; exit "$status" ;; esac; done
+while :; do
+  status=0; qodo review status "$id" --json > "$QODO_REVIEW_TMP/result.json" || status=$?
+  case "$status" in
+    0) cat "$QODO_REVIEW_TMP/result.json" || exit 1; break ;;
+    2) delay=$(jq -r 'if (.retry_after | type) == "number" and .retry_after > 0 then .retry_after else 15 end' "$QODO_REVIEW_TMP/result.json") || exit 1
+       sleep "$delay" ;;
+    *) cat "$QODO_REVIEW_TMP/result.json" >&2; exit "$status" ;;
+  esac
+done
 ```
-
-**Prefer `--async` when:**
-
-- **Unattended / CI** — nobody is watching a progress stream, and a dropped connection must not kill
-  a run that already cost minutes of compute.
-- **Parallel reviews** — submit several (different repos, different bases) and collect them all
-  afterwards, instead of serializing on one open connection each.
-- **Long `--deep` reviews** — the ones most expensive to lose.
-- **Your runtime can't background a process or hold a multi-minute timeout** — `--async` turns one
-  long call into two short ones, which every runtime can do.
 
 **What it costs — know these before you choose it:**
 
 - **No streaming progress.** There are no progress events on this path — the run isn't attached to
   your process — so `--async` and `--progress` are rejected together rather than emitting a stream
   that never arrives. There is no intermediate status beyond "still running". If the user is
-  watching and wants to see life, use the backgrounded `--progress` recipe above instead.
+  watching and wants to see life, use the [connected progress](references/connected-progress.md) recipe instead.
 - **No human-in-the-loop.** This surface runs deterministic agents only; a review that asks for
   input fails instead of waiting. (`qodo review status` says so and tells you to re-run without
   `--async`.)
 - **The result is kept for 1 hour** after the review finishes, then it is discarded. Collect it
   inside that window. Past it, `qodo review status` cannot tell "expired" from "never existed" or
   "belongs to someone else" — the runtime answers all three identically, on purpose — so it reports
-  all of them and you re-run.
-- **Re-submitting the exact same request replays its operation.** The submission is keyed by its
-  content, so running `--async` twice on the same diff within the hour hands back the *first*
-  operation id rather than starting (and billing) a second review. This is deliberate: it's what
-  stops a lost response from double-running an expensive deep review. Any real edit changes the
-  request and starts a fresh run; collecting a checkpoint also changes the next request.
-- **Hold on to the operation id.** It's the only handle to the result. Nothing else can recover it.
+  all of them. Report the missing review evidence before deciding whether a new run is needed.
+- **Do not assume a new submission is free or deduplicated.** Use `review status` to collect an
+  accepted run. If admission is uncertain, follow the CLI's returned recovery command (on versions
+  that support it, `--async --retry-submission <id>`); never substitute a fresh `qodo review` to poll.
+  Preserve the retained request during recovery instead of gathering the changing working tree again.
+- **Retain the operation id.** It identifies the accepted run; a submission-recovery ID has a different
+  purpose. Do not throw away either handle before collecting or reconciling its outcome.
 
 **The operation id is not the `trace` id.** `qodo` prints a `trace <id>` line on failures — that's
 an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anything. The
@@ -283,33 +279,15 @@ If `finding_state.complete` or `meta.coverage.complete` is false, report the inc
 and compatible context; earlier open findings remain open. The CLI privately saves the submitted patch.
 It advances its checkpoint after collecting an eligible result, including via `review status`.
 Failed or older completions cannot replace a newer checkpoint.
-Keep the same base, path scope, depth and context during a fix loop. Changed context, expired or
+Keep the same base, path scope, requested depth mode and context during a fix loop. Changed context, expired or
 unverifiable checkpoints, and unsupported deltas fall back to full review. Never fabricate a checkpoint.
-For a fresh assessment use `qodo review --full` (confirm support with `--help`); add `--deep` for depth.
+For a deliberately fresh assessment use `--full` (confirm support with `--help`). It controls scope,
+not depth; it is not needed on every fix. Changing the requested depth mode invalidates compatible
+checkpoint coverage. Auto does not promise a fixed effective tier; rely on returned analysis/coverage.
 Older engines omit these fields: use their findings and coverage without claiming reuse.
 `meta.reviewers.ran` / `.skipped`, `meta.depth`, and `meta.safety_net.reinjected` describe coverage.
 A reused result has no new reviewer execution. Attach missing input for a material skipped dimension.
 Never remove context merely to make an incremental checkpoint eligible.
-## Choose the review depth (per-run flag)
-
-Depth is a per-run flag, fresh each time — there is no saved default. With **no flag** the depth is
-**auto**: the CLI omits `depth` and the reviewer/deployment picks the tier. Make a judgment call:
-
-- **`--fast`** — a quick single pass. Right for a small, low-risk change, a tight edit loop, or a
-  quick sanity check before you push.
-- **`--deep`** — a more thorough, slower pass. Reach for it on a risky or broad change (security-,
-  concurrency-, migration-, or money-touching), a large diff, or the final review before you open a
-  significant PR. Worth the extra latency when recall matters.
-- **No flag (auto)** — omit both when you're unsure, or to let the system pick the tier.
-
-`--deep` and `--fast` are mutually exclusive — passing both is an error.
-**Reproducibility & cost.** `auto` picks a tier per run and isn't deterministic run-to-run, so in an
-automated or repeatable loop pass an explicit `--fast`/`--deep`; keep `auto` for one-off interactive
-checks. Manage cost with **depth**, not by dropping context: during a tight fix/re-review loop prefer
-`--fast` and reuse the same context (the same ctx.json, or the ambient `.qodo/session-context.json` —
-updated if the loop changed a decision); save `--deep` (a multi-model ensemble) for the final pre-PR
-check. Context does add a second, no-excuse safety pass — that's the price of a calibrated review,
-not a reason to run blind.
 
 ## Attach coding-session context (this is the point)
 
@@ -412,21 +390,35 @@ this check exists to catch. Either way apply exactly what the evaluation decided
 it (fix the sound ones; skip the wrong/deliberate ones with a reason), and report what you applied
 and what you skipped.
 
-Re-run `qodo review` after applying to confirm the diff comes back clean. Commit/push per the user's
-workflow — ask before pushing unless they've told you to.
+When the user explicitly authorizes declining a local finding, follow
+[Record local triage](references/local-triage.md) to persist the decision. A conversational
+"skip" alone is not a stored dismissal and must not be reported as one.
 
-## When a run takes minutes, or comes back canceled
+After a batch of authorized fixes, verify and re-review changed work using the lifecycle policy above.
+Assess outstanding findings and coverage before calling the result clean; stop an unproductive loop.
+Commit/push per the user's workflow — ask before pushing unless they've told you to.
 
-A review is a backend agent run — on a large repo it takes **several minutes with no output
-until it finishes**. One rule follows, and breaking it produces a failure that reads like
-"this repo is too big to review". It isn't.
+## Recover a review
+
+For an accepted async run, collect by operation ID even if the submit process exited. On a status
+transport error, retry collection of the same ID at most once after the returned retry delay
+(or 15 seconds if absent). If collection still fails, preserve the ID for later recovery and report
+the coverage gap; do not submit again or keep polling automatically. The polling example returns
+nonzero errors to the host for this classification and bounded recovery. On a confirmed terminal failure,
+read the error and correct a recoverable cause before retrying at most once, with the selected
+mode and context preserved. Honor entitlement, auth, permission and rate-limit stops; do not retry
+those as transient failures. Further failure or an expired/unavailable result means reporting the
+coverage gap; never claim completion or silently keep buying retries.
+
+The following connection rules apply to connected execution, not an accepted `--async` run. A review can take
+minutes; if the host cannot keep a process alive, choose async rather than repeatedly timing out.
 
 - **Keep the run alive and connected for its whole duration.** The CLI holds a streaming
   connection to the review; the server keeps a run whose client vanished for only a short grace
   window before cancelling it. So a harness that times out and kills the CLI kills the review —
   not instantly, but a couple of minutes later, which is why the cancel can look like it came out
-  of nowhere. Background the run rather than foregrounding it under a tool timeout; the recipe is
-  under "Run it so the user sees progress" above, and backgrounding is also what lets you stream
+  of nowhere. Background the run rather than foregrounding it under a tool timeout; use the
+  [connected progress](references/connected-progress.md) recipe, and backgrounding is also what lets you stream
   status.
 
 **Concurrent reviews can complete independently.** For the same owner/repository/branch, only the
@@ -443,8 +435,10 @@ The failure shapes are distinct, so read which one you got instead of guessing:
 - **`review ended without a result (no task.done)`** → the stream dropped mid-run.
 - **`review failed: <detail>`** → a real backend failure; the detail says what.
 
-For the first three, **re-run once, uninterrupted, before concluding anything** — a cancel says
-nothing about whether your diff is reviewable.
+For the first three, collect any retained result using the CLI's recovery hint before submitting again.
+If the run is confirmed canceled or unrecoverable, retry at most once with uninterrupted execution
+and the same selected depth/context. A pending run is not a reason to restart. Further failure means
+reporting incomplete review, not looping, dropping context or downgrading depth to obtain a result.
 
 ## If the run is gated: closed preview
 
@@ -467,9 +461,10 @@ Only the review itself is gated — auth (`qodo read whoami`) and the other qodo
 
 ## Configuration
 
-Use `--json --progress` for observable foreground runs, `--async` only for deliberate detached
-runs, and an explicit `--base` when origin/main is not correct. Stamp exact skill/version/
-distribution provenance on the first Qodo call and keep session context out of the reviewed diff.
+Use `--fast --async --json` for coding checkpoints, auto for ordinary final review,
+and `--deep` only under the stated exceptions. Use `--json --progress` for connected progress and
+an explicit `--base` when origin/main is not correct. Stamp exact skill/version/distribution provenance
+on the first Qodo call after the unadorned version probe and keep session context out of the reviewed diff.
 
 ## Error Handling
 
@@ -479,19 +474,18 @@ context or widen authority merely to obtain a green result.
 
 ## Guardrails
 
-- **Pre-PR only.** This reviews local changes before a PR. Once a PR is open, resolve the PR's
-  review findings instead — that path re-reviews each pushed commit.
+- **Local scope.** Review coding milestones and local work before PR/update or completed-work handoff.
+  Use `qodo-review-resolver` for findings already posted on a PR; avoid duplicate unchanged reviews.
 - **No forge writes.** `qodo review` reads your local diff and returns findings; it never pushes,
   comments, or opens a PR. Resolving a finding means editing code, not posting anywhere.
 - **The base must be pushed;** your local work need not be. New/untracked files are reviewed by
   default; secrets/binaries/oversized/gitignored files are filtered and reported.
 - **Don't guess creds or the base** — resolve auth first, and pass `--base` when it isn't
   `origin/main`.
-- **Background long runs so the connection survives** — a canceled run means it was interrupted or
-  lost its connection, never that the repo is too big (see "When a run takes minutes" above).
-  Collect each result; a superseded run does not advance the incremental baseline.
+- **Collect every run.** Background connected runs or use async; preserve recovery handles.
+  A superseded result does not advance the incremental baseline or certify current code.
 - **Never strip context to beat the clock.** Dropping `--context-file` doesn't make a run faster —
-  it just buys a worse review. Give it more time, or `--fast`; keep the context either way.
+  it just buys a worse review. Give it time; choose depth by lifecycle, never by timeout pressure.
 - An `MT-TOOL-LOOP` or `MT-RATE-LIMITED` error means stop/back off and change approach, not retry.
 - A `closed_preview` error means the org isn't enrolled in the preview — surface message + hint to
   the user and stop; never retry or loop on it (see "If the run is gated" above).
