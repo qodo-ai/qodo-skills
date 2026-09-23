@@ -163,13 +163,12 @@ user to obtain a checksum-pinned installer command from Qodo or their organizati
 administrator. Installers are served from https://get.qodo.ai, but never invent a digest
 or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
-outside the sandbox before recommending login or refreshing tools. Keychain failures can be
-reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
-applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
-later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
-per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
+**Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
+is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
+flow before recommending login. Stop on denial; that approval covers no other command. Reuse a
+successful check in the same executable/workspace/deployment and execution context; request each
+required host approval. Network, TLS, service, and explicit authorization failures retain their
+own diagnosis, not a login recommendation or an automatic sandbox bypass.
 
 ## Submit and collect with `--async`
 
@@ -242,19 +241,19 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 
 ## Preflight
 
-1. **Auth first.** Run `qodo read whoami`. After the sandbox retry above when applicable, a non-zero
-   exit → tell the user to re-run the exact login command supplied by their installer,
-   organization, or configured endpoint, then stop. With no custom endpoint, use `qodo login`;
-   with an explicit endpoint, preserve it as `qodo login --auth-url <their-url>`. Never replace a
-   custom deployment with the cloud default or invent an endpoint. `Not logged in` /
-   `No tool catalog cached` require login. If `whoami`
-   succeeds but the built-in `qodo review` command is unknown, the runtime is too old; ask the
-   user to update the CLI from the official source. Re-login and catalog refresh cannot add this
-   built-in command.
-2. **Push the base.** The reviewer clones the base commit from the remote, so the base branch
-   (default `origin/main`) must be pushed. If `qodo review` says the base isn't pushed, push it or
-   pass a pushed `--base <ref>`. Your own local changes do NOT need to be committed or pushed —
-   uncommitted edits and untracked new files are included automatically.
+1. **Auth and catalog.** Run `qodo read whoami` unless a successful check still covers this
+   execution context. After the sandbox diagnostic when applicable, only explicit missing credentials
+   call for login: preserve the organization's exact login command/endpoint, never guess or switch
+   a customer deployment to Cloud. `No tool catalog cached` is not proof of missing credentials;
+   refresh once with `qodo tools --refresh` and retry the check. Other failures retain their error
+   and stop this workflow. After identity succeeds, an unknown managed command permits one catalog
+   refresh and schema recheck. If still absent or `tool_unavailable`, report the missing capability;
+   do not repeat login or refresh.
+   An unknown built-in `qodo review` needs runtime recovery, not login or catalog refresh.
+2. **Resolve the base.** The reviewer clones the base commit from the remote. Use an existing
+   pushed `--base <ref>` appropriate to the intended change (default `origin/main`). If no suitable
+   base exists, report the blocker; review authorization alone does not authorize a push.
+   Local edits and untracked files are included without committing or pushing them.
 3. **Write your context.** Before running, capture the session narrative — a 2–3 sentence summary
    of what you changed and why, plus the decisions you made along the way — as the context JSON
    (stdin heredoc, a file, or `.qodo/session-context.json`). You always have this: you just wrote
@@ -368,9 +367,9 @@ issue (your fix may differ from Qodo's suggestion), **dismiss** an unsupported c
 evidence, or **investigate** uncertainty by naming the check needed. A session decision supports
 dismissal only when the code enforces its assumptions. Keep the tone collaborative and factual;
 do not routinely qualify Qodo's capability or turn a wrong finding into a broader judgment.
-Your technical recommendation does not grant edit permission: follow the approval gate below.
+Your technical recommendation does not grant permission; apply the user's existing scope below.
 
-**Present and ask (default).** Use the assessment above for every finding, keeping its
+**Report-only or missing edit authority.** Use the assessment above for every finding, keeping its
 `[category/level]` and your recommendation, then ask **in a single prompt** which findings to apply. Use whatever the
 host gives you: a multi-select if it has one (Claude Code's `AskUserQuestion`, say), otherwise a
 numbered list and "reply with the numbers to apply". One prompt either way — don't ask per finding.
@@ -379,15 +378,11 @@ prompt is the last thing standing between a finding and an edit, so a bare Enter
 Apply only what the user picks (edit as normal, matching the surrounding style); report the rest as
 skipped with your reason. Do not edit any code before the user has chosen.
 
-**Autofix (skip the gate).** Only an **explicit `autofix` token** in the invocation (e.g.
-`qodo-review autofix`) skips the prompt outright. Phrasing that merely sounds like opting in ("just
-fix them", "don't ask me") is not enough by itself — reading intent wrong here edits code the user
-never approved, which is the exact failure this gate exists to prevent. On inferred intent, name the
-exact scope you'd apply and get one confirmation — "Reading that as autofix — apply the N fixes I
-recommended?" — not "all N", which reads as the whole set and widens scope on the very ambiguity
-this check exists to catch. Either way apply exactly what the evaluation decided and nothing beyond
-it (fix the sound ones; skip the wrong/deliberate ones with a reason), and report what you applied
-and what you skipped.
+**Authorized fixes.** `autofix`, an explicit request to fix findings, or existing implementation
+authority covering the necessary correction permits fixes within that scope. State the assessment
+and apply supported fixes without asking again. A review-only request grants no edit authority;
+ask once if the intended scope is ambiguous. Preserve narrower user constraints. Fix authority
+does not authorize stored dismissals, pushes, or unrelated changes. Report applied and skipped fixes.
 
 When the user explicitly authorizes declining a local finding, follow
 [Record local triage](references/local-triage.md) to persist the decision. A conversational
