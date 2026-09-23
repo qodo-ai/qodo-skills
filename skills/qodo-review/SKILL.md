@@ -411,7 +411,8 @@ transport error, retry collection of the same ID at most once after the returned
 the coverage gap; do not submit again or keep polling automatically. The polling example returns
 nonzero errors to the host for this classification and bounded recovery. On a confirmed terminal failure,
 read the error and correct a recoverable cause before retrying at most once, with the selected
-mode and context preserved. Honor entitlement, auth, permission and rate-limit stops; do not retry
+depth, scope, context and `--isolated` preserved; isolation is independent of analysis mode.
+Honor entitlement, auth, permission and rate-limit stops; do not retry
 those as transient failures. Further failure or an expired/unavailable result means reporting the
 coverage gap; never claim completion or silently keep buying retries.
 
@@ -442,7 +443,7 @@ The failure shapes are distinct, so read which one you got instead of guessing:
 
 For the first three, collect any retained result using the CLI's recovery hint before submitting again.
 If the run is confirmed canceled or unrecoverable, retry at most once with uninterrupted execution
-and the same selected depth/context. A pending run is not a reason to restart. Further failure means
+and the same depth, scope, context and `--isolated` flag. A pending run is not a reason to restart. Further failure means
 reporting incomplete review, not looping, dropping context or downgrading depth to obtain a result.
 
 ## If the run is gated: closed preview
