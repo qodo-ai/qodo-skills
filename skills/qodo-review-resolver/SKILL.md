@@ -94,7 +94,7 @@ qodo read tools pr-review-session --json                            # exact safe
 ```
 
 Add `--json` to anything you parse. Inspect reads with
-`qodo read tools pr-review-session [<tool>] --json`; inspect a write's input schema with
+`qodo read tools pr-review-session findings --json`; inspect a write's input schema with
 `qodo tools help pr-review-session <tool> --json`. Both are offline discovery, not mutations.
 The read-only catalog deliberately excludes writes; absence there does not prove they are unavailable.
 
@@ -134,9 +134,11 @@ own diagnosis, not a login recommendation or an automatic sandbox bypass.
    resolve the PR repository from provider metadata and the current checkout repository from its
    `origin`; normalize both to the full case-insensitive `owner/repo` identity. They must match
    exactly. A missing/ambiguous origin or mismatch means stop and ask the user to open the correct
-   checkout — never apply a finding from one repository to another worktree. Also verify that the
-   checkout contains the reviewed PR head; inspect local differences before applying a remote
-   finding, and preserve unrelated edits. Repeat these checks if the target PR changes.
+   checkout — never apply a finding from one repository to another worktree. Use the PR branch
+   or an isolated worktree for that PR, with local HEAD at the reviewed head (or a verified descendant
+   produced by this same fix workflow). Merely having the commit in the repository is insufficient.
+   Inspect local differences and preserve unrelated edits; never reset or switch a dirty worktree
+   to satisfy this check. Repeat these checks if the target PR changes.
 
 ## Fetch the review session
 
@@ -181,9 +183,10 @@ immutable history of every finding revision. Apply the freshness checks below be
 The `review_session` tells you *whether the findings are real yet and what code they cover* —
 check it before acting:
 
-- **Is a review still running?** A `started`/in-progress review is provisional. For a status-only
+- **Is a review still running?** Only `started` is the polling state. For a status-only
   request, report that state and return; poll only when waiting is part of the requested task.
-  Failed or canceled reviews are failures, not running reviews; report them and stop the loop.
+  `failed`, `aborted`, `skipped`, and `superseded` are non-success terminal states: report them
+  and stop the loop. An unknown status is not success or permission to poll indefinitely.
 - **What commit do the findings describe?** `review_session.commit_sha` is the last commit the
   review included. If it's **behind the PR head**, the findings are **stale** — they don't reflect
   your latest code. Either the review hasn't run on the new commit yet (wait) or you're looking at

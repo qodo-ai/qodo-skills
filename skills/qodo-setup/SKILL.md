@@ -24,7 +24,7 @@ A shell and browser sign-in. Never request or read credentials.
 
 Resolve `references/...` links relative to this installed `SKILL.md` directory.
 Runtime/login setup does not authorize enterprise installation or maintenance.
-For a separately requested enterprise install, disclose installations, packages and automatic
+For a separately requested enterprise install, disclose installations, packages and verified-source automatic
 maintenance before approval. Preserve opt-outs, edits, owners and optional-package choices.
 
 ### 1. Find or install the runtime

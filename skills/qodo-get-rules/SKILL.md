@@ -29,6 +29,8 @@ below exactly.
 
 Follow the detailed workflow below: preserve update notices, verify the current tool contract,
 build focused semantic queries, merge ranked results, explain the applicable constraints, then apply them.
+First check the reuse condition in Preflight. If prior results still cover the task, go directly
+to Output, then apply; no runtime, identity, catalog, or search call is needed for that path.
 
 ## Handle a skill update notice
 
