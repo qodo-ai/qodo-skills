@@ -9,14 +9,14 @@ owner: Qodo
 when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
   vendor: qodo
-  version: "1.4.6"
+  version: "1.4.7"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
   instruction_mode: "embedded"
 arguments:
   - name: autofix
-    description: Resolve the recommended fixes directly without asking. Omit to evaluate the findings and let the user pick which to resolve.
+    description: Optional shorthand for authorizing supported fixes. An explicit fix request or covering implementation authority also permits those fixes without another prompt.
     optional: true
 ---
 
@@ -30,9 +30,9 @@ else's). Request extended results when auditing citations or investigating a fin
 evidence, location, dismissal, or review-run history. Reading alone is a valid use: stop after the read to report where a review stands or
 what it flagged (e.g. to gate a merge on it being clean at head). To go further, **resolve the
 open findings in code**, applying your own judgment (the review is a strong second opinion, not
-gospel) — by default you evaluate the findings and let the user pick which to apply (pass `autofix`
-to apply directly), run once (report + resolve what the user approves) or as a watch loop (resolve →
-let Qodo re-review the new commit → repeat until clean). Then **record the outcome** on the findings
+gospel). Apply supported fixes when the user has authorized them; otherwise present your assessment
+for selection. Run once (report + authorized fixes) or as a watch loop (resolve →
+let Qodo re-review the new commit → repeat until clean). When separately authorized, **record the outcome** on the findings
 you settled — `mark-implemented` for ones you fixed, `dismiss` for ones the user agreed to close
 without a code change. That is what clears the merge-policy block those findings hold; skip it and
 the review stays red until a human clicks through the PR. You still never post to the forge
@@ -44,7 +44,7 @@ fact required for the freshness check below; the "don't scrape" rule is about qo
 
 - The Qodo CLI is authenticated and exposes the structured PR-review session tools.
 - The exact PR URL and its current head SHA can be resolved without scraping review comments.
-- Any write to a finding has the user's explicit authority or the skill's explicit `autofix` scope.
+- Any finding-status write has explicit user authorization; code-fix authority or `autofix` alone does not cover it.
 
 ## Instructions
 
@@ -86,7 +86,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                                       # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.6 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.7 --distribution marketplace --host claude-code
 qodo read pr-review-session findings --pr-url <PR_URL> --json       # the review session for a PR
 qodo read pr-review-session findings --pr-url <PR_URL> --extended --json # details, if advertised by tool help
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
@@ -94,9 +94,10 @@ qodo pr-review-session dismiss --finding-ids <id> --reason intentional --explana
 qodo read tools pr-review-session --json                            # exact safe tools + flags (offline)
 ```
 
-Add `--json` to anything you parse. **Confirm the exact tool names, flags, and read/write status
-with `qodo read tools pr-review-session [<tool>] --json`** (renders offline) — the names above
-are illustrative, not guaranteed current.
+Add `--json` to anything you parse. Inspect reads with
+`qodo read tools pr-review-session findings --json`; inspect a write's input schema with
+`qodo tools help pr-review-session <tool> --json`. Both are offline discovery, not mutations.
+The read-only catalog deliberately excludes writes; absence there does not prove they are unavailable.
 
 `unknown command` on `dismiss`/`mark-implemented` after authentication may be a stale local tool
 catalog — refresh once as described below. If the commands are still absent, the workspace does
@@ -110,24 +111,23 @@ user to obtain a checksum-pinned installer command from Qodo or their organizati
 administrator. Installers are served from https://get.qodo.ai, but never invent a digest
 or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
-outside the sandbox before recommending login or refreshing tools. Keychain failures can be
-reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
-applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
-later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
-per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
+**Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
+is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
+flow before recommending login. Stop on denial; that approval covers no other command. Reuse a
+successful check in the same executable/workspace/deployment and execution context; request each
+required host approval. Network, TLS, service, and explicit authorization failures retain their
+own diagnosis, not a login recommendation or an automatic sandbox bypass.
 
 ## Preflight
 
-1. **Auth first.** Run `qodo read whoami`. After the sandbox retry above when applicable, a non-zero
-   exit → tell the user to run `qodo login`, then stop. Never guess creds. The tool only exists
-   *after* login, so treat `Not logged in` or `No
-   tool catalog cached` as "run `qodo login`", and don't retry before they have.
-   **An `unknown command`/`unknown option` while `whoami` SUCCEEDED is not an auth failure.** Run
-   `qodo tools --refresh` once and re-check `qodo read tools pr-review-session --json`. If the write command
-   remains absent, report that this account/workspace currently has read-only review capability;
-   do not re-login, retry indefinitely, or substitute a forge comment for the structured write.
+1. **Auth and catalog.** Run `qodo read whoami` unless a successful check still covers this
+   execution context. After the sandbox diagnostic when applicable, only explicit missing credentials
+   call for login: preserve the organization's exact login command/endpoint, never guess or switch
+   a customer deployment to Cloud. `No tool catalog cached` is not proof of missing credentials;
+   refresh once with `qodo tools --refresh` and retry the check. Other failures retain their error
+   and stop this workflow. After identity succeeds, an unknown managed command permits one catalog
+   refresh and schema recheck. If still absent or `tool_unavailable`, report the missing capability;
+   do not repeat login or refresh.
 2. **Resolve the PR.** Use the PR URL the user gives. If they don't name one and you're inside
    a git repo, infer the open PR for the current branch and **confirm it with the user before
    acting**. Never guess a PR URL.
@@ -135,8 +135,11 @@ per-command permission checks. If it still fails, follow the normal auth trouble
    resolve the PR repository from provider metadata and the current checkout repository from its
    `origin`; normalize both to the full case-insensitive `owner/repo` identity. They must match
    exactly. A missing/ambiguous origin or mismatch means stop and ask the user to open the correct
-   checkout — never apply a finding from one repository to another worktree. Repeat this check if
-   the target PR changes during a watch loop.
+   checkout — never apply a finding from one repository to another worktree. Use the PR branch
+   or an isolated worktree for that PR, with local HEAD at the reviewed head (or a verified descendant
+   produced by this same fix workflow). Merely having the commit in the repository is insufficient.
+   Inspect local differences and preserve unrelated edits; never reset or switch a dirty worktree
+   to satisfy this check. Repeat these checks if the target PR changes.
 
 ## Fetch the review session
 
@@ -149,7 +152,7 @@ per-command permission checks. If it still fails, follow the normal auth trouble
   `action_level` (`action_required` > `remediation_recommended` > `informational`),
   `attribution_status`, `git_sha`, `review_run_id`, `comment_id` / `inline_comment_id`.
 
-`finding_count: 0` with a non-null session = a clean review.
+Zero findings supports a clean verdict only for a complete, completed review at the current PR head.
 
 ### Extended results for audits and investigation
 
@@ -181,17 +184,19 @@ immutable history of every finding revision. Apply the freshness checks below be
 The `review_session` tells you *whether the findings are real yet and what code they cover* —
 check it before acting:
 
-- **Is a review still running?** If `status` is not a terminal/`completed` state (e.g. `started` /
-  in-progress), a review is **mid-flight** — the findings are provisional and will change. Do NOT
-  resolve them yet; poll `qodo read pr-review-session findings … --json` until `status` is `completed`.
+- **Is a review still running?** The API reports a running review as `started`; that is the polling state. For a status-only
+  request, report that state and return; poll only when waiting is part of the requested task.
+  `failed`, `aborted`, `skipped`, and `superseded` are non-success terminal states: report them
+  and stop the loop. An unknown status is not success or permission to poll indefinitely.
 - **What commit do the findings describe?** `review_session.commit_sha` is the last commit the
   review included. If it's **behind the PR head**, the findings are **stale** — they don't reflect
   your latest code. Either the review hasn't run on the new commit yet (wait) or you're looking at
   an old run. Only trust findings when the session is `completed` AND its `commit_sha` is the commit
   you care about (the head, in a watch loop).
 
-In short: act only on a **completed review of the current commit**. A running review or a
-lagging `commit_sha` means wait, don't fix.
+Act only on a **completed review of the current commit**. A running or stale review cannot
+authorize finding resolution. In watch mode, respect retry delays, recheck the forge head before
+claiming clean, and stop if the review makes no progress rather than polling indefinitely.
 
 ## Present the review state
 
@@ -222,12 +227,13 @@ repeating the assessment on every poll or status write.
 
 ## Triage
 
-- **Open vs done is `attribution_status`**, and it is NOT a three-way field — it carries the raw
-  stored value, so matching only `pending` silently drops real work:
+- **Open vs done is `attribution_status`.** Classify the returned value, including the
+  supported representations used by different deployments:
   - **OPEN — work these:** `pending`, `partial_implementation`, `not_implemented`,
-    `focus_areas_edited`. The last three are re-attributions of a finding that is still unresolved
-    (a partial fix is still an open finding).
-  - **CLOSED — leave these:** `full_implementation`, `dismissed`, `detected_after_merge`, `outdated`.
+    `focus_areas_edited`.
+  - **CLOSED — leave these:** `implemented`, `full_implementation`, `dismissed`,
+    `detected_after_merge`, `outdated`. Report unfamiliar values instead of silently excluding
+    them from a clean verdict.
   - `action_level` is **severity**, not open-vs-closed. A closed finding can still be
     `action_required`.
 - **Order by `action_level`:** `action_required` first, then `remediation_recommended`; treat
@@ -247,7 +253,7 @@ the matches — don't widen it:
 - **Report-only** — "what did the review find?" / "is it clean?" → summarize the findings and their
   statuses, change no code.
 
-No instruction → default to presenting for approval open `action_required` then
+No fix instruction or covering implementation authority → present for approval open `action_required` then
 `remediation_recommended`, and surface (don't auto-fix) `informational`. When an instruction is
 ambiguous, state the scope you picked in one line before acting, so the user can redirect. Always
 report which findings you **skipped** and why (out of scope / dismissed / informational) — never
@@ -255,31 +261,31 @@ silently drop one.
 
 ## Two modes
 
-Each round follows the present-and-ask gate from **Resolve a finding** — evaluate, present, and let
-the user pick which findings to resolve — unless `autofix` is in effect, which lets you apply the
-recommended fixes without prompting. Either way, ask before pushing unless told otherwise.
+Each round follows **Resolve a finding**: evaluate and apply only fixes covered by existing user
+authority (`autofix` or an explicit fix request); otherwise present and ask. Push authority is separate.
 
 **Once (default).** Fetch → evaluate every open finding (triage — all four OPEN statuses, not just
-`pending`) → present + ask (or apply directly under `autofix`) → resolve the chosen ones in code →
-commit/push per the user's workflow → **record the outcome**
-(`mark-implemented` for what you fixed; `dismiss`, with the user's explicit go, for what they
-agreed to close without a change) → summarize what you resolved and what remains (e.g. skipped /
-dismissed / informational). Stop. Don't loop unless asked. Triage covers
+`pending`) → present + ask if authority is missing → apply authorized fixes in code →
+commit/push only within the user's authorization → summarize fixes and remaining findings.
+For local-only fixes, report "awaiting push" and leave finding status unchanged. After a verified
+push, prefer the next review's automatic re-attribution; a manual status write additionally needs
+explicit authorization and the checks in **Record the outcome**. Stop. Don't loop unless asked. Triage covers
 **all** open findings, but the picker only *offers* the actionable set —
 `action_required` then `remediation_recommended` — with `informational` surfaced separately,
 matching the default scope above; put `informational` in the picker only when the user asks.
 (Offering isn't selecting: every box starts unticked.)
 
-**Watch until clean** (when the user says "babysit" / "keep going until it's clean"). `autofix` is
-what makes this loop autonomous — without it you still present + ask each round. After you resolve
+**Watch until clean** (when the user says "babysit" / "keep going until it's clean"). Reuse explicit
+fix authority within its scope; monitoring alone does not authorize edits. After you resolve
 findings and the fix commit is pushed, Qodo re-reviews the *new* commit — so:
 
 1. Note the PR's current head SHA — the commit you just pushed (`git rev-parse HEAD`), or, for a
    PR you didn't push, read it as forge metadata (`gh pr view <pr> --json headRefOid`). That's a
    metadata read, not review-comment scraping — it's fine.
-2. Poll `qodo read pr-review-session findings … --json` until the review is **`completed` AND its
-   `commit_sha` equals that head SHA**. Until both hold, the findings are stale or provisional
-   (a review is still running, or it describes the pre-fix commit) — do not act on them.
+2. Follow **Read the session state FIRST** on each read: poll `started` only within the bounded
+   watch; report non-success terminal or unknown states and stop. A completed older run is stale:
+   allow a bounded wait for the new head's review to appear. Act only when the review is
+   **`completed` AND its `commit_sha` equals that head SHA**.
 3. When fresh: if any OPEN findings remain (all four statuses — a `partial_implementation` is
    still open), resolve them and repeat; if none remain, report the
    review clean and stop.
@@ -300,7 +306,12 @@ technical recommendation and rationale, while following the user's scope and app
   choice supports dismissal only when the implementation enforces its assumptions.
 - **Unsure** → identify the evidence or check needed before deciding.
 
-**Present and ask (default).** Use the contextual assessment above for each open, in-scope finding,
+**Report-only.** Return the assessment and stop; do not solicit edit approval for an explicit
+request to review without changes.
+
+**Present and ask only when edit authority is missing.** If `autofix`, an explicit fix request,
+or covering implementation authority already applies, skip this selection prompt and follow
+**Authorized fixes** below. Otherwise use the assessment above for each open, in-scope finding,
 keeping its `action_level`/`category` and your recommendation, then ask **in a single
 prompt** which findings to resolve. Use whatever the host gives you: a multi-select if it has one
 (Claude Code's `AskUserQuestion`, say), otherwise a numbered list and "reply with the numbers to
@@ -308,28 +319,28 @@ resolve". One prompt either way — don't ask per finding. **Nothing is pre-sele
 ones you recommend, but the user must actively choose: this prompt is the last thing standing
 between a finding and an edit, so a bare Enter must resolve nothing. Resolve only what the user
 picks (edit as normal, matching the surrounding code); report the rest as skipped with your reason.
-Do not edit any code before the user has chosen.
+On this missing-authority path, do not edit before the user has chosen.
 
-**Autofix (skip the gate).** Only an **explicit `autofix` token** in the invocation (e.g.
-`qodo-review-resolver autofix`) skips the prompt outright. Phrasing that merely sounds like opting
-in ("just fix them", "don't ask me") is not enough by itself — reading intent wrong here edits code
-the user never approved, which is the exact failure this gate exists to prevent. On inferred intent,
-name the exact scope you'd apply and get one confirmation — "Reading that as autofix — resolve the
-N findings I recommended?" — never "resolve all N", which reads as the whole set and widens scope on
-the very ambiguity this check exists to catch. Either way apply exactly what the evaluation decided
-and nothing beyond it (findings are usually right, but you're the engineer in the loop, not a rubber
-stamp), and report what you resolved and what you skipped.
+**Authorized fixes.** `autofix` or an explicit request such as "fix the action-required findings"
+authorizes supported code fixes within that scope; no special token or repeated confirmation is
+needed. Existing implementation authority can also cover the correction. State your assessment
+before applying it. A status-only request grants no edit authority; ask once if scope is ambiguous.
+Neither fix authority nor monitoring authorizes finding-status writes (`dismiss` or
+`mark-implemented`) or a push. Report fixes and skipped findings.
 
 Commit/push per the user's workflow — ask before pushing unless they've told you to.
 
 **`attribution_status` is the intended signal** — a fixed finding is re-attributed to
-`full_implementation` by the next review on its own, so after pushing, re-fetch and work only what's
+`implemented` or `full_implementation` by the next review on its own, so after pushing, re-fetch and work only what's
 still open. But it's tooling and can glitch: if a finding stays open after a fix you're confident
 in, or a status plainly contradicts the code, don't loop re-fixing it — flag the discrepancy to the
 user and move on. (Resolving converges over rounds; a fix can also surface genuinely new findings,
 which the watch loop picks up.)
 
 ## Record the outcome
+
+Require explicit authorization for the specific status write; permission to fix code or push it
+does not authorize closing findings. Prefer automatic re-attribution after a pushed fix.
 
 Closing a finding is a **write** — it updates Qodo's review DB, restyles the finding's PR comments,
 re-renders the review summary, and releases the merge-policy block that finding holds. Two commands,
@@ -344,7 +355,7 @@ qodo pr-review-session dismiss --finding-ids <id>,<id> --reason <reason> --expla
 - **Batch per PR, one call.** Reconciliation runs once per call, not once per finding — so all the
   findings you implemented go in one `mark-implemented`, and all the ones sharing a dismissal reason
   go in one `dismiss`. Up to 100 ids.
-- **`mark-implemented` only for code you actually changed and pushed.** It clears the merge gate
+- **`mark-implemented` only when explicitly authorized and for code you actually changed and pushed.** It clears the merge gate
   without a review having verified the fix, so a wrong claim ships an unfixed finding as fixed. If
   another review round is going to run anyway, prefer letting it re-attribute the fix itself; reach
   for this when no further round will run before merge, or the gate must clear now.
@@ -374,21 +385,20 @@ qodo pr-review-session dismiss --finding-ids <id>,<id> --reason <reason> --expla
 4. Evaluate each: *"SQL built via string interpolation"* → real → recommend parameterizing the query in
    `db/orders.py`. *"Missing timeout on the outbound call"* → the client already sets a default timeout
    upstream → already satisfied → recommend skipping with that reason.
-5. Present both with those recommendations and ask (multi-select) which to resolve — both unticked, the SQL
-   one marked *recommended*. Apply what the user picks, then report: "Resolved the SQL finding
-   (parameterized the query in `db/orders.py`). Skipped the timeout one — already set upstream — and 1
-   informational (out of scope). Push and I'll re-check, or say 'watch' to loop until the review is clean."
-   (Had the user said `resolve … autofix`, I'd have applied the recommended fix directly, no prompt.)
+5. The explicit request covers the supported action-required fix: parameterize the SQL query and
+   verify it. Report the timeout as already satisfied and the informational finding as out of scope;
+   neither is dismissed automatically. Report the local fix separately from the PR's review state.
+   Push only with separate covering authority, then check the review of the new head.
 
 ## Configuration
 
 Use `--json`, compare `review_session.commit_sha` with forge head metadata, and stamp the exact
-skill/version/distribution provenance on the first Qodo call. Read and write capabilities are
+skill/version/distribution provenance on the first authenticated Qodo call after the unadorned version probe. Read and write capabilities are
 discovered from the installed CLI catalog; rendered forge comments are never the data source.
 
 ## Error Handling
 
-Treat null sessions, in-progress or stale commits, missing write capabilities, rate limits, and
+Treat null sessions, running reviews (`started`), stale commits, missing write capabilities, rate limits, and
 tool-loop errors as explicit states. Preserve them in the report and never close a finding merely
 to make the review appear clean.
 

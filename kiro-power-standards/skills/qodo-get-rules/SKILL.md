@@ -1,10 +1,10 @@
 ---
 name: qodo-get-rules
-description: Load the coding rules from Qodo most relevant to the current coding task, using the qodo CLI's managed rules search — generate structured semantic queries from the assignment, retrieve the workspace's matching rules ranked by relevance, and apply them while writing the code. Use when the user asks to write, edit, refactor, or review code, when starting implementation planning, or on "get rules", "load qodo rules", "fetch coding rules", "relevant rules", "search rules"; skip if rules are already loaded in this conversation.
+description: Retrieve and apply Qodo coding rules relevant to implementation, planning, refactoring, or code review. Use on "get rules", "load qodo rules", or "relevant standards" and when starting a concrete coding task. Reuse rules already retrieved for the same workspace, repository, and task scope; refresh when that scope changes.
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.4"
+  version: "1.1.5"
   recommended: "false"
   package: "qodo-standards"
   distribution: "kiro-power"
@@ -29,7 +29,9 @@ below exactly.
 ## Instructions
 
 Follow the detailed workflow below: preserve update notices, verify the current tool contract,
-build focused semantic queries, merge ranked results, print the Qodo rules block, then apply it.
+build focused semantic queries, merge ranked results, explain the applicable constraints, then apply them.
+First check the reuse condition in Preflight. If prior results still cover the task, go directly
+to Output, then apply; no runtime, identity, catalog, or search call is needed for that path.
 
 ## Handle a skill update notice
 
@@ -40,7 +42,7 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 
 ## Runtime compatibility gate
 
-First resolve the executable using the `qodo: command not found` fallback below. Before any other
+Only on the retrieval path, resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
 CLI **0.1.0-next.37 or newer**.
@@ -57,7 +59,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.4 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.5 --distribution kiro-power --host kiro
 qodo read rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json
@@ -76,24 +78,29 @@ actually not installed; tell the user to obtain a checksum-pinned installer comm
 Qodo or their organization's administrator. Installers are served from https://get.qodo.ai,
 but never invent a digest or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
-outside the sandbox before recommending login or refreshing tools. Keychain failures can be
-reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
-applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
-later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
-per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
+**Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
+is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
+flow before recommending login. Stop on denial; that approval covers no other command. Reuse a
+successful check in the same executable/workspace/deployment and execution context; request each
+required host approval. Network, TLS, service, and explicit authorization failures retain their
+own diagnosis, not a login recommendation or an automatic sandbox bypass.
 
 ## Preflight
 
-1. **Already loaded?** If "Qodo Rules Loaded" appears earlier in this conversation, skip
-   straight to applying those rules — don't re-fetch.
-2. **Auth.** Run `qodo read whoami`. After the sandbox retry above when applicable, a non-zero exit →
-   tell the user to run `qodo login`, then stop.
-   `Not logged in` / `No tool catalog cached` → not logged in. An `unknown command` on
-   `qodo rules` while `whoami` SUCCEEDS is a different failure: the cached catalog predates
-   the rules tool — run `qodo tools --refresh` and retry; only ask for `qodo login` when
-   `whoami` itself fails.
+1. **Reuse relevant evidence.** Reuse actual retrieved rules and their scope, not a heading or
+   an earlier claim that rules were loaded. If the workspace, repository, or task concern changed,
+   retrieve rules for the new scope. A previous empty result is reusable only for the scope checked;
+   a failed retrieval is not an empty result. When prior results still cover the task, skip retrieval
+   and apply them directly: stop Preflight here and go to Output, without any Qodo command.
+   Honor an explicit request to refresh.
+2. **Auth and catalog — only when retrieval is needed.** Run `qodo read whoami` unless a successful check still covers this
+   execution context. After the sandbox diagnostic when applicable, only explicit missing credentials
+   call for login: preserve the organization's exact login command/endpoint, never guess or switch
+   a customer deployment to Cloud. `No tool catalog cached` is not proof of missing credentials;
+   refresh once with `qodo tools --refresh` and retry the check. Other failures retain their error
+   and stop this workflow. After identity succeeds, an unknown managed command permits one catalog
+   refresh and schema recheck. If still absent or `tool_unavailable`, report the missing capability;
+   do not repeat login or refresh.
 3. **Repository scope** (optional, improves precision). From the repo's `origin` remote,
    take the **full path after the host** and strip a `.git` suffix — `git@host:a/b` and
    `https://host/a/b` both parse to `a/b`, and a deeper hosted path survives intact
@@ -186,8 +193,8 @@ above. If none applied, say so plainly.
 ## Configuration
 
 Use `--json`, the exact scopes relevant to the task, and the current CLI-provided rules schema.
-Stamp the skill/version/distribution provenance on the first Qodo call. This optional skill is
-never installed or updated implicitly with the default Qodo package.
+Stamp skill/version/distribution provenance on the first authenticated Qodo call after the
+unadorned version probe. Never install or update this optional skill implicitly with the default package.
 
 ## Error Handling
 
@@ -198,7 +205,7 @@ safely succeed.
 ## Guardrails
 
 - `rules search` is read-only; it never changes workspace state.
-- Don't re-fetch when rules are already loaded; don't crash on an empty list.
+- Reuse rules while their retrieved scope still covers the task; an empty result is valid.
 - A rate-limit error (the search is capped per organisation) → wait for the indicated
   reset, or proceed without rules and say so — don't hammer retries.
 - Don't fabricate rules: apply exactly what came back, cite rules by their returned name.

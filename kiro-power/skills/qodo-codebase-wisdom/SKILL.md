@@ -4,7 +4,7 @@ description: Understand how code works, how a change was done before, and which 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.4"
+  version: "1.1.5"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -28,8 +28,18 @@ and spans repo boundaries. You drive qodo's **read** tools only; you never post 
 
 ## Instructions
 
-Follow the detailed workflow below in order: preserve update notices, confirm the live tool
-contract, resolve the repository, narrow the search, and return only evidence-backed findings.
+At investigation start and when moving into implementation, identify the missing context:
+
+- Use Qodo to discover unfamiliar code, prior solutions, historical rationale, and relationships
+  across repositories, even when the repositories are available locally.
+- Use local tools for exact branch/worktree state, uncommitted changes, edits, and tests.
+- Reuse an earlier investigation when it covers the current scope and revisions. Briefly name
+  the evidence being reused; refresh the relevant context when scope, dependencies, or evidence
+  changes. Do not repeat remote reads solely to demonstrate skill use.
+
+When context is missing, resolve a concrete question through the appropriate tool group below. Connect
+retrieved evidence to the answer or implementation decision. Version, identity, and catalog
+checks establish readiness; they are not codebase context retrieval.
 
 ## Handle a skill update notice
 
@@ -57,7 +67,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.4 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.5 --distribution kiro-power --host kiro
 qodo read codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
 qodo read codebase grep --repo owner/repo --pattern "chargeCard" --json
 qodo read codebase read-file --repo owner/repo --path src/pay.py --json
@@ -79,23 +89,23 @@ user to obtain a checksum-pinned installer command from Qodo or their organizati
 administrator. Installers are served from https://get.qodo.ai, but never invent a digest
 or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
-outside the sandbox before recommending login or refreshing tools. Keychain failures can be
-reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
-applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
-later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
-per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
+**Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
+is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
+flow before recommending login. Stop on denial; that approval covers no other command. Reuse a
+successful check in the same executable/workspace/deployment and execution context; request each
+required host approval. Network, TLS, service, and explicit authorization failures retain their
+own diagnosis, not a login recommendation or an automatic sandbox bypass.
 
 ## Preflight
 
-1. **Auth first.** Run `qodo read whoami`. After the sandbox retry above when applicable, a non-zero
-   exit → tell the user to run `qodo login`, then stop. Never guess creds. `Not logged in` /
-   `No tool catalog cached` are authentication setup
-   failures. If `whoami` succeeds but a group is unknown, run `qodo tools --refresh` once. If the
-   CLI reports `tool_unavailable` or says Codebase tools are unavailable for the account/workspace,
-   stop and explain that a workspace admin must enable access; do not send an authenticated user
-   through login again or loop on refresh.
+1. **Auth and catalog.** Run `qodo read whoami` unless a successful check still covers this
+   execution context. After the sandbox diagnostic when applicable, only explicit missing credentials
+   call for login: preserve the organization's exact login command/endpoint, never guess or switch
+   a customer deployment to Cloud. `No tool catalog cached` is not proof of missing credentials;
+   refresh once with `qodo tools --refresh` and retry the check. Other failures retain their error
+   and stop this workflow. After identity succeeds, an unknown managed command permits one catalog
+   refresh and schema recheck. If still absent or `tool_unavailable`, report the missing capability;
+   do not repeat login or refresh.
 2. Resolve the repo. Named repo → `--repo owner/repo`. Inside a git repo with none named →
    omit `--repo` (autodetected from origin). Otherwise `qodo read codebase search-repos --query
    "<name>" --json` and **never guess a slug**. Multiple matches → ask the user which; zero
@@ -130,8 +140,8 @@ calls Stripe, last changed in PR #1523."
 `pull-request details --pr-number 1401` (backoff + queue pattern) → `cross-repo relations`
 (is charging coupled to other repos?) → `codebase grep --pattern "chargeCard\("` (call sites).
 → "Done before in PR #1401 (exp. backoff, max 3, dedicated queue). `chargeCard()` has 2 call
-sites (`src/checkout.py:88`, `src/batch.py:210`); `cross-repo` shows no coupling beyond this
-repo, so the change stays local to those two flows."
+sites (`src/checkout.py:88`, `src/batch.py:210`); `cross-repo` returned no additional edges
+in the checked scope. That does not rule out unindexed consumers."
 
 **Debug — "Why did checkout start 500ing last week?"**
 `codebase list-commits --path src/checkout.py --since <date>` / `blame` → find the suspect
@@ -161,8 +171,10 @@ footers, or repeated summary blocks during progress updates.
 - Keep the answer understandable to a non-engineering reader; put technical detail below it.
 - **Cite everything** — repo, `path:line`, PR number, commit SHA. When a fact has no locatable
   source (a hit without a line, or a synthesis of several), say so plainly — don't invent a citation.
-- **Source precedence** when sources disagree: `read-file` (current code) = how it behaves now;
-  `pull-request` = how/why it got there; `cross-repo` = estimated coupling. Present state trumps history.
+- **Source scope** when sources disagree: compare repository, branch and revision first. Local
+  files establish the current worktree, including uncommitted edits; remote `read-file` establishes
+  the fetched revision, not local changes or deployed behavior. `pull-request` supplies history;
+  `cross-repo` estimates coupling. Report gaps rather than treating missing edges as proof of isolation.
 - **Empty or `truncated: true` → narrow once and retry** (tighter query / path / repo) before
   concluding. Still empty → report "not found in <scope>", don't overclaim.
 - Freshness caveats: `pull-request` = merged PRs only (no open/draft); `cross-repo` edges may be
@@ -170,8 +182,8 @@ footers, or repeated summary blocks during progress updates.
 
 ## Configuration
 
-Use `--json` for parsed output and stamp the exact skill/version/distribution provenance on the
-first Qodo call. Tool names and schemas come from the installed CLI catalog, never from hardcoded
+Use `--json` for parsed output and stamp exact skill/version/distribution provenance on the first
+authenticated Qodo call after the unadorned version probe. Tool names and schemas come from the installed CLI catalog, never from hardcoded
 skill assumptions. The marketplace or skills.sh owns this skill; the CLI owns only runtime access.
 
 ## Error Handling
@@ -187,8 +199,8 @@ replace them with guessed repository facts or broader authority.
   post to the forge; **don't call them** while investigating. (Editing local code as part of a
   fix is your normal work — that's not these tools.)
 - Don't guess slugs, paths, PR numbers, or SHAs — resolve them first.
-- Don't reason only from a local checkout when the work spans other repos; these tools reach
-  what you don't have on disk.
+- For work spanning repositories, retrieve the missing relationship or history through Qodo,
+  or explicitly reuse prior evidence that still covers it. Local availability alone is not coverage.
 - An `MT-TOOL-LOOP` error means stop and change approach, not retry.
 
 A short, well-cited result is a confidence signal; padding with uncited detail is noise.
