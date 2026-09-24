@@ -75,6 +75,7 @@ When preparing to open or update a PR, prefer committing the intended changes be
 This gives Git reviews that support local-to-PR handoff a verified commit to continue from, avoiding another review of code already covered locally.
 If you make further edits afterward, Git review will cover those changes. To include them in the handoff too, commit and review them locally again.
 Committing is optional. Without a usable reviewed commit, Git review follows its normal review scope.
+An isolated rule trial does not participate in this handoff or replace the normal final review.
 
 ## Instructions
 
@@ -276,16 +277,22 @@ If `finding_state.complete` or `meta.coverage.complete` is false, report the inc
 `meta.analysis.mode` is `full`, `incremental`, or `reused`. Reused means the same reviewed snapshot
 and compatible context; earlier open findings remain open. The CLI privately saves the submitted patch.
 It advances its checkpoint after collecting an eligible result, including via `review status`.
-Failed or older completions cannot replace a newer checkpoint.
-Keep the same base, path scope, requested depth mode and context during a fix loop. Changed context, expired or
-unverifiable checkpoints, and unsupported deltas fall back to full review. Never fabricate a checkpoint.
-For a deliberately fresh assessment use `--full` (confirm support with `--help`). It controls scope,
-not depth; it is not needed on every fix. Changing the requested depth mode invalidates compatible
+Failed or older completions cannot replace a newer checkpoint. Keep the base, path scope and effort stable during a fix loop. Changed rules/policy, expired or
+unverifiable checkpoints and unsupported deltas fall back to full review; never fabricate a checkpoint.
+Use `--full` to reanalyze the whole submitted diff while retaining previous findings and dismissals
+and updating the normal baseline (confirm support with `--help`). It controls scope, not depth;
+it is not needed on every fix. Changing the requested depth mode invalidates compatible
 checkpoint coverage. Auto does not promise a fixed effective tier; rely on returned analysis/coverage.
-Older engines omit these fields: use their findings and coverage without claiming reuse.
+For rule trials, use `--isolated` (check `--help`): assess the whole submitted diff without prior review
+history, leaving existing findings, dismissals and baseline unchanged. Keep current rules and intended
+session/ticket/spec context. Historical tools, learned personas, memory, conversion and past-bug
+enrichment are excluded; inspect `meta.history_excluded` and coverage. Do not combine with `--full`.
+Results have `meta.isolated: true`, `meta.assessment_id` and this run's findings, without lifecycle
+`finding_state` or a checkpoint. Async collection never advances the baseline. Missing support is an
+error; never fall back to a normal review. Current rules/context are not frozen or sanitized.
+For normal reviews, older engines may omit continuity fields: do not claim reuse without evidence.
 `meta.reviewers.ran` / `.skipped`, `meta.depth`, and `meta.safety_net.reinjected` describe coverage.
-A reused result has no new reviewer execution. Attach missing input for a material skipped dimension.
-Never remove context merely to make an incremental checkpoint eligible.
+A reused result runs no reviewers. Attach missing input for skipped dimensions; never strip context to enable reuse.
 
 ## Attach coding-session context (this is the point)
 
@@ -403,7 +410,8 @@ transport error, retry collection of the same ID at most once after the returned
 the coverage gap; do not submit again or keep polling automatically. The polling example returns
 nonzero errors to the host for this classification and bounded recovery. On a confirmed terminal failure,
 read the error and correct a recoverable cause before retrying at most once, with the selected
-mode and context preserved. Honor entitlement, auth, permission and rate-limit stops; do not retry
+depth, scope, context and `--isolated` preserved; isolation is independent of analysis mode.
+Honor entitlement, auth, permission and rate-limit stops; do not retry
 those as transient failures. Further failure or an expired/unavailable result means reporting the
 coverage gap; never claim completion or silently keep buying retries.
 
@@ -434,7 +442,7 @@ The failure shapes are distinct, so read which one you got instead of guessing:
 
 For the first three, collect any retained result using the CLI's recovery hint before submitting again.
 If the run is confirmed canceled or unrecoverable, retry at most once with uninterrupted execution
-and the same selected depth/context. A pending run is not a reason to restart. Further failure means
+and the same depth, scope, context and `--isolated` flag. A pending run is not a reason to restart. Further failure means
 reporting incomplete review, not looping, dropping context or downgrading depth to obtain a result.
 
 ## If the run is gated: closed preview
