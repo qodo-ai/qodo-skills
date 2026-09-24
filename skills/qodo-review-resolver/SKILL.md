@@ -31,7 +31,7 @@ what it flagged (e.g. to gate a merge on it being clean at head). To go further,
 open findings in code**, applying your own judgment (the review is a strong second opinion, not
 gospel). Apply supported fixes when the user has authorized them; otherwise present your assessment
 for selection. Run once (report + authorized fixes) or as a watch loop (resolve →
-let Qodo re-review the new commit → repeat until clean). Then **record the outcome** on the findings
+let Qodo re-review the new commit → repeat until clean). When separately authorized, **record the outcome** on the findings
 you settled — `mark-implemented` for ones you fixed, `dismiss` for ones the user agreed to close
 without a code change. That is what clears the merge-policy block those findings hold; skip it and
 the review stays red until a human clicks through the PR. You still never post to the forge
@@ -43,7 +43,7 @@ fact required for the freshness check below; the "don't scrape" rule is about qo
 
 - The Qodo CLI is authenticated and exposes the structured PR-review session tools.
 - The exact PR URL and its current head SHA can be resolved without scraping review comments.
-- Any write to a finding has the user's explicit authority or the skill's explicit `autofix` scope.
+- Any finding-status write has explicit user authorization; code-fix authority or `autofix` alone does not cover it.
 
 ## Instructions
 
@@ -226,13 +226,13 @@ repeating the assessment on every poll or status write.
 
 ## Triage
 
-- **Open vs done is `attribution_status`.** The current review-session API projects stored
-  attribution to `pending`, `implemented`, or `dismissed`:
-  - **OPEN — work these:** `pending`. If a deployment exposes raw attribution values, also treat
-    `partial_implementation`, `not_implemented`, and `focus_areas_edited` as open.
-  - **CLOSED — leave these:** `implemented`, `dismissed`; raw `full_implementation`,
-    `detected_after_merge`, and `outdated` are also closed. Report unfamiliar values instead of
-    silently excluding them from a clean verdict.
+- **Open vs done is `attribution_status`.** Classify the returned value, including the
+  supported representations used by different deployments:
+  - **OPEN — work these:** `pending`, `partial_implementation`, `not_implemented`,
+    `focus_areas_edited`.
+  - **CLOSED — leave these:** `implemented`, `full_implementation`, `dismissed`,
+    `detected_after_merge`, `outdated`. Report unfamiliar values instead of silently excluding
+    them from a clean verdict.
   - `action_level` is **severity**, not open-vs-closed. A closed finding can still be
     `action_required`.
 - **Order by `action_level`:** `action_required` first, then `remediation_recommended`; treat
@@ -265,10 +265,10 @@ authority (`autofix` or an explicit fix request); otherwise present and ask. Pus
 
 **Once (default).** Fetch → evaluate every open finding (triage — all four OPEN statuses, not just
 `pending`) → present + ask if authority is missing → apply authorized fixes in code →
-commit/push per the user's workflow → **record the outcome**
-(`mark-implemented` for what you fixed; `dismiss`, with the user's explicit go, for what they
-agreed to close without a change) → summarize what you resolved and what remains (e.g. skipped /
-dismissed / informational). Stop. Don't loop unless asked. Triage covers
+commit/push only within the user's authorization → summarize fixes and remaining findings.
+For local-only fixes, report "awaiting push" and leave finding status unchanged. After a verified
+push, prefer the next review's automatic re-attribution; a manual status write additionally needs
+explicit authorization and the checks in **Record the outcome**. Stop. Don't loop unless asked. Triage covers
 **all** open findings, but the picker only *offers* the actionable set —
 `action_required` then `remediation_recommended` — with `informational` surfaced separately,
 matching the default scope above; put `informational` in the picker only when the user asks.
@@ -305,6 +305,9 @@ technical recommendation and rationale, while following the user's scope and app
   choice supports dismissal only when the implementation enforces its assumptions.
 - **Unsure** → identify the evidence or check needed before deciding.
 
+**Report-only.** Return the assessment and stop; do not solicit edit approval for an explicit
+request to review without changes.
+
 **Present and ask only when edit authority is missing.** If `autofix`, an explicit fix request,
 or covering implementation authority already applies, skip this selection prompt and follow
 **Authorized fixes** below. Otherwise use the assessment above for each open, in-scope finding,
@@ -321,18 +324,22 @@ On this missing-authority path, do not edit before the user has chosen.
 authorizes supported code fixes within that scope; no special token or repeated confirmation is
 needed. Existing implementation authority can also cover the correction. State your assessment
 before applying it. A status-only request grants no edit authority; ask once if scope is ambiguous.
-Neither fix authority nor monitoring authorizes dismissal or a push. Report fixes and skipped findings.
+Neither fix authority nor monitoring authorizes finding-status writes (`dismiss` or
+`mark-implemented`) or a push. Report fixes and skipped findings.
 
 Commit/push per the user's workflow — ask before pushing unless they've told you to.
 
 **`attribution_status` is the intended signal** — a fixed finding is re-attributed to
-`implemented` by the next review on its own (the stored value is `full_implementation`), so after pushing, re-fetch and work only what's
+`implemented` or `full_implementation` by the next review on its own, so after pushing, re-fetch and work only what's
 still open. But it's tooling and can glitch: if a finding stays open after a fix you're confident
 in, or a status plainly contradicts the code, don't loop re-fixing it — flag the discrepancy to the
 user and move on. (Resolving converges over rounds; a fix can also surface genuinely new findings,
 which the watch loop picks up.)
 
 ## Record the outcome
+
+Require explicit authorization for the specific status write; permission to fix code or push it
+does not authorize closing findings. Prefer automatic re-attribution after a pushed fix.
 
 Closing a finding is a **write** — it updates Qodo's review DB, restyles the finding's PR comments,
 re-renders the review summary, and releases the merge-policy block that finding holds. Two commands,
@@ -347,7 +354,7 @@ qodo pr-review-session dismiss --finding-ids <id>,<id> --reason <reason> --expla
 - **Batch per PR, one call.** Reconciliation runs once per call, not once per finding — so all the
   findings you implemented go in one `mark-implemented`, and all the ones sharing a dismissal reason
   go in one `dismiss`. Up to 100 ids.
-- **`mark-implemented` only for code you actually changed and pushed.** It clears the merge gate
+- **`mark-implemented` only when explicitly authorized and for code you actually changed and pushed.** It clears the merge gate
   without a review having verified the fix, so a wrong claim ships an unfixed finding as fixed. If
   another review round is going to run anyway, prefer letting it re-attribute the fix itself; reach
   for this when no further round will run before merge, or the gate must clear now.

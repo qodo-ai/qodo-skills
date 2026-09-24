@@ -369,7 +369,10 @@ dismissal only when the code enforces its assumptions. Keep the tone collaborati
 do not routinely qualify Qodo's capability or turn a wrong finding into a broader judgment.
 Your technical recommendation does not grant permission; apply the user's existing scope below.
 
-**Report-only or missing edit authority.** Use the assessment above for every finding, keeping its
+**Report-only.** For an explicit request to review without changes, return the assessment and stop;
+do not solicit edit approval.
+
+**Missing edit authority.** If the intended fix scope is ambiguous, use the assessment above for every finding, keeping its
 `[category/level]` and your recommendation, then ask **in a single prompt** which findings to apply. Use whatever the
 host gives you: a multi-select if it has one (Claude Code's `AskUserQuestion`, say), otherwise a
 numbered list and "reply with the numbers to apply". One prompt either way — don't ask per finding.
