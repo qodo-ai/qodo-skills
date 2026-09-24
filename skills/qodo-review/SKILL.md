@@ -75,6 +75,7 @@ When preparing to open or update a PR, prefer committing the intended changes be
 This gives Git reviews that support local-to-PR handoff a verified commit to continue from, avoiding another review of code already covered locally.
 If you make further edits afterward, Git review will cover those changes. To include them in the handoff too, commit and review them locally again.
 Committing is optional. Without a usable reviewed commit, Git review follows its normal review scope.
+An isolated rule trial does not participate in this handoff or replace the normal final review.
 
 ## Instructions
 
@@ -288,8 +289,8 @@ session/ticket/spec context. Historical tools, learned personas, memory, convers
 enrichment are excluded; inspect `meta.history_excluded` and coverage. Do not combine with `--full`.
 Results have `meta.isolated: true`, `meta.assessment_id` and this run's findings, without lifecycle
 `finding_state` or a checkpoint. Async collection never advances the baseline. Missing support is an
-error; never fall back to a normal review. This does not freeze historical inputs or sanitize supplied context.
-Older engines omit these fields: use their findings and coverage without claiming reuse.
+error; never fall back to a normal review. Current rules/context are not frozen or sanitized.
+For normal reviews, older engines may omit continuity fields: do not claim reuse without evidence.
 `meta.reviewers.ran` / `.skipped`, `meta.depth`, and `meta.safety_net.reinjected` describe coverage.
 A reused result runs no reviewers. Attach missing input for skipped dimensions; never strip context to enable reuse.
 
