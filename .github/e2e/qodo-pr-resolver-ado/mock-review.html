@@ -1,0 +1,68 @@
+<h3>Code Review by Qodo</h3>
+
+<details>
+  <summary>
+    <code>🐞 Bugs (1)</code>&nbsp;&nbsp;
+      <code>📘 Rule violations (1)</code>&nbsp;&nbsp;
+      <code>📎 Requirement gaps (0)</code>&nbsp;&nbsp;
+  </summary>
+  <div class="subcodes" style="margin-top:8px">
+    🐞&nbsp;<code>≡ Correctness (1)</code>
+  </div>
+  <div class="subcodes" style="margin-top:6px">
+    📘&nbsp;<code>⛨ Security (1)</code>
+  </div>
+</details>
+
+<img src="https://www.qodo.ai/wp-content/uploads/2025/11/light-grey-line.svg" height="10%" alt="Grey Divider">
+
+<br/>
+
+<img src="https://www.qodo.ai/wp-content/uploads/2026/01/action-required.png" height="20" alt="Action required">
+
+<details>
+<summary>  1.  CRITICAL: SyntaxError in Bitbucket app <code>🐞</code> <code>≡</code></summary>
+
+<br/>
+
+> <details open>
+> <summary>Description</summary>
+> <br/>
+>
+> <pre>
+> A syntax error in the Bitbucket provider module causes an unhandled exception when processing
+> incoming webhook payloads.
+> </pre>
+> </details>
+
+> **Location:** `bitbucket_provider.py:45`
+
+> **Agent prompt:** [CRITICAL] Locate and fix the syntax error at line 45 in `bitbucket_provider.py`. The malformed expression in the `parse_webhook` function should be corrected — replace the invalid token with a valid Python expression to prevent runtime failures when Bitbucket sends webhook events.
+
+</details>
+
+<img src="https://www.qodo.ai/wp-content/uploads/2025/11/light-grey-line.svg" height="10%" alt="Grey Divider">
+
+<details>
+<summary>  2.  HIGH: Missing input validation before logging <code>📘</code> <code>⛨</code></summary>
+
+<br/>
+
+> <details open>
+> <summary>Description</summary>
+> <br/>
+>
+> <pre>
+> Post parameters are passed directly to the logger without sanitization, potentially exposing
+> sensitive data such as tokens or passwords in log output.
+> </pre>
+> </details>
+
+> **Location:** `github_provider.py:123`
+
+> **Agent prompt:** Add input sanitization before the logging call in `github_provider.py` at line 123. Ensure sensitive fields (e.g. `password`, `token`, `secret`) are redacted or omitted. Use a helper function or a safe-logging pattern already established elsewhere in the codebase.
+
+</details>
+
+---
+[![Qodo](https://www.qodo.ai/wp-content/uploads/2025/03/qodo-logo.svg)](https://qodo.ai)
