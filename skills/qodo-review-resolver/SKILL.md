@@ -15,7 +15,7 @@ metadata:
   distribution: "skills-sh"
 arguments:
   - name: autofix
-    description: Resolve the recommended fixes directly without asking. Omit to evaluate the findings and let the user pick which to resolve.
+    description: Optional shorthand for authorizing supported fixes. An explicit fix request or covering implementation authority also permits those fixes without another prompt.
     optional: true
 ---
 
@@ -183,7 +183,7 @@ immutable history of every finding revision. Apply the freshness checks below be
 The `review_session` tells you *whether the findings are real yet and what code they cover* —
 check it before acting:
 
-- **Is a review still running?** Only `started` is the polling state. For a status-only
+- **Is a review still running?** The API reports a running review as `started`; that is the polling state. For a status-only
   request, report that state and return; poll only when waiting is part of the requested task.
   `failed`, `aborted`, `skipped`, and `superseded` are non-success terminal states: report them
   and stop the loop. An unknown status is not success or permission to poll indefinitely.
@@ -226,12 +226,13 @@ repeating the assessment on every poll or status write.
 
 ## Triage
 
-- **Open vs done is `attribution_status`**, and it is NOT a three-way field — it carries the raw
-  stored value, so matching only `pending` silently drops real work:
-  - **OPEN — work these:** `pending`, `partial_implementation`, `not_implemented`,
-    `focus_areas_edited`. The last three are re-attributions of a finding that is still unresolved
-    (a partial fix is still an open finding).
-  - **CLOSED — leave these:** `full_implementation`, `dismissed`, `detected_after_merge`, `outdated`.
+- **Open vs done is `attribution_status`.** The current review-session API projects stored
+  attribution to `pending`, `implemented`, or `dismissed`:
+  - **OPEN — work these:** `pending`. If a deployment exposes raw attribution values, also treat
+    `partial_implementation`, `not_implemented`, and `focus_areas_edited` as open.
+  - **CLOSED — leave these:** `implemented`, `dismissed`; raw `full_implementation`,
+    `detected_after_merge`, and `outdated` are also closed. Report unfamiliar values instead of
+    silently excluding them from a clean verdict.
   - `action_level` is **severity**, not open-vs-closed. A closed finding can still be
     `action_required`.
 - **Order by `action_level`:** `action_required` first, then `remediation_recommended`; treat
@@ -280,9 +281,10 @@ findings and the fix commit is pushed, Qodo re-reviews the *new* commit — so:
 1. Note the PR's current head SHA — the commit you just pushed (`git rev-parse HEAD`), or, for a
    PR you didn't push, read it as forge metadata (`gh pr view <pr> --json headRefOid`). That's a
    metadata read, not review-comment scraping — it's fine.
-2. Poll `qodo read pr-review-session findings … --json` until the review is **`completed` AND its
-   `commit_sha` equals that head SHA**. Until both hold, the findings are stale or provisional
-   (a review is still running, or it describes the pre-fix commit) — do not act on them.
+2. Follow **Read the session state FIRST** on each read: poll `started` only within the bounded
+   watch; report non-success terminal or unknown states and stop. A completed older run is stale:
+   allow a bounded wait for the new head's review to appear. Act only when the review is
+   **`completed` AND its `commit_sha` equals that head SHA**.
 3. When fresh: if any OPEN findings remain (all four statuses — a `partial_implementation` is
    still open), resolve them and repeat; if none remain, report the
    review clean and stop.
@@ -303,7 +305,9 @@ technical recommendation and rationale, while following the user's scope and app
   choice supports dismissal only when the implementation enforces its assumptions.
 - **Unsure** → identify the evidence or check needed before deciding.
 
-**Present and ask (default).** Use the contextual assessment above for each open, in-scope finding,
+**Present and ask only when edit authority is missing.** If `autofix`, an explicit fix request,
+or covering implementation authority already applies, skip this selection prompt and follow
+**Authorized fixes** below. Otherwise use the assessment above for each open, in-scope finding,
 keeping its `action_level`/`category` and your recommendation, then ask **in a single
 prompt** which findings to resolve. Use whatever the host gives you: a multi-select if it has one
 (Claude Code's `AskUserQuestion`, say), otherwise a numbered list and "reply with the numbers to
@@ -311,7 +315,7 @@ resolve". One prompt either way — don't ask per finding. **Nothing is pre-sele
 ones you recommend, but the user must actively choose: this prompt is the last thing standing
 between a finding and an edit, so a bare Enter must resolve nothing. Resolve only what the user
 picks (edit as normal, matching the surrounding code); report the rest as skipped with your reason.
-Do not edit any code before the user has chosen.
+On this missing-authority path, do not edit before the user has chosen.
 
 **Authorized fixes.** `autofix` or an explicit request such as "fix the action-required findings"
 authorizes supported code fixes within that scope; no special token or repeated confirmation is
@@ -322,7 +326,7 @@ Neither fix authority nor monitoring authorizes dismissal or a push. Report fixe
 Commit/push per the user's workflow — ask before pushing unless they've told you to.
 
 **`attribution_status` is the intended signal** — a fixed finding is re-attributed to
-`full_implementation` by the next review on its own, so after pushing, re-fetch and work only what's
+`implemented` by the next review on its own (the stored value is `full_implementation`), so after pushing, re-fetch and work only what's
 still open. But it's tooling and can glitch: if a finding stays open after a fix you're confident
 in, or a status plainly contradicts the code, don't loop re-fixing it — flag the discrepancy to the
 user and move on. (Resolving converges over rounds; a fix can also surface genuinely new findings,
@@ -386,7 +390,7 @@ discovered from the installed CLI catalog; rendered forge comments are never the
 
 ## Error Handling
 
-Treat null sessions, in-progress or stale commits, missing write capabilities, rate limits, and
+Treat null sessions, running reviews (`started`), stale commits, missing write capabilities, rate limits, and
 tool-loop errors as explicit states. Preserve them in the report and never close a finding merely
 to make the review appear clean.
 

@@ -41,7 +41,7 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 
 ## Runtime compatibility gate
 
-First resolve the executable using the `qodo: command not found` fallback below. Before any other
+Only on the retrieval path, resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
 CLI **0.1.0-next.37 or newer**.
@@ -90,8 +90,9 @@ own diagnosis, not a login recommendation or an automatic sandbox bypass.
    an earlier claim that rules were loaded. If the workspace, repository, or task concern changed,
    retrieve rules for the new scope. A previous empty result is reusable only for the scope checked;
    a failed retrieval is not an empty result. When prior results still cover the task, skip retrieval
-   and apply them directly. Honor an explicit request to refresh.
-2. **Auth and catalog.** Run `qodo read whoami` unless a successful check still covers this
+   and apply them directly: stop Preflight here and go to Output, without any Qodo command.
+   Honor an explicit request to refresh.
+2. **Auth and catalog — only when retrieval is needed.** Run `qodo read whoami` unless a successful check still covers this
    execution context. After the sandbox diagnostic when applicable, only explicit missing credentials
    call for login: preserve the organization's exact login command/endpoint, never guess or switch
    a customer deployment to Cloud. `No tool catalog cached` is not proof of missing credentials;
