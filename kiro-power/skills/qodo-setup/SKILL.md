@@ -4,7 +4,7 @@ description: Set up Qodo in a coding agent — install the CLI, sign in, and ver
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.8"
+  version: "1.0.9"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -25,8 +25,8 @@ A shell and browser sign-in. Never request or read credentials.
 
 Resolve `references/...` links relative to this installed `SKILL.md` directory.
 Runtime/login setup does not authorize enterprise installation or maintenance.
-For a separately requested enterprise install, disclose selected installations, packages and verified-source
-automatic maintenance before approval. Preserve opt-outs, edits, owners and optional-package choices.
+For a separately requested enterprise install, disclose installations, packages and verified-source automatic
+maintenance before approval. Preserve opt-outs, edits, owners and optional-package choices.
 
 ### 1. Find or install the runtime
 
@@ -49,7 +49,7 @@ If older or unparseable, follow the runtime reference before any authenticated c
 Run:
 
 ```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.8 --distribution kiro-power --host kiro
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.9 --distribution kiro-power --host kiro
 ```
 
 If successful, retain the verified identity and continue to step 3 without repeating it.
@@ -71,11 +71,12 @@ Stop on cancellation or denied permission.
 Only after identity succeeds, run:
 
 ```sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.8 --distribution kiro-power --host kiro
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.9 --distribution kiro-power --host kiro
 ```
 
-Require a successful, nonempty usable catalog. Inspect structured results with bounded output
-(exit status, error, tool count and relevant names); do not dump every tool schema.
+Require a successful, nonempty usable catalog. Inspect status, errors and relevant tool names;
+do not dump every schema. When unblocking an existing task, check its required capability;
+an unrelated catalog does not establish access.
 If refresh fails, report that sign-in succeeded but tools are unavailable, with the exact error
 and `<qodo> tools --refresh` as the retry. Do not log in again for a catalog failure.
 
@@ -93,7 +94,7 @@ change host permission files, or offer unrestricted command approvals to make se
 
 ## 4. Hand off
 
-Confirm verified readiness in plain prose, then suggest one next action supported by the
-catalog and loaded skills, e.g. “Qodo is connected and ready. Ask ‘Explain this codebase.’”
-Mention account or deployment when useful. Omit routine versions, counts and repeated summaries.
-Do not launch another workflow or install optional Standards during setup.
+For setup alone, confirm Qodo connection and catalog readiness and suggest one supported next action.
+When unblocking an authorized task, return to it after its prerequisites pass. Readiness does not
+prove retrieval, review, or write success. Name the deployment when useful. Do not start unrelated
+work or install optional Standards.

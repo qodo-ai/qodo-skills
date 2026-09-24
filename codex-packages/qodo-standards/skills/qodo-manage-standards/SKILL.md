@@ -4,7 +4,7 @@ description: Create, edit, and administer Qodo Review Standards from conversatio
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.4"
+  version: "1.0.5"
   recommended: "false"
   package: "qodo-standards"
   distribution: "marketplace"
@@ -19,8 +19,9 @@ Use the `qodo` CLI to **administer** the workspace's Review Standards: capture a
 new rule, edit or retire an existing one, re-scope it to a repo, or triage the pending
 suggestions queue. Review Standards is Qodo's umbrella term for rules and suggestions. This is
 the **write** counterpart to `qodo-get-rules` (which only
-reads and applies rules) — every command here changes workspace state, so confirm with the user
-before calling anything, and run bulk operations as a dry run first.
+reads and applies rules). Metadata, list, get, and schema inspection are read-only preparation;
+perform them to make the proposed change concrete before asking for write approval.
+Run bulk operations as a dry run first.
 
 ## Prerequisites
 
@@ -32,6 +33,8 @@ before calling anything, and run bulk operations as a dry run first.
 
 Follow the detailed workflow below: preserve update notices, verify the live schema, resolve the
 target, preview destructive or bulk work, obtain confirmation, mutate once, and verify the result.
+Confirmation means explicit user authority covering the presented proposal; reuse it across these
+steps rather than asking again. An unresolved scope or a changed proposal needs a new decision.
 
 ## Handle a skill update notice
 
@@ -59,7 +62,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.4 --distribution marketplace --host codex
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.5 --distribution marketplace --host codex
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
@@ -88,13 +91,12 @@ actually not installed; tell the user to obtain a checksum-pinned installer comm
 their organization's administrator. Installers are served from https://get.qodo.ai, but never
 invent a digest or pipe an installer directly into a shell.
 
-**Sandbox auth diagnostic.** In a sandboxed environment, if `qodo read whoami` fails for any reason
-(including `Not logged in`), ask the user to approve one exact read-only retry of `qodo read whoami`
-outside the sandbox before recommending login or refreshing tools. Keychain failures can be
-reported as generic auth failures, so the sandboxed result alone is not diagnostic. That approval
-applies only to this single diagnostic retry: do not reuse it, request persistent approval, or move
-later Qodo commands outside the sandbox automatically. If the retry succeeds, continue with normal
-per-command permission checks. If it still fails, follow the normal auth troubleshooting below.
+**Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
+is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
+flow before recommending login. Stop on denial; that approval covers no other command. Reuse a
+successful check in the same executable/workspace/deployment and execution context; request each
+required host approval. Network, TLS, service, and explicit authorization failures retain their
+own diagnosis, not a login recommendation or an automatic sandbox bypass.
 
 Add `--json` to everything you parse. **Confirm the exact tool names, flags, and write status with
 `qodo read tools rules [<tool>] --json`** (renders offline from the cached catalog) — use it for reads;
@@ -105,12 +107,14 @@ and retry before assuming the tool doesn't exist.
 
 ## Preflight
 
-1. **Auth first.** Run `qodo read whoami`. After the sandbox retry above when applicable, tell the user
-   to run `qodo login` only when the result explicitly says `Not logged in`, then stop. `No tool
-   catalog cached` is a catalog failure, not proof of missing credentials: run `qodo tools
-   --refresh` once, then retry `whoami`. If either command still fails, report that exact failure
-   and stop instead of sending the user through login. An `unknown command`/`unknown option` on
-   `rules` while `whoami` succeeds also means a stale cached catalog — refresh once and retry.
+1. **Auth and catalog.** Run `qodo read whoami` unless a successful check still covers this
+   execution context. After the sandbox diagnostic when applicable, only explicit missing credentials
+   call for login: preserve the organization's exact login command/endpoint, never guess or switch
+   a customer deployment to Cloud. `No tool catalog cached` is not proof of missing credentials;
+   refresh once with `qodo tools --refresh` and retry the check. Other failures retain their error
+   and stop this workflow. After identity succeeds, an unknown managed command permits one catalog
+   refresh and schema recheck. If still absent or `tool_unavailable`, report the missing capability;
+   do not repeat login or refresh.
 2. **Never guess the target.** Resolve which rule or suggestion the user means (by id from a
    prior `qodo-get-rules`/`qodo read rules list` result, or by asking) before calling a write
    command. Never invent a `rule_id`.
@@ -159,12 +163,14 @@ a rule", "let's make sure we always do X"). Draft the rule from the conversation
 - `scopes` — propose the current repo (see Preflight); omit for the universal scope `/` only if
   the user explicitly wants it workspace-wide.
 
-**Restate the full draft and get explicit confirmation before calling `qodo rules create`.**
+**Present the full draft before calling `qodo rules create`. Reuse explicit approval covering
+that exact draft and scope; otherwise get confirmation before creating it.**
 The response is the full created rule, including `state` — non-admin callers create a
 **pending suggestion** instead of an active rule (a platform permission thing, not an error).
 Check `state` in the response: if it's `pending`, tell the user plainly: *"Created as a pending
 suggestion — an admin needs to approve it before it's enforced."* A duplicate-name rejection
-means pick a different name; don't retry with the same one.
+means inspect the existing rule and clarify whether to reuse, edit, or rename; don't create a
+duplicate under a new name automatically.
 
 **2. Edit — change an existing rule.** "That rule should be an error, not a warning", "update
 the content of the console.log rule". Fetch the rule first (`qodo read rules get`) if you don't
@@ -232,8 +238,8 @@ state the actual blocker and next action rather than a successful outcome.
 ## Configuration
 
 Use `--json`, explicit rule ids and scopes, and the CLI's current metadata before constructing a
-write. Stamp skill/version/distribution provenance on the first Qodo call. Keep Standards separate
-from the default Qodo package and never infer admin authority from installation.
+write. Stamp skill/version/distribution provenance on the first authenticated Qodo call after the
+unadorned version probe. Keep Standards separate from the default package; installation is not admin authority.
 
 ## Error Handling
 
@@ -244,16 +250,18 @@ from the default Qodo package and never infer admin authority from installation.
 - **Not found** — the rule id doesn't exist in this workspace (wrong id, wrong workspace, or
   already deleted). Say so; don't guess a different id.
 - **Rate limited (`MT-RATE-LIMITED`)** — back off; don't hammer retries.
-- **Validation error** — a field was rejected (e.g. duplicate name, bad severity value); fix the
-  specific field and retry once, don't loop blindly.
-- **Retries on a mutation** — if you retry a create/update/bulk call after a transient failure,
-  it's safe to retry as-is; the CLI's idempotency handling covers duplicate submission.
+- **Validation error** — correct a rejected field once within the approved intent. If the
+  correction changes the rule's meaning, scope, or identity, obtain approval for that change.
+- **Uncertain mutation outcome** — after a timeout or transport failure, read back the target
+  before retrying. Do not assume a fresh CLI invocation deduplicates writes. Retry at most once
+  only when the write is confirmed not applied or the tool contract guarantees replay safety
+  for the same retained request/key. Otherwise report the uncertainty and stop mutation attempts.
 
 ## Guardrails
 
-- **Confirm before every write.** Restate the exact change (which rule(s), which fields, old →
-  new) and get the user's go-ahead before calling a mutating command. This is the first
-  mutating skill in the family — treat every call as one the user should be able to veto.
+- **Require approval for the exact write.** Present the rule(s), changed fields, and scopes.
+  Reuse explicit authorization already given for that proposal; ask only for missing or changed
+  scope. Read-only inspection does not need write approval. A dry run is not authorization.
 - **Dry-run first for anything bulk or destructive.** `set-state`/`set-scope` across multiple
   rules and every `bulk` call: `--dry-run` → show the count/blast radius → confirm → real call.
 - **Never fabricate a rule id, scope, or example.** Resolve or ask; an empty result from `list`
