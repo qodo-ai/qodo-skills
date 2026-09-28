@@ -60,9 +60,10 @@ it is not guaranteed standard and does not impose a spending cap. There is no `-
   full intended change with auto, or justified deep, rather than handing off on a light checkpoint.
   Remove temporary path restrictions that would leave part of the intended change unreviewed.
   If the same snapshot already has completed final coverage with compatible context, use that result.
-- Before any re-review or final review, retry decided findings whose record failed, then ask once
-  (the disposition prompt below) about the previous review's still-undecided findings and record the
-  answers. "Leave open" does not block. Fast checkpoints never prompt mid-coding; this gate covers them.
+- Before a final review or handoff, retry decided findings whose record failed, then ask once
+  (the disposition prompt below) about still-undecided findings and record the answers. "Leave open"
+  does not block. Checkpoint re-reviews never prompt; their undecided findings carry over to this gate.
+  For a report-only request, list undecided findings instead of prompting.
 - Batch authorized fixes, verify them, then re-review changed work. Keep `--fast` for checkpoint
   fixes; retain the requested auto or justified deep mode for final-review fixes. Let the engine
   determine incremental eligibility; auto may route differently on each pass. Do not manually switch
@@ -379,7 +380,7 @@ do not solicit edit approval.
 `[category/level]` and your recommendation, then ask **in a single prompt** each finding's disposition: fix,
 decline (show the recommended reason), or leave open. Use whatever the
 host gives you: a multi-select if it has one (Claude Code's `AskUserQuestion`, say), otherwise a
-numbered list and "reply with the numbers to apply". One prompt either way — don't ask per finding.
+numbered list answered per number with `fix`, `decline <reason>` or `open` (unlisted stays open). One prompt either way — don't ask per finding.
 **Nothing is pre-selected.** Mark which ones you recommend, but the user must actively choose: this
 prompt is the last thing standing between a finding and an edit, so a bare Enter must apply nothing.
 Apply only what the user picks (edit as normal, matching the surrounding style); report the rest as
