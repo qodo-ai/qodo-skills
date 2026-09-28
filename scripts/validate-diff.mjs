@@ -139,6 +139,7 @@ const versionedPackagePaths = [
   /^\.github\/workflows\/ship-marketplaces\.yml$/,
   /^\.agents\/plugins\//,
   /^\.claude-plugin\//,
+  /^antigravity-plugins\//,
   /^codex-packages\//,
   /^kiro-power(?:-standards)?\//,
   /^packages\//,

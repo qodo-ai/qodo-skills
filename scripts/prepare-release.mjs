@@ -93,6 +93,7 @@ const releaseMutationPaths = [
   '.agents/plugins',
   '.claude-plugin',
   '.codex-plugin',
+  'antigravity-plugins',
   'codex-packages',
   'distribution',
   'gemini-extension.json',

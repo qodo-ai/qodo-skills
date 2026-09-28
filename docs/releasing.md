@@ -40,6 +40,14 @@ Kiro reads `main/kiro-power` and `main/kiro-power-standards`. Only the release P
 snapshots. Canonical `skills/` on main can contain unreleased changes. Consumers that intentionally
 read canonical main directly see those source changes earlier.
 
+The release PR also generates `antigravity-plugins/qodo` and `antigravity-plugins/qodo-standards`.
+These are manual native-plugin distributions available in the tagged source tree/archive, not
+new marketplace submission targets or enterprise schema-v1 projections. Package-only adapter
+changes receive a package patch without skill-version changes. Keep generated directories out
+of source PRs; CI previews them and verifies drift, exact membership, and transaction rollback.
+Record [Antigravity host acceptance](antigravity.md#maintainer-acceptance-checklist) separately;
+neither a green CI run nor publication proves native installation and execution work.
+
 For explicit minor/major releases or recovery, a maintainer can still prepare a complete release PR:
 
 ```sh

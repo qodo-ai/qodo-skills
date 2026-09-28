@@ -12,7 +12,7 @@ const references = [...main.matchAll(/\]\((references\/[^)]+\.md)\)/g)].map((mat
 
 test('setup on-demand references survive every marketplace adapter', () => {
   assert.ok(references.length > 0, 'compact setup must link its conditional procedures');
-  for (const adapter of ['packages/qodo', 'codex-packages/qodo', 'kiro-power']) {
+  for (const adapter of ['packages/qodo', 'codex-packages/qodo', 'kiro-power', 'antigravity-plugins/qodo']) {
     const installed = join(root, adapter, 'skills/qodo-setup');
     const entrypoint = read(installed, 'SKILL.md');
     // Leave room for generated host and lifecycle provenance above the 4000-byte source budget.
