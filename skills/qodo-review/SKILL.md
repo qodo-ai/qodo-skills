@@ -60,6 +60,9 @@ it is not guaranteed standard and does not impose a spending cap. There is no `-
   full intended change with auto, or justified deep, rather than handing off on a light checkpoint.
   Remove temporary path restrictions that would leave part of the intended change unreviewed.
   If the same snapshot already has completed final coverage with compatible context, use that result.
+- Before any re-review or final review, retry decided findings whose record failed, then ask once
+  (the disposition prompt below) about the previous review's still-undecided findings and record the
+  answers. "Leave open" does not block. Fast checkpoints never prompt mid-coding; this gate covers them.
 - Batch authorized fixes, verify them, then re-review changed work. Keep `--fast` for checkpoint
   fixes; retain the requested auto or justified deep mode for final-review fixes. Let the engine
   determine incremental eligibility; auto may route differently on each pass. Do not manually switch
@@ -373,7 +376,8 @@ Your technical recommendation does not grant permission; apply the user's existi
 do not solicit edit approval.
 
 **Missing edit authority.** If the intended fix scope is ambiguous, use the assessment above for every finding, keeping its
-`[category/level]` and your recommendation, then ask **in a single prompt** which findings to apply. Use whatever the
+`[category/level]` and your recommendation, then ask **in a single prompt** each finding's disposition: fix,
+decline (show the recommended reason), or leave open. Use whatever the
 host gives you: a multi-select if it has one (Claude Code's `AskUserQuestion`, say), otherwise a
 numbered list and "reply with the numbers to apply". One prompt either way — don't ask per finding.
 **Nothing is pre-selected.** Mark which ones you recommend, but the user must actively choose: this
@@ -385,11 +389,10 @@ skipped with your reason. Do not edit any code before the user has chosen.
 authority covering the necessary correction permits fixes within that scope. State the assessment
 and apply supported fixes without asking again. A review-only request grants no edit authority;
 ask once if the intended scope is ambiguous. Preserve narrower user constraints. Fix authority
-does not authorize stored dismissals, pushes, or unrelated changes. Report applied and skipped fixes.
+covers `mark-implemented` for verified fixes, not dismissals, pushes, or unrelated changes. Report applied and skipped fixes.
 
-When the user explicitly authorizes declining a local finding, follow
-[Record local triage](references/local-triage.md) to persist the decision. A conversational
-"skip" alone is not a stored dismissal and must not be reported as one.
+Record each decided finding in Qodo as soon as it is decided (declined, or fixed and verified) per
+[Record local dispositions](references/local-triage.md). A conversational "skip" is not a record.
 
 After a batch of authorized fixes, verify and re-review changed work using the lifecycle policy above.
 Assess outstanding findings and coverage before calling the result clean; stop an unproductive loop.
