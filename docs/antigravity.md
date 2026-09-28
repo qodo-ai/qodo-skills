@@ -21,6 +21,9 @@ Do not describe this as a curated Google listing or host-verified integration be
 
 Source PRs change adapter code, tests, and documentation, not generated directories. The subsequent
 release PR creates the plugin directories; use an immutable release that contains them. Older releases do not.
+Contributors can run `npm test` before those directories exist: the
+[local test runner](../CONTRIBUTING.md#test-locally) creates and cleans up an isolated release preview.
+Prepared-release artifacts are checked without regeneration so drift cannot be repaired by testing.
 This adapter adds no marketplace submission workflow or new standalone release asset. Download
 the source archive from [Qodo skills releases](https://github.com/qodo-ai/qodo-skills/releases),
 or check out that release's exact tag, and retain its tag/commit for updates and rollback.

@@ -27,6 +27,11 @@ separate release PR with versions and generated marketplace packages. A release 
 that PR to start protected publication. See [Contributing](CONTRIBUTING.md) for the complete flow.
 The [Actions guide](.github/workflows/README.md) explains the six workflows and when to use them.
 
+For optional local validation, run `npm ci` and `npm test` in a full Git checkout. Tests prepare
+and clean up an isolated release preview without changing contributor files or requiring generated
+packages in the source branch. Prepared releases still receive strict artifact checks without
+regeneration. See [local testing](CONTRIBUTING.md#test-locally) for base selection and direct checks.
+
 ## Install
 
 Use the official Qodo listing in Claude Code, Codex, or Kiro. The marketplace owns installation

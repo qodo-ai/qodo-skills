@@ -152,6 +152,8 @@ jobs:
           test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.tag_name')" = "${RELEASE_TAG}"
 
       - name: Validate canonical source and generated adapters
+        env:
+          QODO_SKILLS_TEST_MODE: committed
         run: npm test
 
       - name: Prepare exact provider artifact

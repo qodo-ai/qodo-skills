@@ -36,6 +36,8 @@ jobs:
         run: node scripts/prepare-ci-validation.mjs
 
       - name: Validate canonical skills and adapters
+        env:
+          QODO_SKILLS_TEST_MODE: committed
         run: npm test
 
   claude:

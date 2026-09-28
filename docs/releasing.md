@@ -14,6 +14,12 @@ then runs the full validation matrix. It rejects edits to generated files, misma
 unsupported removals, missing catalog entries, and incomplete release data. A prepared release PR
 is checked directly without regenerating away mistakes in its committed artifacts.
 
+Local `npm test` runs the same preparation in a temporary snapshot, including uncommitted source
+edits, and cleans it up without changing the contributor's checkout. CI and publication jobs set
+`QODO_SKILLS_TEST_MODE=committed` to run the strict `test:artifacts` suite on their already selected
+snapshot. This mode never generates a replacement release or repairs stale committed artifacts.
+See [local validation](../CONTRIBUTING.md#test-locally).
+
 After successful main-push validation, **Release: Prepare PR** maintains one PR from
 `automation/skills-release`. It follows the Release Please pattern using this repository's existing
 Node generator; it does not require the stock Release Please action or another version manifest.
