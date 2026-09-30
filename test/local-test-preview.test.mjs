@@ -32,11 +32,12 @@ function inventory(root, prefix = '') {
 function snapshot(root) {
   return {
     head: git(root, 'rev-parse', 'HEAD'), status: git(root, 'status', '--porcelain'),
+    refs: git(root, 'for-each-ref', '--format=%(refname) %(objectname)'),
     index: readFileSync(join(root, '.git/index')), files: inventory(root),
   };
 }
 
-function fixture(t) {
+function fixture(t, { staleMain = false } = {}) {
   const parent = mkdtempSync(join(tmpdir(), 'local-test-'));
   t.after(() => rmSync(parent, { recursive: true, force: true, maxRetries: 5 }));
   const root = join(parent, 'source');
@@ -52,18 +53,36 @@ function fixture(t) {
   // generator, but deliberately does not commit its Antigravity output tree.
   const generator = read(root, 'scripts/sync-adapters.mjs');
   writeFileSync(join(root, 'scripts/sync-adapters.mjs'), '// Previous released generator.\n');
-  git(root, 'init', '--quiet');
+  git(root, 'init', '--quiet', '--initial-branch=fixture-source');
   for (const [key, value] of Object.entries({ 'user.name': 'Test', 'user.email': 'test@example.com',
     'core.autocrlf': 'false', 'core.safecrlf': 'false', 'commit.gpgsign': 'false' })) git(root, 'config', key, value);
   const commit = (message) => { git(root, 'add', '--all'); git(root, 'commit', '--quiet', '-m', message); };
+  const catalog = json(root, 'distribution/catalog.json');
+  const releasePath = `releases/v${catalog.package.version}.json`;
+  const release = read(root, releasePath);
+  if (staleMain) {
+    const previous = catalog.package.version.replace(/\d+$/, (patch) => String(Number(patch) - 1));
+    catalog.package.version = previous;
+    writeFileSync(join(root, 'distribution/catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`);
+    rmSync(join(root, releasePath));
+    commit('older main catalog before the latest release');
+  }
+  const priorMain = staleMain ? git(root, 'rev-parse', 'HEAD') : undefined;
+  if (staleMain) {
+    cpSync(join(source, 'distribution/catalog.json'), join(root, 'distribution/catalog.json'));
+    writeFileSync(join(root, releasePath), release);
+  }
   commit('prepared release before Antigravity');
-  const base = git(root, 'rev-parse', 'HEAD');
+  const main = git(root, 'rev-parse', 'HEAD');
+  const base = priorMain ?? main;
+  git(root, 'update-ref', 'refs/heads/main', main);
   git(root, 'update-ref', 'refs/remotes/origin/main', base);
+  git(root, 'remote', 'add', 'origin', root);
   writeFileSync(join(root, 'scripts/sync-adapters.mjs'), generator);
   commit('add source adapter without generated packages');
   cpSync(join(source, 'node_modules'), join(root, 'node_modules'), { recursive: true, dereference: true });
   const run = (runSuite, options = {}) => runLocalTests(root, { temporaryParent, runSuite, ...options });
-  return { root, temporaryParent, base, commit, run };
+  return { root, temporaryParent, base, main, commit, run };
 }
 
 test('clean source checkout tests generate Antigravity only in a temporary preview and clean up', (t) => {
@@ -85,6 +104,36 @@ test('clean source checkout tests generate Antigravity only in a temporary previ
   assert.deepEqual(snapshot(f.root), before, 'files, index, HEAD, and versions must remain untouched');
   assert.equal(existsSync(preview), false);
   assert.deepEqual(readdirSync(f.temporaryParent), []);
+});
+
+test('a stale origin/main across a release still previews source without changing local refs', (t) => {
+  const f = fixture(t, { staleMain: true });
+  const before = snapshot(f.root);
+  const version = json(f.root, 'distribution/catalog.json').package.version;
+  f.run((root) => {
+    assert.notEqual(json(root, 'distribution/catalog.json').package.version, version);
+    assert.equal(existsSync(join(root, 'antigravity-plugins/qodo/plugin.json')), true);
+    check(root, 'scripts/sync-adapters.mjs', '--check');
+  });
+  assert.deepEqual(snapshot(f.root), before);
+  assert.deepEqual(readdirSync(f.temporaryParent), []);
+});
+
+test('an unverifiable default base fails before cloning, but an explicit base works offline', (t) => {
+  const f = fixture(t, { staleMain: true });
+  git(f.root, 'remote', 'remove', 'origin');
+  git(f.root, 'update-ref', 'refs/remotes/origin/main', f.base);
+  const before = snapshot(f.root);
+  let tested = false;
+  assert.throws(() => f.run(() => { tested = true; }), /Cannot verify.*git fetch origin main.*--base/);
+  assert.equal(tested, false);
+  assert.deepEqual(snapshot(f.root), before);
+  assert.deepEqual(readdirSync(f.temporaryParent), []);
+  f.run((root) => {
+    assert.equal(existsSync(join(root, 'antigravity-plugins/qodo/plugin.json')), true);
+    check(root, 'scripts/sync-adapters.mjs', '--check');
+  }, { base: f.main });
+  assert.deepEqual(snapshot(f.root), before);
 });
 
 test('local preview includes staged, unstaged, and new source files without changing the index', (t) => {

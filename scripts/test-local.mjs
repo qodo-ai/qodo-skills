@@ -51,19 +51,38 @@ export function runArtifactTests(root) {
   });
 }
 
+function comparisonBase(root, head, base) {
+  const ref = base ?? 'origin/main';
+  if (!ref || ref.startsWith('-')) throw new Error('Expected a Git base ref, not an option.');
+  let commit;
+  try { commit = git(root, ['merge-base', head, ref]).trim(); } catch {
+    throw new Error(`Cannot resolve test base ${ref}; fetch repository history or use npm test -- --base <ref>.`);
+  }
+  if (base !== undefined) return commit;
+  const versionAt = (revision) => JSON.parse(git(root, ['show', `${revision}:distribution/catalog.json`])).package.version;
+  if (versionAt(commit) === versionAt(head)) return commit;
+  // A stale tracking ref can look like a release PR. Read the current main ref
+  // without fetching objects or modifying the contributor's refs/index.
+  try {
+    const remote = git(root, ['ls-remote', '--exit-code', 'origin', 'refs/heads/main'], { timeout: 15_000 });
+    const currentMain = remote.match(/^([a-f0-9]{40})\trefs\/heads\/main$/m)?.[1];
+    if (!currentMain) throw new Error('Missing main ref');
+    return git(root, ['merge-base', head, currentMain]).trim();
+  } catch {
+    throw new Error('Cannot verify the current origin/main test base from local history. '
+      + 'Run git fetch origin main, then retry npm test; for offline or pinned validation use npm test -- --base <ref>.');
+  }
+}
+
 export function runLocalTests(root = repositoryRoot, {
-  base = 'origin/main', temporaryParent = tmpdir(), runSuite = runArtifactTests,
+  base, temporaryParent = tmpdir(), runSuite = runArtifactTests,
 } = {}) {
   root = realpathSync(root);
   temporaryParent = realpathSync(temporaryParent);
   if (inside(root, temporaryParent)) throw new Error('The test temporary directory must be outside the contributor checkout.');
   if (!existsSync(join(root, 'node_modules'))) throw new Error('Run npm ci before npm test.');
-  if (!base || base.startsWith('-')) throw new Error('Expected a Git base ref, not an option.');
   const head = git(root, ['rev-parse', 'HEAD']).trim();
-  let baseCommit;
-  try { baseCommit = git(root, ['merge-base', head, base]).trim(); } catch {
-    throw new Error(`Cannot resolve test base ${base}; fetch repository history or use npm test -- --base <ref>.`);
-  }
+  const baseCommit = comparisonBase(root, head, base);
   const paths = git(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']).split('\0').filter(Boolean);
   for (const path of paths) assertSnapshotPath(root, path);
   // Git supplies normalized tracked content, including both staged and unstaged changes.

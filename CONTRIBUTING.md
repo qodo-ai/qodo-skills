@@ -39,8 +39,11 @@ checks and package tests, then removes the temporary clone on success or failure
 Git index, branch, versions, and generated directories are not changed. Installed validation
 dependencies are copied, so the preview does not install dependencies or fetch from a remote.
 
-The default comparison base is the merge base with `origin/main`. Fetch missing history first;
-for a different base use `npm test -- --base <ref>`. A prepared release is validated without
+The default comparison base is the merge base with `origin/main`. When package versions differ,
+the runner reads the current remote `main` ref and resolves it from local history, so a stale
+tracking ref cannot make a source branch look like a release PR. This lookup does not fetch objects
+or update local refs. If the remote is unavailable or its commit is missing, fetch the history first
+or use `npm test -- --base <ref>` for an explicit, offline comparison. A prepared release is validated without
 regenerating its artifacts: missing or changed generated files still fail. Source branches must
 also leave generated files alone; the preview does not silently repair contributor edits to them.
 
