@@ -99,6 +99,9 @@ function installPackage(name) {
 }
 
 function pluginManifest(value, adapterSet) {
+  // Antigravity documents a narrower manifest than Agent Plugins. Keep only
+  // its common fields; the release tag and skill metadata retain versioning.
+  if (adapterSet === 'antigravity') return { name: value.name, description: value.description };
   const kiroListing = adapterSet === 'kiro' ? listing('kiro', value.name) : undefined;
   return {
     $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
@@ -167,6 +170,8 @@ function kiroReadPermissionProfile() {
 }
 
 function generatedPackageFiles(value, adapterSet = 'claude') {
+  const host = { claude: 'claude-code', codex: 'codex', kiro: 'kiro', antigravity: 'antigravity' }[adapterSet];
+  if (!host) throw new Error(`Unknown adapter set: ${adapterSet}`);
   const files = new Map([
     ['plugin.json', `${JSON.stringify(pluginManifest(value, adapterSet), null, 2)}\n`],
   ]);
@@ -186,7 +191,23 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       license: pkg.license,
       keywords,
     }, null, 2)}\n`);
-  } else {
+  } else if (adapterSet === 'antigravity') {
+    files.set('README.md', [
+      `# ${value.displayName} for Antigravity`,
+      '',
+      `Generated from Qodo skills v${pkg.version}. Do not edit generated files.`,
+      value.description,
+      '',
+      'This plugin contains the complete canonical workflows and their supporting references.',
+      'Qodo Standards is a separate, optional plugin; installing core never installs Standards.',
+      'The Qodo CLI owns authentication and tool execution and must be installed separately.',
+      'This plugin adds no MCP server, hooks, rules, or permission grants.',
+      '',
+      `Install and update: ${pkg.repository}/blob/v${pkg.version}/docs/antigravity.md`,
+      `Source release: ${pkg.repository}/releases/tag/v${pkg.version}`,
+      '',
+    ].join('\n'));
+  } else if (adapterSet === 'kiro') {
     files.set('README.md', [
       ...(value.name === pkg.name
         ? [
@@ -228,7 +249,6 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
     if (!existsSync(join(sourceRoot, 'SKILL.md'))) throw new Error(`${skillName}: SKILL.md is required`);
     const skill = catalog.skills.find((entry) => entry.name === skillName);
     const distribution = adapterSet === 'kiro' ? 'kiro-power' : 'marketplace';
-    const host = adapterSet === 'kiro' ? 'kiro' : adapterSet === 'codex' ? 'codex' : 'claude-code';
     for (const path of collectFiles(sourceRoot)) {
       const content = readFileSync(join(sourceRoot, path), 'utf8');
       files.set(
@@ -317,10 +337,15 @@ writeJson('.claude-plugin/marketplace.json', {
   })),
 });
 
+const antigravityFiles = new Map();
 for (const value of catalog.installPackages) {
   syncGeneratedDirectory(`packages/${value.name}`, generatedPackageFiles(value, 'claude'));
   syncGeneratedDirectory(`codex-packages/${value.name}`, generatedPackageFiles(value, 'codex'));
+  for (const [path, content] of generatedPackageFiles(value, 'antigravity')) {
+    antigravityFiles.set(`${value.name}/${path}`, content);
+  }
 }
+syncGeneratedDirectory('antigravity-plugins', antigravityFiles);
 
 // Keep the existing Kiro core source path stable. Optional capabilities are a
 // separate Power, because Kiro installs a Power atomically.

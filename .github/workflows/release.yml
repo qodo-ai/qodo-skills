@@ -77,6 +77,8 @@ jobs:
         run: npm ci
 
       - name: Verify the release package
+        env:
+          QODO_SKILLS_TEST_MODE: committed
         run: npm test
 
       - name: Require dedicated release App configuration

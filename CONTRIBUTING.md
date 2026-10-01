@@ -24,6 +24,35 @@ Keep each source file below 500 lines. Skill removal requires an explicit suppor
 removal design before it can merge. Intentional minor or major changes should be coordinated with
 a release owner; ordinary automation defaults to patch releases.
 
+## Test locally
+
+From a full Git checkout with Node installed:
+
+```sh
+npm ci
+npm test
+```
+
+`npm test` snapshots committed, staged, unstaged, and non-ignored new source files into a temporary
+clone outside your checkout. It runs the same release-preview preparation as CI before freshness
+checks and package tests, then removes the temporary clone on success or failure. Your files,
+Git index, branch, versions, and generated directories are not changed. Installed validation
+dependencies are copied, so the preview does not install dependencies or fetch from a remote.
+
+The default comparison base is the merge base with `origin/main`. When package versions differ,
+the runner reads the current remote `main` ref and resolves it from local history, so a stale
+tracking ref cannot make a source branch look like a release PR. This lookup does not fetch objects
+or update local refs. If the remote is unavailable or its commit is missing, fetch the history first
+or use `npm test -- --base <ref>` for an explicit, offline comparison. A prepared release is validated without
+regenerating its artifacts: missing or changed generated files still fail. Source branches must
+also leave generated files alone; the preview does not silently repair contributor edits to them.
+
+`npm run test:artifacts` runs the full strict suite directly on already prepared artifacts;
+`npm run check` runs only the strict freshness/contract checks. Neither command generates files.
+CI prepares its own source preview first, then selects this strict path through
+`QODO_SKILLS_TEST_MODE=committed`. Release and marketplace jobs use the same strict mode, including
+for older release tags whose `npm test` already ran artifact checks directly.
+
 ## Maintainer preparation
 
 Release owners can optionally use local tooling for explicit larger version bumps and recovery:

@@ -72,6 +72,7 @@ Schemas rather than relying only on partial hand-written checks.
 |---|---|---|
 | Claude Code | `packages/<package>/` | `marketplace`, `claude-code` |
 | Codex | `codex-packages/<package>/` | `marketplace`, `codex` |
+| Antigravity (manual plugin) | `antigravity-plugins/<package>/` | `marketplace`, `antigravity` |
 | Kiro | `kiro-power/`, `kiro-power-standards/` | `kiro-power`, `kiro` |
 | skills.sh | canonical `skills/` tree | `skills-sh`, host stamped by installer/use context |
 | On-prem | immutable `qodo-enterprise-bundle-v<version>.tar.gz` release asset | `enterprise-bundle`, host retained in each projection |
@@ -85,6 +86,13 @@ byte-compares every generated skill against that deterministic projection and re
 `skills/`); the retired `POWER.md`/`steering/` layout is not regenerated. Its public listing follows
 `main/kiro-power` and `main/kiro-power-standards`. These are moving sources; verification records
 the observed `main` commit independently of immutable release pins.
+
+Antigravity uses a separate minimal `plugin.json`, not the Kiro/Agent Plugins manifest. Its
+generated README identifies the release because the manifest omits version metadata. Both native
+surfaces use the same embedded plugin bytes with `marketplace`/`antigravity` provenance; this means
+host/manual-plugin ownership, not a curated listing. Installation paths differ by surface. See
+[Antigravity](antigravity.md) for installation, replacement, and host acceptance gates. This adapter
+does not add a marketplace provider or widen the enterprise schema-v1 projections.
 
 ## Runtime contract
 

@@ -27,10 +27,20 @@ separate release PR with versions and generated marketplace packages. A release 
 that PR to start protected publication. See [Contributing](CONTRIBUTING.md) for the complete flow.
 The [Actions guide](.github/workflows/README.md) explains the six workflows and when to use them.
 
+For optional local validation, run `npm ci` and `npm test` in a full Git checkout. Tests prepare
+and clean up an isolated release preview without changing contributor files or requiring generated
+packages in the source branch. Prepared releases still receive strict artifact checks without
+regeneration. See [local testing](CONTRIBUTING.md#test-locally) for base selection and direct checks.
+
 ## Install
 
 Use the official Qodo listing in Claude Code, Codex, or Kiro. The marketplace owns installation
 and updates; install the Qodo CLI separately and complete `qodo login` on first use.
+
+For Antigravity, use the generated core plugin from a release containing `antigravity-plugins/`.
+Qodo Standards remains a separate opt-in plugin. See [Antigravity installation and acceptance](docs/antigravity.md)
+for CLI versus IDE setup, release availability, and the pending native smoke-test gate. This is
+manual plugin distribution, not a curated Google listing.
 
 For a compatible local agent without an official Qodo listing, use skills.sh. One command can
 target multiple agents:
@@ -108,6 +118,7 @@ skills operation; resolve its complete plan and reuse any approval covering that
 skills/                         canonical authored skills
 packages/                       generated Claude packages
 codex-packages/                 generated Codex packages
+antigravity-plugins/            generated Antigravity plugins (core and optional Standards)
 kiro-power*/                    generated Kiro Powers
 distribution/catalog.json      package membership and discovery metadata
 distribution/marketplaces.json provider release adapters

@@ -110,6 +110,8 @@ test('supporting files, catalog display metadata, and packaging fixes are collec
   f.commit('package release');
   f.check('scripts/validate-diff.mjs', f.base);
   assert.equal(readJson(f.root, `releases/v${result.version}.json`).package.change, 'patch');
+  assert.deepEqual(result.changes, [], 'packaging-only releases do not bump canonical skills');
+  assert.ok(readFileSync(join(f.root, 'antigravity-plugins/qodo/README.md'), 'utf8').includes(`v${result.version}`));
 });
 
 test('a new skill already merged to main uses initial relative to the last prepared release', (t) => {
@@ -164,6 +166,14 @@ test('unsupported removals and unregistered new skills fail before a source merg
   f.edit('skills/qodo-unknown/SKILL.md');
   f.commit('unregistered skill');
   assert.throws(() => planSkillRelease(f.root), /must be registered/);
+});
+
+test('Antigravity artifacts belong to versioned release PRs, not source PRs', (t) => {
+  const f = fixture(t);
+  f.edit('antigravity-plugins/qodo/plugin.json', '\n');
+  f.commit('edit generated Antigravity package');
+  assert.throws(() => prepareCiValidation(f.root, f.base), /belong in the release PR/);
+  assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
 });
 
 test('release PR validation does not repair committed drift or absorb a later source merge', (t) => {

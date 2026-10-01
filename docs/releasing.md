@@ -14,6 +14,12 @@ then runs the full validation matrix. It rejects edits to generated files, misma
 unsupported removals, missing catalog entries, and incomplete release data. A prepared release PR
 is checked directly without regenerating away mistakes in its committed artifacts.
 
+Local `npm test` runs the same preparation in a temporary snapshot, including uncommitted source
+edits, and cleans it up without changing the contributor's checkout. CI and publication jobs set
+`QODO_SKILLS_TEST_MODE=committed` to run the strict `test:artifacts` suite on their already selected
+snapshot. This mode never generates a replacement release or repairs stale committed artifacts.
+See [local validation](../CONTRIBUTING.md#test-locally).
+
 After successful main-push validation, **Release: Prepare PR** maintains one PR from
 `automation/skills-release`. It follows the Release Please pattern using this repository's existing
 Node generator; it does not require the stock Release Please action or another version manifest.
@@ -39,6 +45,14 @@ release-PR preparation. Updates to the bot PR are regenerated; source edits belo
 Kiro reads `main/kiro-power` and `main/kiro-power-standards`. Only the release PR updates these generated
 snapshots. Canonical `skills/` on main can contain unreleased changes. Consumers that intentionally
 read canonical main directly see those source changes earlier.
+
+The release PR also generates `antigravity-plugins/qodo` and `antigravity-plugins/qodo-standards`.
+These are manual native-plugin distributions available in the tagged source tree/archive, not
+new marketplace submission targets or enterprise schema-v1 projections. Package-only adapter
+changes receive a package patch without skill-version changes. Keep generated directories out
+of source PRs; CI previews them and verifies drift, exact membership, and transaction rollback.
+Record [Antigravity host acceptance](antigravity.md#maintainer-acceptance-checklist) separately;
+neither a green CI run nor publication proves native installation and execution work.
 
 For explicit minor/major releases or recovery, a maintainer can still prepare a complete release PR:
 

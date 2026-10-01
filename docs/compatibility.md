@@ -7,6 +7,7 @@
 | Claude Code official listing | Claude marketplace | `packages/qodo` |
 | Codex official listing | Codex marketplace/portal | `codex-packages/qodo` |
 | Kiro official listing | Kiro Powers tracking `main` | `kiro-power` |
+| Antigravity native plugin (host acceptance pending) | Antigravity CLI or explicit manual directory replacement | `antigravity-plugins/qodo` |
 | Compatible host without a listing | skills.sh | canonical `skills/` |
 
 `qodo-standards` is a separate optional package on every surface. It is never included in core
@@ -71,3 +72,8 @@ For each selected provider, release evidence must include:
 For skills.sh, repeat the same behavioral checks on representative detected agents and verify both
 project/global scope, multi-agent selection, exact package membership, update without broadening,
 and preservation of user edits.
+
+For Antigravity, record the source release tag/commit from the plugin README instead of expecting
+a manifest version or public listing. Test CLI and IDE/2.0 separately using the
+[native acceptance checklist](antigravity.md#maintainer-acceptance-checklist). Packaging tests do
+not establish host runtime support, update notices, or automatic migration from skills.sh.

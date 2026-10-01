@@ -22,7 +22,7 @@ export function releaseBaseline(root, ref = 'HEAD') {
   return commit;
 }
 
-const generated = /^(?:\.agents\/plugins\/|\.claude-plugin\/|\.codex-plugin\/|codex-packages\/|kiro-power(?:-standards)?\/|packages\/|plugin\.json$|gemini-extension\.json$|distribution\/qodo-(?:skills-index|cli-managed-bundle)\.json(?:\.sha256)?$|skills\/[^/]+\/agents\/openai\.yaml$)/;
+const generated = /^(?:\.agents\/plugins\/|\.claude-plugin\/|\.codex-plugin\/|antigravity-plugins\/|codex-packages\/|kiro-power(?:-standards)?\/|packages\/|plugin\.json$|gemini-extension\.json$|distribution\/qodo-(?:skills-index|cli-managed-bundle)\.json(?:\.sha256)?$|skills\/[^/]+\/agents\/openai\.yaml$)/;
 const packaging = [
   /^\.github\/workflows\/ship-marketplaces\.yml$/,
   /^distribution\//,
