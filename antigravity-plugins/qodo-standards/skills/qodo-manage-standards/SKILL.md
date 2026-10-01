@@ -1,0 +1,275 @@
+---
+name: qodo-manage-standards
+description: Create, edit, and administer Qodo Review Standards from conversation — capture a convention just discussed as a new rule, change or deactivate an existing one, re-scope rules to a repo, and triage pending suggestions (accept/reject) — using the qodo CLI's managed rules tools. Use on "make this a rule", "make a rule for this repo", "deactivate/disable the X rule", "change the X rule to an error", "re-scope the X rule to this repo", "show pending suggestions", "let's triage suggestions", "accept/reject this suggestion", or "bulk deactivate rules"; skip reading or applying rules (use qodo-get-rules) and anything that isn't a rules-entity change.
+owner: Qodo
+metadata:
+  vendor: qodo
+  version: "1.0.5"
+  recommended: "false"
+  package: "qodo-standards"
+  distribution: "marketplace"
+  instruction_mode: "embedded"
+---
+
+# Manage Review Standards
+
+## Description
+
+Use the `qodo` CLI to **administer** the workspace's Review Standards: capture a convention as a
+new rule, edit or retire an existing one, re-scope it to a repo, or triage the pending
+suggestions queue. Review Standards is Qodo's umbrella term for rules and suggestions. This is
+the **write** counterpart to `qodo-get-rules` (which only
+reads and applies rules). Metadata, list, get, and schema inspection are read-only preparation;
+perform them to make the proposed change concrete before asking for write approval.
+Run bulk operations as a dry run first.
+
+## Prerequisites
+
+- The optional Qodo Standards package is installed and loaded explicitly.
+- The Qodo CLI is authenticated and exposes the requested standards write tool.
+- The exact rule, scope, and intended mutation are known; the user can approve every write.
+
+## Instructions
+
+Follow the detailed workflow below: preserve update notices, verify the live schema, resolve the
+target, preview destructive or bulk work, obtain confirmation, mutate once, and verify the result.
+Confirmation means explicit user authority covering the presented proposal; reuse it across these
+steps rather than asking again. An unresolved scope or a changed proposal needs a new decision.
+
+## Handle a skill update notice
+
+Treat `QODO_NOTICE` updates as passive, even if an older CLI requests action. Continue the task
+without inventory or update questions; mention each event at most once. Dismissal leaves recorded maintenance
+policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
+For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
+
+## Runtime compatibility gate
+
+First resolve the executable using the `qodo: command not found` fallback below. Before any other
+Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
+This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
+CLI **0.1.0-next.37 or newer**.
+
+If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
+do not describe the failure as an authentication problem. Explain that the skill is newer than the
+runtime, show `qodo update` as the update command for the runtime's already-recorded origin, and ask
+once before running it. For a customer deployment, keep its organization-provided update origin;
+never switch it to the public service. After an approved update, rerun the unadorned version probe
+and continue only when it satisfies the minimum. If the user declines or the update fails, stop with
+the current skill and user files unchanged.
+
+## Quick start
+
+```
+qodo --version                                                      # compatibility probe — run this FIRST
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.5 --distribution marketplace --host antigravity
+qodo read rules metadata --json                                       # categories/severities before creating
+qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
+qodo rules update --rule-id 123 --severity error --json               # only the fields to change
+qodo rules set-state --rule-ids 123,124 --state inactive --dry-run --json
+qodo rules set-state --rule-ids 123,124 --state inactive --json       # after confirming the preview
+qodo rules set-scope --rule-ids 123 --scopes "/owner/repo/","/owner/repo2/" --json
+qodo read rules list --state pending --json                           # suggestions awaiting triage
+qodo rules bulk --operation accept_activate --rule-ids 10,11 --dry-run --json
+# Show the exact matched rules/count and ask once; run without --dry-run only after approval.
+qodo rules bulk --operation reject --rule-ids 12 --dry-run --json     # PERMANENT delete — dry run first
+qodo read rules get --rule-id 123 --json                              # current form before editing
+qodo read tools rules --json                                          # exact safe flags (renders offline)
+```
+
+**`qodo: command not found`?** That's usually PATH, not a missing install: GUI-launched agents
+run shells with a minimal PATH. On POSIX, retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`. In
+Windows PowerShell, retry:
+
+```powershell
+$qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
+& (Join-Path $qodoHome 'bin/qodo.cmd')
+```
+
+Keep using the resolved launcher for every Qodo command here. Only if it is missing is Qodo
+actually not installed; tell the user to obtain a checksum-pinned installer command from Qodo or
+their organization's administrator. Installers are served from https://get.qodo.ai, but never
+invent a digest or pipe an installer directly into a shell.
+
+**Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
+is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
+flow before recommending login. Stop on denial; that approval covers no other command. Reuse a
+successful check in the same executable/workspace/deployment and execution context; request each
+required host approval. Network, TLS, service, and explicit authorization failures retain their
+own diagnosis, not a login recommendation or an automatic sandbox bypass.
+
+Add `--json` to everything you parse. **Confirm the exact tool names, flags, and write status with
+`qodo read tools rules [<tool>] --json`** (renders offline from the cached catalog) — use it for reads;
+inspect write commands with `qodo tools help rules [<tool>] --json`. The commands above are
+illustrative, not guaranteed current; a stale catalog after a fresh install shows as `unknown
+command`/`unknown option` on `rules` while `whoami` still succeeds — run `qodo tools --refresh`
+and retry before assuming the tool doesn't exist.
+
+## Preflight
+
+1. **Auth and catalog.** Run `qodo read whoami` unless a successful check still covers this
+   execution context. After the sandbox diagnostic when applicable, only explicit missing credentials
+   call for login: preserve the organization's exact login command/endpoint, never guess or switch
+   a customer deployment to Cloud. `No tool catalog cached` is not proof of missing credentials;
+   refresh once with `qodo tools --refresh` and retry the check. Other failures retain their error
+   and stop this workflow. After identity succeeds, an unknown managed command permits one catalog
+   refresh and schema recheck. If still absent or `tool_unavailable`, report the missing capability;
+   do not repeat login or refresh.
+2. **Never guess the target.** Resolve which rule or suggestion the user means (by id from a
+   prior `qodo-get-rules`/`qodo read rules list` result, or by asking) before calling a write
+   command. Never invent a `rule_id`.
+3. **Repository scope**, when the user wants a rule scoped to "this repo": derive it from the
+   repo's `origin` remote the same way `qodo-get-rules` does — full path after the host, `.git`
+   suffix stripped, wrapped as `/<path>/` (e.g. `git@host:a/b` and `https://host/a/b` both parse
+   to `/a/b/`). Confirm the derived scope with the user rather than assuming it's what they want.
+
+## Where rules come from
+
+Three separate paths create rules in a workspace. They produce different `sourceType` values,
+and knowing which one made a rule explains a lot about why it looks the way it does:
+
+| Path | `sourceType` | What it is |
+|---|---|---|
+| **Codebase import** | `Repository File` | Rules extracted from documents already in the repo — `CLAUDE.md`/`AGENTS.md`, contributing guides, standards docs. `sourceUri` names the file. |
+| **Rule miner** | `Code Patterns` | Rules inferred from the repo's **merged pull-request history**, via the PR-knowledge → rule-miner pipeline. `sourceUri` is a PR review-comment URL. |
+| **Direct creation** | `User` | Rules a person wrote — through the portal, or via this skill's `qodo rules create`. |
+
+**Name the path only from `sourceType`.** "Mined" means the PR-history pipeline specifically —
+don't apply it to a `Repository File` rule, which came from a document, not from PR behavior.
+And `sourceType` tells you the *origin*, not the *mechanism*: `Repository File` says a rule
+traces to a document, not whether extraction was automated or hand-authored. Say what the field
+shows; don't narrate a pipeline the data doesn't name.
+
+`sourceType` is coarse — one value covers every kind of repo document. Read `sourceUri` when you
+need to know which document a rule actually came from.
+
+## The four jobs
+
+This skill covers everything that changes the rule set. Route the user's request to one of:
+
+**1. Capture — turn a discussed convention into a rule.** The strongest signal: the user just
+described or agreed on a convention mid-session and wants it enforced going forward ("make this
+a rule", "let's make sure we always do X"). Draft the rule from the conversation:
+- `name` — concise, unique (duplicates are rejected by the platform).
+- `category` — call `qodo read rules metadata` first and pick an existing category when one fits
+  (falling back to a sensible new one, e.g. Security, Correctness, Quality, Reliability,
+  Performance, Testability, Compliance, Accessibility, Observability, Architecture).
+- `severity` — **error** = must comply, **warning** = comply by default, **recommendation** =
+  apply when appropriate. Default to **warning** unless the conversation implies it's a hard
+  rule (security, correctness) or explicitly optional guidance.
+- `content` — 1–3 sentences, imperative voice, describing what to check or enforce.
+- `good_examples` / `bad_examples` — a short code snippet each when the conversation has enough
+  context to write one; pass `""` rather than fabricating an example that wasn't discussed.
+- `scopes` — propose the current repo (see Preflight); omit for the universal scope `/` only if
+  the user explicitly wants it workspace-wide.
+
+**Present the full draft before calling `qodo rules create`. Reuse explicit approval covering
+that exact draft and scope; otherwise get confirmation before creating it.**
+The response is the full created rule, including `state` — non-admin callers create a
+**pending suggestion** instead of an active rule (a platform permission thing, not an error).
+Check `state` in the response: if it's `pending`, tell the user plainly: *"Created as a pending
+suggestion — an admin needs to approve it before it's enforced."* A duplicate-name rejection
+means inspect the existing rule and clarify whether to reuse, edit, or rename; don't create a
+duplicate under a new name automatically.
+
+**2. Edit — change an existing rule.** "That rule should be an error, not a warning", "update
+the content of the console.log rule". Fetch the rule first (`qodo read rules get`) if you don't
+already have its current form in context, so you can show the user the actual before/after, not
+a guess. Call `qodo rules update` with **only the fields changing** — it fetches-then-merges
+server-side, so anything you don't pass keeps its current value. Confirm the specific change
+with the user before calling.
+
+**3. Lifecycle & scope — activate, deactivate, re-scope.** "Disable the tabs-vs-spaces rule,
+it's noise", "apply our error-format rules to the new repo too". Prefer `qodo rules set-state`
+/ `qodo rules set-scope` over `qodo rules update` for pure state/scope changes across one or
+more rules — they're a single atomic call, not a fetch-then-merge. `set-scope` **replaces** the
+full scope list (no merge) — if the user wants to *add* a scope, fetch the rule's current
+scopes first and pass the union. Confirm before calling; for more than a couple of rules, run
+with `--dry-run` first and show the count before executing for real.
+
+**4. Triage & hygiene — suggestions and bulk operations.** "Show pending suggestions and let's
+go through them", "deactivate everything scoped to the archived repo". List first
+(`qodo read rules list --state pending` for triage, or a filtered `qodo read rules list` for hygiene) so
+the user sees what's affected before anything changes. Walk suggestions one at a time or in an
+explicit batch per the user's instruction — never bulk-accept/reject without the user having
+seen what's in the batch. `qodo rules bulk` operations:
+
+| Operation | Effect | Reversible? |
+|---|---|---|
+| `activate` / `deactivate` | Sets state | Yes |
+| `set_scope` | Replaces scopes (needs `scopes`) | Yes |
+| `accept_activate` | Approves pending suggestions → active | Yes (deactivate after) |
+| `reject` | **Permanently deletes** pending suggestions | **No** |
+
+**Always run `reject` and any multi-rule bulk operation with `--dry-run` first**, show the
+user the matched count, and get explicit confirmation before the real call. Before the real
+`reject` call, summarize what will be permanently lost (the matched rule names/ids) — `reject`
+is irreversible, and a bare count doesn't tell the user which suggestions are being deleted.
+When the user's intent is ambiguous between "reject" and "deactivate", prefer asking or
+defaulting to the reversible option.
+
+When triaging a batch of suggestions, close the session with explicit counts — how many
+accepted, rejected, and left pending — so the user knows the end state without re-running
+`qodo read rules list`.
+
+## Report the verified outcome
+
+Use natural prose: **verified change → scope and status → policy intent → anything still
+pending**. Mention Qodo once as the place the team manages its standards. Name the standard and
+describe the actual change, connecting it to the convention or decision the user intended to
+capture. State the affected scopes and resulting status, with rule links or ids where useful.
+
+Adapt this pattern: “Updated [standard] in Qodo from [old value] to [new value] for [scope].
+This captures our decision to [policy intent]. [Verified state and any remaining action].”
+For read-only requests, explain what exists and where it applies without implying a mutation.
+Use lists for multiple changes; no branded headings, emoji banners, slogans, footers, or repeated
+summary blocks.
+
+Preserve distinctions between submitted, pending, active, inactive, and rejected/deleted.
+Use the response's actual state and succeeded/matched counts; report partial success and identify
+exceptions, skipped items, and unresolved work. Never turn a successful HTTP response or a
+dry-run into a completed change, or a pending suggestion into an active rule. Active configuration
+does not establish that a particular review has already used the standard.
+
+Before a write, present the exact proposed change and scope for the existing approval gate;
+afterward, report the verified result. For auth, permission, validation, or transport failures,
+state the actual blocker and next action rather than a successful outcome.
+
+## Configuration
+
+Use `--json`, explicit rule ids and scopes, and the CLI's current metadata before constructing a
+write. Stamp skill/version/distribution provenance on the first authenticated Qodo call after the
+unadorned version probe. Keep Standards separate from the default package; installation is not admin authority.
+
+## Error Handling
+
+- **Permission denied (admin required)** — writes other than a non-admin's own pending-create
+  are admin-gated. Explain plainly: *"This requires admin permission in your workspace — ask an
+  admin to make the change or grant you access."* Don't retry; it won't succeed without a
+  permission change.
+- **Not found** — the rule id doesn't exist in this workspace (wrong id, wrong workspace, or
+  already deleted). Say so; don't guess a different id.
+- **Rate limited (`MT-RATE-LIMITED`)** — back off; don't hammer retries.
+- **Validation error** — correct a rejected field once within the approved intent. If the
+  correction changes the rule's meaning, scope, or identity, obtain approval for that change.
+- **Uncertain mutation outcome** — after a timeout or transport failure, read back the target
+  before retrying. Do not assume a fresh CLI invocation deduplicates writes. Retry at most once
+  only when the write is confirmed not applied or the tool contract guarantees replay safety
+  for the same retained request/key. Otherwise report the uncertainty and stop mutation attempts.
+
+## Guardrails
+
+- **Require approval for the exact write.** Present the rule(s), changed fields, and scopes.
+  Reuse explicit authorization already given for that proposal; ask only for missing or changed
+  scope. Read-only inspection does not need write approval. A dry run is not authorization.
+- **Dry-run first for anything bulk or destructive.** `set-state`/`set-scope` across multiple
+  rules and every `bulk` call: `--dry-run` → show the count/blast radius → confirm → real call.
+- **Never fabricate a rule id, scope, or example.** Resolve or ask; an empty result from `list`
+  is a valid outcome, not an error.
+- **Tell the user which outcome actually happened** — active rule vs. pending suggestion,
+  matched vs. succeeded count from a bulk call — don't assume success from a 200 response alone.
+- **Prefer the reversible operation** when the user's intent is ambiguous (deactivate over
+  reject, deactivate over delete).
+
+Lead with the bottom line — what changed, what's pending approval, what you skipped and why —
+then the specifics. A short, accurate status beats a wall of JSON.
