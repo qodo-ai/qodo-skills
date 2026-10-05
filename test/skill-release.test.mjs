@@ -14,7 +14,7 @@ const wisdom = 'skills/qodo-codebase-wisdom/SKILL.md';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'skill-release-test-'));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.after(() => rmSync(root, { recursive: true, force: true, maxRetries: 5 }));
   for (const name of readdirSync(source)) {
     if (name !== '.git' && name !== 'node_modules') cpSync(join(source, name), join(root, name), { recursive: true });
   }
