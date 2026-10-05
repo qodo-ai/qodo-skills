@@ -110,7 +110,8 @@ qodo review --base "$review_base" --context-file ctx.json # context from a file
 qodo review --base "$review_base" --ticket <TICKET_URL> ... # ticket URL (repeatable)
 qodo review --base "$review_base" --json ...              # machine-readable findings
 qodo review --base "$review_base" src/ test/ ...          # limit to paths (git pathspecs)
-review_base=$(git merge-base HEAD origin/develop) || { printf '%s\n' 'Cannot resolve merge base for origin/develop; fetch missing history or choose the correct target.' >&2; exit 1; } # another target branch
+develop_review_base=$(git merge-base HEAD origin/develop) || { printf '%s\n' 'Cannot resolve merge base for origin/develop; fetch missing history or choose the correct target.' >&2; exit 1; } # another target branch
+qodo review --base "$develop_review_base" --json --context-file ctx.json # another target branch
 qodo review --base "$review_base" --fast --async --json --context-file ctx.json # checkpoint
 qodo review --base "$review_base" --json --context-file ctx.json      # final: auto
 qodo review --base "$review_base" --deep --json --context-file ctx.json # justified deep review
