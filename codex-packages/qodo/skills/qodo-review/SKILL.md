@@ -4,7 +4,7 @@ description: Review local changes with Qodo during substantive coding milestones
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.6"
+  version: "1.10.7"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -15,7 +15,7 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to review **local changes during coding and before handing off completed work**. `qodo review` diffs your working tree against a base branch, includes new/untracked files, and sends the diff plus any
+Use the `qodo` CLI to review **local changes during coding and before handing off completed work**. `qodo review` diffs your working tree against a base commit, includes new/untracked files, and sends the diff plus any
 **coding-session context** you supply to Qodo's review engine. It returns structured findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is pushed and no
 PR is created; only the base commit must already be on the remote (the reviewer clones it).
 
@@ -101,20 +101,22 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.6 --distribution marketplace --host codex
-qodo review --context-file - <<'EOF'         # review local changes vs origin/main, WITH context
+qodo read whoami --json --skill qodo-review --skill-version 1.10.7 --distribution marketplace --host codex
+review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
+qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
 { "summary": "<what this change does and why>",
   "decisions": ["<a choice you made and its rationale>"] }
 EOF
-qodo review --context-file ctx.json          # same, context from a file
-qodo review --ticket <TICKET_URL> ...        # add a ticket URL (repeatable)
-qodo review --json ...                       # machine-readable findings
-qodo review src/ test/ ...                    # limit to paths (git pathspecs)
-qodo review --base origin/develop ...        # diff against a different base
-qodo review --fast --async --json --context-file ctx.json # coding checkpoint
-qodo review --json --context-file ctx.json               # final review: auto
-qodo review --deep --json --context-file ctx.json        # only for a justified deep review
-qodo review                                  # BARE — only when there is truly nothing to say (rare)
+qodo review --base "$review_base" --context-file ctx.json # context from a file
+qodo review --base "$review_base" --ticket <TICKET_URL> ... # ticket URL (repeatable)
+qodo review --base "$review_base" --json ...              # machine-readable findings
+qodo review --base "$review_base" src/ test/ ...          # limit to paths (git pathspecs)
+develop_review_base=$(git merge-base HEAD origin/develop) || { printf '%s\n' 'Cannot resolve merge base for origin/develop; fetch missing history or choose the correct target.' >&2; exit 1; } # another target branch
+qodo review --base "$develop_review_base" --json --context-file ctx.json # another target branch
+qodo review --base "$review_base" --fast --async --json --context-file ctx.json # checkpoint
+qodo review --base "$review_base" --json --context-file ctx.json      # final: auto
+qodo review --base "$review_base" --deep --json --context-file ctx.json # justified deep review
+qodo review --base "$review_base" # no context only when there is truly nothing to say
 qodo review status <operation-id>            # collect an --async result (exit 2 = still running)
 qodo review --help                           # exact flags (renders offline)
 ```
@@ -185,7 +187,8 @@ is alive; you collect the result later with `qodo review status <operation-id>`.
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'This async recipe requires jq; install it or use the live qodo review flow.' >&2; exit 1; }
 QODO_REVIEW_CONTEXT="${QODO_REVIEW_CONTEXT:-.qodo/session-context.json}"
 [ -f "$QODO_REVIEW_CONTEXT" ] || { printf '%s\n' "Write the required review context to $QODO_REVIEW_CONTEXT (or set QODO_REVIEW_CONTEXT to its path)." >&2; exit 1; }
-if ! submission="$(qodo review --context-file "$QODO_REVIEW_CONTEXT" --async --json --fast)"; then printf '%s\n' "$submission" >&2; exit 1; fi
+QODO_REVIEW_BASE="$(git merge-base HEAD origin/main)" || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # substitute the intended target
+if ! submission="$(qodo review --base "$QODO_REVIEW_BASE" --context-file "$QODO_REVIEW_CONTEXT" --async --json --fast)"; then printf '%s\n' "$submission" >&2; exit 1; fi
 if ! id="$(printf '%s\n' "$submission" | jq -er '.operation_id | select(type == "string" and length > 0)')"; then printf '%s\n' "$submission" >&2; exit 1; fi
 qodo review status "$id" --json                                # collect it
 ```
@@ -251,9 +254,15 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
    refresh and schema recheck. If still absent or `tool_unavailable`, report the missing capability;
    do not repeat login or refresh.
    An unknown built-in `qodo review` needs runtime recovery, not login or catalog refresh.
-2. **Resolve the base.** The reviewer clones the base commit from the remote. Use an existing
-   pushed `--base <ref>` appropriate to the intended change (default `origin/main`). If no suitable
-   base exists, report the blocker; review authorization alone does not authorize a push.
+2. **Resolve the base.** Select the intended target (`origin/main` unless the change targets another
+   branch). Fetch that target before reviewing current remote history; if unavailable or deliberately
+   offline/pinned, disclose that the review uses locally fetched history rather than claim it is current.
+   Compute `git merge-base HEAD <target-ref>` and pass that SHA as `--base` on every
+   submission, including checkpoints and connected runs. This also protects older CLIs whose
+   default compares the target tip. An explicit `--base` is exact; passing the target branch itself
+   can misattribute newer target-only changes. Honor a user-requested exact comparison.
+   If no common ancestor is available, fetch missing history or report the blocker; never fall
+   back silently to the target tip. The base must be pushed; review authority does not allow a push.
    Local edits and untracked files are included without committing or pushing them.
 3. **Write your context.** Before running, capture the session narrative — a 2–3 sentence summary
    of what you changed and why, plus the decisions you made along the way — as the context JSON
@@ -461,7 +470,7 @@ Only the review itself is gated — auth (`qodo read whoami`) and the other qodo
 
 Use `--fast --async --json` for coding checkpoints, auto for ordinary final review,
 and `--deep` only under the stated exceptions. Use `--json --progress` for connected progress and
-an explicit `--base` when origin/main is not correct. Stamp exact skill/version/distribution provenance
+the resolved merge-base SHA as `--base`. Stamp exact skill/version/distribution provenance
 on the first Qodo call after the unadorned version probe and keep session context out of the reviewed diff.
 
 ## Error Handling
@@ -478,8 +487,8 @@ context or widen authority merely to obtain a green result.
   comments, or opens a PR. Resolving a finding means editing code, not posting anywhere.
 - **The base must be pushed;** your local work need not be. New/untracked files are reviewed by
   default; secrets/binaries/oversized/gitignored files are filtered and reported.
-- **Don't guess creds or the base** — resolve auth first, and pass `--base` when it isn't
-  `origin/main`.
+- **Don't guess creds or the base** — resolve auth first, then pass the intended target's merge-base
+  SHA as `--base`, unless the user explicitly requests an exact baseline.
 - **Collect every run.** Background connected runs or use async; preserve recovery handles.
   A superseded result does not advance the incremental baseline or certify current code.
 - **Never strip context to beat the clock.** Dropping `--context-file` doesn't make a run faster —
