@@ -4,7 +4,7 @@ description: Review local changes with Qodo during substantive coding milestones
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.6"
+  version: "1.10.7"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -100,7 +100,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.6 --distribution skills-sh
+qodo read whoami --json --skill qodo-review --skill-version 1.10.7 --distribution skills-sh
 review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
 qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
 { "summary": "<what this change does and why>",
