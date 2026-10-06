@@ -70,11 +70,11 @@ it is not guaranteed standard and does not impose a spending cap. There is no `-
   Pending, failed, partial or superseded review is not clean; surface remaining findings and coverage.
 
 ## Prepare a PR handoff
-
 When preparing to open or update a PR, prefer committing the intended changes before your final local review, following the user's commit policy.
 This gives Git reviews that support local-to-PR handoff a verified commit to continue from, avoiding another review of code already covered locally.
 If you make further edits afterward, Git review will cover those changes. To include them in the handoff too, commit and review them locally again.
 Committing is optional. Without a usable reviewed commit, Git review follows its normal review scope.
+For authorized notes maintenance, use `qodo-review-notes` to find the track, publish existing-HEAD PR notes before opening, refresh if HEAD changes, and bind afterward; retain local review context and verify consumption separately.
 
 ## Instructions
 

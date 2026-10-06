@@ -45,7 +45,7 @@ test('Antigravity manifests use the documented minimal contract and exact packag
     assert.ok(readme.includes(`/blob/v${catalog.package.version}/docs/antigravity.md`));
     assert.ok(readme.includes(`/releases/tag/v${catalog.package.version}`));
   }
-  assert.equal(catalog.installPackages.find((pkg) => pkg.name === 'qodo').skills.length, 4);
+  assert.ok(catalog.installPackages.find((pkg) => pkg.name === 'qodo').skills.includes('qodo-review-notes'));
   assert.equal(catalog.installPackages.find((pkg) => pkg.name === 'qodo-standards').skills.length, 2);
 });
 

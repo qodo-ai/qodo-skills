@@ -32,6 +32,7 @@
         "qodo-setup",
         "qodo-codebase-wisdom",
         "qodo-review",
+        "qodo-review-notes",
         "qodo-review-resolver"
       ],
       "compatibilityAliases": {
@@ -103,6 +104,14 @@
       "displayName": "Qodo Review Resolver",
       "shortDescription": "Read, audit and resolve Qodo PR findings with citation evidence.",
       "defaultPrompt": "Use $qodo-review-resolver to show me the current Qodo review findings."
+    },
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.0",
+      "recommended": true,
+      "displayName": "Qodo Review Notes",
+      "shortDescription": "Maintain development tracks and PR reviewer context.",
+      "defaultPrompt": "Use $qodo-review-notes to find the development track and publish PR Review Notes."
     }
   ]
 }
