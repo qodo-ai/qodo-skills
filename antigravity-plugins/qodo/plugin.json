@@ -1,4 +1,28 @@
 {
   "name": "qodo",
-  "description": "Qodo setup, code intelligence, and review workflows."
+  "displayName": "Qodo",
+  "version": "2.0.14",
+  "description": "Set up Qodo, explore code and repository history, review local changes, and resolve pull-request findings directly from Antigravity.",
+  "logo": "assets/qodo.png",
+  "suggestedPrompts": [
+    "Connect my Qodo account and verify this coding agent is ready.",
+    "Explain how this code works, including its history and cross-repository impact.",
+    "Review my local changes with Qodo before I push them."
+  ],
+  "category": "Developer Tools",
+  "keywords": [
+    "qodo",
+    "code-review",
+    "code-intelligence",
+    "standards",
+    "coding-agents"
+  ],
+  "author": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "homepage": "https://www.qodo.ai",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT"
 }

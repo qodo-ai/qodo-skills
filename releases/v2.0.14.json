@@ -1,0 +1,10 @@
+{
+  "version": "2.0.14",
+  "summary": "Update Qodo skills and marketplace packages.\n- Merge pull request #122 from qodo-ai/codex/antigravity-marketplace-metadata",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "0.1.0-next.37",
+  "skills": []
+}
