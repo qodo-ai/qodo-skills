@@ -277,11 +277,11 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 - The **branch name**, **HEAD commit**, and a **description** synthesized from your commit messages.
 - Any **ticket refs** and **session context** you attach (below).
 
-`--json` returns `findings` from this call, with optional `meta` and `finding_state` on newer engines.
-For repeated reviews, read `finding_state.introduced` **and** `.still_open`; an empty `findings`
-array alone does not mean clean. `.resolved` records detected fixes; `.dismissed` preserves dismissals.
+`--json` returns each finding once in `findings`; `finding_state` buckets reference those IDs. Assess
+`.introduced` **and** `.still_open`; report detected fixes in `.resolved` and stored dismissals in `.dismissed`. Older buckets contain full objects.
 If `finding_state.complete` or `meta.coverage.complete` is false, report the incomplete coverage.
 
+Read [finding results](references/finding-results.md) for Finding fields, `--extended` and local metadata.
 `meta.analysis.mode` is `full`, `incremental`, or `reused`. Reused means the same reviewed snapshot
 and compatible context; earlier open findings remain open. The CLI privately saves the submitted patch.
 It advances its checkpoint after collecting an eligible result, including via `review status`.
@@ -292,8 +292,8 @@ For a deliberately fresh assessment use `--full` (confirm support with `--help`)
 not depth; it is not needed on every fix. Changing the requested depth mode invalidates compatible
 checkpoint coverage. Auto does not promise a fixed effective tier; rely on returned analysis/coverage.
 Older engines omit these fields: use their findings and coverage without claiming reuse.
-`meta.reviewers.ran` / `.skipped`, `meta.depth`, and `meta.safety_net.reinjected` describe coverage.
-A reused result has no new reviewer execution. Attach missing input for a material skipped dimension.
+Prefer `meta.run.passes` for actual outcomes; legacy `meta.reviewers` describes configured dimensions.
+Report failed/skipped components and missing metadata; reuse has no new execution.
 Never remove context merely to make an incremental checkpoint eligible.
 
 ## Attach coding-session context (this is the point)

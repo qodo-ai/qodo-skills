@@ -147,9 +147,13 @@ own diagnosis, not a login recommendation or an automatic sandbox bypass.
 - `review_session` — the latest review run: `status`, `commit_sha` (**the last commit included in
   the review** — the code these findings describe), `started_at`. **`null` = the PR has no review
   yet** — tell the user and stop (nothing to resolve).
-- `findings[]` — every current finding, each with: `title`, `description`, `category`,
+- `findings[]` — every current finding, each with: `id`, `title`, `description`, `category`,
   `action_level` (`action_required` > `remediation_recommended` > `informational`),
-  `attribution_status`, `git_sha`, `review_run_id`, `comment_id` / `inline_comment_id`.
+  `attribution_status`, `git_sha`, `location` (`file_path`, `start_line`, `end_line`, `side`),
+  and `evidence.citations` (each citation's `source_type` and `source`). This is the same default
+  Finding object used by local reviews. Unavailable locations or evidence are null.
+  Use the location to inspect the affected code and the stable ID to record an authorized outcome.
+  Provider comment IDs, internal reviewer decisions, and fix instructions are excluded in both modes.
 
 Zero findings supports a clean verdict only for a complete, completed review at the current PR head.
 
@@ -161,10 +165,10 @@ the `extended` boolean, use `qodo read pr-review-session findings --pr-url <PR_U
 The tool/API input is `extended: true`; omitted or false keeps the compact response.
 This reads more stored data; it does not rerun or deepen the review.
 
-Extended results add finding locations and code snippets, dismissal reasons/explanations,
-`review_runs`, and `findings[].evidence` with `explanation` and `citations`. Preserve each
+Extended results add `location.code_snippet`, dismissal reasons/explanations, `review_runs`,
+`evidence.explanation`, and fuller citation text/context. Preserve each
 citation's source type, source reference, text and source-specific metadata in an audit output.
-Correlate evidence with that finding's `id`, `git_sha`, `review_run_id` and `review_source`;
+Correlate evidence with that finding's `id` and `git_sha`;
 current findings can originate in earlier runs than `review_session`.
 
 Null evidence means unavailable; an empty citations list contains no recorded citations. An
