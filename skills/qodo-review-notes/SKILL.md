@@ -52,8 +52,12 @@ qodo read tools review-notes --json
 qodo tools help review-notes --json
 ```
 
-If the version is below the minimum or cannot be parsed, stop CLI calls and explain the runtime
-update needed. Follow the Tool access recovery rules for other failures.
+If the version is below the minimum or cannot be parsed, stop authenticated CLI calls and explain
+the update needed. Offer `qodo update` for the CLI's already-recorded public or enterprise origin;
+honor existing update authorization, otherwise ask once before running it. Never switch origins.
+After an approved update, rerun the unadorned version probe before `whoami` or tool discovery.
+If no update is authorized, stop this CLI path; trusted MCP remains available when configured.
+Follow the Tool access recovery rules for other failures.
 
 The platform scopes records to the authenticated workspace and checks every referenced repository.
 Do not supply a different workspace or delegated user. A repository path is a locator;
