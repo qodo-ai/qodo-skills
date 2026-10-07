@@ -7,26 +7,30 @@ Qodo generates native Antigravity plugins from the same canonical skills as its 
 | `antigravity-plugins/qodo/` | `qodo-setup`, `qodo-codebase-wisdom`, `qodo-review`, `qodo-review-resolver` |
 | `antigravity-plugins/qodo-standards/` | `qodo-get-rules`, `qodo-manage-standards` (optional) |
 
-Each root has `plugin.json`, a release-identifying README, and complete skill directories with
-supporting references. The plugin does not bundle the Qodo CLI, MCP servers, hooks, rules, or
-permission grants. The CLI continues to own login, credentials, tool discovery, and execution.
+Each root has a Marketplace-ready `plugin.json`, a square transparent logo under `assets/`, a
+release-identifying README, and complete skill directories with supporting references. The plugin
+does not bundle the Qodo CLI, MCP servers, hooks, rules, or permission grants. The CLI continues to
+own login, credentials, tool discovery, and execution.
 
 ## Availability and validation status
 
-The adapter targets the [documented Antigravity plugin layout](https://antigravity.google/docs/plugins/)
-and [Agent Skills format](https://antigravity.google/docs/skills/), checked on September 28, 2026.
-Automated tests cover packaging, canonical content, provenance, and release integration. Native
+The adapter targets the [documented Antigravity plugin layout](https://antigravity.google/docs/plugins/),
+[Agent Skills format](https://antigravity.google/docs/skills/), and Google's partner Marketplace
+publishing contract, checked on October 7, 2026. Automated tests cover required publishing metadata,
+the logo contract, packaging, canonical content, provenance, and release integration. Native
 Antigravity install/discovery/runtime checks remain a release acceptance gate, not a result of CI.
-Do not describe this as a curated Google listing or host-verified integration before that evidence exists.
+Do not describe this as a curated Google listing or host-verified integration before provider-visible
+evidence exists.
 
 Source PRs change adapter code, tests, and documentation, not generated directories. The subsequent
 release PR creates the plugin directories; use an immutable release that contains them. Older releases do not.
 Contributors can run `npm test` before those directories exist: the
 [local test runner](../CONTRIBUTING.md#test-locally) creates and cleans up an isolated release preview.
 Prepared-release artifacts are checked without regeneration so drift cannot be repaired by testing.
-This adapter adds no marketplace submission workflow or new standalone release asset. Download
-the source archive from [Qodo skills releases](https://github.com/qodo-ai/qodo-skills/releases),
-or check out that release's exact tag, and retain its tag/commit for updates and rollback.
+Submission and Google review happen outside this repository; the release still contains the exact
+reviewable plugin tree instead of a separate archive. Download the source archive from
+[Qodo skills releases](https://github.com/qodo-ai/qodo-skills/releases), or check out that release's
+exact tag, and retain its tag/commit for updates and rollback.
 
 ## Install
 
@@ -49,6 +53,10 @@ Only if Qodo Standards is wanted:
 agy plugin install ./antigravity-plugins/qodo-standards
 ```
 
+In Antigravity 2.0, open **Customizations → Plugins → + Install from URL** to install the same
+plugin from a supported Git repository URL or local path. A curated Marketplace card becomes the
+preferred install path only after Google makes the submitted listing visible.
+
 The CLI manages its installed plugin files under `~/.gemini/antigravity-cli/plugins/`.
 For Antigravity 2.0 or the IDE, place just the selected plugin directory in one scope:
 
@@ -67,8 +75,9 @@ do not assume a plugin-qualified slash-command spelling without checking that ho
 ## Update and remove
 
 Obtain the next immutable release containing these directories and keep the same selected packages
-and scope. The plugin README identifies the source release; the manifest intentionally has no
-version field. The Qodo CLI's runtime updater is not this plugin's installer or updater.
+and scope. The plugin manifest and README identify the source release; every published update bumps
+the manifest version through the normal release PR. The Qodo CLI's runtime updater is not this
+plugin's installer or updater.
 
 For CLI replacements, preserve any local edits first, then use `agy plugin uninstall qodo` and
 install the new release's `antigravity-plugins/qodo` directory. Recheck `agy plugin list` and the
@@ -94,11 +103,13 @@ Run these checks separately in the CLI and IDE/2.0 before claiming support for e
 
 ## Manifest and runtime choices
 
-The manifest emits only `name` and `description`. Google's embedded schema permits only those
-fields, while its example recommends a `$schema` URL that returned 404 when checked, and
-[Google's own plugin](https://github.com/google-gemini/gemini-skills/blob/main/plugin.json) uses
-additional metadata. The conservative subset avoids depending on those inconsistencies; it is
-not a claim that every host rejects `version`.
+The public plugin page historically described only the core `name` and `description` fields. The
+partner Marketplace publishing guide requires `displayName`, `version`, `logo`, `suggestedPrompts`,
+and `author`, and recommends category, search, homepage, repository, and license metadata. Generated
+manifests now carry that complete publishing projection. Card descriptions and starter prompts live
+in `distribution/catalog.json`; shared author, URL, license, keyword, and version values retain their
+existing canonical sources. Starter prompts reuse the intent of the existing skill prompts but avoid
+host-specific `$skill` syntax.
 
 Generated Qodo invocations use `--distribution marketplace --host antigravity` for both surfaces.
 Here `marketplace` denotes host/manual-plugin lifecycle ownership, not a curated listing.

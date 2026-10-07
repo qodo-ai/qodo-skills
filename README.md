@@ -37,10 +37,11 @@ regeneration. See [local testing](CONTRIBUTING.md#test-locally) for base selecti
 Use the official Qodo listing in Claude Code, Codex, or Kiro. The marketplace owns installation
 and updates; install the Qodo CLI separately and complete `qodo login` on first use.
 
-For Antigravity, use the generated core plugin from a release containing `antigravity-plugins/`.
-Qodo Standards remains a separate opt-in plugin. See [Antigravity installation and acceptance](docs/antigravity.md)
-for CLI versus IDE setup, release availability, and the pending native smoke-test gate. This is
-manual plugin distribution, not a curated Google listing.
+Qodo's Antigravity bundles include the manifest metadata and square logo required for Marketplace
+review. Until a curated listing is provider-visible, install the generated core plugin from a release
+containing `antigravity-plugins/`; Qodo Standards remains a separate opt-in plugin. See
+[Antigravity installation and acceptance](docs/antigravity.md) for Marketplace status, CLI versus
+IDE setup, release availability, and the native smoke-test gate.
 
 For a compatible local agent without an official Qodo listing, use skills.sh. One command can
 target multiple agents:
