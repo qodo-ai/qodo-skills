@@ -14,7 +14,7 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to **administer** the workspace's Review Standards: capture a convention as a
+Use Qodo managed tools to **administer** the workspace's Review Standards: capture a convention as a
 new rule, edit or retire an existing one, re-scope it to a repo, or triage the pending
 suggestions queue. Review Standards is Qodo's umbrella term for rules and suggestions. This is
 the **write** counterpart to `qodo-get-rules` (which only
@@ -25,10 +25,29 @@ Run bulk operations as a dry run first.
 ## Prerequisites
 
 - The optional Qodo Standards package is installed and loaded explicitly.
-- The Qodo CLI is authenticated and exposes the requested standards write tool.
+- A connected QAR managed-tools MCP server or authenticated Qodo CLI exposes the requested standards tool.
 - The exact rule, scope, and intended mutation are known; the user can approve every write.
 
 ## Instructions
+
+### Choose the execution path
+
+Use connected QAR MCP tools when the requested rules capability is available; otherwise
+follow the CLI path. Read tool descriptions, `inputSchema`, and read-only/mutating annotations
+from the host. Representative MCP names are `rules-metadata`, `rules-list`, `rules-get`,
+`rules-create`, `rules-update`, `rules-set-state`, `rules-set-scope`, and `rules-bulk`;
+verify the names and JSON arguments in the connected catalog. MCP uses `rule_ids` and
+`scopes` arrays where its schema declares them, rather than CLI comma-separated flags.
+
+For every MCP write, retain one stable logical-action idempotency key and send it in
+`_meta["io.qodo/idempotency-key"]`; reuse that key with identical arguments on an uncertain
+retry. If the host cannot send call metadata, stop that MCP write and report the limitation.
+Never generate a fresh key merely to retry an uncertain outcome. Preserve the exact user
+approval, dry-run, read-back, and outcome rules below. Check `isError` before reading
+`structuredContent`; a transport success is not proof of mutation. Do not switch to a
+different CLI identity or tenant after an MCP authorization or permission denial.
+
+CLI version, identity, command-help, and refresh steps below apply only on the CLI path.
 
 Follow the detailed workflow below: preserve update notices, verify the live schema, resolve the
 target, preview destructive or bulk work, obtain confirmation, mutate once, and verify the result.

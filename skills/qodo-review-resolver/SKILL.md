@@ -23,7 +23,7 @@ arguments:
 
 ## Description
 
-Use the `qodo` CLI to read a pull request's **review session** — its status, the commit that
+Use Qodo managed tools to read a pull request's **review session** — its status, the commit that
 was reviewed, and every finding with its resolution status — for **any** PR (yours or someone
 else's). Request extended results when auditing citations or investigating a finding's supporting
 evidence, location, dismissal, or review-run history. Reading alone is a valid use: stop after the read to report where a review stands or
@@ -41,18 +41,36 @@ fact required for the freshness check below; the "don't scrape" rule is about qo
 
 ## Prerequisites
 
-- The Qodo CLI is authenticated and exposes the structured PR-review session tools.
+- A connected QAR managed-tools MCP server or authenticated Qodo CLI exposes review-session tools.
 - The exact PR URL and its current head SHA can be resolved without scraping review comments.
 - Any finding-status write has explicit user authorization; code-fix authority or `autofix` alone does not cover it.
 
 ## Instructions
 
+### Choose the execution path
+
+Use the connected QAR managed-tools MCP tools when the required review-session capability
+is available; otherwise use the CLI path below. On MCP, read the host-provided descriptions,
+`inputSchema`, and read-only/mutating annotations. The wire tools are
+`get-pr-review-findings` (`pr_url`, optional `extended`), `pr-review-dismiss`, and
+`pr-review-mark-implemented`; verify their live schemas before calling. Check `isError`
+before `structuredContent`, including for a successful transport response. A truncated
+finding result is incomplete, never a clean review.
+
+An MCP write needs a stable key for the logical finding disposition in
+`_meta["io.qodo/idempotency-key"]`. Keep it and the exact arguments for an uncertain retry.
+If the host cannot supply call metadata, stop that MCP write and report the limitation.
+The authorization, freshness, finding-status, dismissal, and read-back rules below apply
+to both paths. Do not switch to a different CLI account or tenant after a denied MCP call.
+CLI version, identity, help, and catalog-refresh instructions apply only on the CLI path.
+
 Follow the detailed workflow below: fetch structured state, require a completed exact-head review,
 present open findings, apply only approved fixes, and record only outcomes actually settled.
 
-> To check a review's status or findings, always run the `qodo` read command below — do **not**
-> fetch the rendered PR review **comments** with `gh`/`curl`. The comment UI is lossy, provider-
-> specific, and easy to read stale against the head commit; the tool returns the reviewed
+> To check a review's status or findings, call `get-pr-review-findings` on MCP or
+> `qodo read pr-review-session findings` on CLI. Do **not** fetch the rendered PR review
+> **comments** with `gh`/`curl`: the UI is lossy, provider-specific, and easy to read
+> stale against the head commit. The structured read returns the reviewed
 > `commit_sha`. To judge freshness, compare that `commit_sha` to the PR **head** — which you know
 > directly for a PR you just pushed (`git rev-parse HEAD`), or read as plain forge *metadata*
 > (`gh pr view <pr> --json headRefOid`, `git ls-remote`) for any other PR. This rule is only about
