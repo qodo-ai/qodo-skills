@@ -57,9 +57,10 @@ is available; otherwise use the CLI path below. On MCP, read the host-provided d
 before `structuredContent`, including for a successful transport response. A truncated
 finding result is incomplete, never a clean review.
 
-An MCP write needs a stable key for the logical finding disposition in
-`_meta["io.qodo/idempotency-key"]`. Keep it and the exact arguments for an uncertain retry.
-If the host cannot supply call metadata, stop that MCP write and report the limitation.
+An MCP write needs a stable key for the logical finding disposition in the live schema's
+`idempotency_key` argument. A host that supports request metadata may instead send
+`_meta["io.qodo/idempotency-key"]`; if both are sent, they must agree. Keep the same key
+and exact arguments for an uncertain retry.
 The authorization, freshness, finding-status, dismissal, and read-back rules below apply
 to both paths. Do not switch to a different CLI account or tenant after a denied MCP call.
 CLI version, identity, help, and catalog-refresh instructions apply only on the CLI path.

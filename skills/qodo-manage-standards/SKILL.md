@@ -39,9 +39,10 @@ from the host. Representative MCP names are `rules-metadata`, `rules-list`, `rul
 verify the names and JSON arguments in the connected catalog. MCP uses `rule_ids` and
 `scopes` arrays where its schema declares them, rather than CLI comma-separated flags.
 
-For every MCP write, retain one stable logical-action idempotency key and send it in
-`_meta["io.qodo/idempotency-key"]`; reuse that key with identical arguments on an uncertain
-retry. If the host cannot send call metadata, stop that MCP write and report the limitation.
+For every MCP write, retain one stable logical-action idempotency key and send it as the
+`idempotency_key` argument advertised by the live schema. A host that supports request metadata
+may instead send `_meta["io.qodo/idempotency-key"]`; if both are sent, they must agree.
+Reuse the same key and identical arguments on an uncertain retry.
 Never generate a fresh key merely to retry an uncertain outcome. Preserve the exact user
 approval, dry-run, read-back, and outcome rules below. Check `isError` before reading
 `structuredContent`; a transport success is not proof of mutation. Do not switch to a

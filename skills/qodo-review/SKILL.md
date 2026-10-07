@@ -85,7 +85,7 @@ Prefer `qodo review` when available: it gathers and filters tracked and untracke
 has produced the same intended scope and exclusions, reported omitted files, and verified that the base SHA is fetchable. Do not assemble an ad hoc `git diff` and call it equivalent coverage.
 If no collector is available, report that MCP-only local review cannot safely cover this worktree; do not claim a completed review.
 
-For a prepared MCP review, inspect the live schema, retain a stable `request_id` for an uncertain start, poll `get-managed-agent-operation` at its advertised interval, then fetch all
+For a prepared MCP review, inspect the live schema and retain the same `request_id` and exact arguments for an uncertain start: `request_id` is this start tool's logical-action retry key, and no separate `idempotency_key` argument is declared. Poll `get-managed-agent-operation` at its advertised interval, then fetch all
 `get-managed-agent-result` chunks and verify their reported digest and byte count before interpreting the artifact. These are short lifecycle calls, not MCP Tasks. Check `isError` before
 reading a receipt. Apply the same context, depth, coverage, finding, and authority rules below. CLI version, identity, and command instructions below apply only to the CLI path.
 
@@ -410,6 +410,7 @@ does not authorize stored dismissals, pushes, or unrelated changes. Report appli
 When the user explicitly authorizes declining a local finding, follow
 [Record local triage](references/local-triage.md) to persist the decision. A conversational
 "skip" alone is not a stored dismissal and must not be reported as one.
+On MCP, use the live `pr-review-dismiss` schema with finding IDs and `local_review_id` from that completed review, an authorized reason and explanation, and a stable `idempotency_key` for the batch; read back each stored outcome. The reference's CLI commands apply only to the CLI path.
 
 After a batch of authorized fixes, verify and re-review changed work using the lifecycle policy above.
 Assess outstanding findings and coverage before calling the result clean; stop an unproductive loop.
