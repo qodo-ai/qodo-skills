@@ -265,8 +265,8 @@ No direct Git-provider requests are needed for registry resolution.
 
 ### MCP
 
-Discover `tools/list` on the trusted connected Qodo managed-tools server. Use the available names
-and schemas. MCP performs the same platform operations as CLI; it does not read local Git.
+Use the review-notes tool names and schemas supplied by the host for the trusted connected
+Qodo managed-tools server. MCP performs the same platform operations as CLI; it does not read local Git.
 Supply `document.commit_sha_at_update`, current source/base branches and both canonical repository
 identities yourself. Creation SHA may be omitted; the runtime sets it to that captured existing HEAD.
 Never fabricate a SHA, issue ID, repository identity or track selection.
