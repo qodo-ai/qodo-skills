@@ -53,7 +53,10 @@ qodo tools help review-notes --json
 ```
 
 If the version is below the minimum or cannot be parsed, stop authenticated CLI calls and explain
-the update needed. Offer `qodo update` for the CLI's already-recorded public or enterprise origin;
+the update needed. Before offering an update, check only whether `QODO_UPDATE_BASE_URL` is set;
+never print its value. If set, it overrides the recorded source: ask the user to resolve that
+override before proceeding, without changing it yourself. Otherwise offer `qodo update` for
+the CLI's already-recorded public or enterprise origin;
 honor existing update authorization, otherwise ask once before running it. Never switch origins.
 After an approved update, rerun the unadorned version probe before `whoami` or tool discovery.
 If no update is authorized, stop this CLI path; trusted MCP remains available when configured.
