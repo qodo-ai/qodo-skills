@@ -1,6 +1,6 @@
 ---
 name: qodo-codebase-wisdom
-description: Understand how code works, how a change was done before, and which repos are coupled — to answer a question, plan a code change, debug a regression, or scope a fix, using the qodo CLI's managed tools. Use when a task needs to understand a codebase, its history, or how its repos relate — especially for a repo you don't have checked out or work spanning repos — "how does X work", "where is X defined", "who changed X", "explain this service", "plan the change for X", "what would changing X affect", "which repos depend on X", "why did X regress / when did it break", "has this been fixed before", "how did we solve X".
+description: Understand how code works, how a change was done before, and which repos are coupled — to answer a question, plan a code change, debug a regression, or scope a fix, using Qodo managed tools through MCP or the CLI. Use when a task needs to understand a codebase, its history, or how its repos relate — especially for a repo you don't have checked out or work spanning repos — "how does X work", "where is X defined", "who changed X", "explain this service", "plan the change for X", "what would changing X affect", "which repos depend on X", "why did X regress / when did it break", "has this been fixed before", "how did we solve X".
 owner: Qodo
 metadata:
   vendor: qodo
@@ -14,18 +14,39 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to learn how code works, how a change was done before, and how repos
+Use Qodo managed tools to learn how code works, how a change was done before, and how repos
 are coupled — then hand back **cited findings**. This feeds answering a question, planning
 a change, debugging a regression, or scoping a fix. It reaches repos you don't have on disk
 and spans repo boundaries. You drive qodo's **read** tools only; you never post to the forge.
 
 ## Prerequisites
 
-- The Qodo CLI is installed and the user can authenticate with `qodo login`.
+- The required tools are available through a connected QAR managed-tools MCP server or the Qodo CLI.
 - The workspace exposes the required read-only Codebase, pull-request, or cross-repo tools.
 - The current provider-owned Qodo skill package is loaded in this agent session.
 
 ## Instructions
+
+### Choose the execution path
+
+Use the host's connected QAR managed-tools MCP tools when the required read capability is
+available; otherwise use the CLI instructions below. Do not require a CLI version probe,
+`qodo login`, or a CLI catalog refresh on the MCP path. A connected MCP server has already
+handled transport authentication; a missing tool or `MT-AUTH-FORBIDDEN` is a capability or
+authorization failure, not a reason to log in through the CLI. Do not silently switch paths
+after an auth or permission denial.
+
+On MCP, use the tool descriptions, `inputSchema`, and `readOnlyHint` supplied by the host.
+Call only read-only tools. Representative wire names are `litegit-search-repos`,
+`litegit-grep`, `litegit-read-file`, `pull-request-similar`, and
+`cross-repo-relations`; resolve the actual names and arguments from the connected catalog.
+Pass explicit `repo` when needed: MCP does not infer the local Git origin like the CLI.
+Check `isError` before using `structuredContent`; preserve typed errors and incomplete or
+truncated results. If a call becomes an MCP Task, collect its terminal result before drawing
+a conclusion. A missing MCP capability may use an already authorized CLI path for the same
+deployment; do not treat different accounts or tenants as interchangeable.
+
+The version, identity, help, command, and refresh steps below apply only to the CLI path.
 
 At investigation start and when moving into implementation, identify the missing context:
 
@@ -193,7 +214,8 @@ replace them with guessed repository facts or broader authority.
 
 ## Guardrails
 
-- Only call managed tools through the fail-closed `qodo read` gateway. The write tools — `approve`,
+- On CLI, call reads through the fail-closed `qodo read` gateway; on MCP, require a read-only
+  annotation. The write tools — `approve`,
   `post-comment`, `post-inline-comment(s)`, `set-labels`, `update-description` (non-exhaustive) —
   post to the forge; **don't call them** while investigating. (Editing local code as part of a
   fix is your normal work — that's not these tools.)
