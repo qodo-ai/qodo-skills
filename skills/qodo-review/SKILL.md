@@ -85,9 +85,9 @@ Prefer `qodo review` when available: it gathers and filters tracked and untracke
 has produced the same intended scope and exclusions, reported omitted files, and verified that the base SHA is fetchable. Do not assemble an ad hoc `git diff` and call it equivalent coverage.
 If no collector is available, report that MCP-only local review cannot safely cover this worktree; do not claim a completed review.
 
-For a prepared MCP review, inspect the live schema and retain the same `request_id` and exact arguments for an uncertain start: `request_id` is this start tool's logical-action retry key, and no separate `idempotency_key` argument is declared. Poll `get-managed-agent-operation` at its advertised interval, then fetch all
-`get-managed-agent-result` chunks and verify their reported digest and byte count before interpreting the artifact. These are short lifecycle calls, not MCP Tasks. Check `isError` before
-reading a receipt. Apply the same context, depth, coverage, finding, and authority rules below. CLI version, identity, and command instructions below apply only to the CLI path.
+For a prepared MCP review, inspect the live schema. Set `review_scope.stream_id` to exactly 64 lowercase hexadecimal characters: SHA-256 of a JSON array containing the resolved real worktree root, plus the resolved working directory for path-limited reviews. Reuse it across checkpoints; a UUID is invalid.
+Retain the same `request_id` and exact arguments for an uncertain start: `request_id` is this start tool's logical-action retry key, and no separate `idempotency_key` argument is declared. Poll `get-managed-agent-operation` at its advertised interval, then fetch all `get-managed-agent-result` chunks and verify their reported digest and byte count before interpreting the artifact.
+These are short lifecycle calls, not MCP Tasks. Check `isError` before reading a receipt. Apply the same context, depth, coverage, finding, and authority rules below. CLI version, identity, and command instructions below apply only to the CLI path.
 
 Preserve notices, attach self-contained context, show progress, use a suitable timeout,
 read the structured result, and act on findings.

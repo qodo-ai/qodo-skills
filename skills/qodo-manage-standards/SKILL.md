@@ -1,6 +1,6 @@
 ---
 name: qodo-manage-standards
-description: Create, edit, and administer Qodo Review Standards from conversation — capture a convention just discussed as a new rule, change or deactivate an existing one, re-scope rules to a repo, and triage pending suggestions (accept/reject) — using the qodo CLI's managed rules tools. Use on "make this a rule", "make a rule for this repo", "deactivate/disable the X rule", "change the X rule to an error", "re-scope the X rule to this repo", "show pending suggestions", "let's triage suggestions", "accept/reject this suggestion", or "bulk deactivate rules"; skip reading or applying rules (use qodo-get-rules) and anything that isn't a rules-entity change.
+description: Create, edit, and administer Qodo Review Standards from conversation — capture a convention just discussed as a new rule, change or deactivate an existing one, re-scope rules to a repo, and triage pending suggestions (accept/reject) — using Qodo managed rules tools through MCP or the CLI. Use on "make this a rule", "make a rule for this repo", "deactivate/disable the X rule", "change the X rule to an error", "re-scope the X rule to this repo", "show pending suggestions", "let's triage suggestions", "accept/reject this suggestion", or "bulk deactivate rules"; skip reading or applying rules (use qodo-get-rules) and anything that isn't a rules-entity change.
 owner: Qodo
 metadata:
   vendor: qodo
