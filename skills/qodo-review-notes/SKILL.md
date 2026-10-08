@@ -291,18 +291,27 @@ Supply `document.commit_sha_at_update`, current source/base branches and both ca
 identities yourself. Creation SHA may be omitted; the runtime sets it to that captured existing HEAD.
 Never fabricate a SHA, issue ID, repository identity or track selection.
 
-Mutating `tools/call` requests require the same stable transport key in request `_meta`:
+For writes, supply `idempotency_key` as a normal tool argument when the live MCP schema
+advertises it. Retain one key per intended write and reuse it only with identical arguments
+after an uncertain outcome; use a new key for a different authorized write. This transport
+key is separate from the platform `creation_key` and does not grant approval.
 
 ```json
 {
   "name": "review-notes-bind-pr",
-  "arguments": { "notes_id": "actual-notes-uuid", "pr_number": 5443 },
-  "_meta": { "io.qodo/idempotency-key": "retained-unique-bind-key" }
+  "arguments": {
+    "notes_id": "actual-notes-uuid",
+    "pr_number": 5443,
+    "idempotency_key": "retained-unique-bind-key"
+  }
 }
 ```
 
-Use the host's MCP call interface and approval mechanism. If it cannot send the required `_meta`,
-use the authenticated CLI for writes instead; do not omit write idempotency or invent a credential path.
+Clients may also supply the key in request `_meta["io.qodo/idempotency-key"]`; when both
+locations are supplied, they must agree. Use the host's MCP call interface and approval mechanism.
+An older server may expose only the metadata path. If the host cannot send that metadata and the
+live schema lacks the normal argument, report the unavailable MCP write capability; use CLI only
+when it is already available and authorized. Never omit write idempotency or invent a credential path.
 Collect a returned operation/task to completion using the server's declared protocol before claiming
 publication or binding succeeded. Read typed errors even when a transport call returned HTTP success.
 
