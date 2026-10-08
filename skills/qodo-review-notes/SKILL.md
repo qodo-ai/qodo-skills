@@ -185,6 +185,23 @@ retry authorization refusals or create a second record to bypass a binding confl
 Write receipts contain IDs, revisions and a document summary; they omit note content and reference
 collections. Use the explicit read tools for full documents before editing.
 
+### Read every page before editing
+
+Reads that fit the deployment's notes result budget keep their ordinary shape. Larger reads return
+`result_is_page=true`, `encoding=json_text`, `text`, `result_digest`, record revisions, and
+`next_read_cursor`. Repeat the exact original read arguments plus the returned `read_cursor`
+(`--read-cursor` for CLI) until `next_read_cursor` is null. Concatenate the `text` values without
+separators, then parse the combined JSON once; a fragment is not a complete document. Preserve
+offset order and require one result digest throughout. Never edit from an incomplete read.
+If a read returns `MT-CONFLICT`, discard all its fragments and restart without `read_cursor`;
+the selected notes or query result changed between pages. Every page still requires authorization.
+
+Collection pagination is separate from content pagination. Each collection page contains at most
+one full record. After reconstructing it, follow `nextCursor` with `after` for `find-tracks`,
+`linkedPrs.nextCursor` with `prs_after` and `include_prs=true` for `get-track`, or `next_before`
+with `before` for `history`. Start each new collection page without `read_cursor`. Continue until
+its collection cursor is null; a short page does not prove the collection is exhausted.
+
 State the selected track and PR notes IDs, published revisions, captured source commit and binding
 state returned by Qodo. Distinguish a saved draft from published notes. Summarize meaningful review focus and any
 remaining conflict or publication action. Do not claim that a review consumed these notes merely
