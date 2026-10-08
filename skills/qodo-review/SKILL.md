@@ -89,10 +89,11 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 
 ## Runtime compatibility gate
 Resolve the executable using this skill's command-not-found fallback, then run `<qodo> --version`
-with no provenance flags. This skill requires Qodo CLI **0.1.0-next.37 or newer**. If older or
-unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure. Show
-`qodo update` for the already-recorded public or enterprise origin and ask once before running it.
-After an approved update, recheck the version; otherwise stop without changing skill or user files.
+with no provenance flags. This skill requires Qodo CLI **2.0.0 or newer** and a runtime with review API v2.
+If older or unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure.
+Automatic updates stay within a major version; ask once before explicit 2.x installation with a
+checksum-pinned installer supplied by Qodo or the organization. Preserve the recorded origin and
+never invent a digest. Recheck the version after installation; otherwise stop without changing files.
 
 ## Quick start
 You just wrote the code, so you hold the one input the reviewer can't get anywhere else: **why**.
@@ -474,9 +475,7 @@ on the first Qodo call after the unadorned version probe and keep session contex
 
 ## Error Handling
 
-Read the structured result even after a non-zero command. Preserve closed-preview, cancellation,
-rate-limit, connection, and tool-loop states; follow the bounded recovery above and never discard
-context or widen authority merely to obtain a green result.
+Read the structured result after non-zero exits. Follow bounded recovery; preserve context and authority.
 
 ## Guardrails
 

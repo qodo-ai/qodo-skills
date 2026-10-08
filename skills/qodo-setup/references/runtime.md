@@ -63,7 +63,8 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 ## Old or unparseable runtime
 
 Do not run whoami or login until the minimum CLI version in SKILL.md is met. Explain the
-compatibility issue and use `<qodo> update`, which retains the runtime's recorded origin.
-Proceed if the user's setup request covers this update; otherwise ask once. Keep customer
-origins unchanged. Rerun the unadorned version probe after updating. If declined, failed or
+compatibility issue. Automatic updates stay within a major version: upgrading 1.x to 2.x requires
+the checksum-pinned installation procedure above, preserving the recorded distribution origin.
+Select an explicit 2.x version with `--version` on POSIX or `QODO_VERSION` on Windows.
+Proceed if the setup request covers installation; otherwise ask once. Keep customer origins unchanged. Rerun the unadorned version probe after updating. If declined, failed or
 still incompatible, stop without modifying the skill package or diagnosing an auth failure.

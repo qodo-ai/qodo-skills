@@ -71,15 +71,15 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
-CLI **0.1.0-next.37 or newer**.
+CLI **2.0.0 or newer** and a runtime with review API v2.
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
-do not describe the failure as an authentication problem. Explain that the skill is newer than the
-runtime, show `qodo update` as the update command for the runtime's already-recorded origin, and ask
-once before running it. For a customer deployment, keep its organization-provided update origin;
-never switch it to the public service. After an approved update, rerun the unadorned version probe
-and continue only when it satisfies the minimum. If the user declines or the update fails, stop with
-the current skill and user files unchanged.
+do not describe the failure as an authentication problem. Automatic CLI updates stay within their
+major version, so `qodo update` cannot migrate 1.x to 2.x. Explain the required explicit 2.x
+installation and ask once before running the checksum-pinned installer supplied by Qodo or the
+organization. Preserve the recorded distribution origin; never switch an enterprise deployment
+to the public service or invent an installer digest. After installation, rerun the unadorned
+version probe. If declined or unsuccessful, stop with skill and user files unchanged.
 
 ## Quick start
 
