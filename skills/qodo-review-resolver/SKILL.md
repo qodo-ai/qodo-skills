@@ -71,15 +71,15 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
-CLI **0.1.0-next.37 or newer**.
+CLI **2.0.0 or newer** and a runtime with review API v2.
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
-do not describe the failure as an authentication problem. Explain that the skill is newer than the
-runtime, show `qodo update` as the update command for the runtime's already-recorded origin, and ask
-once before running it. For a customer deployment, keep its organization-provided update origin;
-never switch it to the public service. After an approved update, rerun the unadorned version probe
-and continue only when it satisfies the minimum. If the user declines or the update fails, stop with
-the current skill and user files unchanged.
+do not describe the failure as an authentication problem. Automatic CLI updates stay within their
+major version, so `qodo update` cannot migrate 1.x to 2.x. Explain the required explicit 2.x
+installation and ask once before running the checksum-pinned installer supplied by Qodo or the
+organization. Preserve the recorded distribution origin; never switch an enterprise deployment
+to the public service or invent an installer digest. After installation, rerun the unadorned
+version probe. If declined or unsuccessful, stop with skill and user files unchanged.
 
 ## Quick start
 
@@ -147,9 +147,13 @@ own diagnosis, not a login recommendation or an automatic sandbox bypass.
 - `review_session` — the latest review run: `status`, `commit_sha` (**the last commit included in
   the review** — the code these findings describe), `started_at`. **`null` = the PR has no review
   yet** — tell the user and stop (nothing to resolve).
-- `findings[]` — every current finding, each with: `title`, `description`, `category`,
+- `findings[]` — every current finding, each with: `id`, `title`, `description`, `category`,
   `action_level` (`action_required` > `remediation_recommended` > `informational`),
-  `attribution_status`, `git_sha`, `review_run_id`, `comment_id` / `inline_comment_id`.
+  `attribution_status`, `git_sha`, `location` (`file_path`, `start_line`, `end_line`, `side`),
+  and `evidence.citations` (each citation's `source_type` and `source`). This is the same default
+  Finding object used by local reviews. Unavailable locations or evidence are null.
+  Use the location to inspect the affected code and the stable ID to record an authorized outcome.
+  Provider comment IDs, internal reviewer decisions, and fix instructions are excluded in both modes.
 
 Zero findings supports a clean verdict only for a complete, completed review at the current PR head.
 
@@ -161,10 +165,10 @@ the `extended` boolean, use `qodo read pr-review-session findings --pr-url <PR_U
 The tool/API input is `extended: true`; omitted or false keeps the compact response.
 This reads more stored data; it does not rerun or deepen the review.
 
-Extended results add finding locations and code snippets, dismissal reasons/explanations,
-`review_runs`, and `findings[].evidence` with `explanation` and `citations`. Preserve each
+Extended results add `location.code_snippet`, dismissal reasons/explanations, `review_runs`,
+`evidence.explanation`, and fuller citation text/context. Preserve each
 citation's source type, source reference, text and source-specific metadata in an audit output.
-Correlate evidence with that finding's `id`, `git_sha`, `review_run_id` and `review_source`;
+Correlate evidence with that finding's `id` and `git_sha`;
 current findings can originate in earlier runs than `review_session`.
 
 Null evidence means unavailable; an empty citations list contains no recorded citations. An
