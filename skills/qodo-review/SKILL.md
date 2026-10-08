@@ -278,24 +278,24 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 - The **branch name**, **HEAD commit**, and a **description** synthesized from your commit messages.
 - Any **ticket refs** and **session context** you attach (below).
 
-`--json` returns each finding once in `findings`; `finding_state` buckets reference those IDs. Assess
-`.introduced` **and** `.still_open`; report detected fixes in `.resolved` and stored dismissals in `.dismissed`. Older buckets contain full objects.
+`--json` returns each finding once in `findings`; `finding_state` buckets reference IDs. Assess `.introduced`
+**and** `.still_open`; report detected fixes in `.resolved` and stored dismissals in `.dismissed`. Older buckets contain full objects.
+Default fields: `id`, `title`, `description`, `category`, `action_level`, `attribution_status`, `git_sha`,
+`location`, `evidence.citations`. Inspect the code location and evidence; preserve the original finding ID.
+`--extended` adds stored supporting detail; it changes neither review depth nor execution.
+For authorized status writes, group IDs by `meta.local_review_ids[id]`; report unavailable references.
+Fix instructions and reviewer internals are excluded. See the [field guide](references/finding-results.md) for field details.
 If `finding_state.complete` or `meta.coverage.complete` is false, report the incomplete coverage.
-
-Read [finding results](references/finding-results.md) for Finding fields, `--extended` and local metadata.
 `meta.analysis.mode` is `full`, `incremental`, or `reused`. Reused means the same reviewed snapshot
 and compatible context; earlier open findings remain open. The CLI privately saves the submitted patch.
-It advances its checkpoint after collecting an eligible result, including via `review status`.
-Failed or older completions cannot replace a newer checkpoint.
+It advances its checkpoint after collecting an eligible result, including via `review status`; failed or older completions cannot replace a newer checkpoint.
 Keep the same base, path scope, requested depth mode and context during a fix loop. Changed context, expired or
 unverifiable checkpoints, and unsupported deltas fall back to full review. Never fabricate a checkpoint.
 For a deliberately fresh assessment use `--full` (confirm support with `--help`). It controls scope,
 not depth; it is not needed on every fix. Changing the requested depth mode invalidates compatible
 checkpoint coverage. Auto does not promise a fixed effective tier; rely on returned analysis/coverage.
 Older engines omit these fields: use their findings and coverage without claiming reuse.
-Prefer `meta.run.passes` for actual outcomes; legacy `meta.reviewers` describes configured dimensions.
-Report failed/skipped components and missing metadata; reuse has no new execution.
-Never remove context merely to make an incremental checkpoint eligible.
+Prefer `meta.run.passes` for actual outcomes; legacy `meta.reviewers` describes configured dimensions. Report failed/skipped components and missing metadata; reuse has no new execution.
 
 ## Attach coding-session context (this is the point)
 
