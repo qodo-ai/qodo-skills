@@ -27,11 +27,20 @@
       "name": "qodo",
       "displayName": "Qodo",
       "description": "Qodo setup, code intelligence, and review workflows.",
+      "antigravity": {
+        "description": "Set up Qodo, explore code and repository history, review local changes, and resolve pull-request findings directly from Antigravity.",
+        "suggestedPrompts": [
+          "Connect my Qodo account and verify this coding agent is ready.",
+          "Explain how this code works, including its history and cross-repository impact.",
+          "Review my local changes with Qodo before I push them."
+        ]
+      },
       "default": true,
       "skills": [
         "qodo-setup",
         "qodo-codebase-wisdom",
         "qodo-review",
+        "qodo-review-notes",
         "qodo-review-resolver"
       ],
       "compatibilityAliases": {
@@ -44,6 +53,13 @@
       "name": "qodo-standards",
       "displayName": "Qodo Standards",
       "description": "Optional Qodo rules discovery and standards administration workflows.",
+      "antigravity": {
+        "description": "Find the Qodo coding standards relevant to your work, then create, update, scope, and triage review rules directly from Antigravity.",
+        "suggestedPrompts": [
+          "Load the Qodo coding standards relevant to this task.",
+          "Capture this convention as a Qodo Review standard."
+        ]
+      },
       "default": false,
       "skills": [
         "qodo-get-rules",
@@ -103,6 +119,14 @@
       "displayName": "Qodo Review Resolver",
       "shortDescription": "Read, audit and resolve Qodo PR findings with citation evidence.",
       "defaultPrompt": "Use $qodo-review-resolver to show me the current Qodo review findings."
+    },
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.0",
+      "recommended": true,
+      "displayName": "Qodo Review Notes",
+      "shortDescription": "Maintain development tracks and PR reviewer context.",
+      "defaultPrompt": "Use $qodo-review-notes to find the development track and publish PR Review Notes."
     }
   ]
 }

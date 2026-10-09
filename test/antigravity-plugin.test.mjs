@@ -13,6 +13,8 @@ import { executeReleaseTransaction } from '../scripts/prepare-release.mjs';
 const source = dirname(dirname(fileURLToPath(import.meta.url)));
 const read = (root, path) => readFileSync(join(root, path), 'utf8').replace(/\r\n/g, '\n');
 const catalog = JSON.parse(read(source, 'distribution/catalog.json'));
+const author = { name: 'Qodo', email: 'support@qodo.ai', url: 'https://www.qodo.ai' };
+const keywords = ['qodo', 'code-review', 'code-intelligence', 'standards', 'coding-agents'];
 
 function files(root, prefix = '') {
   return readdirSync(join(root, prefix), { withFileTypes: true }).flatMap((entry) => {
@@ -28,24 +30,49 @@ function temporary(t) {
   return root;
 }
 
-test('Antigravity manifests use the documented minimal contract and exact package membership', () => {
+test('Antigravity manifests satisfy the Marketplace contract and exact package membership', () => {
   const plugins = join(source, 'antigravity-plugins');
+  const canonicalLogo = readFileSync(join(source, 'distribution/assets/antigravity/qodo.png'));
+  assert.deepEqual([...canonicalLogo.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.equal(canonicalLogo.toString('ascii', 12, 16), 'IHDR');
+  const width = canonicalLogo.readUInt32BE(16);
+  const height = canonicalLogo.readUInt32BE(20);
+  assert.equal(width, height);
+  assert.ok(width >= 128);
+  assert.ok([4, 6].includes(canonicalLogo[25]), 'Marketplace PNG must include an alpha channel');
   assert.deepEqual(readdirSync(plugins).sort(), catalog.installPackages.map((pkg) => pkg.name).sort());
   for (const pkg of catalog.installPackages) {
     const root = join(plugins, pkg.name);
     const manifest = JSON.parse(read(root, 'plugin.json'));
-    // Google's plugin docs and example plugins differ on additional fields.
-    // Deliberately use their common name/description subset, not Kiro's manifest.
-    assert.deepEqual(manifest, { name: pkg.name, description: pkg.description });
-    assert.match(manifest.name, /^[a-zA-Z0-9_-]+$/);
-    assert.ok(manifest.description.trim());
-    assert.deepEqual(readdirSync(root).sort(), ['README.md', 'plugin.json', 'skills']);
+    assert.deepEqual(manifest, {
+      name: pkg.name,
+      displayName: pkg.displayName,
+      version: catalog.package.version,
+      description: pkg.antigravity.description,
+      logo: 'assets/qodo.png',
+      suggestedPrompts: pkg.antigravity.suggestedPrompts,
+      category: 'Developer Tools',
+      keywords,
+      author,
+      homepage: catalog.package.homepage,
+      repository: catalog.package.repository,
+      license: catalog.package.license,
+    });
+    assert.match(manifest.name, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+    assert.ok(manifest.description.length >= 120 && manifest.description.length <= 160);
+    assert.ok(manifest.suggestedPrompts.length >= 1 && manifest.suggestedPrompts.length <= 3);
+    for (const prompt of manifest.suggestedPrompts) {
+      assert.ok(prompt.trim());
+      assert.doesNotMatch(prompt, /\$qodo-/, 'Marketplace prompts must not depend on Codex skill syntax');
+    }
+    assert.deepEqual(readFileSync(join(root, manifest.logo)), canonicalLogo);
+    assert.deepEqual(readdirSync(root).sort(), ['README.md', 'assets', 'plugin.json', 'skills']);
     assert.deepEqual(readdirSync(join(root, 'skills')).sort(), [...pkg.skills].sort());
     const readme = read(root, 'README.md');
     assert.ok(readme.includes(`/blob/v${catalog.package.version}/docs/antigravity.md`));
     assert.ok(readme.includes(`/releases/tag/v${catalog.package.version}`));
   }
-  assert.equal(catalog.installPackages.find((pkg) => pkg.name === 'qodo').skills.length, 4);
+  assert.ok(catalog.installPackages.find((pkg) => pkg.name === 'qodo').skills.includes('qodo-review-notes'));
   assert.equal(catalog.installPackages.find((pkg) => pkg.name === 'qodo-standards').skills.length, 2);
 });
 

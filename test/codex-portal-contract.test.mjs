@@ -23,7 +23,7 @@ test('starter selection is independent of installed skills and cannot cross pack
   const submission = submissions.listings[0];
   const ui = codexListingInterface(catalog, submission);
   assert.equal(ui.defaultPrompt.length, 3);
-  assert.equal(catalog.installPackages[0].skills.length, 4);
+  assert.ok(catalog.installPackages[0].skills.length > ui.defaultPrompt.length);
   assert.ok(catalog.installPackages[0].skills.includes('qodo-setup'));
   for (const names of [[], ['qodo-get-rules'], ['qodo-review', 'qodo-review'],
     catalog.installPackages[0].skills, ['unknown']]) {
