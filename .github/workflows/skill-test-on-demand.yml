@@ -1,0 +1,97 @@
+name: Test Skill On-Demand
+
+# Manually trigger validation for any skill, optionally on a specific OS.
+# Useful for maintenance, debugging, and verifying skills without opening a PR.
+#
+# Trigger via GitHub Actions UI: Actions > Test Skill On-Demand > Run workflow
+# Or via CLI: gh workflow run skill-test-on-demand.yml -f skill=qodo-get-rules
+
+on:
+  workflow_dispatch:
+    inputs:
+      skill:
+        description: "Skill name (e.g. qodo-get-rules)"
+        required: true
+        type: string
+      os:
+        description: "Operating system to test on (all = use skill's declared OS list)"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - ubuntu
+          - macos
+          - windows
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Build the test matrix for the requested skill
+  # ---------------------------------------------------------------------------
+  setup:
+    name: Build matrix for ${{ inputs.skill }}
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build.outputs.matrix }}
+      has_matrix: ${{ steps.build.outputs.has_matrix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Build test matrix
+        id: build
+        run: |
+          python3 .github/scripts/build-matrix.py skill "${{ inputs.skill }}" --os "${{ inputs.os }}"
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Run validation on each OS in the matrix
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate ${{ matrix.skill }} on ${{ matrix.os }}
+    needs: setup
+    if: needs.setup.outputs.has_matrix == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Validate skill
+        run: python3 .github/scripts/validate-skill.py skills/${{ matrix.skill }}
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Summary
+  # ---------------------------------------------------------------------------
+  summary:
+    name: Test summary
+    needs: [setup, validate]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Report
+        run: |
+          validate="${{ needs.validate.result }}"
+          has_matrix="${{ needs.setup.outputs.has_matrix }}"
+
+          if [ "$has_matrix" = "false" ]; then
+            echo "No matrix entries were generated for skill '${{ inputs.skill }}'."
+            echo "Check that the skill directory exists at skills/${{ inputs.skill }}"
+            exit 1
+          fi
+
+          if [ "$validate" = "failure" ]; then
+            echo "Validation FAILED for ${{ inputs.skill }} (os: ${{ inputs.os }})"
+            exit 1
+          fi
+
+          if [ "$validate" = "cancelled" ]; then
+            echo "Validation was cancelled"
+            exit 1
+          fi
+
+          echo "Validation passed for ${{ inputs.skill }} (os: ${{ inputs.os }})"

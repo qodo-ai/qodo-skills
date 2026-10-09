@@ -1,0 +1,94 @@
+name: Skill PR Validation
+
+# Runs on every PR that touches the skills/ directory.
+# Reads each affected skill's support.yml to determine the OS test matrix,
+# then runs structural validation on each (skill, OS) combination.
+# The `check-passed` job is the required status check to configure in branch protection.
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "skills/**"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Detect which skills changed and build the test matrix
+  # ---------------------------------------------------------------------------
+  setup:
+    name: Detect changed skills
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build.outputs.matrix }}
+      has_matrix: ${{ steps.build.outputs.has_matrix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Get changed skill files
+        id: changed
+        uses: tj-actions/changed-files@7dee1b0c1557f278e5c7dc244927139d78c0e22a  # v47.0.4
+        with:
+          files: skills/**
+
+      - name: Build test matrix
+        id: build
+        run: |
+          python3 .github/scripts/build-matrix.py pr "${{ steps.changed.outputs.all_changed_files }}"
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Validate each (skill, OS) combination from the matrix
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate ${{ matrix.skill }} on ${{ matrix.os }}
+    needs: setup
+    if: needs.setup.outputs.has_matrix == 'true'
+    strategy:
+      fail-fast: false  # Run all combinations so all failures are visible at once
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Validate skill
+        run: python3 .github/scripts/validate-skill.py skills/${{ matrix.skill }}
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Summary gate -- configure this as the required status check
+  #
+  # Branch protection rule: require "Skill validation passed" to pass.
+  # This single job absorbs the dynamic matrix so you only need one required check.
+  # ---------------------------------------------------------------------------
+  check-passed:
+    name: Skill validation passed
+    needs: [setup, validate]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Evaluate results
+        run: |
+          setup="${{ needs.setup.result }}"
+          validate="${{ needs.validate.result }}"
+          has_matrix="${{ needs.setup.outputs.has_matrix }}"
+
+          if [ "$setup" != "success" ]; then
+            echo "Setup job failed (result: $setup)"
+            exit 1
+          fi
+
+          if [ "$has_matrix" = "false" ]; then
+            echo "No skills affected by this PR -- validation skipped"
+            exit 0
+          fi
+
+          if [ "$validate" = "failure" ] || [ "$validate" = "cancelled" ]; then
+            echo "One or more skill validations FAILED (result: $validate)"
+            exit 1
+          fi
+
+          echo "All skill validations passed"
