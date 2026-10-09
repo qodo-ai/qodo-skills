@@ -1,0 +1,13 @@
+{
+  "skill": "qodo-pr-resolver",
+  "provider": "azure-devops",
+  "test_repo": "https://dev.azure.com/qodoinc/pr-agent-tests/_git/pr-agent-tests",
+  "base_branch": "main",
+  "prompt": "auto-fix all",
+  "criteria": [
+    { "id": "mock-issue-parsed", "description": "Mock issue title parsed from comment (Phase 1 — content)", "match": "SyntaxError", "flags": "i" },
+    { "id": "severity-assigned", "description": "Severity label echoed from issue title (Phase 2)", "match": "CRITICAL|HIGH|MEDIUM|LOW", "flags": "i" },
+    { "id": "pr-url-echoed", "description": "Skill completed through Step 10 — PR URL echoed (Phase 3 proxy)", "match": "🔗 PR:", "flags": "" },
+    { "id": "summary-posted", "description": "Summary comment posted to ADO (Phase 3 — actual write)", "match": "Fix Summary|✅ Fixed|Deferred|fix summary", "flags": "i", "source": "ado-api" }
+  ]
+}

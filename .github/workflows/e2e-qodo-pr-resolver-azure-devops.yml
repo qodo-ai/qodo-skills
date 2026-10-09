@@ -1,0 +1,270 @@
+name: E2E Test — qodo-pr-resolver (Azure DevOps)
+
+# Runs a live end-to-end test of the qodo-pr-resolver skill against a real
+# Azure DevOps PR whenever a PR touches the skill's source files.
+#
+# Flow:
+#   1. Clone qodoinc/pr-agent-tests and create an ephemeral branch+PR
+#   2. Post a mock Qodo review comment (as CI account Eilon@codiuminc.onmicrosoft.com)
+#   3. Patch the installed skill to recognise "Eilon" as a valid bot author
+#   4. Run the skill in auto-fix mode; assert 4 observable criteria
+#   5. Abandon the ephemeral PR on success; leave it open on failure for debugging
+#
+# Requires the `ci` environment which holds ANTHROPIC_API_KEY, QODO_API_KEY,
+# QODO_API_URL, and ADO_TOKEN. Secrets are never exposed to fork PRs.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "skills/qodo-pr-resolver/**"
+
+jobs:
+  e2e:
+    name: E2E test — ADO (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    environment: ci
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ADO_TOKEN: ${{ secrets.ADO_TOKEN }}
+      ADO_ORG_URL: https://dev.azure.com/qodoinc
+      ADO_PROJECT: pr-agent-tests
+      ADO_REPO: pr-agent-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Configure Qodo API key (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p ~/.qodo
+          printf '{"API_KEY":"%s","QODO_API_URL":"%s"}' "$QODO_API_KEY" "$QODO_API_URL" > ~/.qodo/config.json
+        env:
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          QODO_API_URL: ${{ secrets.QODO_API_URL }}
+
+      - name: Configure Qodo API key (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -Force -ItemType Directory "$HOME/.qodo" | Out-Null
+          $config = '{"API_KEY":"' + $env:QODO_API_KEY + '","QODO_API_URL":"' + $env:QODO_API_URL + '"}'
+          Set-Content -Path "$HOME/.qodo/config.json" -Value $config
+        env:
+          QODO_API_KEY: ${{ secrets.QODO_API_KEY }}
+          QODO_API_URL: ${{ secrets.QODO_API_URL }}
+
+      - name: Install skill from PR branch (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p .claude/skills
+          rm -rf .claude/skills/qodo-pr-resolver
+          cp -r skills/qodo-pr-resolver .claude/skills/qodo-pr-resolver
+
+      - name: Install skill from PR branch (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -Force -ItemType Directory ".claude/skills" | Out-Null
+          Remove-Item -Recurse -Force ".claude/skills/qodo-pr-resolver" -ErrorAction SilentlyContinue
+          Copy-Item -Recurse "skills/qodo-pr-resolver" ".claude/skills/qodo-pr-resolver"
+
+      - name: Install Azure CLI (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: brew install azure-cli
+
+      - name: Install Azure DevOps extension (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: az extension add --name azure-devops --yes 2>/dev/null || true
+
+      - name: Install Azure DevOps extension (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: az extension add --name azure-devops --yes 2>$null; $true
+
+      - name: Authenticate Azure DevOps CLI (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          echo "$ADO_TOKEN" | az devops login --organization "$ADO_ORG_URL"
+          az devops configure --defaults organization="$ADO_ORG_URL" project="$ADO_PROJECT"
+
+      - name: Authenticate Azure DevOps CLI (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:ADO_TOKEN | az devops login --organization $env:ADO_ORG_URL
+          az devops configure --defaults organization=$env:ADO_ORG_URL project=$env:ADO_PROJECT
+
+      - name: Clone ADO test repo and create ephemeral branch (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          TEST_BRANCH="ci-e2e-qodo-pr-resolver-ado-${{ github.run_id }}-${{ matrix.os }}"
+          CLONE_DIR="$RUNNER_TEMP/pr-resolver-ado-e2e"
+          git clone --depth 1 --branch main \
+            "https://:${ADO_TOKEN}@dev.azure.com/qodoinc/pr-agent-tests/_git/pr-agent-tests" "$CLONE_DIR"
+          cd "$CLONE_DIR"
+          git checkout -b "$TEST_BRANCH"
+          git push "https://:${ADO_TOKEN}@dev.azure.com/qodoinc/pr-agent-tests/_git/pr-agent-tests" "$TEST_BRANCH"
+          echo "TEST_BRANCH=$TEST_BRANCH" >> "$GITHUB_ENV"
+          echo "CLONE_DIR=$CLONE_DIR" >> "$GITHUB_ENV"
+
+      - name: Clone ADO test repo and create ephemeral branch (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $TEST_BRANCH = "ci-e2e-qodo-pr-resolver-ado-${{ github.run_id }}-${{ matrix.os }}"
+          $CLONE_DIR = "$env:RUNNER_TEMP\pr-resolver-ado-e2e"
+          git clone --depth 1 --branch main `
+            "https://:$($env:ADO_TOKEN)@dev.azure.com/qodoinc/pr-agent-tests/_git/pr-agent-tests" "$CLONE_DIR"
+          Set-Location "$CLONE_DIR"
+          git checkout -b "$TEST_BRANCH"
+          git push "https://:$($env:ADO_TOKEN)@dev.azure.com/qodoinc/pr-agent-tests/_git/pr-agent-tests" "$TEST_BRANCH"
+          echo "TEST_BRANCH=$TEST_BRANCH" >> $env:GITHUB_ENV
+          echo "CLONE_DIR=$CLONE_DIR" >> $env:GITHUB_ENV
+
+      - name: Create ephemeral PR (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          PR_JSON=$(az repos pr create \
+            --repository "$ADO_REPO" \
+            --source-branch "$TEST_BRANCH" \
+            --target-branch main \
+            --title "CI E2E — qodo-pr-resolver-ado (${{ github.run_id }})" \
+            --description "Automated E2E test PR. Safe to abandon." \
+            --output json)
+          PR_ID=$(echo "$PR_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['pullRequestId'])")
+          PR_URL="${ADO_ORG_URL}/${ADO_PROJECT}/_git/${ADO_REPO}/pullrequest/${PR_ID}"
+          echo "PR_ID=$PR_ID" >> "$GITHUB_ENV"
+          echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
+
+      - name: Create ephemeral PR (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $PR_JSON = az repos pr create `
+            --repository $env:ADO_REPO `
+            --source-branch $env:TEST_BRANCH `
+            --target-branch main `
+            --title "CI E2E — qodo-pr-resolver-ado (${{ github.run_id }})" `
+            --description "Automated E2E test PR. Safe to abandon." `
+            --output json | ConvertFrom-Json
+          $PR_ID = $PR_JSON.pullRequestId
+          $PR_URL = "$($env:ADO_ORG_URL)/$($env:ADO_PROJECT)/_git/$($env:ADO_REPO)/pullrequest/$PR_ID"
+          echo "PR_ID=$PR_ID" >> $env:GITHUB_ENV
+          echo "PR_URL=$PR_URL" >> $env:GITHUB_ENV
+
+      - name: Post mock Qodo review comment (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          MOCK_CONTENT=$(cat ".github/e2e/qodo-pr-resolver-ado/mock-review.html")
+          ADO_B64=$(printf ':%s' "$ADO_TOKEN" | base64 | tr -d '\n')
+          PAYLOAD=$(echo "$MOCK_CONTENT" | python3 -c "import json,sys; c=sys.stdin.read(); print(json.dumps({'comments':[{'content':c,'commentType':1}],'status':1}))")
+          curl -s -X POST \
+            -H "Authorization: Basic $ADO_B64" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "https://dev.azure.com/qodoinc/pr-agent-tests/_apis/git/repositories/pr-agent-tests/pullRequests/${PR_ID}/threads?api-version=7.0"
+
+      - name: Post mock Qodo review comment (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $MockContent = Get-Content ".github\e2e\qodo-pr-resolver-ado\mock-review.html" -Raw
+          $B64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(":$($env:ADO_TOKEN)"))
+          $Payload = @{
+            comments = @(@{ content = $MockContent; commentType = 1 })
+            status = 1
+          } | ConvertTo-Json -Depth 5
+          Invoke-RestMethod `
+            -Uri "https://dev.azure.com/qodoinc/pr-agent-tests/_apis/git/repositories/pr-agent-tests/pullRequests/$($env:PR_ID)/threads?api-version=7.0" `
+            -Method Post `
+            -Headers @{ Authorization = "Basic $B64" } `
+            -ContentType "application/json" `
+            -Body $Payload
+
+      - name: Install skill into clone and patch bot list (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p "$CLONE_DIR/.claude/skills"
+          cp -r .claude/skills/qodo-pr-resolver "$CLONE_DIR/.claude/skills/qodo-pr-resolver"
+          # Add CI test account (Eilon) to the recognized Qodo bot author list
+          sed -i.bak \
+            's/pr-agent-pro-staging" or similar Qodo bot name/pr-agent-pro-staging", "Eilon" or similar Qodo bot name/' \
+            "$CLONE_DIR/.claude/skills/qodo-pr-resolver/SKILL.md"
+          # Configure git remote with PAT for push operations
+          git -C "$CLONE_DIR" remote set-url origin \
+            "https://:${ADO_TOKEN}@dev.azure.com/qodoinc/pr-agent-tests/_git/pr-agent-tests"
+
+      - name: Install skill into clone and patch bot list (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -Force -ItemType Directory "$env:CLONE_DIR\.claude\skills" | Out-Null
+          Copy-Item -Recurse ".claude\skills\qodo-pr-resolver" "$env:CLONE_DIR\.claude\skills\qodo-pr-resolver"
+          # Add CI test account (Eilon) to the recognized Qodo bot author list
+          $skillMd = "$env:CLONE_DIR\.claude\skills\qodo-pr-resolver\SKILL.md"
+          $content = Get-Content $skillMd -Raw
+          $content = $content -replace 'pr-agent-pro-staging" or similar Qodo bot name', 'pr-agent-pro-staging", "Eilon" or similar Qodo bot name'
+          Set-Content $skillMd -Value $content -NoNewline
+          # Configure git remote with PAT for push operations
+          git -C "$env:CLONE_DIR" remote set-url origin "https://:$($env:ADO_TOKEN)@dev.azure.com/qodoinc/pr-agent-tests/_git/pr-agent-tests"
+
+      - name: Run skill and assert criteria (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: cd "$CLONE_DIR" && bash "$GITHUB_WORKSPACE/.github/e2e/qodo-pr-resolver-ado/assert.sh"
+
+      - name: Run skill and assert criteria (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-Location $env:CLONE_DIR
+          & "$env:GITHUB_WORKSPACE\.github\e2e\qodo-pr-resolver-ado\assert.ps1"
+
+      - name: Cleanup — abandon ephemeral PR and delete branch (Unix)
+        if: success() && runner.os != 'Windows'
+        shell: bash
+        run: |
+          ADO_B64=$(printf ':%s' "$ADO_TOKEN" | base64 | tr -d '\n')
+          curl -s -X PATCH \
+            -H "Authorization: Basic $ADO_B64" \
+            -H "Content-Type: application/json" \
+            -d '{"status":"abandoned"}' \
+            "https://dev.azure.com/qodoinc/pr-agent-tests/_apis/git/repositories/pr-agent-tests/pullrequests/${PR_ID}?api-version=7.0"
+          git -C "$CLONE_DIR" push origin --delete "$TEST_BRANCH" || true
+
+      - name: Cleanup — abandon ephemeral PR and delete branch (Windows)
+        if: success() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $B64 = [System.Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(":$($env:ADO_TOKEN)"))
+          Invoke-RestMethod `
+            -Uri "https://dev.azure.com/qodoinc/pr-agent-tests/_apis/git/repositories/pr-agent-tests/pullrequests/$($env:PR_ID)?api-version=7.0" `
+            -Method Patch `
+            -Headers @{ Authorization = "Basic $B64" } `
+            -ContentType "application/json" `
+            -Body '{"status":"abandoned"}'
+          git -C "$env:CLONE_DIR" push origin --delete $env:TEST_BRANCH 2>$null; $true
