@@ -26,7 +26,9 @@ $qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo
 & (Get-Command node -ErrorAction Stop).Source (Join-Path $qodoHome 'bin/qodo.mjs') <arguments>
 ```
 
-If `node` is not on PATH, use the Node path that `bin/qodo.cmd` sets as `NODE`.
+If `node` is not on PATH, use the Node path that `bin/qodo.cmd` sets as `NODE`. For an npm global
+install (`npm i -g @qodo/cli`), use `Join-Path (npm prefix -g) 'node_modules/@qodo/cli/dist/qodo.mjs'`
+instead of `bin/qodo.mjs`.
 Windows PowerShell 5.1 (`$PSVersionTable.PSVersion.Major` is 5) also strips embedded `"` from
 arguments to any program; write each as `\"` there. Never shorten a query, explanation or
 example to avoid these limits; pass its full text or report the blocker.
