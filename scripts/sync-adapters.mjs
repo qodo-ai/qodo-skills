@@ -99,9 +99,22 @@ function installPackage(name) {
 }
 
 function pluginManifest(value, adapterSet) {
-  // Antigravity documents a narrower manifest than Agent Plugins. Keep only
-  // its common fields; the release tag and skill metadata retain versioning.
-  if (adapterSet === 'antigravity') return { name: value.name, description: value.description };
+  if (adapterSet === 'antigravity') {
+    return {
+      name: value.name,
+      displayName: value.displayName,
+      version: pkg.version,
+      description: value.antigravity.description,
+      logo: 'assets/qodo.png',
+      suggestedPrompts: value.antigravity.suggestedPrompts,
+      category: 'Developer Tools',
+      keywords,
+      author,
+      homepage: pkg.homepage,
+      repository: pkg.repository,
+      license: pkg.license,
+    };
+  }
   const kiroListing = adapterSet === 'kiro' ? listing('kiro', value.name) : undefined;
   return {
     $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
@@ -192,11 +205,15 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       keywords,
     }, null, 2)}\n`);
   } else if (adapterSet === 'antigravity') {
+    files.set(
+      'assets/qodo.png',
+      readFileSync(join(root, 'distribution', 'assets', 'antigravity', 'qodo.png')),
+    );
     files.set('README.md', [
       `# ${value.displayName} for Antigravity`,
       '',
       `Generated from Qodo skills v${pkg.version}. Do not edit generated files.`,
-      value.description,
+      value.antigravity.description,
       '',
       'This plugin contains the complete canonical workflows and their supporting references.',
       'Qodo Standards is a separate, optional plugin; installing core never installs Standards.',

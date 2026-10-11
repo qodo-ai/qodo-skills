@@ -27,6 +27,14 @@
       "name": "qodo",
       "displayName": "Qodo",
       "description": "Qodo setup, code intelligence, and review workflows.",
+      "antigravity": {
+        "description": "Set up Qodo, explore code and repository history, review local changes, and resolve pull-request findings directly from Antigravity.",
+        "suggestedPrompts": [
+          "Connect my Qodo account and verify this coding agent is ready.",
+          "Explain how this code works, including its history and cross-repository impact.",
+          "Review my local changes with Qodo before I push them."
+        ]
+      },
       "default": true,
       "skills": [
         "qodo-setup",
@@ -44,6 +52,13 @@
       "name": "qodo-standards",
       "displayName": "Qodo Standards",
       "description": "Optional Qodo rules discovery and standards administration workflows.",
+      "antigravity": {
+        "description": "Find the Qodo coding standards relevant to your work, then create, update, scope, and triage review rules directly from Antigravity.",
+        "suggestedPrompts": [
+          "Load the Qodo coding standards relevant to this task.",
+          "Capture this convention as a Qodo Review standard."
+        ]
+      },
       "default": false,
       "skills": [
         "qodo-get-rules",
