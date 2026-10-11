@@ -24,6 +24,7 @@ const deliverySections = new Map([
   ['qodo-manage-standards', 'Report the verified outcome'],
   ['qodo-review', 'Present the review result'],
   ['qodo-review-resolver', 'Present the review state'],
+  ['qodo-pr-triage', 'Present the queue'],
 ]);
 const forbiddenRuntimeBypass = new RegExp([
   ['QODO', '_', 'API', '_KEY'].join(''), '|',
