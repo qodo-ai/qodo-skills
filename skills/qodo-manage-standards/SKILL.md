@@ -48,6 +48,7 @@ First resolve the executable using the `qodo: command not found` fallback below.
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
 CLI **0.1.0-next.37 or newer**.
+On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
@@ -77,14 +78,8 @@ qodo read tools rules --json                                          # exact sa
 ```
 
 **`qodo: command not found`?** That's usually PATH, not a missing install: GUI-launched agents
-run shells with a minimal PATH. On POSIX, retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`. In
-Windows PowerShell, retry:
-
-```powershell
-$qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
-& (Join-Path $qodoHome 'bin/qodo.cmd')
-```
-
+run shells with a minimal PATH. On POSIX, retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`; in
+PowerShell, use `bin/qodo.cmd` as shown in [Windows shells](references/windows-shells.md).
 Keep using the resolved launcher for every Qodo command here. Only if it is missing is Qodo
 actually not installed; tell the user to obtain a checksum-pinned installer command from Qodo or
 their organization's administrator. Installers are served from https://get.qodo.ai, but never
@@ -121,6 +116,8 @@ and retry before assuming the tool doesn't exist.
    repo's `origin` remote the same way `qodo-get-rules` does — full path after the host, `.git`
    suffix stripped, wrapped as `/<path>/` (e.g. `git@host:a/b` and `https://host/a/b` both parse
    to `/a/b/`). Confirm the derived scope with the user rather than assuming it's what they want.
+   In Git Bash on Windows, a separate `/a/b/` argument is rewritten to a Windows path and the
+   write stores that wrong scope; pass scopes as in [Windows shells](references/windows-shells.md).
 
 ## Where rules come from
 
