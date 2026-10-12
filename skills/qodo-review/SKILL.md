@@ -283,7 +283,7 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 Default fields: `id`, `title`, `description`, `category`, `action_level`, `attribution_status`, `git_sha`,
 `location`, `evidence.citations`. Inspect the code location and evidence; preserve the original finding ID.
 `--extended` adds stored supporting detail; it changes neither review depth nor execution.
-Local `review_agent_comment` is the stored merged summary in both views; reuse carries it forward without new execution. It complements findings and coverage.
+Local `review_agent_comment` is stored reviewer feedback in both views; reuse carries it forward without new execution. Read it alongside findings and coverage.
 For authorized status writes, group IDs by `meta.local_review_ids[id]`; report unavailable references.
 Fix instructions and reviewer internals are excluded. See the [field guide](references/finding-results.md) for field details.
 If `finding_state.complete` or `meta.coverage.complete` is false, report the incomplete coverage.
@@ -348,7 +348,7 @@ The reviewer cannot see your chat or a ticket you merely name. So:
 - **Calibrate, don't suppress.** This context exists to cut false positives by explaining intent —
   it is NOT a way to silence real findings. Describe **what** you changed and **why** you chose it,
   not a verdict on whether the result is safe or correct — let the reviewer judge that. A summary that
-  argues the code is fine reads as an excuse (and needlessly triggers a second, no-excuse safety pass);
+  argues the code is fine reads as an excuse;
   never write a "decision" whose purpose is to argue a bug or security issue away. The reviewer will
   (and should) still flag genuine problems.
 
