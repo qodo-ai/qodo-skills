@@ -86,7 +86,7 @@ is still absent, the tools are not enabled (see Error Handling); do not loop.
    fall back to the whole workspace queue silently.
 3. **Reuse.** Keep the last `next` result for the session, including `generated_at`, so
    follow-ups ("open the second one", "why is that one first") refer to served items by their
-   `ids` and never by guessed numbers.
+   `provider`, `repository_id` and `provider_pr_id` and never by guessed numbers.
 
 ## Job 1: "What's next for me?"
 
@@ -115,7 +115,8 @@ serve together, or drop items. If the user wants more, call again with a higher 
 
 ## Job 2: "Why is #N here?"
 
-Resolve #N to a served item and use its `ids` (`provider`, `repository_id`, `provider_pr_id`).
+Resolve #N to a served item and use its `provider`, `repository_id` and `provider_pr_id`, which
+are fields on the item itself.
 `explain` takes those identifiers only; there is no URL or number lookup. For a URL or #N not in
 a result you have, call `next` again with a larger `limit` and match the item's `url`. If it is
 still not served, say it is not in this queue for these logins, or ask which PR they mean. Never
@@ -134,23 +135,27 @@ every `reasons[].detail`, `next_action.detail`, `secondary_actions`, `responsibl
 
 For an item the user authored (or explicitly owns):
 
-1. Stop if `ids.provider` is not `github` (writes go through `gh`).
-2. Check out the branch: `gh pr checkout <url>` (or `git switch` if it is already local). Never
+1. Stop if `provider` is not `github` (writes go through `gh`).
+2. Record the baseline head: `gh pr view <url> --json headRefOid -q .headRefOid`, before any
+   fix. The live-state check compares against it.
+3. Check out the branch: `gh pr checkout <url>` (or `git switch` if it is already local). Never
    discard local changes; if the tree is dirty, stop and ask.
-3. Hand off to **qodo-review-resolver** for this PR. It reads the findings, fixes them, and
+4. Hand off to **qodo-review-resolver** for this PR. It reads the findings, fixes them, and
    records outcomes under its own approval rules. Do not reimplement it.
-4. Pushing the fix commit is a write: confirm with the user and run the live-state check
-   immediately before `git push`.
+5. Pushing the fix commit is a write: confirm with the user and run the live-state check
+   immediately before `git push`. Your fix commits are expected to differ from the remote; what
+   must not change is the remote head itself.
 
 ## Job 4: Review someone else's PR
 
-1. Stop if `ids.provider` is not `github`.
-2. Read the diff locally: `gh pr diff <url>` and, where useful, the checked-out files. Use the
+1. Stop if `provider` is not `github`.
+2. Record the baseline head (`headRefOid`) when you read the diff.
+3. Read the diff locally: `gh pr diff <url>` and, where useful, the checked-out files. Use the
    `explain` result for context (reasons, findings, stack position). For a stack member, review
    in the served `unit.members` order and say which member you are on.
-3. Draft the review: a verdict (`comment`, `approve` or `request-changes`) and the body. Show
+4. Draft the review: a verdict (`comment`, `approve` or `request-changes`) and the body. Show
    the full draft to the user.
-4. Post only after the user explicitly confirms that exact draft and verdict. Run the live-state
+5. Post only after the user explicitly confirms that exact draft and verdict. Run the live-state
    check, then post with
    `gh pr review <url> --comment|--approve|--request-changes --body-file <file>`.
    Edits to the draft need a new confirmation.
@@ -173,8 +178,9 @@ Stop, without writing, when any of these changed since `generated_at` and say ex
 changed:
 
 - `state` is no longer `OPEN` ("merged at ...", "closed at ...").
-- `headRefOid` differs from the head the user reviewed or the local checkout, or `updatedAt` is
-  later than `generated_at` with new commits ("2 new commits since the queue was ranked").
+- The remote `headRefOid` differs from the baseline head recorded before the review or fix
+  ("2 new commits were pushed since you started"). Compare remote to baseline, never remote to
+  your local checkout: a fix commit makes those differ by design.
 - For a review: the user is no longer in `reviewRequests` when the next action was a review.
 
 Offer to re-run `pr-triage next` for a fresh ranking. Never write on a stale view.
