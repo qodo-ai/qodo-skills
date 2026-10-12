@@ -1,6 +1,6 @@
 ---
 name: qodo-review-resolver
-description: Read or resolve a pull request's Qodo review with the qodo CLI — fetch structured status, reviewed commit SHA, and findings for ANY PR as JSON, with optional extended details and citation evidence for audits, then optionally resolve open findings and record outcomes, once or until clean. Use this — never `gh`/`curl` scraping of review comments — for "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "audit the review evidence", "show finding citations", "what did Qodo flag", "is this review up to date with head", "check before merging", "resolve my PR review", "fix the review findings", or "babysit this PR until it's clean".
+description: Read or resolve a pull request's Qodo review using Qodo managed tools through MCP or the CLI — fetch structured status, reviewed commit SHA, and findings for ANY PR as JSON, with optional extended details and citation evidence for audits, then optionally resolve open findings and record outcomes, once or until clean. Use this — never `gh`/`curl` scraping of review comments — for "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "audit the review evidence", "show finding citations", "what did Qodo flag", "is this review up to date with head", "check before merging", "resolve my PR review", "fix the review findings", or "babysit this PR until it's clean".
 triggers:
   - "Check the Qodo findings on this pull request"
   - "Audit the citation evidence for these Qodo PR findings"
@@ -23,7 +23,7 @@ arguments:
 
 ## Description
 
-Use the `qodo` CLI to read a pull request's **review session** — its status, the commit that
+Use Qodo managed tools to read a pull request's **review session** — its status, the commit that
 was reviewed, and every finding with its resolution status — for **any** PR (yours or someone
 else's). Request extended results when auditing citations or investigating a finding's supporting
 evidence, location, dismissal, or review-run history. Reading alone is a valid use: stop after the read to report where a review stands or
@@ -41,18 +41,37 @@ fact required for the freshness check below; the "don't scrape" rule is about qo
 
 ## Prerequisites
 
-- The Qodo CLI is authenticated and exposes the structured PR-review session tools.
+- A connected QAR managed-tools MCP server or authenticated Qodo CLI exposes review-session tools.
 - The exact PR URL and its current head SHA can be resolved without scraping review comments.
 - Any finding-status write has explicit user authorization; code-fix authority or `autofix` alone does not cover it.
 
 ## Instructions
 
+### Choose the execution path
+
+Use the connected QAR managed-tools MCP tools when the required review-session capability
+is available; otherwise use the CLI path below. On MCP, read the host-provided descriptions,
+`inputSchema`, and read-only/mutating annotations. The wire tools are
+`get-pr-review-findings` (`pr_url`, optional `extended`), `pr-review-dismiss`, and
+`pr-review-mark-implemented`; verify their live schemas before calling. Check `isError`
+before `structuredContent`, including for a successful transport response. A truncated
+finding result is incomplete, never a clean review.
+
+An MCP write needs a stable key for the logical finding disposition in the live schema's
+`idempotency_key` argument. A host that supports request metadata may instead send
+`_meta["io.qodo/idempotency-key"]`; if both are sent, they must agree. Keep the same key
+and exact arguments for an uncertain retry.
+The authorization, freshness, finding-status, dismissal, and read-back rules below apply
+to both paths. Do not switch to a different CLI account or tenant after a denied MCP call.
+CLI version, identity, help, and catalog-refresh instructions apply only on the CLI path.
+
 Follow the detailed workflow below: fetch structured state, require a completed exact-head review,
 present open findings, apply only approved fixes, and record only outcomes actually settled.
 
-> To check a review's status or findings, always run the `qodo` read command below — do **not**
-> fetch the rendered PR review **comments** with `gh`/`curl`. The comment UI is lossy, provider-
-> specific, and easy to read stale against the head commit; the tool returns the reviewed
+> To check a review's status or findings, call `get-pr-review-findings` on MCP or
+> `qodo read pr-review-session findings` on CLI. Do **not** fetch the rendered PR review
+> **comments** with `gh`/`curl`: the UI is lossy, provider-specific, and easy to read
+> stale against the head commit. The structured read returns the reviewed
 > `commit_sha`. To judge freshness, compare that `commit_sha` to the PR **head** — which you know
 > directly for a PR you just pushed (`git rev-parse HEAD`), or read as plain forge *metadata*
 > (`gh pr view <pr> --json headRefOid`, `git ls-remote`) for any other PR. This rule is only about
@@ -72,6 +91,7 @@ First resolve the executable using the `qodo: command not found` fallback below.
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
 CLI **2.0.0 or newer** and a runtime with review API v2.
+On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Automatic CLI updates stay within their
@@ -104,11 +124,11 @@ not currently expose PR-review writes; report that capability boundary instead o
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
 the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
-`~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo` if set) and keep using it for every `qodo`
-command here. Only if that file is missing too is qodo actually not installed; tell the
-user to obtain a checksum-pinned installer command from Qodo or their organization's
-administrator. Installers are served from https://get.qodo.ai, but never invent a digest
-or pipe an installer directly into a shell.
+`~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo` if set; `bin/qodo.cmd` in PowerShell) and keep
+using it for every `qodo` command here. Only if that file is missing too is qodo actually not
+installed; tell the user to obtain a checksum-pinned installer command from Qodo or their
+organization's administrator. Installers are served from https://get.qodo.ai, but never
+invent a digest or pipe an installer directly into a shell.
 
 **Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
 is plausible, request one exact read-only `qodo read whoami` retry through the host's approval

@@ -14,7 +14,7 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to fetch the workspace's coding rules most relevant to the task at
+Use Qodo managed tools to fetch the workspace's coding rules most relevant to the task at
 hand, then **apply them while producing the code**. Retrieval is semantic — the quality
 of what comes back is decided by how you write the query, so follow the query format
 below exactly.
@@ -22,10 +22,23 @@ below exactly.
 ## Prerequisites
 
 - The optional Qodo Standards package is installed and loaded explicitly.
-- The Qodo CLI is installed, authenticated, and exposes the read-only rules search tool.
+- A connected QAR managed-tools MCP server or authenticated Qodo CLI exposes rules search.
 - The task is concrete enough to form semantic queries; already-loaded rules are reused.
 
 ## Instructions
+
+### Choose the execution path
+
+Reuse applicable results first. For fresh retrieval, use the host's connected QAR MCP
+`rules-search` tool when present and marked read-only; otherwise follow the CLI path below.
+MCP uses the host-provided `inputSchema` and JSON arguments (`query`, `top_k`, optional
+`scopes` array), with one call per structured query. Omit `scopes` when unknown; do not
+send an empty array as a substitute for the CLI's omitted flag. Check `isError`, then read
+`structuredContent`; preserve typed failures and do not turn a failed read into an empty
+rules result. A missing or forbidden MCP capability is not a CLI login failure. Do not
+silently switch to a different account or tenant.
+
+The CLI version, identity, catalog, and update steps below apply only when using the CLI.
 
 Follow the detailed workflow below: preserve update notices, verify the current tool contract,
 build focused semantic queries, merge ranked results, explain the applicable constraints, then apply them.
@@ -45,6 +58,7 @@ Only on the retrieval path, resolve the executable using the `qodo: command not 
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
 CLI **2.0.0 or newer**.
+On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
@@ -66,16 +80,16 @@ qodo read tools rules --json                              # exact safe flags (re
 ```
 
 The newlines inside the quoted `--query` value are literal — a multi-line double-quoted
-string works as-is in POSIX sh/bash/zsh and in PowerShell. Don't use Bash-only `$'…'`
-quoting. (cmd.exe can't express multi-line strings — run the command from PowerShell or
-bash there.)
+string works as-is in POSIX sh/bash/zsh. Don't use Bash-only `$'…'` quoting. In PowerShell,
+`qodo` runs through cmd.exe, which cuts the query at its first newline and drops the later
+flags; use the Node entry point from [Windows shells](references/windows-shells.md).
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents run
 shells with a minimal PATH. Retry with the absolute path `~/.qodo/bin/qodo` (or
-`$QODO_HOME/bin/qodo` if set) and keep using it. Only if that file is missing too is qodo
-actually not installed; tell the user to obtain a checksum-pinned installer command from
-Qodo or their organization's administrator. Installers are served from https://get.qodo.ai,
-but never invent a digest or pipe an installer directly into a shell.
+`$QODO_HOME/bin/qodo` if set; `bin/qodo.cmd` in PowerShell) and keep using it. Only if that
+file is missing too is qodo actually not installed; tell the user to obtain a checksum-pinned
+installer command from Qodo or their organization's administrator. Installers are served from
+https://get.qodo.ai, but never invent a digest or pipe an installer directly into a shell.
 
 **Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
 is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
@@ -136,8 +150,10 @@ Content: <1-2 sentences describing what should be checked or enforced; mention t
 
 ## Search and merge
 
-Run `qodo read rules search` **once per query** (in parallel when you can), each with
-`--top-k 20` and `--json`. Add `--scopes "$SCOPE"` only when detection produced a scope:
+Search **once per query** (in parallel when you can). On CLI, use `qodo read rules search`
+with `--top-k 20` and `--json`, adding `--scopes "$SCOPE"` only for a detected scope.
+On MCP, call `rules-search` with `top_k: 20`, the same query, and an optional `scopes`
+array. The commands below illustrate only the CLI path:
 
 ```
 # With a detected scope:
@@ -148,6 +164,10 @@ qodo read rules search --query "$CROSS_QUERY" --top-k 20 --scopes "$SCOPE" --jso
 qodo read rules search --query "$TOPIC_QUERY" --top-k 20 --json
 qodo read rules search --query "$CROSS_QUERY" --top-k 20 --json
 ```
+
+In Git Bash on Windows, a separate `/owner/repo/` argument is rewritten to a Windows path and
+the scoped search silently returns no rules; pass the scope as in
+[Windows shells](references/windows-shells.md).
 
 Merge: topic results first (in order), then cross-cutting results not already present —
 dedup by rule `id`. Topic rules are task-specific guidance; treat cross-cutting rules as
