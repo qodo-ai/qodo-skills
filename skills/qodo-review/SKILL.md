@@ -283,6 +283,7 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 Default fields: `id`, `title`, `description`, `category`, `action_level`, `attribution_status`, `git_sha`,
 `location`, `evidence.citations`. Inspect the code location and evidence; preserve the original finding ID.
 `--extended` adds stored supporting detail; it changes neither review depth nor execution.
+Local `review_agent_comment` is the stored merged summary in both views; reuse carries it forward without new execution. It complements findings and coverage.
 For authorized status writes, group IDs by `meta.local_review_ids[id]`; report unavailable references.
 Fix instructions and reviewer internals are excluded. See the [field guide](references/finding-results.md) for field details.
 If `finding_state.complete` or `meta.coverage.complete` is false, report the incomplete coverage.

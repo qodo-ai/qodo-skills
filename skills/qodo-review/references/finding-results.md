@@ -6,6 +6,12 @@ Local review and the PR resolver share the default Finding object: `id`, `title`
 Unavailable values are null. Use the location to inspect affected code and preserve the original ID.
 Each finding appears once in the local `findings` inventory; lifecycle buckets contain IDs.
 
+Local `review_agent_comment` is the stored merged review summary, separate from findings and
+execution metadata. Default and extended output both return it. Checkpoint reuse returns the
+stored comment without running another reviewer. Null means no comment was produced; older
+artifacts can omit the field. Read the summary alongside findings and coverage, rather than
+treating it as proof of complete coverage or a replacement for code locations and evidence.
+
 Local-only `meta.local_review_ids` maps finding IDs to their original local review IDs for status
 writes. Retained findings can belong to different reviews. Look up each ID and group authorized
 status writes by that review ID. The map survives default/extended collection and result reuse.
@@ -22,6 +28,7 @@ Local-only `meta.run` reports the run ID, requested/effective effort, reviewed b
 timing, and separate safety-net/primary passes with actual component outcomes (`completed`, `skipped`,
 `failed`, or analytics-only `observed`). Available analytics add component duration and model names;
 missing analytics are unknown. `agent_statuses_reported: false` means outcomes were unavailable.
+Current local execution runs one primary pass with author context and reports no safety-net pass.
 The tree SHA identifies the submitted working tree; commit SHA alone need not include uncommitted edits.
 A reused result has no passes or new effective effort and records prior coverage under `reused_from`.
 Legacy `meta.reviewers.ran` / `.skipped` reflect configured reviewer dimensions, not actual execution;
