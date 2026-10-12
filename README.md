@@ -14,7 +14,7 @@ plugins remain owned by their host.
 
 | Package | Installed by default | Skills |
 |---|---:|---|
-| `qodo` | Yes | setup, codebase wisdom, local review, PR review resolver |
+| `qodo` | Yes | setup, codebase wisdom, local review, PR review resolver, PR triage |
 | `qodo-standards` | No | rules discovery and standards administration |
 
 Qodo Standards stays a separate opt-in package. Updating the core package never installs it.

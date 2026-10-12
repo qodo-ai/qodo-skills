@@ -40,7 +40,8 @@
         "qodo-setup",
         "qodo-codebase-wisdom",
         "qodo-review",
-        "qodo-review-resolver"
+        "qodo-review-resolver",
+        "qodo-pr-triage"
       ],
       "compatibilityAliases": {
         "codebase-wisdom": "qodo-codebase-wisdom",
@@ -118,6 +119,14 @@
       "displayName": "Qodo Review Resolver",
       "shortDescription": "Read, audit and resolve Qodo PR findings with citation evidence.",
       "defaultPrompt": "Use $qodo-review-resolver to show me the current Qodo review findings."
+    },
+    {
+      "name": "qodo-pr-triage",
+      "version": "0.1.0",
+      "recommended": true,
+      "displayName": "Qodo PR Triage",
+      "shortDescription": "See what's next in your ranked PR queue and act on it.",
+      "defaultPrompt": "Use $qodo-pr-triage to show me what's next in my PR queue."
     }
   ]
 }

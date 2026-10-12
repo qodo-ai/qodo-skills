@@ -72,7 +72,7 @@ test('Antigravity manifests satisfy the Marketplace contract and exact package m
     assert.ok(readme.includes(`/blob/v${catalog.package.version}/docs/antigravity.md`));
     assert.ok(readme.includes(`/releases/tag/v${catalog.package.version}`));
   }
-  assert.equal(catalog.installPackages.find((pkg) => pkg.name === 'qodo').skills.length, 4);
+  assert.equal(catalog.installPackages.find((pkg) => pkg.name === 'qodo').skills.length, 5);
   assert.equal(catalog.installPackages.find((pkg) => pkg.name === 'qodo-standards').skills.length, 2);
 });
 
