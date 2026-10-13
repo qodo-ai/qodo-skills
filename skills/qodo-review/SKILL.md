@@ -14,9 +14,7 @@ metadata:
 
 ## Description
 
-Review **local changes during coding and before handing off completed work**. `qodo review` diffs your working tree against a base commit, includes new/untracked files, and sends the diff plus any
-**coding-session context** you supply to Qodo's review engine. It returns structured findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is pushed and no
-PR is created; only the base commit must already be on the remote (the reviewer clones it).
+Review **local changes during coding and before handing off completed work**. `qodo review` sends your diff, new/untracked files and coding-session context to Qodo. Evaluate its structured findings and apply authorized fixes. Only the base commit must be on the remote; the command never pushes or creates a PR.
 
 Use this skill for local changes, including unpushed work on an existing PR. Use `qodo-review-resolver`
 to work on findings from the PR's remote review; do not duplicate that review for an unchanged pushed snapshot.
@@ -108,6 +106,7 @@ On Windows, in PowerShell or Git Bash, first read [Windows shells](references/wi
 ## Quick start
 You just wrote the code, so you hold the one input the reviewer can't get anywhere else: **why**.
 Attach it on every run — write the session context first, then review:
+Before each new submission, read [Review-turn context](references/review-turn-context.md) and refresh `recent_work`.
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
@@ -115,7 +114,8 @@ qodo read whoami --json --skill qodo-review --skill-version 1.10.7 --distributio
 review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
 qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
 { "summary": "<what this change does and why>",
-  "decisions": ["<a choice you made and its rationale>"] }
+  "decisions": ["<a choice you made and its rationale>"],
+  "recent_work": ["<what changed since the previous review; fixes only or added behavior>"] }
 EOF
 qodo review --base "$review_base" --context-file ctx.json # context from a file
 qodo review --base "$review_base" --ticket <TICKET_URL> ... # ticket URL (repeatable)
@@ -329,6 +329,7 @@ Attach the intent and decisions behind your change. Three channels:
       "Chose a version column over a table lock to avoid contention on the hot path.",
       "Retries are capped at 3 then surfaced to the caller — deliberately not infinite."
     ],
+    "recent_work": ["Added optimistic locking; this turn includes new behavior."],
     "context_refs": [
       { "kind": "ticket", "url": "https://acme.atlassian.net/browse/PAY-412" },
       { "kind": "spec", "url": "https://acme.example/specs/orders-v2", "label": "Orders v2 spec" },

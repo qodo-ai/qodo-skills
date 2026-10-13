@@ -21,7 +21,7 @@ PR Review Notes explain one change and link to a track explicitly.
 ## Prerequisites
 
 Use an authenticated Qodo connection to the intended deployment and workspace. Notes tools must
-be available in the live catalog. For CLI use, require Qodo CLI **1.6.0 or newer** and the
+be available in the live catalog. For CLI use, require Qodo CLI **2.0.0 or newer** and the
 PR commands' `localGitCapture` capability. A trusted MCP connection can supply the same operations.
 
 ## Instructions
