@@ -19,12 +19,15 @@ The extensionless `bin/qodo` is a POSIX script. Resolve a verified native invoca
    directory outside them. Reject targets that cannot be verified. Apply this check to an
    explicit `QODO_HOME` too; never execute workspace files to discover a version.
 4. An installation candidate contains an existing `qodo.mjs` plus either `qodo.exe` or
-   `qodo.cmd`. Check files with `Test-Path -LiteralPath <path> -PathType Leaf`. Use its native
-   `qodo.exe` when available; otherwise run that same installed `qodo.mjs` directly with
-   verified Node. Resolve Node with
-   `Get-Command node -CommandType Application -ErrorAction SilentlyContinue`. If absent,
-   read the selected `qodo.cmd` as text and use an existing absolute Node path from its
-   `set "NODE=..."` lines. Do not execute the batch launcher to discover Node.
+   `qodo.cmd`. Check files with `Test-Path -LiteralPath <path> -PathType Leaf`. Try a trusted
+   native `qodo.exe` first. If absent or its probe fails, try that same installed `qodo.mjs`
+   directly with verified Node. Inspect
+   `Get-Command node -CommandType Application -ErrorAction SilentlyContinue` first. If that
+   Node choice is absent, untrusted, or fails its probe, read the selected `qodo.cmd` as text
+   and try existing absolute Node paths from its `set "NODE=..."` lines, applying the same
+   trust/probe checks to each. An untrusted Node choice excludes only that invocation;
+   it does not discard another trusted invocation for the installation. Do not execute
+   the batch launcher to discover Node.
 5. For each trusted candidate, run the unadorned `--version` probe with the executable,
    or Node followed by its installed entry point. Retain the first invocation that starts
    successfully and returns a parseable CLI version. Skip broken PATH candidates; if none
