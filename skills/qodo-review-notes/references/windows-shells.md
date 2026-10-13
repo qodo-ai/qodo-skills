@@ -20,12 +20,14 @@ The extensionless `bin/qodo` is a POSIX script. Resolve a verified native invoca
    explicit `QODO_HOME` too; never execute workspace files to discover a version.
 4. An installation candidate contains an existing `qodo.mjs` plus either `qodo.exe` or
    `qodo.cmd`. Check files with `Test-Path -LiteralPath <path> -PathType Leaf`. Try a trusted
-   native `qodo.exe` first. If absent or its probe fails, try that same installed `qodo.mjs`
+   native `qodo.exe` first. If absent, untrusted, or its probe fails, try that installed `qodo.mjs`
    directly with verified Node. Inspect
-   `Get-Command node -CommandType Application -ErrorAction SilentlyContinue` first. If that
+   `Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue` first. If that
    Node choice is absent, untrusted, or fails its probe, read the selected `qodo.cmd` as text
-   and try existing absolute Node paths from its `set "NODE=..."` lines, applying the same
-   trust/probe checks to each. An untrusted Node choice excludes only that invocation;
+   and try existing absolute Node `.exe` paths from its `NODE` assignments, including the
+   first real-binary assignment and conditional fallback assignments. Apply the trust/probe
+   checks to each; reject `.cmd`, `.bat`, `.ps1` and other non-native Node launchers.
+   An untrusted launcher choice excludes only that invocation;
    it does not discard another trusted invocation for the installation. Do not execute
    the batch launcher to discover Node.
 5. For each trusted candidate, run the unadorned `--version` probe with the executable,
