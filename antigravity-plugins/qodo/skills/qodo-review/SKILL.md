@@ -4,7 +4,7 @@ description: Review local changes with Qodo during substantive coding milestones
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.7"
+  version: "1.10.8"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -15,7 +15,7 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to review **local changes during coding and before handing off completed work**. `qodo review` diffs your working tree against a base commit, includes new/untracked files, and sends the diff plus any
+Review **local changes during coding and before handing off completed work**. `qodo review` diffs your working tree against a base commit, includes new/untracked files, and sends the diff plus any
 **coding-session context** you supply to Qodo's review engine. It returns structured findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is pushed and no
 PR is created; only the base commit must already be on the remote (the reviewer clones it).
 
@@ -24,7 +24,7 @@ to work on findings from the PR's remote review; do not duplicate that review fo
 
 ## Prerequisites
 
-- The Qodo CLI is installed and authenticated, and the review capability is enabled.
+- An authenticated Qodo CLI is available, or a connected QAR MCP server and a tested local input collector are available; review capability is enabled.
 - The comparison base exists on the remote; local changes and context need not be pushed.
 - The coding-session context and any ticket or design references are ready to attach.
 
@@ -72,12 +72,21 @@ it is not guaranteed standard and does not impose a spending cap. There is no `-
 
 ## Prepare a PR handoff
 
-When preparing to open or update a PR, prefer committing the intended changes before your final local review, following the user's commit policy.
-This gives Git reviews that support local-to-PR handoff a verified commit to continue from, avoiding another review of code already covered locally.
-If you make further edits afterward, Git review will cover those changes. To include them in the handoff too, commit and review them locally again.
-Committing is optional. Without a usable reviewed commit, Git review follows its normal review scope.
+When preparing to open or update a PR, prefer committing the intended changes before final local review, following the user's commit policy. Git reviews that support local-to-PR handoff can continue from that verified commit.
+Commit and review later edits again to include them. Committing is optional; without a usable reviewed commit, Git review follows its normal scope.
+For authorized notes maintenance, use `qodo-review-notes` to find the track, publish existing-HEAD PR notes before opening, refresh if HEAD changes, and bind afterward; retain local review context and verify consumption separately.
 
 ## Instructions
+### Choose the execution path
+
+Prefer `qodo review` when available: it gathers and filters tracked and untracked local changes, resolves the remote base, attaches context, and manages checkpoint state. The QAR MCP
+`start-pre-pr-review` tool instead accepts a prepared `diff`, `base_sha`, repository locator, and context; it cannot read this worktree. Use that MCP tool only when a tested local collector
+has produced the same intended scope and exclusions, reported omitted files, and verified that the base SHA is fetchable. Do not assemble an ad hoc `git diff` and call it equivalent coverage.
+If no collector is available, report that MCP-only local review cannot safely cover this worktree; do not claim a completed review.
+
+For a prepared MCP review, inspect the live schema. Set `review_scope.stream_id` to exactly 64 lowercase hexadecimal characters: SHA-256 of a JSON array containing the resolved real worktree root, plus the resolved working directory for path-limited reviews. Reuse it across checkpoints; a UUID is invalid.
+Retain the same `request_id` and exact arguments for an uncertain start: `request_id` is this start tool's logical-action retry key, and no separate `idempotency_key` argument is declared. Poll `get-managed-agent-operation` at its advertised interval, then fetch all `get-managed-agent-result` chunks and verify their reported digest and byte count before interpreting the artifact.
+These are short lifecycle calls, not MCP Tasks. Check `isError` before reading a receipt. Apply the same context, depth, coverage, finding, and authority rules below. CLI version, identity, and command instructions below apply only to the CLI path.
 
 Preserve notices, attach self-contained context, show progress, use a suitable timeout,
 read the structured result, and act on findings.
@@ -88,9 +97,15 @@ without inventory or update questions; mention each event at most once. Dismissa
 policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
 For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
+## Execution
+
+- MCP: use live schema arguments; skip CLI shell steps.
+- CLI: use complete UTF-8 files without a BOM (`--args-file` for tools, `--context-file` for reviews); examples are POSIX.
+- Windows CLI: read [shell guidance](references/windows-shells.md) before the first call; [launcher recovery](references/windows-launcher.md) only if invocation fails. Reuse the resolved invocation.
+
 ## Runtime compatibility gate
 Resolve the executable using this skill's command-not-found fallback, then run `<qodo> --version`
-with no provenance flags. This skill requires Qodo CLI **0.1.0-next.37 or newer**. If older or
+with no provenance flags. This skill requires Qodo CLI **1.6.0 or newer**. If older or
 unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure. Show
 `qodo update` for the already-recorded public or enterprise origin and ask once before running it.
 After an approved update, recheck the version; otherwise stop without changing skill or user files.
@@ -101,7 +116,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.7 --distribution marketplace --host antigravity
+qodo read whoami --json --skill qodo-review --skill-version 1.10.8 --distribution marketplace --host antigravity
 review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
 qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
 { "summary": "<what this change does and why>",
@@ -158,13 +173,9 @@ For connected progress, the canonical execution rules are:
 - If background progress is unavailable, run foreground with a multi-minute timeout, preserving
   selected depth and context. Missing progress is not a reason to fail review or downgrade depth.
 
-**`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
-the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
-`~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo` if set) and keep using it for every `qodo`
-command here. Only if that file is missing too is qodo actually not installed; tell the
-user to obtain a checksum-pinned installer command from Qodo or their organization's
-administrator. Installers are served from https://get.qodo.ai, but never invent a digest
-or pipe an installer directly into a shell.
+**`qodo: command not found`?** On POSIX retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`;
+on Windows follow the linked guide. Keep the resolved invocation; report unusable launchers.
+For missing installs, obtain Qodo's or the administrator's checksum-pinned installer; never invent a digest or pipe scripts into a shell.
 
 **Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
 is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
@@ -400,6 +411,7 @@ does not authorize stored dismissals, pushes, or unrelated changes. Report appli
 When the user explicitly authorizes declining a local finding, follow
 [Record local triage](references/local-triage.md) to persist the decision. A conversational
 "skip" alone is not a stored dismissal and must not be reported as one.
+On MCP, use the live `pr-review-dismiss` schema with finding IDs and `local_review_id` from that completed review, an authorized reason and explanation, and a stable `idempotency_key` for the batch; read back each stored outcome. The reference's CLI commands apply only to the CLI path.
 
 After a batch of authorized fixes, verify and re-review changed work using the lifecycle policy above.
 Assess outstanding findings and coverage before calling the result clean; stop an unproductive loop.
@@ -417,30 +429,18 @@ mode and context preserved. Honor entitlement, auth, permission and rate-limit s
 those as transient failures. Further failure or an expired/unavailable result means reporting the
 coverage gap; never claim completion or silently keep buying retries.
 
-The following connection rules apply to connected execution, not an accepted `--async` run. A review can take
-minutes; if the host cannot keep a process alive, choose async rather than repeatedly timing out.
-
-- **Keep the run alive and connected for its whole duration.** The CLI holds a streaming
-  connection to the review; the server keeps a run whose client vanished for only a short grace
-  window before cancelling it. So a harness that times out and kills the CLI kills the review —
-  not instantly, but a couple of minutes later, which is why the cancel can look like it came out
-  of nowhere. Background the run rather than foregrounding it under a tool timeout; use the
-  [connected progress](references/connected-progress.md) recipe, and backgrounding is also what lets you stream
-  status.
+For connected CLI execution, keep the process alive throughout the review; a killed client can
+cause server cancellation after a short grace period. If the host cannot sustain it, use async
+instead of repeated timeouts. Use [connected progress](references/connected-progress.md) to
+background a connected run while retaining status.
 
 **Concurrent reviews can complete independently.** For the same owner/repository/branch, only the
 newest checkpoint run can publish finding updates; an older result may report `superseded`.
 
-The failure shapes are distinct, so read which one you got instead of guessing:
-
-- **No output, the process died** → your side killed it (tool timeout, SIGTERM, Ctrl-C). The
-  server-side run does not stop with it; it is cancelled a short while later, so this and the
-  cancel below are often the same incident seen from two ends.
-- **`review canceled by the server …`** → the server ended the run. When it says the connection
-  dropped, that's the cause: the CLI lost its stream and did not get back in time. Not a size,
-  complexity, or concurrency limit.
-- **`review ended without a result (no task.done)`** → the stream dropped mid-run.
-- **`review failed: <detail>`** → a real backend failure; the detail says what.
+Distinguish a killed client, server cancellation after connection loss, a missing `task.done`
+after a dropped stream, and a backend `review failed: <detail>` response. Read the actual
+failure and retained-result hint before choosing recovery; do not infer a size or complexity
+limit from a connection failure.
 
 For the first three, collect any retained result using the CLI's recovery hint before submitting again.
 If the run is confirmed canceled or unrecoverable, retry at most once with uninterrupted execution

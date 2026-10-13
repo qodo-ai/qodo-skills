@@ -1,10 +1,10 @@
 ---
 name: qodo-manage-standards
-description: Create, edit, and administer Qodo Review Standards from conversation — capture a convention just discussed as a new rule, change or deactivate an existing one, re-scope rules to a repo, and triage pending suggestions (accept/reject) — using the qodo CLI's managed rules tools. Use on "make this a rule", "make a rule for this repo", "deactivate/disable the X rule", "change the X rule to an error", "re-scope the X rule to this repo", "show pending suggestions", "let's triage suggestions", "accept/reject this suggestion", or "bulk deactivate rules"; skip reading or applying rules (use qodo-get-rules) and anything that isn't a rules-entity change.
+description: Create, edit, and administer Qodo Review Standards from conversation — capture a convention just discussed as a new rule, change or deactivate an existing one, re-scope rules to a repo, and triage pending suggestions (accept/reject) — using Qodo managed rules tools through MCP or the CLI. Use on "make this a rule", "make a rule for this repo", "deactivate/disable the X rule", "change the X rule to an error", "re-scope the X rule to this repo", "show pending suggestions", "let's triage suggestions", "accept/reject this suggestion", or "bulk deactivate rules"; skip reading or applying rules (use qodo-get-rules) and anything that isn't a rules-entity change.
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.5"
+  version: "1.0.6"
   recommended: "false"
   package: "qodo-standards"
   distribution: "marketplace"
@@ -15,7 +15,7 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to **administer** the workspace's Review Standards: capture a convention as a
+Use Qodo managed tools to **administer** the workspace's Review Standards: capture a convention as a
 new rule, edit or retire an existing one, re-scope it to a repo, or triage the pending
 suggestions queue. Review Standards is Qodo's umbrella term for rules and suggestions. This is
 the **write** counterpart to `qodo-get-rules` (which only
@@ -26,10 +26,30 @@ Run bulk operations as a dry run first.
 ## Prerequisites
 
 - The optional Qodo Standards package is installed and loaded explicitly.
-- The Qodo CLI is authenticated and exposes the requested standards write tool.
+- A connected QAR managed-tools MCP server or authenticated Qodo CLI exposes the requested standards tool.
 - The exact rule, scope, and intended mutation are known; the user can approve every write.
 
 ## Instructions
+
+### Choose the execution path
+
+Use connected QAR MCP tools when the requested rules capability is available; otherwise
+follow the CLI path. Read tool descriptions, `inputSchema`, and read-only/mutating annotations
+from the host. Representative MCP names are `rules-metadata`, `rules-list`, `rules-get`,
+`rules-create`, `rules-update`, `rules-set-state`, `rules-set-scope`, and `rules-bulk`;
+verify the names and JSON arguments in the connected catalog. MCP uses `rule_ids` and
+`scopes` arrays where its schema declares them, rather than CLI comma-separated flags.
+
+For every MCP write, retain one stable logical-action idempotency key and send it as the
+`idempotency_key` argument advertised by the live schema. A host that supports request metadata
+may instead send `_meta["io.qodo/idempotency-key"]`; if both are sent, they must agree.
+Reuse the same key and identical arguments on an uncertain retry.
+Never generate a fresh key merely to retry an uncertain outcome. Preserve the exact user
+approval, dry-run, read-back, and outcome rules below. Check `isError` before reading
+`structuredContent`; a transport success is not proof of mutation. Do not switch to a
+different CLI identity or tenant after an MCP authorization or permission denial.
+
+CLI version, identity, command-help, and refresh steps below apply only on the CLI path.
 
 Follow the detailed workflow below: preserve update notices, verify the live schema, resolve the
 target, preview destructive or bulk work, obtain confirmation, mutate once, and verify the result.
@@ -43,12 +63,18 @@ without inventory or update questions; mention each event at most once. Dismissa
 policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
 For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
+## Execution
+
+- MCP: use live schema arguments; skip CLI shell steps.
+- CLI: use complete UTF-8 files without a BOM (`--args-file` for tools, `--context-file` for reviews); examples are POSIX.
+- Windows CLI: read [shell guidance](references/windows-shells.md) before the first call; [launcher recovery](references/windows-launcher.md) only if invocation fails. Reuse the resolved invocation.
+
 ## Runtime compatibility gate
 
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
-CLI **0.1.0-next.37 or newer**.
+CLI **1.6.0 or newer**.
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
@@ -60,36 +86,28 @@ the current skill and user files unchanged.
 
 ## Quick start
 
+PowerShell: save each `--args` JSON object below as UTF-8 without a BOM; use `--args-file <path>`.
+
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.5 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.6 --distribution marketplace --host claude-code
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
-qodo rules set-state --rule-ids 123,124 --state inactive --dry-run --json
-qodo rules set-state --rule-ids 123,124 --state inactive --json       # after confirming the preview
-qodo rules set-scope --rule-ids 123 --scopes "/owner/repo/","/owner/repo2/" --json
+qodo rules set-state --args '{"rule_ids":[123,124],"state":"inactive","dry_run":true}' --json
+qodo rules set-state --args '{"rule_ids":[123,124],"state":"inactive"}' --json # after approval
+qodo rules set-scope --args '{"rule_ids":[123],"scopes":["/owner/repo/","/owner/repo2/"]}' --json
 qodo read rules list --state pending --json                           # suggestions awaiting triage
-qodo rules bulk --operation accept_activate --rule-ids 10,11 --dry-run --json
-# Show the exact matched rules/count and ask once; run without --dry-run only after approval.
-qodo rules bulk --operation reject --rule-ids 12 --dry-run --json     # PERMANENT delete — dry run first
+qodo rules bulk --args '{"operation":"accept_activate","rule_ids":[10,11],"dry_run":true}' --json
+# Show the matched rules/count and ask once; omit dry_run or set false only after approval.
+qodo rules bulk --args '{"operation":"reject","rule_ids":[12],"dry_run":true}' --json # preview deletion
 qodo read rules get --rule-id 123 --json                              # current form before editing
 qodo read tools rules --json                                          # exact safe flags (renders offline)
 ```
 
-**`qodo: command not found`?** That's usually PATH, not a missing install: GUI-launched agents
-run shells with a minimal PATH. On POSIX, retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`. In
-Windows PowerShell, retry:
-
-```powershell
-$qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
-& (Join-Path $qodoHome 'bin/qodo.cmd')
-```
-
-Keep using the resolved launcher for every Qodo command here. Only if it is missing is Qodo
-actually not installed; tell the user to obtain a checksum-pinned installer command from Qodo or
-their organization's administrator. Installers are served from https://get.qodo.ai, but never
-invent a digest or pipe an installer directly into a shell.
+**`qodo: command not found`?** On POSIX retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`;
+on Windows follow the linked guide. Keep the resolved invocation; report unusable launchers.
+For missing installs, obtain Qodo's or the administrator's checksum-pinned installer; never invent a digest or pipe scripts into a shell.
 
 **Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
 is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
@@ -122,6 +140,8 @@ and retry before assuming the tool doesn't exist.
    repo's `origin` remote the same way `qodo-get-rules` does — full path after the host, `.git`
    suffix stripped, wrapped as `/<path>/` (e.g. `git@host:a/b` and `https://host/a/b` both parse
    to `/a/b/`). Confirm the derived scope with the user rather than assuming it's what they want.
+   In Git Bash on Windows, a separate `/a/b/` argument is rewritten to a Windows path and the
+   write stores that wrong scope; pass scopes as in [Windows shells](references/windows-shells.md).
 
 ## Where rules come from
 

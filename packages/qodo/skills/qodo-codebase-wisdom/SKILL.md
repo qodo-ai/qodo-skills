@@ -1,10 +1,10 @@
 ---
 name: qodo-codebase-wisdom
-description: Understand how code works, how a change was done before, and which repos are coupled — to answer a question, plan a code change, debug a regression, or scope a fix, using the qodo CLI's managed tools. Use when a task needs to understand a codebase, its history, or how its repos relate — especially for a repo you don't have checked out or work spanning repos — "how does X work", "where is X defined", "who changed X", "explain this service", "plan the change for X", "what would changing X affect", "which repos depend on X", "why did X regress / when did it break", "has this been fixed before", "how did we solve X".
+description: Understand how code works, how a change was done before, and which repos are coupled — to answer a question, plan a code change, debug a regression, or scope a fix, using Qodo managed tools through MCP or the CLI. Use when a task needs to understand a codebase, its history, or how its repos relate — especially for a repo you don't have checked out or work spanning repos — "how does X work", "where is X defined", "who changed X", "explain this service", "plan the change for X", "what would changing X affect", "which repos depend on X", "why did X regress / when did it break", "has this been fixed before", "how did we solve X".
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.5"
+  version: "1.1.6"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -15,18 +15,39 @@ metadata:
 
 ## Description
 
-Use the `qodo` CLI to learn how code works, how a change was done before, and how repos
+Use Qodo managed tools to learn how code works, how a change was done before, and how repos
 are coupled — then hand back **cited findings**. This feeds answering a question, planning
 a change, debugging a regression, or scoping a fix. It reaches repos you don't have on disk
 and spans repo boundaries. You drive qodo's **read** tools only; you never post to the forge.
 
 ## Prerequisites
 
-- The Qodo CLI is installed and the user can authenticate with `qodo login`.
+- The required tools are available through a connected QAR managed-tools MCP server or the Qodo CLI.
 - The workspace exposes the required read-only Codebase, pull-request, or cross-repo tools.
 - The current provider-owned Qodo skill package is loaded in this agent session.
 
 ## Instructions
+
+### Choose the execution path
+
+Use the host's connected QAR managed-tools MCP tools when the required read capability is
+available; otherwise use the CLI instructions below. Do not require a CLI version probe,
+`qodo login`, or a CLI catalog refresh on the MCP path. A connected MCP server has already
+handled transport authentication; a missing tool or `MT-AUTH-FORBIDDEN` is a capability or
+authorization failure, not a reason to log in through the CLI. Do not silently switch paths
+after an auth or permission denial.
+
+On MCP, use the tool descriptions, `inputSchema`, and `readOnlyHint` supplied by the host.
+Call only read-only tools. Representative wire names are `litegit-search-repos`,
+`litegit-grep`, `litegit-read-file`, `pull-request-similar`, and
+`cross-repo-relations`; resolve the actual names and arguments from the connected catalog.
+Pass explicit `repo` when needed: MCP does not infer the local Git origin like the CLI.
+Check `isError` before using `structuredContent`; preserve typed errors and incomplete or
+truncated results. If a call becomes an MCP Task, collect its terminal result before drawing
+a conclusion. A missing MCP capability may use an already authorized CLI path for the same
+deployment; do not treat different accounts or tenants as interchangeable.
+
+The version, identity, help, command, and refresh steps below apply only to the CLI path.
 
 At investigation start and when moving into implementation, identify the missing context:
 
@@ -48,12 +69,18 @@ without inventory or update questions; mention each event at most once. Dismissa
 policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
 For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
+## Execution
+
+- MCP: use live schema arguments; skip CLI shell steps.
+- CLI: use complete UTF-8 files without a BOM (`--args-file` for tools, `--context-file` for reviews); examples are POSIX.
+- Windows CLI: read [shell guidance](references/windows-shells.md) before the first call; [launcher recovery](references/windows-launcher.md) only if invocation fails. Reuse the resolved invocation.
+
 ## Runtime compatibility gate
 
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
-CLI **0.1.0-next.37 or newer**.
+CLI **1.6.0 or newer**.
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
@@ -67,7 +94,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.5 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.6 --distribution marketplace --host claude-code
 qodo read codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
 qodo read codebase grep --repo owner/repo --pattern "chargeCard" --json
 qodo read codebase read-file --repo owner/repo --path src/pay.py --json
@@ -81,13 +108,9 @@ Add `--json` to anything you parse. **Before calling a tool, confirm its exact n
 with `qodo read tools <group> [<tool>] --json`** (renders offline) —
 the tool names below are illustrative, not guaranteed current.
 
-**`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
-the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
-`~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo` if set) and keep using it for every `qodo`
-command here. Only if that file is missing too is qodo actually not installed; tell the
-user to obtain a checksum-pinned installer command from Qodo or their organization's
-administrator. Installers are served from https://get.qodo.ai, but never invent a digest
-or pipe an installer directly into a shell.
+**`qodo: command not found`?** On POSIX retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`;
+on Windows follow the linked guide. Keep the resolved invocation; report unusable launchers.
+For missing installs, obtain Qodo's or the administrator's checksum-pinned installer; never invent a digest or pipe scripts into a shell.
 
 **Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
 is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
@@ -194,7 +217,8 @@ replace them with guessed repository facts or broader authority.
 
 ## Guardrails
 
-- Only call managed tools through the fail-closed `qodo read` gateway. The write tools — `approve`,
+- On CLI, call reads through the fail-closed `qodo read` gateway; on MCP, require a read-only
+  annotation. The write tools — `approve`,
   `post-comment`, `post-inline-comment(s)`, `set-labels`, `update-description` (non-exhaustive) —
   post to the forge; **don't call them** while investigating. (Editing local code as part of a
   fix is your normal work — that's not these tools.)
