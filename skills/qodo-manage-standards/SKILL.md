@@ -86,13 +86,13 @@ qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.5 --di
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
-qodo rules set-state --rule-ids 123,124 --state inactive --dry-run --json
-qodo rules set-state --rule-ids 123,124 --state inactive --json       # after confirming the preview
-qodo rules set-scope --rule-ids 123 --scopes "/owner/repo/","/owner/repo2/" --json
+qodo rules set-state --args '{"rule_ids":[123,124],"state":"inactive","dry_run":true}' --json
+qodo rules set-state --args '{"rule_ids":[123,124],"state":"inactive"}' --json # after approval
+qodo rules set-scope --args '{"rule_ids":[123],"scopes":["/owner/repo/","/owner/repo2/"]}' --json
 qodo read rules list --state pending --json                           # suggestions awaiting triage
-qodo rules bulk --operation accept_activate --rule-ids 10,11 --dry-run --json
-# Show the exact matched rules/count and ask once; run without --dry-run only after approval.
-qodo rules bulk --operation reject --rule-ids 12 --dry-run --json     # PERMANENT delete — dry run first
+qodo rules bulk --args '{"operation":"accept_activate","rule_ids":[10,11],"dry_run":true}' --json
+# Show the matched rules/count and ask once; omit dry_run or set false only after approval.
+qodo rules bulk --args '{"operation":"reject","rule_ids":[12],"dry_run":true}' --json # preview deletion
 qodo read rules get --rule-id 123 --json                              # current form before editing
 qodo read tools rules --json                                          # exact safe flags (renders offline)
 ```

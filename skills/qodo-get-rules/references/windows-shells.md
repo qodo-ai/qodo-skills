@@ -7,27 +7,35 @@ Read when commands run in PowerShell or Git Bash (MSYS2; `uname -s` starts with 
 
 The extensionless `bin/qodo` is a POSIX script. Resolve a verified native invocation:
 
-1. If `QODO_HOME` is configured, use that installation's `bin` directory. If it is unusable,
-   report the blocker; do not silently select a different installation.
+1. If `QODO_HOME` is configured, inspect that installation's `bin` directory. If it is
+   unusable, report the blocker; do not silently select a different installation.
 2. Otherwise inspect absolute directories from the process PATH in order, then Windows'
    persisted user PATH (`[Environment]::GetEnvironmentVariable('Path', 'User')`). Ignore
    empty or relative entries and expand environment variables as data, without executing
-   them. Inspect existing files; do not edit either PATH or search the workspace.
-3. A usable installation directory contains an existing `qodo.mjs` plus either `qodo.exe`
-   or `qodo.cmd`. Use the first usable PATH installation. If none exists, check the default
-   `(Join-Path $HOME '.qodo')/bin` directory. Custom roots need not set `QODO_HOME` when
-   their installer registered a usable absolute directory in the user PATH.
-4. Check the selected directory's `qodo.exe` with `Test-Path -LiteralPath <path> -PathType Leaf`.
-   If it exists, use it. Otherwise run that same installed `qodo.mjs` directly with Node.
-   Resolve Node with `Get-Command node -CommandType Application -ErrorAction SilentlyContinue`.
-   If absent, read the selected `qodo.cmd` as text and use an existing absolute Node path
-   from its `set "NODE=..."` lines. Do not execute that batch launcher to discover Node.
-5. Verify the selected executable and entry point exist before invoking them. If no native
-   invocation is usable, report the launcher blocker; do not proceed to auth or reinstall.
+   them. Do not edit PATH or search the workspace.
+3. Before any probe, resolve the real filesystem targets of the candidate directory,
+   `qodo.exe`, `qodo.mjs`, and any Node fallback, including filesystem links. Reject targets
+   inside the host's repository/workspace directories, even when PATH names an absolute
+   directory outside them. Reject targets that cannot be verified. Apply this check to an
+   explicit `QODO_HOME` too; never execute workspace files to discover a version.
+4. An installation candidate contains an existing `qodo.mjs` plus either `qodo.exe` or
+   `qodo.cmd`. Check files with `Test-Path -LiteralPath <path> -PathType Leaf`. Use its native
+   `qodo.exe` when available; otherwise run that same installed `qodo.mjs` directly with
+   verified Node. Resolve Node with
+   `Get-Command node -CommandType Application -ErrorAction SilentlyContinue`. If absent,
+   read the selected `qodo.cmd` as text and use an existing absolute Node path from its
+   `set "NODE=..."` lines. Do not execute the batch launcher to discover Node.
+5. For each trusted candidate, run the unadorned `--version` probe with the executable,
+   or Node followed by its installed entry point. Retain the first invocation that starts
+   successfully and returns a parseable CLI version. Skip broken PATH candidates; if none
+   works, check `(Join-Path $HOME '.qodo')/bin` with the same trust/probe checks. Custom roots
+   need not set `QODO_HOME` when their installer registered a usable user PATH directory.
+6. If no trusted native invocation works, report the launcher blocker; do not proceed to
+   auth or reinstall. A selected older runtime follows the main skill's version/update gate.
 
-Run the unadorned `--version` probe with that executable, or Node followed by the installed
-entry point. Retain the invocation and authenticated deployment for every later command;
-recompute the selection if host shell state does not persist. Do not execute `qodo.cmd`.
+Retain the selected installation, invocation and authenticated deployment for later commands.
+If host shell state does not persist, recreate the invocation from that recorded installation;
+do not rescan into a different installation. Do not execute `qodo.cmd`.
 
 ## PowerShell: argument values
 
