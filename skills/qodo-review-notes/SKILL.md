@@ -35,6 +35,12 @@ Treat `QODO_NOTICE` updates as passive. Continue the task and mention each notic
 updated instructions load next session. For a requested update, follow
 the manual maintenance procedure below without changing the organization's update origin.
 
+## Execution
+
+- MCP: use live schema arguments; skip CLI shell steps.
+- CLI: use complete UTF-8 files without a BOM (`--args-file` for tools, `--context-file` for reviews); examples are POSIX.
+- Windows CLI: read [shell guidance](references/windows-shells.md) before the first call; [launcher recovery](references/windows-launcher.md) only if invocation fails. Reuse the resolved invocation.
+
 ## Choose the available tools
 
 Use a trusted connected Qodo MCP server when available, otherwise the authenticated `qodo` CLI.
@@ -44,9 +50,6 @@ Read/discover without asking. Honor the host's write gate and the user's existin
 for note maintenance; a request to read or review notes alone does not authorize editing them.
 
 When using the CLI, check `qodo --version` before discovering its live notes commands:
-
-In PowerShell or Git Bash on Windows, first read [Windows shells](references/windows-shells.md).
-Keep using the resolved executable for later CLI calls; the examples below use `qodo` as its placeholder.
 
 ```sh
 qodo --version

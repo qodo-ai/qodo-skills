@@ -85,13 +85,18 @@ without inventory or update questions; mention each event at most once. Dismissa
 policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
 For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
+## Execution
+
+- MCP: use live schema arguments; skip CLI shell steps.
+- CLI: use complete UTF-8 files without a BOM (`--args-file` for tools, `--context-file` for reviews); examples are POSIX.
+- Windows CLI: read [shell guidance](references/windows-shells.md) before the first call; [launcher recovery](references/windows-launcher.md) only if invocation fails. Reuse the resolved invocation.
+
 ## Runtime compatibility gate
 
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
 CLI **1.6.0 or newer**.
-On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
@@ -122,12 +127,9 @@ The read-only catalog deliberately excludes writes; absence there does not prove
 catalog — refresh once as described below. If the commands are still absent, the workspace does
 not currently expose PR-review writes; report that capability boundary instead of looping.
 
-**`qodo: command not found`?** GUI-launched agents may have a minimal PATH. On POSIX, retry
-`"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`. In PowerShell, reuse the native invocation
-from [Windows shells](references/windows-shells.md). Report an unusable launcher as a blocker.
-If the CLI installation is missing, obtain a checksum-pinned installer from Qodo or the
-organization administrator. Installers are served from https://get.qodo.ai; never invent a digest
-or pipe an installer directly into a shell.
+**`qodo: command not found`?** On POSIX retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`;
+on Windows follow the linked guide. Keep the resolved invocation; report unusable launchers.
+For missing installs, obtain Qodo's or the administrator's checksum-pinned installer; never invent a digest or pipe scripts into a shell.
 
 **Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
 is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
