@@ -5,10 +5,21 @@ Keep the first working executable for the rest of setup; no extra PATH edits are
 
 ## PowerShell discovery
 
-```powershell
-$qodoRuntimeHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
-& (Join-Path $qodoRuntimeHome 'bin/qodo.cmd') --version
-```
+Resolve a native invocation from the existing installation before any CLI call:
+
+1. Use `QODO_HOME` when configured, otherwise `Join-Path $HOME '.qodo'`.
+2. Check `bin/qodo.exe` with `Test-Path -LiteralPath <path> -PathType Leaf`. If it exists,
+   use it; do not invoke a missing executable.
+3. Otherwise run the same installed `bin/qodo.mjs` directly with Node. Resolve Node with
+   `Get-Command node -CommandType Application -ErrorAction SilentlyContinue`. If it is absent
+   from PATH, read `bin/qodo.cmd` as text and select an existing absolute Node path from its
+   `set "NODE=..."` lines. Do not execute the batch launcher to discover Node.
+4. Verify the selected Node executable and `bin/qodo.mjs` exist before invoking them.
+   If no native invocation is usable, report the launcher blocker; do not proceed to auth.
+
+Run the unadorned `--version` probe with the verified executable, or Node followed by the
+installed entry point. Retain that invocation for every later command; recompute it when
+host shell state does not persist. Do not execute `qodo.cmd`, which can reparse arguments.
 
 ## Missing runtime
 
