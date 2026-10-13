@@ -58,10 +58,13 @@ qodo tools help review-notes --json
 If the version is below the minimum or cannot be parsed, stop authenticated CLI calls and explain
 the update needed. Before offering an update, check only whether `QODO_UPDATE_BASE_URL` is set;
 never print its value. If set, it overrides the recorded source: ask the user to resolve that
-override before proceeding, without changing it yourself. Otherwise offer `qodo update` for
-the CLI's already-recorded public or enterprise origin;
-honor existing update authorization, otherwise ask once before running it. Never switch origins.
-After an approved update, rerun the unadorned version probe before `whoami` or tool discovery.
+override before proceeding, without changing it yourself. Automatic updates stay within a major.
+For a runtime below 2.x or an unparseable version, explain the prerequisite and ask once before
+explicit 2.x installation with a checksum-pinned installer supplied by Qodo or the organization.
+Reuse covering installation authorization, preserve the recorded origin and never invent a digest.
+For an eligible in-major update, offer `qodo update` at that origin and honor existing update
+authorization, otherwise ask once. After installation or update, rerun the unadorned version
+probe before `whoami` or tool discovery.
 If no update is authorized, stop this CLI path; trusted MCP remains available when configured.
 Follow the Tool access recovery rules for other failures.
 
@@ -355,6 +358,11 @@ Never widen approval, change owners or add optional packages. Report persistent 
 
 ### Runtime recovery
 
-Stop if a runtime upgrade was already attempted. Otherwise inspect `<qodo> update --help`, then use the supported `<qodo> update --check --json`; require a newer release and the recorded source in its result.
+Stop if a runtime upgrade was already attempted. If reaching the skill minimum needs a major
+upgrade or the version is unparseable, use the explicit installation gate above; an in-major
+`qodo update` cannot satisfy it. Recheck the minimum after installation, then return to the
+preview without another upgrade. Stop if installation is not authorized or compatible.
+Otherwise inspect `<qodo> update --help`, then use the supported `<qodo> update --check --json`;
+require a newer release and the recorded source in its result.
 Explain the CLI prerequisite and reuse runtime-update authorization or ask once; skills-only consent is insufficient. Run `<qodo> update --json` once without source/channel overrides. Recheck unadorned `<qodo> --version` and require the skill minimum before rechecking planning support and returning to the preview.
 Stop on denial, failure, missing metadata or continued incompatibility; never reinstall or switch sources. Runtime-only consent does not approve the skills operation.

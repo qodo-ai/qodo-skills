@@ -50,3 +50,5 @@ the existing detector still checks eligibility and the judge decides whether the
 behavior. In an otherwise eligible round, missing notes, an unclear verdict or judge failure
 keep narrowing; only a `new_behavior` verdict exits it. A fixes-only statement alone does not
 make a round eligible. Refresh the notes even when the engine may reuse an unchanged snapshot.
+This policy narrows the agent roster and retained action levels; it does not select the diff scope
+or prevent checkpoint reuse. A new-behavior note is not a guarantee of a full review.
