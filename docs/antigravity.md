@@ -91,7 +91,7 @@ plugin's directory, never a shared skills/configuration directory.
 Record the Antigravity surface/version, Qodo CLI version, release tag/commit, installation scope,
 and observed skill names for each tested surface:
 
-- Fresh core install discovers exactly four skills and can open their bundled references.
+- Fresh core install discovers exactly five skills and can open their bundled references.
 - Standards stays absent until explicitly installed, then adds exactly its two skills.
 - Setup and one read workflow execute through the Qodo CLI with the recorded deployment.
 - Any write workflow still requires the user's authorization; do not write merely to test discovery.

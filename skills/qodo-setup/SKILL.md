@@ -51,7 +51,7 @@ For PowerShell or a missing CLI, read [runtime.md](references/runtime.md).
 Follow that procedure. Setup requests cover CLI installation subject to host approvals;
 plugin installation alone does not.
 
-Keep the working executable as `<qodo>`. Require Qodo CLI **0.1.0-next.37 or newer**.
+Keep the working executable as `<qodo>`. Require Qodo CLI **1.6.0 or newer**.
 If older or unparseable, follow the runtime reference before any authenticated command.
 
 ### 2. Connect
