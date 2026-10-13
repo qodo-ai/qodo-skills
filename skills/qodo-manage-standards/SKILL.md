@@ -80,6 +80,8 @@ the current skill and user files unchanged.
 
 ## Quick start
 
+PowerShell: save each `--args` JSON object below as UTF-8 without a BOM; use `--args-file <path>`.
+
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
 qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.5 --distribution skills-sh
