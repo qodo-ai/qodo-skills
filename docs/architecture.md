@@ -57,7 +57,7 @@ versions, and shared roots remain untouched unless the user acknowledges shared 
 
 Canonical skills live in `skills/<name>/`. `distribution/catalog.json` defines two packages:
 
-- `qodo`: the four core workflows, installed by default;
+- `qodo`: the five core workflows, installed by default;
 - `qodo-standards`: the two standards workflows, always optional.
 
 Every canonical `SKILL.md` carries a named Qodo owner, a single-line discovery description, and

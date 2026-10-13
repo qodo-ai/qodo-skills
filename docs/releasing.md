@@ -307,11 +307,16 @@ choice, not a separate release selector. Never replace the core listing during a
 For every selected provider, record:
 
 1. provider-visible source path and observed commit/version; distinguish moving Kiro `main` from a release pin;
-2. fresh core install with exactly four canonical skill entries;
+2. fresh core install with exactly five canonical skill entries;
 3. upgrade from the currently published version without duplicates;
 4. Qodo Standards absent until explicitly installed;
 5. `qodo-setup`, one read workflow, and one approval-gated write workflow;
 6. host-owned update and new-session activation.
+
+The five core skills are `qodo-setup`, `qodo-codebase-wisdom`, `qodo-review`,
+`qodo-review-notes`, and `qodo-review-resolver`. This release requires CLI 1.6.0 or newer.
+An existing four-skill enterprise installation remains supported by the CLI; adding the
+notes skill requires explicit installation of the complete five-skill core package.
 
 Source CI or packet creation alone is not release completion.
 
