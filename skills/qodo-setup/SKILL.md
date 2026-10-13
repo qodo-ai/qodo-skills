@@ -40,16 +40,13 @@ preserve opt-outs, edits, owners and optional-package choices.
 
 ### 1. Find or install the runtime
 
-Run:
-
-```sh
-qodo --version
-```
-
-If missing, try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version` on POSIX.
-For PowerShell or a missing CLI, read [runtime.md](references/runtime.md).
-Follow that procedure. Setup requests cover CLI installation subject to host approvals;
-plugin installation alone does not.
+On POSIX, run `qodo --version`; if missing, try
+`"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version`.
+In PowerShell, first resolve the verified native executable or direct Node invocation
+from the configured installation or process/user PATH using [runtime.md](references/runtime.md).
+Do not execute `qodo.cmd`. Retain the selected installation and authenticated deployment.
+For a missing CLI, follow the runtime reference. Setup requests cover CLI installation
+subject to host approvals; plugin installation alone does not.
 
 Keep the working executable as `<qodo>`. Require Qodo CLI **1.6.0 or newer**.
 If older or unparseable, follow the runtime reference before any authenticated command.
