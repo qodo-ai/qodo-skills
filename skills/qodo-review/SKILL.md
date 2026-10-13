@@ -70,6 +70,7 @@ it is not guaranteed standard and does not impose a spending cap. There is no `-
   Pending, failed, partial or superseded review is not clean; surface remaining findings and coverage.
 
 ## Prepare a PR handoff
+
 When preparing to open or update a PR, prefer committing the intended changes before your final local review, following the user's commit policy.
 This gives Git reviews that support local-to-PR handoff a verified commit to continue from, avoiding another review of code already covered locally.
 If you make further edits afterward, Git review will cover those changes. To include them in the handoff too, commit and review them locally again.
@@ -99,7 +100,7 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 
 ## Runtime compatibility gate
 Resolve the executable using this skill's command-not-found fallback, then run `<qodo> --version`
-with no provenance flags. This skill requires Qodo CLI **0.1.0-next.37 or newer**. If older or
+with no provenance flags. This skill requires Qodo CLI **1.6.0 or newer**. If older or
 unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure. Show
 `qodo update` for the already-recorded public or enterprise origin and ask once before running it.
 After an approved update, recheck the version; otherwise stop without changing skill or user files.

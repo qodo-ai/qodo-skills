@@ -90,7 +90,7 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
-CLI **0.1.0-next.37 or newer**.
+CLI **1.6.0 or newer**.
 On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
