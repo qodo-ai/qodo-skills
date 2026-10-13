@@ -1,6 +1,6 @@
 ---
 name: qodo-manage-standards
-description: Create, edit, and administer Qodo Review Standards from conversation — capture a convention just discussed as a new rule, change or deactivate an existing one, re-scope rules to a repo, and triage pending suggestions (accept/reject) — using Qodo managed rules tools through MCP or the CLI. Use on "make this a rule", "make a rule for this repo", "deactivate/disable the X rule", "change the X rule to an error", "re-scope the X rule to this repo", "show pending suggestions", "let's triage suggestions", "accept/reject this suggestion", or "bulk deactivate rules"; skip reading or applying rules (use qodo-get-rules) and anything that isn't a rules-entity change.
+description: Manage Qodo review rules and imported review skills through managed MCP tools or the CLI. Use to capture a convention as a rule, edit or deactivate rules, triage suggestions, set up an imported skills/plugin repository for reviews, map skills to target repositories, or change skill scope, lifecycle, or rules/steering mode. Inspect the current configuration, propose exact changes, obtain user authority, apply, and verify. For reading and applying rules use qodo-get-rules; installing local coding-agent skills uses the CLI setup workflow.
 owner: Qodo
 metadata:
   vendor: qodo
@@ -15,8 +15,8 @@ metadata:
 ## Description
 
 Use Qodo managed tools to **administer** the workspace's Review Standards: capture a convention as a
-new rule, edit or retire an existing one, re-scope it to a repo, or triage the pending
-suggestions queue. Review Standards is Qodo's umbrella term for rules and suggestions. This is
+new rule, edit or retire an existing one, re-scope it to a repo, triage the pending
+suggestions queue, or configure imported review skills. This is
 the **write** counterpart to `qodo-get-rules` (which only
 reads and applies rules). Metadata, list, get, and schema inspection are read-only preparation;
 perform them to make the proposed change concrete before asking for write approval.
@@ -26,18 +26,19 @@ Run bulk operations as a dry run first.
 
 - The optional Qodo Standards package is installed and loaded explicitly.
 - A connected QAR managed-tools MCP server or authenticated Qodo CLI exposes the requested standards tool.
-- The exact rule, scope, and intended mutation are known; the user can approve every write.
+- The exact rule or skill, scope, and intended mutation are known; the user can approve every write.
 
 ## Instructions
 
 ### Choose the execution path
 
-Use connected QAR MCP tools when the requested rules capability is available; otherwise
+Use connected QAR MCP tools when the requested capability is available; otherwise
 follow the CLI path. Read tool descriptions, `inputSchema`, and read-only/mutating annotations
 from the host. Representative MCP names are `rules-metadata`, `rules-list`, `rules-get`,
 `rules-create`, `rules-update`, `rules-set-state`, `rules-set-scope`, and `rules-bulk`;
-verify the names and JSON arguments in the connected catalog. MCP uses `rule_ids` and
-`scopes` arrays where its schema declares them, rather than CLI comma-separated flags.
+review skills use `review-skills-list`, `review-skills-get`, `review-skills-update`, and
+`review-skills-bulk`. Verify names and JSON arguments in the connected catalog. MCP uses
+typed arrays where its schema declares them, rather than CLI comma-separated flags.
 
 For every MCP write, retain one stable logical-action idempotency key and send it as the
 `idempotency_key` argument advertised by the live schema. A host that supports request metadata
@@ -162,9 +163,17 @@ shows; don't narrate a pipeline the data doesn't name.
 `sourceType` is coarse — one value covers every kind of repo document. Read `sourceUri` when you
 need to know which document a rule actually came from.
 
+## Set up or manage imported review skills
+
+For imported skills/plugin repositories, skill-to-repository mapping, or skill lifecycle and
+application-mode changes, follow [review-skill setup](references/review-skills.md).
+Use the same identity, live-schema, approval, retry, and verified-outcome gates as rules.
+These are workspace review skills discovered from repositories; this route does not install
+local coding-agent helpers. The platform must already have discovered the source skills.
+
 ## The four jobs
 
-This skill covers everything that changes the rule set. Route the user's request to one of:
+For changes to the rule set, route the user's request to one of:
 
 **1. Capture — turn a discussed convention into a rule.** The strongest signal: the user just
 described or agreed on a convention mid-session and wants it enforced going forward ("make this
@@ -256,7 +265,7 @@ state the actual blocker and next action rather than a successful outcome.
 
 ## Configuration
 
-Use `--json`, explicit rule ids and scopes, and the CLI's current metadata before constructing a
+Use `--json`, explicit entity ids and scopes, and the CLI's current metadata before constructing a
 write. Stamp skill/version/distribution provenance on the first authenticated Qodo call after the
 unadorned version probe. Keep Standards separate from the default package; installation is not admin authority.
 
@@ -266,7 +275,7 @@ unadorned version probe. Keep Standards separate from the default package; insta
   are admin-gated. Explain plainly: *"This requires admin permission in your workspace — ask an
   admin to make the change or grant you access."* Don't retry; it won't succeed without a
   permission change.
-- **Not found** — the rule id doesn't exist in this workspace (wrong id, wrong workspace, or
+- **Not found** — the entity id doesn't exist in this workspace (wrong id, wrong workspace, or
   already deleted). Say so; don't guess a different id.
 - **Rate limited (`MT-RATE-LIMITED`)** — back off; don't hammer retries.
 - **Validation error** — correct a rejected field once within the approved intent. If the
@@ -278,12 +287,12 @@ unadorned version probe. Keep Standards separate from the default package; insta
 
 ## Guardrails
 
-- **Require approval for the exact write.** Present the rule(s), changed fields, and scopes.
+- **Require approval for the exact write.** Present the rules or skills, changed fields, and scopes.
   Reuse explicit authorization already given for that proposal; ask only for missing or changed
   scope. Read-only inspection does not need write approval. A dry run is not authorization.
 - **Dry-run first for anything bulk or destructive.** `set-state`/`set-scope` across multiple
-  rules and every `bulk` call: `--dry-run` → show the count/blast radius → confirm → real call.
-- **Never fabricate a rule id, scope, or example.** Resolve or ask; an empty result from `list`
+  rules and every rules or skills `bulk` call: `--dry-run` → show the count/blast radius → confirm → real call.
+- **Never fabricate an entity id, scope, or example.** Resolve or ask; an empty result from `list`
   is a valid outcome, not an error.
 - **Tell the user which outcome actually happened** — active rule vs. pending suggestion,
   matched vs. succeeded count from a bulk call — don't assume success from a 200 response alone.
