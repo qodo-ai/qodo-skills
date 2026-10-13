@@ -62,13 +62,18 @@ without inventory or update questions; mention each event at most once. Dismissa
 policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
 For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
 
+## Execution
+
+- MCP: use live schema arguments; skip CLI shell steps.
+- CLI: use complete UTF-8 files without a BOM (`--args-file` for tools, `--context-file` for reviews); examples are POSIX.
+- Windows CLI: read [shell guidance](references/windows-shells.md) before the first call; [launcher recovery](references/windows-launcher.md) only if invocation fails. Reuse the resolved invocation.
+
 ## Runtime compatibility gate
 
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
 CLI **1.6.0 or newer**.
-On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
@@ -80,30 +85,28 @@ the current skill and user files unchanged.
 
 ## Quick start
 
+PowerShell: save each `--args` JSON object below as UTF-8 without a BOM; use `--args-file <path>`.
+
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
 qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.5 --distribution skills-sh
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
-qodo rules set-state --rule-ids 123,124 --state inactive --dry-run --json
-qodo rules set-state --rule-ids 123,124 --state inactive --json       # after confirming the preview
-qodo rules set-scope --rule-ids 123 --scopes "/owner/repo/","/owner/repo2/" --json
+qodo rules set-state --args '{"rule_ids":[123,124],"state":"inactive","dry_run":true}' --json
+qodo rules set-state --args '{"rule_ids":[123,124],"state":"inactive"}' --json # after approval
+qodo rules set-scope --args '{"rule_ids":[123],"scopes":["/owner/repo/","/owner/repo2/"]}' --json
 qodo read rules list --state pending --json                           # suggestions awaiting triage
-qodo rules bulk --operation accept_activate --rule-ids 10,11 --dry-run --json
-# Show the exact matched rules/count and ask once; run without --dry-run only after approval.
-qodo rules bulk --operation reject --rule-ids 12 --dry-run --json     # PERMANENT delete — dry run first
+qodo rules bulk --args '{"operation":"accept_activate","rule_ids":[10,11],"dry_run":true}' --json
+# Show the matched rules/count and ask once; omit dry_run or set false only after approval.
+qodo rules bulk --args '{"operation":"reject","rule_ids":[12],"dry_run":true}' --json # preview deletion
 qodo read rules get --rule-id 123 --json                              # current form before editing
 qodo read tools rules --json                                          # exact safe flags (renders offline)
 ```
 
-**`qodo: command not found`?** That's usually PATH, not a missing install: GUI-launched agents
-run shells with a minimal PATH. On POSIX, retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`; in
-PowerShell, use `bin/qodo.cmd` as shown in [Windows shells](references/windows-shells.md).
-Keep using the resolved launcher for every Qodo command here. Only if it is missing is Qodo
-actually not installed; tell the user to obtain a checksum-pinned installer command from Qodo or
-their organization's administrator. Installers are served from https://get.qodo.ai, but never
-invent a digest or pipe an installer directly into a shell.
+**`qodo: command not found`?** On POSIX retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`;
+on Windows follow the linked guide. Keep the resolved invocation; report unusable launchers.
+For missing installs, obtain Qodo's or the administrator's checksum-pinned installer; never invent a digest or pipe scripts into a shell.
 
 **Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
 is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
