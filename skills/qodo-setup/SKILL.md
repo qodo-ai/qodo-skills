@@ -4,7 +4,7 @@ description: Set up Qodo in a coding agent — install the CLI, sign in, and ver
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.9"
+  version: "1.0.10"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -58,7 +58,7 @@ Keep the executable as `<qodo>`. Require Qodo CLI **1.6.0 or newer** before auth
 Run:
 
 ```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.9 --distribution skills-sh
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.10 --distribution skills-sh
 ```
 
 Reuse a successful identity check. On failure, read
@@ -75,7 +75,7 @@ approval is not blanket permission. Stop on cancellation or denied permission.
 Only after identity succeeds, run:
 
 ```sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.9 --distribution skills-sh
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.10 --distribution skills-sh
 ```
 
 Require a usable catalog and the task's capability; unrelated tools do not establish access.

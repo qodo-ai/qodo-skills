@@ -1,32 +1,36 @@
 {
   "schemaVersion": 1,
   "instructionMode": "embedded",
-  "packageVersion": "2.0.13",
-  "minimumCliVersion": "0.1.0-next.37",
+  "packageVersion": "2.1.0",
+  "minimumCliVersion": "1.6.0",
   "repository": "https://github.com/qodo-ai/qodo-skills",
   "skills": {
     "qodo-setup": {
-      "version": "1.0.9",
+      "version": "1.0.10",
       "package": "qodo"
     },
     "qodo-codebase-wisdom": {
-      "version": "1.1.5",
+      "version": "1.1.6",
       "package": "qodo"
     },
     "qodo-get-rules": {
-      "version": "1.1.5",
+      "version": "1.1.6",
       "package": "qodo-standards"
     },
     "qodo-manage-standards": {
-      "version": "1.0.5",
+      "version": "1.0.6",
       "package": "qodo-standards"
     },
     "qodo-review": {
-      "version": "1.10.7",
+      "version": "1.10.8",
       "package": "qodo"
     },
     "qodo-review-resolver": {
-      "version": "1.4.7",
+      "version": "1.4.8",
+      "package": "qodo"
+    },
+    "qodo-review-notes": {
+      "version": "1.0.0",
       "package": "qodo"
     }
   }

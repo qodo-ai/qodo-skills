@@ -1,6 +1,6 @@
 {
   "name": "qodo",
-  "version": "2.0.13",
+  "version": "2.1.0",
   "description": "Qodo setup, code intelligence, and review workflows.",
   "author": {
     "name": "Qodo",
@@ -33,6 +33,7 @@
       "Set up Qodo",
       "Qodo Codebase Wisdom",
       "Qodo Local Review",
+      "Qodo Review Notes",
       "Qodo Review Resolver"
     ],
     "websiteURL": "https://www.qodo.ai",

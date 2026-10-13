@@ -1,0 +1,46 @@
+{
+  "version": "2.1.0",
+  "summary": "Update Qodo skills and marketplace packages.\n- Merge pull request #122 from qodo-ai/codex/antigravity-marketplace-metadata\n- fix(skills): make qodo commands work in Windows PowerShell and Git Bash (#127)\n- Merge pull request #123 from qodo-ai/wf-1085-mcp-skills-pr\n- Merge pull request #126 from qodo-ai/feat/development-track-pr-notes\n- Merge pull request #131 from qodo-ai/fix/windows-native-launcher-guidance\n- Merge pull request #132 from qodo-ai/fix/windows-skill-fallbacks",
+  "package": {
+    "change": "minor"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "1.6.0",
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.10",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-codebase-wisdom",
+      "version": "1.1.6",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-get-rules",
+      "version": "1.1.6",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-manage-standards",
+      "version": "1.0.6",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review",
+      "version": "1.10.8",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.8",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.0",
+      "change": "initial"
+    }
+  ]
+}
