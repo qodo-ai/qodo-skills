@@ -5,31 +5,30 @@ Read when commands run in PowerShell or Git Bash (MSYS2; `uname -s` starts with 
 
 ## PowerShell: launcher
 
-Bare `qodo` resolves to `bin/qodo.cmd`, which runs through cmd.exe. The extensionless
-`bin/qodo` is a POSIX script PowerShell cannot execute; never call it there. When `qodo` is
-not on PATH, use the following, recomputing `$qodoHome` in each command because host shell
-state may not persist:
+The extensionless `bin/qodo` is a POSIX script. Resolve a native invocation before any CLI call:
 
-```powershell
-$qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
-& (Join-Path $qodoHome 'bin/qodo.cmd') --version
-```
+1. Use `QODO_HOME` when configured, otherwise `Join-Path $HOME '.qodo'`.
+2. Check `bin/qodo.exe` with `Test-Path -LiteralPath <path> -PathType Leaf`. If it exists,
+   use it; it preserves arguments without cmd.exe. Never invoke a missing executable.
+3. If it is absent, run the same installed `bin/qodo.mjs` directly with Node. Look for Node
+   using `Get-Command node -CommandType Application -ErrorAction SilentlyContinue`. If absent
+   from PATH, read the installed `bin/qodo.cmd` as text and select an existing absolute Node
+   path recorded in its `set "NODE=..."` lines. Do not execute that batch launcher to discover Node.
+4. Verify that the selected Node executable and `bin/qodo.mjs` exist before invoking them.
+   If neither native invocation is usable, report the launcher blocker; do not proceed to auth.
 
-## PowerShell: values containing a newline, `%` or `"`
+Run the unadorned `--version` probe using that verified invocation: either the executable or
+Node followed by the installed entry point. Retain it for every later CLI call. Recompute the
+selection when the host does not preserve shell state. Do not execute `qodo.cmd` for these commands.
 
-cmd.exe cuts an argument at its first newline, silently dropping every later flag including
-`--json`, and replaces `%NAME%` with that environment variable's value. For a command with such
-a value, bypass cmd.exe by running the CLI's Node entry point with the same arguments:
+## PowerShell: argument values
 
-```powershell
-$qodoHome = if ($env:QODO_HOME) { $env:QODO_HOME } else { Join-Path $HOME '.qodo' }
-& (Get-Command node -ErrorAction Stop).Source (Join-Path $qodoHome 'bin/qodo.mjs') <arguments>
-```
-
-If `node` is not on PATH, use the Node path that `bin/qodo.cmd` sets as `NODE`.
-Windows PowerShell 5.1 (`$PSVersionTable.PSVersion.Major` is 5) also strips embedded `"` from
-arguments to any program; write each as `\"` there. Never shorten a query, explanation or
-example to avoid these limits; pass its full text or report the blocker.
+cmd.exe can truncate multiline values and reparse `%NAME%`, `&` and `^`. The verified native
+invocation avoids that batch-shell parsing. Windows PowerShell 5.1 also strips embedded `"`
+from arguments to programs; write each as `\"` there. For structured arguments, prefer the
+CLI's advertised file input (`--args-file` for managed-tool arguments or `--context-file` for
+review context) and follow the JSON-file encoding guidance below. Never shorten a query,
+explanation or example to avoid shell limits; pass its full text or report the blocker.
 
 ## PowerShell: JSON files
 
