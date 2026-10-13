@@ -5,42 +5,22 @@ Keep the first working executable for the rest of setup; no extra PATH edits are
 
 ## PowerShell discovery
 
-The extensionless `bin/qodo` is a POSIX script. Resolve a verified native invocation:
+The extensionless `bin/qodo` is POSIX-only. In PowerShell:
 
-1. If `QODO_HOME` is configured, inspect that installation's `bin` directory. If it is
-   unusable, report the blocker; do not silently select a different installation.
-2. Otherwise inspect absolute directories from the process PATH in order, then Windows'
-   persisted user PATH (`[Environment]::GetEnvironmentVariable('Path', 'User')`). Ignore
-   empty or relative entries and expand environment variables as data, without executing
-   them. Do not edit PATH or search the workspace.
-3. Before any probe, resolve the real filesystem targets of the candidate directory,
-   `qodo.exe`, `qodo.mjs`, and any Node fallback, including filesystem links. Reject targets
-   inside the host's repository/workspace directories, even when PATH names an absolute
-   directory outside them. Reject targets that cannot be verified. Apply this check to an
-   explicit `QODO_HOME` too; never execute workspace files to discover a version.
-4. An installation candidate contains an existing `qodo.mjs` plus either `qodo.exe` or
-   `qodo.cmd`. Check files with `Test-Path -LiteralPath <path> -PathType Leaf`. Try a trusted
-   native `qodo.exe` first. If absent, untrusted, or its probe fails, try that installed `qodo.mjs`
-   directly with verified Node. Inspect
-   `Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue` first. If that
-   Node choice is absent, untrusted, or fails its probe, read the selected `qodo.cmd` as text
-   and try existing absolute Node `.exe` paths from its `NODE` assignments, including the
-   first real-binary assignment and conditional fallback assignments. Apply the trust/probe
-   checks to each; reject `.cmd`, `.bat`, `.ps1` and other non-native Node launchers.
-   An untrusted launcher choice excludes only that invocation;
-   it does not discard another trusted invocation for the installation. Do not execute
-   the batch launcher to discover Node.
-5. For each trusted candidate, run the unadorned `--version` probe with the executable,
-   or Node followed by its installed entry point. Retain the first invocation that starts
-   successfully and returns a parseable CLI version. Skip broken PATH candidates; if none
-   works, check `(Join-Path $HOME '.qodo')/bin` with the same trust/probe checks. Custom roots
-   need not set `QODO_HOME` when their installer registered a usable user PATH directory.
-6. If no trusted native invocation works, report the launcher blocker; do not proceed to
-   auth or reinstall. A selected older runtime follows the main skill's version/update gate.
+1. Use explicit `QODO_HOME/bin`; otherwise inspect absolute process PATH, Windows user
+   PATH (`[Environment]::GetEnvironmentVariable('Path','User')`), then `$HOME/.qodo/bin`.
+   Expand variables as data; do not edit PATH or search the workspace.
+2. Resolve filesystem links before probing. Require existing, verifiable installation,
+   entry point and executable targets outside every repository/workspace directory.
+3. Try native `qodo.exe`, then native `node.exe` with the same installed `qodo.mjs`.
+   Find Node with `Get-Command node.exe -CommandType Application`, or read existing absolute
+   `.exe` paths from that installation's `qodo.cmd` NODE assignments (including conditional
+   fallbacks) as text. Never execute `.cmd`, `.bat` or `.ps1` launchers.
+4. Run unadorned `--version`; skip rejected/broken choices and keep the first working
+   invocation. Unusable explicit `QODO_HOME` or no trusted invocation is a blocker before
+   auth/reinstall; a working old version follows the main skill's update gate.
 
-Retain the selected installation, invocation and authenticated deployment for later commands.
-If host shell state does not persist, recreate the invocation from that recorded installation;
-do not rescan into a different installation. Do not execute `qodo.cmd`.
+Reuse that invocation, installation and authenticated deployment across commands/tool calls.
 
 ## Missing runtime
 

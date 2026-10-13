@@ -85,9 +85,8 @@ use the verified native invocation from [Windows shells](references/windows-shel
 preserve the complete query; follow its quote handling and UTF-8 JSON-file guidance.
 
 **`qodo: command not found`?** GUI-launched agents may have a minimal PATH. On POSIX, retry
-`"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`. In PowerShell, resolve the verified native executable
-or direct Node invocation in [Windows shells](references/windows-shells.md); do not execute `qodo.cmd`.
-Keep that invocation for every command. If no usable launcher exists, report the blocker.
+`"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`. In PowerShell, reuse the native invocation
+from [Windows shells](references/windows-shells.md). Report an unusable launcher as a blocker.
 If the CLI installation is missing, obtain a checksum-pinned installer from Qodo or the
 organization administrator. Installers are served from https://get.qodo.ai; never invent a digest
 or pipe an installer directly into a shell.
