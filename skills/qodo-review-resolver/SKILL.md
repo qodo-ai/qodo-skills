@@ -1,6 +1,6 @@
 ---
 name: qodo-review-resolver
-description: Read or resolve a pull request's Qodo review with the qodo CLI — fetch structured status, reviewed commit SHA, and findings for ANY PR as JSON, with optional extended details and citation evidence for audits, then optionally resolve open findings and record outcomes, once or until clean. Use this — never `gh`/`curl` scraping of review comments — for "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "audit the review evidence", "show finding citations", "what did Qodo flag", "is this review up to date with head", "check before merging", "resolve my PR review", "fix the review findings", or "babysit this PR until it's clean".
+description: Read or resolve a pull request's Qodo review using Qodo managed tools through MCP or the CLI — fetch structured status, reviewed commit SHA, and findings for ANY PR as JSON, with optional extended details and citation evidence for audits, then optionally resolve open findings and record outcomes, once or until clean. Use this — never `gh`/`curl` scraping of review comments — for "is the review clean on PR #N", "get Qodo's findings for <pr> as JSON", "audit the review evidence", "show finding citations", "what did Qodo flag", "is this review up to date with head", "check before merging", "resolve my PR review", "fix the review findings", or "babysit this PR until it's clean".
 triggers:
   - "Check the Qodo findings on this pull request"
   - "Audit the citation evidence for these Qodo PR findings"
@@ -91,6 +91,7 @@ First resolve the executable using the `qodo: command not found` fallback below.
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
 CLI **0.1.0-next.37 or newer**.
+On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
@@ -123,11 +124,11 @@ not currently expose PR-review writes; report that capability boundary instead o
 
 **`qodo: command not found`?** That's PATH, not a missing install: GUI-launched agents (e.g.
 the Claude Code desktop app) run shells with a minimal PATH. Retry with the absolute path
-`~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo` if set) and keep using it for every `qodo`
-command here. Only if that file is missing too is qodo actually not installed; tell the
-user to obtain a checksum-pinned installer command from Qodo or their organization's
-administrator. Installers are served from https://get.qodo.ai, but never invent a digest
-or pipe an installer directly into a shell.
+`~/.qodo/bin/qodo` (or `$QODO_HOME/bin/qodo` if set; `bin/qodo.cmd` in PowerShell) and keep
+using it for every `qodo` command here. Only if that file is missing too is qodo actually not
+installed; tell the user to obtain a checksum-pinned installer command from Qodo or their
+organization's administrator. Installers are served from https://get.qodo.ai, but never
+invent a digest or pipe an installer directly into a shell.
 
 **Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
 is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
