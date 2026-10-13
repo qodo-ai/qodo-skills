@@ -45,6 +45,9 @@ for note maintenance; a request to read or review notes alone does not authorize
 
 When using the CLI, check `qodo --version` before discovering its live notes commands:
 
+In PowerShell or Git Bash on Windows, first read [Windows shells](references/windows-shells.md).
+Keep using the resolved executable for later CLI calls; the examples below use `qodo` as its placeholder.
+
 ```sh
 qodo --version
 qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.0 --distribution skills-sh
@@ -223,8 +226,9 @@ qodo tools help review-notes --json
 ```
 
 `qodo read tools` lists only reads. Use the non-mutating `qodo tools help` catalog to discover write
-schemas and the local capture capability. If `qodo` is absent from PATH, try `~/.qodo/bin/qodo`
-(or the configured Qodo home) before diagnosing a missing installation. Use `qodo-setup` for setup
+schemas and the local capture capability. On POSIX, if `qodo` is absent from PATH, try
+`~/.qodo/bin/qodo` (or the configured Qodo home); on Windows use the linked shell guidance.
+Retain the resolved executable for every CLI call. Use `qodo-setup` for setup
 or explicit missing credentials; do not inspect secret stores or switch the deployment's update origin.
 An unavailable/gated tool is an unavailable feature, not a successful empty lookup. Use the CLI's
 catalog refresh option once if the runtime was just upgraded; do not loop or switch accounts.
@@ -232,9 +236,10 @@ catalog refresh option once if the runtime was just upgraded; do not loop or swi
 Catalog entries provide `command`, `readCommand`, `parameters`, `access` and `requiresUserApproval`.
 For PR `save-pr` and `prepare-pr`, require `localGitCapture: true`. Reads use `qodo read review-notes …`;
 writes use `qodo review-notes …`, with a stable `--idempotency-key` for each intended write.
-Schema fields use snake_case; flags use kebab-case. `document` is a JSON object, supplied with
-`--document` or inside `--args`. Serialize structured arguments safely rather than assembling
-Markdown or issue text into a shell command. The CLI owns all transport and credentials.
+Schema fields use snake_case; flags use kebab-case. For structured arguments, write a UTF-8 JSON
+object to a task-owned file and pass `--args-file <path>`. This preserves Markdown, newlines,
+quotes and percent signs across shells. Do not mix it with `--args`; named flags override fields
+in the file. The CLI owns all transport and credentials.
 
 Retain two distinct keys:
 
@@ -261,8 +266,8 @@ the actual task's values. It deliberately omits Git fields that the capable CLI 
 }
 ```
 
-Pass the serialized object to the discovered `prepare-pr` command with `--args`, `--json` and
-`--idempotency-key`. On an edit include `notes_id` and the latest expected revision; creation
+Write the object to a UTF-8 JSON file, then call the discovered `prepare-pr` command with
+`--args-file <path>`, `--json` and `--idempotency-key`. On an edit include `notes_id` and the latest expected revision; creation
 SHA is preserved by the runtime. Explicit canonical repository IDs can be supplied instead of paths.
 
 ### Git providers and repository identities
