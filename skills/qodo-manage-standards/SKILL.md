@@ -211,7 +211,8 @@ and then verify records. Do not claim to open a GUI or finish its operation with
 For CLI discovery, inspect the live `review-skills-source-repositories`,
 `review-skills-discovery-status`, and mutating `review-skills-discover` schemas first.
 An unavailable tool ends that route; explain the deployment requirement and offer the GUI.
-Both status and start require workspace admin permission and the platform feature.
+Both status and start require Review Standards edit permission and the platform feature.
+Admins and members explicitly granted edit access by their organization can pass that gate.
 
 1. Search registered repositories by the source name/provider. Traverse the result's
    `page`/`pageSize`/`total`, checking complete pages and a stable total; narrow once if
@@ -224,7 +225,7 @@ Both status and start require workspace admin permission and the platform featur
    `availableRepositoryIds` contains never-started repos, not all valid start targets.
    `isEligible=false` means manual discovery is unavailable under automatic-import settings;
    preserve those settings and inspect the existing discovery path instead. A 404 can mean
-   the feature is disabled or the endpoint is absent; a 403 is an admin gate. Stop on denial.
+   the feature is disabled or the endpoint is absent; a 403 is an edit-permission gate. Stop on denial.
 3. Present the exact source repo ids/names and effects: discovery can persist both repo rules
    and skills, and selecting a completed/failed repo requests re-extraction/retry. An existing
    run continues instead of starting another worker. There is no dry run or skills-only switch.
@@ -306,7 +307,8 @@ Nested scope keys use the platform shape (`repo.fullName`, optional `repo.repoId
 `path`). Organization scope is `{"kind":"org","org":"acme"}`; global scope is
 `{"kind":"global"}`. Legacy `scopes` strings remain supported. Supply **one** representation
 per write, never both `scopes` and `scope_elements`. Do not split a scope list into multiple
-replacement calls to bypass a catalog limit; that would discard earlier entries.
+replacement calls to bypass a limit; that would discard earlier entries. The platform owns
+the configured scope limit; QAR forwards the full list. If rejected, revise the approved plan.
 
 Every bulk operation runs with `dry_run=true` first. Inspect returned matched counts and
 per-id failures against the proposed ids; a dry run is not a mutation receipt. If the preview
@@ -436,9 +438,9 @@ unadorned version probe. Keep Standards separate from the default package; insta
 
 ## Error Handling
 
-- **Permission denied (admin required)** — writes other than a non-admin's own pending-create
-  are admin-gated. Explain plainly: *"This requires admin permission in your workspace — ask an
-  admin to make the change or grant you access."* Don't retry; it won't succeed without a
+- **Permission denied (edit access required)** — configuration writes and discovery require
+  Review Standards edit permission. Explain plainly: *"Ask your workspace administrator to make
+  the change or grant you edit access."* Don't retry; it won't succeed without a
   permission change.
 - **Not found** — the entity id doesn't exist in this workspace (wrong id, wrong workspace, or
   already deleted). Say so; don't guess a different id.
