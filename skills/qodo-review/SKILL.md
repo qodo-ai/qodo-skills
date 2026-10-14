@@ -422,12 +422,10 @@ For an accepted async run, collect by operation ID. On a status transport error,
 If collection still fails, preserve the ID and report the gap; never resubmit just to poll. On a terminal failure, correct a
 recoverable cause and retry once with the same mode and context. Stop on entitlement, auth, permission, rate-limit, or further failure; report expired results and coverage gaps.
 
-On `repo_not_connected`, `MT-REPO-NO-CREDENTIAL`, or the CLI's “could not obtain repository credentials” message,
-inspect `origin` without exposing URL credentials; an SSH alias may differ from the connected host.
-If the intended repository identity is known, use its exact `full_name` (self-hosted names may include a host); Codebase Wisdom search can suggest a name but does not prove review connectivity.
-Confirm `qodo review --help` supports `--repo`. If the error forbids automatic retries, stop and get explicit user approval
-for the proposed corrected command before proceeding. Retry the original `qodo review` submission once with
-`--repo <full_name>` added; preserve all other flags and collect a new async operation ID if applicable.
+On `repo_not_connected`, `MT-REPO-NO-CREDENTIAL`, or “could not obtain repository credentials”, inspect `origin` without exposing URL credentials; an SSH alias may differ from the connected host.
+Use a known exact repository `full_name` (self-hosted names may include a host); Codebase Wisdom suggestions do not prove connectivity.
+Confirm `qodo review --help` supports `--repo`. If automatic retries are forbidden, stop and get explicit user approval for the corrected command.
+Retry the original submission once with `--repo <full_name>`, preserving all other flags; collect a new async operation ID if applicable.
 If the identity is uncertain or the retry fails, stop and report; ask an admin to check Git integration rather than assert disconnection.
 
 For connected CLI execution, keep the process alive throughout the review; a killed client can
