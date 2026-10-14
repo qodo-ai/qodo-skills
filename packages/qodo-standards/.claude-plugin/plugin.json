@@ -1,7 +1,7 @@
 {
   "name": "qodo-standards",
-  "version": "2.1.1",
-  "description": "Optional Qodo rules discovery and standards administration workflows.",
+  "version": "2.1.2",
+  "description": "Optional Qodo standards discovery and review rules/skills administration workflows.",
   "author": {
     "name": "Qodo",
     "email": "support@qodo.ai",

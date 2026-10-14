@@ -1,0 +1,16 @@
+{
+  "version": "2.1.2",
+  "summary": "Update Qodo skills and marketplace packages.\n- feat(standards): guide discovery and review-skill setup (#133)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "1.6.0",
+  "skills": [
+    {
+      "name": "qodo-manage-standards",
+      "version": "1.0.7",
+      "change": "patch"
+    }
+  ]
+}
