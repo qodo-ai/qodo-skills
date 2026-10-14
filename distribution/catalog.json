@@ -5,7 +5,7 @@
   "package": {
     "name": "qodo",
     "displayName": "Qodo for coding agents",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "homepage": "https://www.qodo.ai",
@@ -99,7 +99,7 @@
     },
     {
       "name": "qodo-manage-standards",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "recommended": false,
       "displayName": "Qodo Standards Manager",
       "shortDescription": "Discover and manage review rules and skills.",
