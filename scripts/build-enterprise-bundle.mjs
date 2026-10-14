@@ -81,7 +81,7 @@ function collectProjection(provider, source, archiveRoot, files) {
   const projection = [];
   collectTree(source, archiveRoot, projection);
   for (const file of projection) {
-    // Enterprise schema v1 predates marketplace directory artwork. Preserve QAR's
+    // Enterprise schema v1 excludes marketplace-only metadata and artwork. Preserve QAR's
     // exact metadata/payload allowlist without changing the public projection.
     if (provider === 'codex' && file.path === `${archiveRoot}/assets/qodo.png`) continue;
     if (provider === 'kiro' && file.path === `${archiveRoot}/Qodo-Kiro.png`) continue;
@@ -100,6 +100,7 @@ function collectProjection(provider, source, archiveRoot, files) {
       const plugin = JSON.parse(file.payload.toString('utf8'));
       delete plugin.interface.composerIcon;
       delete plugin.interface.logo;
+      delete plugin.interface.supportURL;
       file.payload = Buffer.from(`${JSON.stringify(plugin, null, 2)}\n`);
     }
     files.push(file);

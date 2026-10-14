@@ -136,6 +136,7 @@ test('portable verifier and generated skill interfaces remain complete', () => p
     const directory = join(output, 'listings', pkg.name);
     assert.throws(() => readFileSync(join(directory, 'plugin.json')), /ENOENT/);
     const manifest = json(join(directory, '.codex-plugin/plugin.json'));
+    assert.equal(manifest.interface.supportURL, catalog.package.supportUrl);
     assert.equal(manifest.interface.composerIcon, manifest.interface.logo);
     assert.equal(createHash('sha256').update(readFileSync(join(directory, 'assets/qodo.png'))).digest('hex'),
       '3b55f9064c1bd1c68de454db1c0056baaf3d881946770a94dc7252f3ce1ebeab');
@@ -154,6 +155,12 @@ test('portable verifier and generated skill interfaces remain complete', () => p
 }));
 
 for (const [name, mutate, expected] of [
+  ['missing support URL', (plugin) => delete plugin.interface.supportURL, /Codex supportURL/],
+  ['HTTP support URL', (plugin) => { plugin.interface.supportURL = 'http://help.qodo.ai/'; }, /Codex supportURL/],
+  ['credential-bearing support URL', (plugin) => {
+    plugin.interface.supportURL = 'https://example-user@example.com/support';
+  }, /Codex supportURL/],
+  ['invalid support URL', (plugin) => { plugin.interface.supportURL = 'not a URL'; }, /Codex supportURL/],
   ['four prompts', (plugin) => plugin.interface.defaultPrompt.push('Fourth prompt'), /one to three/],
   ['missing logo', (plugin) => delete plugin.interface.logo, /branding/],
   ['unsafe asset path', (plugin) => plugin.interface.logo = '../qodo.png', /branding/],

@@ -149,6 +149,7 @@ function codexManifest(value) {
       category: 'Developer Tools',
       capabilities: value.skills.map((name) => catalog.skills.find((skill) => skill.name === name).displayName),
       websiteURL: pkg.homepage,
+      supportURL: pkg.supportUrl,
       privacyPolicyURL: pkg.privacyPolicyUrl,
       termsOfServiceURL: pkg.termsOfServiceUrl,
       brandColor: pkg.brandColor,
