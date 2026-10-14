@@ -1,6 +1,6 @@
 ---
 name: qodo-manage-standards
-description: Manage Qodo review rules and skills through managed MCP tools or the CLI. Use to capture a convention as a rule, edit or deactivate rules, triage suggestions, discover and set up a skills/plugin repository for reviews, map skills to target repositories, or change skill scope, lifecycle, or rules/steering mode. Offer GUI or CLI discovery, inspect configuration, propose exact changes, obtain user authority, apply, and verify. For reading and applying rules use qodo-get-rules; installing local coding-agent skills uses the CLI setup workflow.
+description: Discover, configure, and manage Qodo Review Standards using managed tools through MCP or the CLI. Use to set up a skills/plugin repository for reviews, map review skills to target repositories, change skill scope or rules/steering mode, capture a convention as a rule, edit or deactivate rules, or triage suggestions. For reading and applying rules use qodo-get-rules; installing local coding-agent skills uses qodo-setup.
 owner: Qodo
 metadata:
   vendor: qodo
@@ -16,7 +16,7 @@ metadata:
 
 Use Qodo managed tools to **administer** the workspace's Review Standards: capture a convention as a
 new rule, edit or retire an existing one, re-scope it to a repo, triage the pending
-suggestions queue, or configure imported review skills. This is
+suggestions queue, or discover review skills from a connected repository and configure them. This is
 the **write** counterpart to `qodo-get-rules` (which only
 reads and applies rules). Metadata, list, get, and schema inspection are read-only preparation;
 perform them to make the proposed change concrete before asking for write approval.
@@ -26,7 +26,7 @@ Run bulk operations as a dry run first.
 
 - The optional Qodo Standards package is installed and loaded explicitly.
 - A connected QAR managed-tools MCP server or authenticated Qodo CLI exposes the requested standards tool.
-- The exact rule or skill, scope, and intended mutation are known; the user can approve every write.
+- Resolve the exact targets, scope, and intended mutation before each write; use approval covering that proposal.
 
 ## Instructions
 
@@ -36,8 +36,9 @@ Use connected QAR MCP tools when the requested capability is available; otherwis
 follow the CLI path. Read tool descriptions, `inputSchema`, and read-only/mutating annotations
 from the host. Representative MCP names are `rules-metadata`, `rules-list`, `rules-get`,
 `rules-create`, `rules-update`, `rules-set-state`, `rules-set-scope`, and `rules-bulk`;
-review skills use `review-skills-list`, `review-skills-get`, `review-skills-update`, and
-`review-skills-bulk`. Verify names and JSON arguments in the connected catalog. MCP uses
+review skills use `review-skills-list`, `review-skills-get`, `review-skills-update`,
+`review-skills-bulk`, `review-skills-source-repositories`, `review-skills-discovery-status`,
+and `review-skills-discover`. Verify names and JSON arguments in the connected catalog. MCP uses
 typed arrays where its schema declares them, rather than CLI comma-separated flags.
 
 For every MCP write, retain one stable logical-action idempotency key and send it as the
@@ -46,7 +47,8 @@ may instead send `_meta["io.qodo/idempotency-key"]`; if both are sent, they must
 Reuse the same key and identical arguments on an uncertain retry.
 Never generate a fresh key merely to retry an uncertain outcome. Preserve the exact user
 approval, dry-run, read-back, and outcome rules below. Check `isError` before reading
-`structuredContent`; a transport success is not proof of mutation. Do not switch to a
+`structuredContent`; a transport success is not proof of mutation. If a call becomes an MCP Task,
+collect its terminal result before drawing conclusions. Do not switch to a
 different CLI identity or tenant after an MCP authorization or permission denial.
 
 CLI version, identity, command-help, and refresh steps below apply only on the CLI path.

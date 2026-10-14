@@ -57,7 +57,8 @@
         "description": "Find Qodo coding standards relevant to your work, discover review skills, and manage review rules and skill setup for target repositories from Antigravity.",
         "suggestedPrompts": [
           "Load the Qodo coding standards relevant to this task.",
-          "Capture this convention as a Qodo Review standard."
+          "Capture this convention as a Qodo Review standard.",
+          "Set up review skills from our shared skills repository."
         ]
       },
       "default": false,
@@ -102,7 +103,7 @@
       "recommended": false,
       "displayName": "Qodo Standards Manager",
       "shortDescription": "Discover and manage review rules and skills.",
-      "defaultPrompt": "Use $qodo-manage-standards to capture this convention as a Qodo standard."
+      "defaultPrompt": "Use $qodo-manage-standards to set up review rules and skills for my repositories."
     },
     {
       "name": "qodo-review",
