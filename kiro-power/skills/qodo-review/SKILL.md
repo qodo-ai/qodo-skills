@@ -4,7 +4,7 @@ description: Review local changes with Qodo during substantive coding milestones
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.8"
+  version: "1.10.9"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -116,7 +116,7 @@ Attach it on every run — write the session context first, then review:
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.8 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review --skill-version 1.10.9 --distribution kiro-power --host kiro
 review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
 qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
 { "summary": "<what this change does and why>",
@@ -419,15 +419,15 @@ Commit/push per the user's workflow — ask before pushing unless they've told y
 
 ## Recover a review
 
-For an accepted async run, collect by operation ID even if the submit process exited. On a status
-transport error, retry collection of the same ID at most once after the returned retry delay
-(or 15 seconds if absent). If collection still fails, preserve the ID for later recovery and report
-the coverage gap; do not submit again or keep polling automatically. The polling example returns
-nonzero errors to the host for this classification and bounded recovery. On a confirmed terminal failure,
-read the error and correct a recoverable cause before retrying at most once, with the selected
-mode and context preserved. Honor entitlement, auth, permission and rate-limit stops; do not retry
-those as transient failures. Further failure or an expired/unavailable result means reporting the
-coverage gap; never claim completion or silently keep buying retries.
+For an accepted async run, collect by operation ID. On a status transport error, retry once after the returned delay (or 15 seconds).
+If collection still fails, preserve the ID and report the gap; never resubmit just to poll. On a terminal failure, correct a
+recoverable cause and retry once with the same mode and context. Stop on entitlement, auth, permission, rate-limit, or further failure; report expired results and coverage gaps.
+
+On `repo_not_connected`, `MT-REPO-NO-CREDENTIAL`, or “could not obtain repository credentials”, inspect `origin` without exposing URL credentials; an SSH alias may differ from the connected host.
+Use a known exact repository `full_name` (self-hosted names may include a host); Codebase Wisdom suggestions do not prove connectivity.
+Confirm `qodo review --help` supports `--repo`. If automatic retries are forbidden, stop and get explicit user approval for the corrected command.
+Retry the original submission once with `--repo <full_name>`, preserving all other flags; collect a new async operation ID if applicable.
+If the identity is uncertain or the retry fails, stop and report; ask an admin to check Git integration rather than assert disconnection.
 
 For connected CLI execution, keep the process alive throughout the review; a killed client can
 cause server cancellation after a short grace period. If the host cannot sustain it, use async

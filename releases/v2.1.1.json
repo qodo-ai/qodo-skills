@@ -1,0 +1,16 @@
+{
+  "version": "2.1.1",
+  "summary": "Update Qodo skills and marketplace packages.\n- Merge pull request #134 from qodo-ai/fix/wf-1150-review-repo-troubleshooting\n- Merge pull request #136 from qodo-ai/fix/wf-1060-codex-support-url\n- Merge pull request #137 from qodo-ai/fix/wf-1060-review-connection-error",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "1.6.0",
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.10.9",
+      "change": "patch"
+    }
+  ]
+}
