@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   appendFileSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync,
-  readdirSync, readlinkSync, renameSync, rmSync, symlinkSync, writeFileSync,
+  readdirSync, readlinkSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -113,7 +113,7 @@ try {
     );
     assert.equal(readFileSync(externalLock, 'utf8'), externalLockBefore);
     assert.ok(lstatSync(lockPath).isSymbolicLink());
-    rmSync(lockPath, { force: true });
+    unlinkSync(lockPath);
     renameSync(lockBackup, lockPath);
 
     const releasesPath = join(repositoryRoot, 'releases');
@@ -141,7 +141,7 @@ try {
       danglingStatus,
       'rollback must preserve a preexisting dangling symlink',
     );
-    rmSync(releasesPath, { force: true });
+    unlinkSync(releasesPath);
     renameSync(releasesBackup, releasesPath);
   }
   const resolverSource = join(repositoryRoot, 'skills', 'qodo-review-resolver');
