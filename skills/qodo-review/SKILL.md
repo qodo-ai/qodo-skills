@@ -418,15 +418,15 @@ Commit/push per the user's workflow — ask before pushing unless they've told y
 
 ## Recover a review
 
-For an accepted async run, collect by operation ID even if the submit process exited. On a status
-transport error, retry collection of the same ID at most once after the returned retry delay
-(or 15 seconds if absent). If collection still fails, preserve the ID for later recovery and report
-the coverage gap; do not submit again or keep polling automatically. The polling example returns
-nonzero errors to the host for this classification and bounded recovery. On a confirmed terminal failure,
-read the error and correct a recoverable cause before retrying at most once, with the selected
-mode and context preserved. Honor entitlement, auth, permission and rate-limit stops; do not retry
-those as transient failures. Further failure or an expired/unavailable result means reporting the
-coverage gap; never claim completion or silently keep buying retries.
+For an accepted async run, collect by operation ID. On a status transport error, retry once after the returned delay (or 15 seconds).
+If collection still fails, preserve the ID and report the gap; never resubmit just to poll. On a terminal failure, correct a
+recoverable cause and retry once with the same mode and context. Stop on entitlement, auth, permission, rate-limit, or further failure; report expired results and coverage gaps.
+
+On `repo_not_connected`, inspect `origin` without exposing URL credentials; an SSH alias may differ from the connected host.
+If the intended repository identity is known, use its exact `full_name` (self-hosted names may include a host); Codebase Wisdom search can suggest a name but does not prove review connectivity.
+Confirm `qodo review --help` supports `--repo`, then retry the original `qodo review` submission once with
+`--repo <full_name>` added; preserve all other flags and collect a new async operation ID if applicable.
+If the identity is uncertain or the retry fails, stop and report; ask an admin to check Git integration rather than assert disconnection.
 
 For connected CLI execution, keep the process alive throughout the review; a killed client can
 cause server cancellation after a short grace period. If the host cannot sustain it, use async
