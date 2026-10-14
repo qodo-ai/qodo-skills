@@ -66,6 +66,16 @@ export function validateCodexPortalManifest(plugin, readAsset) {
   validateStarterPrompts(ui?.defaultPrompt);
   text(ui?.displayName, 'Codex displayName', 30);
   text(ui?.shortDescription, 'Codex shortDescription', 30);
+  text(ui?.supportURL, 'Codex supportURL', 1024);
+  let support;
+  try {
+    support = new URL(ui.supportURL);
+  } catch {
+    throw new Error('Codex supportURL must be a valid HTTPS URL without credentials');
+  }
+  if (support.protocol !== 'https:' || support.username || support.password) {
+    throw new Error('Codex supportURL must be a valid HTTPS URL without credentials');
+  }
   for (const field of ['composerIcon', 'logo']) {
     const path = assetPath(ui?.[field]);
     validatePng(readAsset(path));
