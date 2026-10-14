@@ -52,9 +52,9 @@
     {
       "name": "qodo-standards",
       "displayName": "Qodo Standards",
-      "description": "Optional Qodo rules discovery and review rules/skills administration workflows.",
+      "description": "Optional Qodo standards discovery and review rules/skills administration workflows.",
       "antigravity": {
-        "description": "Find Qodo coding standards relevant to your work, manage review rules, and configure imported review skills for target repositories from Antigravity.",
+        "description": "Find Qodo coding standards relevant to your work, discover review skills, and manage review rules and skill setup for target repositories from Antigravity.",
         "suggestedPrompts": [
           "Load the Qodo coding standards relevant to this task.",
           "Capture this convention as a Qodo Review standard."
@@ -101,7 +101,7 @@
       "version": "1.0.6",
       "recommended": false,
       "displayName": "Qodo Standards Manager",
-      "shortDescription": "Manage review rules and imported review skills.",
+      "shortDescription": "Discover and manage review rules and skills.",
       "defaultPrompt": "Use $qodo-manage-standards to capture this convention as a Qodo standard."
     },
     {

@@ -1,6 +1,6 @@
 ---
 name: qodo-manage-standards
-description: Manage Qodo review rules and imported review skills through managed MCP tools or the CLI. Use to capture a convention as a rule, edit or deactivate rules, triage suggestions, set up an imported skills/plugin repository for reviews, map skills to target repositories, or change skill scope, lifecycle, or rules/steering mode. Inspect the current configuration, propose exact changes, obtain user authority, apply, and verify. For reading and applying rules use qodo-get-rules; installing local coding-agent skills uses the CLI setup workflow.
+description: Manage Qodo review rules and skills through managed MCP tools or the CLI. Use to capture a convention as a rule, edit or deactivate rules, triage suggestions, discover and set up a skills/plugin repository for reviews, map skills to target repositories, or change skill scope, lifecycle, or rules/steering mode. Offer GUI or CLI discovery, inspect configuration, propose exact changes, obtain user authority, apply, and verify. For reading and applying rules use qodo-get-rules; installing local coding-agent skills uses the CLI setup workflow.
 owner: Qodo
 metadata:
   vendor: qodo
@@ -166,7 +166,7 @@ need to know which document a rule actually came from.
 ## Set up or manage imported review skills
 
 These are workspace review skills discovered from repositories; this route does not install
-local coding-agent helpers. The platform must already have discovered the source skills.
+local coding-agent helpers. Begin with a source repository or already-discovered skill records.
 Use the common identity, live-schema, approval, retry, and verified-outcome gates in this skill.
 
 Use this route when the user wants a coding agent to configure imported review skills,
@@ -176,7 +176,7 @@ First inspect and propose; configuration writes require authority for the concre
 ### Discover the capability and targets
 
 1. Follow the common runtime, identity, and live-schema preflight.
-   This flow requires deployed mode/structured-scope capabilities, not just an updated helper.
+   This flow requires deployed capabilities for the chosen steps, not just an updated helper.
    Until the runtime catalog exposes them, report that rollout prerequisite and stop those writes.
    On the CLI path, inspect reads with `qodo read tools review-skills --json` and writes with
    `qodo tools help review-skills --json`. Confirm the fields and operations you need.
@@ -193,12 +193,64 @@ First inspect and propose; configuration writes require authority for the concre
 3. List skills by `repo_scope` for the source repository. Traverse the returned `page`/`pages`
    until the source inventory is complete; retain integer ids and distinguish duplicate names
    by repo and `skillPath`. An empty result means no matching imported skills were found.
-   These tools configure discovered records; they do not connect or import a plugin repo.
+   An empty inventory needs the discovery route below. Existing records can go directly to
+   configuration; do not start another discovery merely because setup was requested.
 4. Get each candidate skill. Record its state, `applicationMode`, `scopes`, `scopeElements`,
    `extractedRuleIds`, and source path. The record describes the skill; it is not the full
    skill body. Read its `SKILL.md` and relevant referenced instructions through authorized
    source tools or an existing local checkout, resolving the actual path and source revision.
    If source content is inaccessible, report the gap and leave applicability unresolved.
+
+### Discover a source repository: GUI or coding agent
+
+If discovery is needed, offer the existing Qodo GUI or discovery from this conversation.
+Reuse an explicit path choice. Either route returns to the same configuration/readback flow.
+The GUI choice is not permission for a CLI start; ask the user to return after GUI discovery
+and then verify records. Do not claim to open a GUI or finish its operation without evidence.
+
+For CLI discovery, inspect the live `review-skills-source-repositories`,
+`review-skills-discovery-status`, and mutating `review-skills-discover` schemas first.
+An unavailable tool ends that route; explain the deployment requirement and offer the GUI.
+Both status and start require workspace admin permission and the platform feature.
+
+1. Search registered repositories by the source name/provider. Traverse the result's
+   `page`/`pageSize`/`total`, checking complete pages and a stable total; narrow once if
+   discovery is incomplete. Match the full path and, for a URL, its provider host against
+   `htmlUrl`; use returned canonical names for provider-specific URL formats, not a guessed
+   URL-path conversion. Retain the row's `id`, not `providerRepoId` or a codebase mirror id. Multiple
+   exact matches need a user choice. A missing/inaccessible repo needs the existing provider
+   connection/access flow; do not register it, change credentials, or expand access implicitly.
+2. Read discovery status. It describes the whole workspace, including unrelated runs.
+   `availableRepositoryIds` contains never-started repos, not all valid start targets.
+   `isEligible=false` means manual discovery is unavailable under automatic-import settings;
+   preserve those settings and inspect the existing discovery path instead. A 404 can mean
+   the feature is disabled or the endpoint is absent; a 403 is an admin gate. Stop on denial.
+3. Present the exact source repo ids/names and effects: discovery can persist both repo rules
+   and skills, and selecting a completed/failed repo requests re-extraction/retry. An existing
+   run continues instead of starting another worker. There is no dry run or skills-only switch.
+   Include optional extraction prompts only when requested, and show their exact text.
+   Obtain authority for these effects; choosing CLI alone does not approve an unseen import.
+4. Start once with the approved selection. A 202/workspace status is acceptance, not completion.
+   Retain ids, source names, prompts and the logical action key. After an uncertain reply,
+   read status and source records before any retry; a fresh start after completion is a rescan.
+   The common replay rules apply. Do not restart a batch to check whether it finished.
+5. Poll status at intervals with an explicit finite wait budget, then hand back progress if
+   still running. Keep workspace counts labelled as such. Correlate failures with selected
+   ids; preserve partial outputs and report failed, no-standards-found, unavailable or timed-out
+   sources. A workspace success count alone does not prove the selected source succeeded.
+6. After terminal status, re-list skills for each selected source, paginate and get the records. Report actual skill
+   records separately from extracted rules. Existing records or a rules-only result do not prove
+   a new skill discovery completed. Continue configuration only for verified available skills;
+   keep incomplete discovery visible. While discovery is running or its outcome is uncertain,
+   prepare proposals only; do not apply dependent configuration or claim a complete inventory.
+
+```sh
+qodo read review-skills source-repositories --search acme/review-plugin --json
+qodo read review-skills discovery-status --json
+# Use ids resolved above; after approval of the rules-plus-skills effects.
+qodo review-skills discover --args-file discovery.json --json
+# discovery.json: {"repository_ids":["<registered-source-id>"]}
+```
 
 ### Build one reviewable proposal
 
