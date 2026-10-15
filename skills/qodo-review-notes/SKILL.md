@@ -352,7 +352,14 @@ Keep commands and approvals in this conversation; do not hand off to a terminal.
 2. Check `<qodo> agents update --help` for planning support. If missing, use runtime recovery below. Otherwise preview with `<qodo> agents update --enterprise --dry-run --json`. If that preview reports a higher CLI version prerequisite, use the same bounded runtime recovery, then retry the preview once; stop if the prerequisite remains unsatisfied.
 3. Explain the packages and complete affected installation scope. Reuse covering authorization or ask once, then execute the exact returned `--apply-plan` command using `commands.sh` or `commands.powershell` for the tool's shell (Git Bash uses `sh`; older previews expose `command`).
 
-Compatible CLIs can add a verified core skill during automatic maintenance of the recorded enterprise installation. If a preview still reports changed core membership, inspect the installed CLI version and use the bounded runtime recovery above when a newer version is available; retry the preview once. A remaining membership blocker requires an explicit complete-package install for every recorded agent. Inspect `<qodo> agents install --help`, explain that scope, and reuse covering installation authorization or ask once. Use `<qodo> agents install --enterprise --agent <comma-separated-recorded-ids> --yes` for an already authorized noninteractive installation, naming every recorded agent and retaining the existing package selection; include Standards only if already selected. `--yes` confirms that approved scope; it does not grant authorization. Verify every recorded agent before claiming the new skill is available.
+Compatible CLIs can add a verified core skill during automatic maintenance of the recorded enterprise installation. If a preview still reports changed core membership, inspect the installed CLI version and use the bounded runtime recovery above when a newer version is available; retry the preview once.
+
+For a remaining membership blocker, inspect `<qodo> agents status --json` and `<qodo> agents install --help`. Explain the complete recorded core-agent scope and any separate Standards-agent subset; reuse covering installation authorization or ask once. For an authorized noninteractive recovery:
+
+1. Install core for every recorded core agent with `<qodo> agents install --enterprise --agent <comma-separated-core-ids> --yes`, without `--standards`.
+2. If Standards was already selected, install it for only its recorded subset with `<qodo> agents install --enterprise --standards --agent <comma-separated-standards-ids> --yes`.
+
+`--yes` confirms the approved scope; it does not grant authorization. Verify every recorded core and Standards agent before claiming the new skill is available. If either step fails, report the incomplete operation and inspect status before retrying.
 
 Never widen approval, change owners or add optional packages. Report persistent failures once without bypassing checks. Loaded instructions may be older than installed files.
 
