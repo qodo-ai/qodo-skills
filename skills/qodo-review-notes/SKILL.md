@@ -354,7 +354,7 @@ Keep commands and approvals in this conversation; do not hand off to a terminal.
 
 Compatible CLIs can add a verified core skill during automatic maintenance of the recorded enterprise installation. If a preview still reports changed core membership, inspect the installed CLI version and use the bounded runtime recovery above when a newer version is available; retry the preview once.
 
-For a remaining membership blocker, inspect `<qodo> agents status --json` and `<qodo> agents install --help`. Explain the complete recorded core-agent scope and any separate Standards-agent subset; reuse covering installation authorization or ask once. For an authorized noninteractive recovery:
+For a remaining membership blocker, inspect `<qodo> agents status --json` and `<qodo> agents install --help`. Read `standardsAgents` from status when present. On older CLIs, use `<qodo> skills list --json` and require both Standards skills to show verified `enterprise-bundle` locations for the same agent subset; stop if the inventory is ambiguous. Explain the complete recorded core-agent scope and the separate Standards-agent subset; reuse covering installation authorization or ask once. For an authorized noninteractive recovery:
 
 1. Install core for every recorded core agent with `<qodo> agents install --enterprise --agent <comma-separated-core-ids> --yes`, without `--standards`.
 2. If Standards was already selected, install it for only its recorded subset with `<qodo> agents install --enterprise --standards --agent <comma-separated-standards-ids> --yes`.
