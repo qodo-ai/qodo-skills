@@ -315,8 +315,9 @@ For every selected provider, record:
 
 The five core skills are `qodo-setup`, `qodo-codebase-wisdom`, `qodo-review`,
 `qodo-review-notes`, and `qodo-review-resolver`. This release requires CLI 1.6.0 or newer.
-An existing four-skill enterprise installation remains supported by the CLI; adding the
-notes skill requires explicit installation of the complete five-skill core package.
+An existing four-skill enterprise installation remains supported by the CLI. Compatible
+CLIs can add the notes skill through verified automatic maintenance; older CLIs require
+explicit installation of the complete five-skill core package.
 
 Source CI or packet creation alone is not release completion.
 
