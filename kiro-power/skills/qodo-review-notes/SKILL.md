@@ -4,7 +4,7 @@ description: Find and maintain Development Track Notes and PR Review Notes throu
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.0"
+  version: "1.0.1"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -54,7 +54,7 @@ When using the CLI, check `qodo --version` before discovering its live notes com
 
 ```sh
 qodo --version
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.0 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.1 --distribution kiro-power --host kiro
 qodo read tools review-notes --json
 qodo tools help review-notes --json
 ```
@@ -125,6 +125,13 @@ exact latest revision. Draft edits do not change what a reviewer reads.
 
 ## Publish PR Review Notes before opening a PR
 
+Before saving PR notes with `track_id`, read that track with `draft=true` and check
+`publishedRevision`. A never-published track cannot be linked, even when the PR save uses
+`publish=false`. Publish the intended track revision first only when the user's authorization
+covers sharing that track. A request to keep notes as drafts does not grant publication authority.
+Publishing the track does not publish the PR notes; the PR save can still use `publish=false`.
+An existing published track revision satisfies this prerequisite while later track edits remain drafts.
+
 Describe the change using useful sections: **Intent**, **Decision**, **Review focus**,
 **Validation**, and **Known gap**. Explain deliberate omissions and follow-ups honestly.
 Do not instruct the reviewer to skip checks, suppress findings, approve, or ignore other evidence.
@@ -182,9 +189,17 @@ Report the actual outcome: `ready`, `no_pr_notes`, or `linked_track_unavailable`
 access and storage failures are errors, not evidence of missing notes. Use `history` for saved
 versions when explaining a change; authorization also applies to historical repository scopes.
 
-On `MT-CONFLICT`, reread the latest draft and merge against it. Use its latest revision for the next
-save and a new transport idempotency key for the changed request. Preserve a creation key when
-retrying the identical creation payload; changed payloads need a new key. Do not automatically
+If `MT-CONFLICT` has `metadata.upstream_code=LINKED_TRACK_NOT_PUBLISHED`, follow the track
+publication prerequisite above instead of treating it as a stale PR revision. Do not retry the PR
+save or publish the track automatically. Once the intended track revision is published, retry the
+save with a new transport idempotency key, retaining `creation_key` for the same creation payload.
+The failed transport key replays the original conflict even after the track is published.
+Older runtimes may return a generic HTTP403 for this state;
+use an authorized draft read to explain a known track's publication state, preserving access failures.
+
+For other `MT-CONFLICT` errors, reread the latest draft and merge against it. Use its latest revision
+for the next save and a new transport idempotency key for the changed request. Preserve a creation
+key when retrying the identical creation payload; changed payloads need a new key. Do not automatically
 retry authorization refusals or create a second record to bypass a binding conflict.
 
 ## Report the result
@@ -224,8 +239,8 @@ tools may add a server prefix. Do not construct provider URLs, handle API keys o
 Run `qodo --version` without provenance flags, then use:
 
 ```sh
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.0 --distribution kiro-power --host kiro
-qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.0 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.1 --distribution kiro-power --host kiro
+qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.1 --distribution kiro-power --host kiro
 qodo tools help review-notes --json
 ```
 
@@ -249,6 +264,7 @@ Retain two distinct keys:
 
 - **Transport idempotency key:** `--idempotency-key` identifies a single write request, including
   publication/binding/update calls. Retry the same request with the same key; changed arguments need a new key.
+  After resolving a recorded publication-prerequisite failure, use a new key as described above.
 - **Creation key:** the tool's `creation_key` identifies initial record creation across sessions and
   retries. Persist it before sending. It is not needed when editing a known record ID.
 
