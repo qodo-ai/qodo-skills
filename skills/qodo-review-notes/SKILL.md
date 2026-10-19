@@ -124,6 +124,13 @@ exact latest revision. Draft edits do not change what a reviewer reads.
 
 ## Publish PR Review Notes before opening a PR
 
+Before saving PR notes with `track_id`, read that track with `draft=true` and check
+`publishedRevision`. A never-published track cannot be linked, even when the PR save uses
+`publish=false`. Publish the intended track revision first only when the user's authorization
+covers sharing that track. A request to keep notes as drafts does not grant publication authority.
+Publishing the track does not publish the PR notes; the PR save can still use `publish=false`.
+An existing published track revision satisfies this prerequisite while later track edits remain drafts.
+
 Describe the change using useful sections: **Intent**, **Decision**, **Review focus**,
 **Validation**, and **Known gap**. Explain deliberate omissions and follow-ups honestly.
 Do not instruct the reviewer to skip checks, suppress findings, approve, or ignore other evidence.
@@ -181,9 +188,14 @@ Report the actual outcome: `ready`, `no_pr_notes`, or `linked_track_unavailable`
 access and storage failures are errors, not evidence of missing notes. Use `history` for saved
 versions when explaining a change; authorization also applies to historical repository scopes.
 
-On `MT-CONFLICT`, reread the latest draft and merge against it. Use its latest revision for the next
-save and a new transport idempotency key for the changed request. Preserve a creation key when
-retrying the identical creation payload; changed payloads need a new key. Do not automatically
+If `MT-CONFLICT` has `metadata.upstream_code=LINKED_TRACK_NOT_PUBLISHED`, follow the track
+publication prerequisite above instead of treating it as a stale PR revision. Do not retry the PR
+save or publish the track automatically. Older runtimes may return a generic HTTP403 for this state;
+use an authorized draft read to explain a known track's publication state, preserving access failures.
+
+For other `MT-CONFLICT` errors, reread the latest draft and merge against it. Use its latest revision
+for the next save and a new transport idempotency key for the changed request. Preserve a creation
+key when retrying the identical creation payload; changed payloads need a new key. Do not automatically
 retry authorization refusals or create a second record to bypass a binding conflict.
 
 ## Report the result
