@@ -190,7 +190,10 @@ versions when explaining a change; authorization also applies to historical repo
 
 If `MT-CONFLICT` has `metadata.upstream_code=LINKED_TRACK_NOT_PUBLISHED`, follow the track
 publication prerequisite above instead of treating it as a stale PR revision. Do not retry the PR
-save or publish the track automatically. Older runtimes may return a generic HTTP403 for this state;
+save or publish the track automatically. Once the intended track revision is published, retry the
+save with a new transport idempotency key, retaining `creation_key` for the same creation payload.
+The failed transport key replays the original conflict even after the track is published.
+Older runtimes may return a generic HTTP403 for this state;
 use an authorized draft read to explain a known track's publication state, preserving access failures.
 
 For other `MT-CONFLICT` errors, reread the latest draft and merge against it. Use its latest revision
@@ -260,6 +263,7 @@ Retain two distinct keys:
 
 - **Transport idempotency key:** `--idempotency-key` identifies a single write request, including
   publication/binding/update calls. Retry the same request with the same key; changed arguments need a new key.
+  After resolving a recorded publication-prerequisite failure, use a new key as described above.
 - **Creation key:** the tool's `creation_key` identifies initial record creation across sessions and
   retries. Persist it before sending. It is not needed when editing a known record ID.
 
