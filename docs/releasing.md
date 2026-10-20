@@ -314,12 +314,10 @@ For every selected provider, record:
 6. host-owned update and new-session activation.
 
 The five core skills are `qodo-setup`, `qodo-codebase-wisdom`, `qodo-review`,
-`qodo-review-notes`, and `qodo-review-resolver`. This release requires CLI 1.6.0 or newer.
-An existing four-skill enterprise installation remains supported by the CLI. CLI builds
-containing [qodo-in-cli#310](https://github.com/qodo-ai/qodo-in-cli/pull/310) can add the notes
-skill through verified automatic maintenance; earlier builds require explicit installation
-of the complete five-skill core package. The 1.6.0 floor above is for this skills release,
-not a guarantee that every CLI at that version supports automatic additions.
+`qodo-review-notes`, and `qodo-review-resolver`. This skills release requires CLI 1.6.0 or newer.
+An existing four-skill enterprise installation remains supported. Automatically adding the
+notes skill requires a CLI build containing [qodo-in-cli#310](https://github.com/qodo-ai/qodo-in-cli/pull/310);
+earlier builds require an explicit install of the complete five-skill core package.
 
 Source CI or packet creation alone is not release completion.
 
