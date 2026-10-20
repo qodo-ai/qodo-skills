@@ -65,6 +65,6 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 Do not run whoami or login until the minimum CLI version in SKILL.md is met. Explain the
 compatibility issue. Automatic updates stay within a major version: upgrading 1.x to 2.x requires
 the checksum-pinned installation procedure above, preserving the recorded distribution origin.
-Select an explicit 2.x version with `--version` on POSIX or `QODO_VERSION` on Windows.
+Select an explicit 2.x version with `--version` on POSIX or `QODO_INSTALL_VERSION` on Windows.
 Proceed if the setup request covers installation; otherwise ask once. Keep customer origins unchanged. Rerun the unadorned version probe after updating. If declined, failed or
 still incompatible, stop without modifying the skill package or diagnosing an auth failure.
