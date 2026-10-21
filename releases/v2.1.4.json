@@ -1,0 +1,16 @@
+{
+  "version": "2.1.4",
+  "summary": "Update Qodo skills and marketplace packages.\n- Merge pull request #141 from qodo-ai/fix/automatic-enterprise-skill-additions",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "1.6.0",
+  "skills": [
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.2",
+      "change": "patch"
+    }
+  ]
+}

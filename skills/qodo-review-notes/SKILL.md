@@ -4,7 +4,7 @@ description: Find and maintain Development Track Notes and PR Review Notes throu
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.1"
+  version: "1.0.2"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -53,7 +53,7 @@ When using the CLI, check `qodo --version` before discovering its live notes com
 
 ```sh
 qodo --version
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.1 --distribution skills-sh
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.2 --distribution skills-sh
 qodo read tools review-notes --json
 qodo tools help review-notes --json
 ```
@@ -238,8 +238,8 @@ tools may add a server prefix. Do not construct provider URLs, handle API keys o
 Run `qodo --version` without provenance flags, then use:
 
 ```sh
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.1 --distribution skills-sh
-qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.1 --distribution skills-sh
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.2 --distribution skills-sh
+qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.2 --distribution skills-sh
 qodo tools help review-notes --json
 ```
 
