@@ -1,0 +1,16 @@
+{
+  "version": "2.1.3",
+  "summary": "Update Qodo skills and marketplace packages.\n- fix(review-notes): check linked track publication (WF-1212) (#139)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "1.6.0",
+  "skills": [
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.1",
+      "change": "patch"
+    }
+  ]
+}
