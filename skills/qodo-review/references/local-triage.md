@@ -4,8 +4,10 @@ Use this only for an explicitly authorized dismissal of findings from a complete
 Keep fixing, declining, and uncertainty distinct. Existing session authorization can cover the
 batch; a recommendation or a skipped edit alone does not authorize a status change.
 
-1. Read each finding's `id` and `local_review_id` from the review result. Keep findings from
-   different local reviews in separate batches. Never invent these values or substitute a PR URL.
+1. Read each finding's `id` and look up `meta.local_review_ids[id]` in the local review result.
+   Older results can store `local_review_id` on the finding instead. Keep findings from different
+   local reviews in separate batches. If the reference is absent, report local dismissal as
+   unavailable. Never invent it, substitute `meta.run.id`, or use a PR URL.
 2. Choose the supported reason that matches the decision: `false_positive` for an incorrect
    finding, `intentional` for deliberate behavior, `deferred` for postponed work, or `rejected`
    for an understood concern the developer declines to fix. Record a concise explanation.
