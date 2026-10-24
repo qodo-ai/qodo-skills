@@ -31,7 +31,9 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 
 1. Resolve the distribution from this interaction and keep its installer URL, expected
    SHA-256, channel and distribution/auth settings together throughout installation.
-   For Qodo Cloud use these published, immutable installer pins:
+   For Qodo Cloud use these published, immutable channel-only installer pins. Select
+   `latest-2` with `--channel=latest-2` on POSIX or `$env:QODO_CHANNEL = 'latest-2'`
+   on PowerShell; their default channel remains on the older major.
 
    | Platform | Installer URL | Expected SHA-256 |
    | --- | --- | --- |
@@ -75,7 +77,12 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 ## Old or unparseable runtime
 
 Do not run whoami or login until the minimum CLI version in SKILL.md is met. Explain the
-compatibility issue and use `<qodo> update`, which retains the runtime's recorded origin.
-Proceed if the user's setup request covers this update; otherwise ask once. Keep customer
-origins unchanged. Rerun the unadorned version probe after updating. If declined, failed or
+compatibility issue. Automatic updates stay within a major version: upgrading 1.x to 2.x requires
+the checksum-pinned installation procedure above, preserving the recorded distribution origin.
+With the Cloud pins above, select `latest-2` as described above. For an exact version,
+first require a checksum-pinned installer whose verified script supports `--version`
+on POSIX or `QODO_INSTALL_VERSION` on Windows. The Cloud pins above do not support
+those selectors. Refresh them only after the new installer bytes are published and
+verified; never guess a new digest or silently substitute a channel for an exact version.
+Proceed if the setup request covers installation; otherwise ask once. Keep customer origins unchanged. Rerun the unadorned version probe after updating. If declined, failed or
 still incompatible, stop without modifying the skill package or diagnosing an auth failure.

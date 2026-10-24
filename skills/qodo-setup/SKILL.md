@@ -51,7 +51,7 @@ If missing on POSIX, try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version`.
 For a missing, old or unparseable runtime, follow the reference. Setup requests cover installation subject
 to host approvals; plugin installation alone does not. Retain the selected deployment.
 
-Keep the executable as `<qodo>`. Require Qodo CLI **1.6.0 or newer** before authentication.
+Keep the executable as `<qodo>`. Require Qodo CLI **2.0.0 or newer** before authentication.
 
 ### 2. Connect
 

@@ -61,7 +61,7 @@ try {
   const manifestPayload = readFileSync(join(firstRoot, first.manifestName));
   const manifest = JSON.parse(manifestPayload);
   assert.equal(manifest.packageVersion, packageVersion);
-  assert.equal(manifest.minimumCliVersion, '1.6.0');
+  assert.equal(manifest.minimumCliVersion, '2.0.0');
   assert.deepEqual(manifest.source, {
     repository: 'https://github.com/qodo-ai/qodo-skills',
     commit,
@@ -122,11 +122,11 @@ try {
   const files = tarFiles(firstArchive);
   assert.ok(files.has('qodo-enterprise/README.md'));
   assert.match(files.get('qodo-enterprise/README.md').toString(), /DO_NOT_TRACK=1/);
-  assert.match(files.get('qodo-enterprise/README.md').toString(), /Qodo CLI 1\.6\.0 or newer/);
+  assert.match(files.get('qodo-enterprise/README.md').toString(), /Qodo CLI 2\.0\.0 or newer/);
   assert.ok(files.has('qodo-enterprise/bundle.json'));
   assert.equal(
     JSON.parse(files.get('qodo-enterprise/bundle.json')).minimumCliVersion,
-    '1.6.0',
+    '2.0.0',
   );
   assert.ok(![...files.keys()].some((path) => path.endsWith('/qodo.mjs')), 'CLI bytes must remain a separate release');
   for (const [path, payload] of files) assertNoPrivateKeyPayload(payload, path);
