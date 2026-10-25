@@ -4,7 +4,7 @@ description: Find and maintain Development Track Notes and PR Review Notes throu
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.1"
+  version: "1.0.2"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -22,7 +22,7 @@ PR Review Notes explain one change and link to a track explicitly.
 ## Prerequisites
 
 Use an authenticated Qodo connection to the intended deployment and workspace. Notes tools must
-be available in the live catalog. For CLI use, require Qodo CLI **1.6.0 or newer** and the
+be available in the live catalog. For CLI use, require Qodo CLI **2.0.0 or newer** and the
 PR commands' `localGitCapture` capability. A trusted MCP connection can supply the same operations.
 
 ## Instructions
@@ -54,7 +54,7 @@ When using the CLI, check `qodo --version` before discovering its live notes com
 
 ```sh
 qodo --version
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.1 --distribution marketplace --host codex
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.2 --distribution marketplace --host codex
 qodo read tools review-notes --json
 qodo tools help review-notes --json
 ```
@@ -62,10 +62,13 @@ qodo tools help review-notes --json
 If the version is below the minimum or cannot be parsed, stop authenticated CLI calls and explain
 the update needed. Before offering an update, check only whether `QODO_UPDATE_BASE_URL` is set;
 never print its value. If set, it overrides the recorded source: ask the user to resolve that
-override before proceeding, without changing it yourself. Otherwise offer `qodo update` for
-the CLI's already-recorded public or enterprise origin;
-honor existing update authorization, otherwise ask once before running it. Never switch origins.
-After an approved update, rerun the unadorned version probe before `whoami` or tool discovery.
+override before proceeding, without changing it yourself. Automatic updates stay within a major.
+For a runtime below 2.x or an unparseable version, explain the prerequisite and ask once before
+explicit 2.x installation with a checksum-pinned installer supplied by Qodo or the organization.
+Reuse covering installation authorization, preserve the recorded origin and never invent a digest.
+For an eligible in-major update, offer `qodo update` at that origin and honor existing update
+authorization, otherwise ask once. After installation or update, rerun the unadorned version
+probe before `whoami` or tool discovery.
 If no update is authorized, stop this CLI path; trusted MCP remains available when configured.
 Follow the Tool access recovery rules for other failures.
 
@@ -239,8 +242,8 @@ tools may add a server prefix. Do not construct provider URLs, handle API keys o
 Run `qodo --version` without provenance flags, then use:
 
 ```sh
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.1 --distribution marketplace --host codex
-qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.1 --distribution marketplace --host codex
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.2 --distribution marketplace --host codex
+qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.2 --distribution marketplace --host codex
 qodo tools help review-notes --json
 ```
 
@@ -367,14 +370,21 @@ Keep commands and approvals in this conversation; do not hand off to a terminal.
 
 1. Resolve `<qodo>` and complete the CLI version and capability checks above, starting with unadorned `<qodo> --version`. Reuse completed checks; any runtime upgrade counts toward the one recovery attempt below.
 2. Check `<qodo> agents update --help` for planning support. If missing, use runtime recovery below. Otherwise preview with `<qodo> agents update --enterprise --dry-run --json`. If that preview reports a higher CLI version prerequisite, use the same bounded runtime recovery, then retry the preview once; stop if the prerequisite remains unsatisfied.
-3. Explain the packages and complete affected installation scope. Reuse covering authorization or ask once, then execute the exact returned `--apply-plan` command using `commands.sh` or `commands.powershell` for the tool's shell (Git Bash uses `sh`; older previews expose `command`).
+3. If the preview returns a plan, explain the packages, complete affected installation scope, and any `retainedSkills` that will stay at their previous content. Reuse covering authorization or ask once, then execute the exact returned `--apply-plan` command using `commands.sh` or `commands.powershell` for the tool's shell (Git Bash uses `sh`; older previews expose `command`).
 
-If the preview reports that core membership changed (for example, the package adds `qodo-review-notes`), automatic maintenance cannot add that skill. Inspect `<qodo> agents install --help`, explain the complete package and every recorded agent target, and reuse covering installation authorization or ask once. Use `agents install --enterprise --yes` for an already authorized noninteractive installation, with all those `--agent` targets and the existing package selection; include Standards only if already selected. `--yes` confirms that approved scope; it does not grant authorization. Verify the resulting installation before claiming the new skill is available.
+If the preview reports changed core membership, use Runtime recovery below and retry once if a newer CLI is available; compatible CLIs can add verified skills automatically. If still blocked, inspect `<qodo> agents status --json` and `<qodo> agents install --help`. Read `standardsAgents` when present; on older CLIs, require both Standards skills in `<qodo> skills list --json` to have verified `enterprise-bundle` locations for the same agent subset. Stop if that subset is ambiguous.
+
+Explain the recorded scope and reuse covering authorization or ask once. For an authorized explicit install, use `<qodo> agents install --enterprise --agent <recorded-core-ids> --yes` for all recorded core agents. If Standards was already selected, install it separately with `<qodo> agents install --enterprise --standards --agent <recorded-standards-ids> --yes` for only its recorded subset. `--yes` confirms the approved scope; it does not grant authorization. Verify every agent before claiming the new skill is available, and inspect status if either step fails.
 
 Never widen approval, change owners or add optional packages. Report persistent failures once without bypassing checks. Loaded instructions may be older than installed files.
 
 ### Runtime recovery
 
-Stop if a runtime upgrade was already attempted. Otherwise inspect `<qodo> update --help`, then use the supported `<qodo> update --check --json`; require a newer release and the recorded source in its result.
+Stop if a runtime upgrade was already attempted. If reaching the skill minimum needs a major
+upgrade or the version is unparseable, use the explicit installation gate above; an in-major
+`qodo update` cannot satisfy it. Recheck the minimum after installation, then return to the
+preview without another upgrade. Stop if installation is not authorized or compatible.
+Otherwise inspect `<qodo> update --help`, then use the supported `<qodo> update --check --json`;
+require a newer release and the recorded source in its result.
 Explain the CLI prerequisite and reuse runtime-update authorization or ask once; skills-only consent is insufficient. Run `<qodo> update --json` once without source/channel overrides. Recheck unadorned `<qodo> --version` and require the skill minimum before rechecking planning support and returning to the preview.
 Stop on denial, failure, missing metadata or continued incompatibility; never reinstall or switch sources. Runtime-only consent does not approve the skills operation.

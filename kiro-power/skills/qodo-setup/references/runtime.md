@@ -31,12 +31,17 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 
 1. Resolve the distribution from this interaction and keep its installer URL, expected
    SHA-256, channel and distribution/auth settings together throughout installation.
-   For Qodo Cloud use these published, immutable installer pins:
+   For Qodo Cloud use these published, immutable installer pins. Their default channel
+   installs CLI 2. For an exact version, pass `--version <version>` on POSIX or set
+   `$env:QODO_INSTALL_VERSION = '<version>'` on PowerShell before executing the saved
+   script. Otherwise, select `latest-2` with `--channel=latest-2` on POSIX or
+   `$env:QODO_CHANNEL = 'latest-2'` on PowerShell. Do not combine an exact version with
+   an explicit channel; clear a previously set selector before choosing the other.
 
    | Platform | Installer URL | Expected SHA-256 |
    | --- | --- | --- |
-   | POSIX | `https://get.qodo.ai/installers/bd546a0fc51ac4bb32486c9f766870ba0dedef27bf0472bb1e15ffdede52acf8/install.sh` | `bd546a0fc51ac4bb32486c9f766870ba0dedef27bf0472bb1e15ffdede52acf8` |
-   | PowerShell | `https://get.qodo.ai/installers/4ebee2878d8d39bbbdd3153aff1c6a329601d844df7ce915b7a54739aa32d498/install.ps1` | `4ebee2878d8d39bbbdd3153aff1c6a329601d844df7ce915b7a54739aa32d498` |
+   | POSIX | `https://get.qodo.ai/installers/95713ec51993b14f7ce971e4b2ef983ae803b32dd225fdc707e0bfc17139c756/install.sh` | `95713ec51993b14f7ce971e4b2ef983ae803b32dd225fdc707e0bfc17139c756` |
+   | PowerShell | `https://get.qodo.ai/installers/8f77ce6aa4190a64bcb11b36e22a450f94610f4cf0ae8446c4e391d4f4c3b08d/install.ps1` | `8f77ce6aa4190a64bcb11b36e22a450f94610f4cf0ae8446c4e391d4f4c3b08d` |
 
    For a customer deployment, use its exact installer URL and expected SHA-256 from the
    organization-provided installation instructions. Preserve QODO_INSTALL_BASE, the login
@@ -75,7 +80,11 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 ## Old or unparseable runtime
 
 Do not run whoami or login until the minimum CLI version in SKILL.md is met. Explain the
-compatibility issue and use `<qodo> update`, which retains the runtime's recorded origin.
-Proceed if the user's setup request covers this update; otherwise ask once. Keep customer
-origins unchanged. Rerun the unadorned version probe after updating. If declined, failed or
+compatibility issue. Automatic updates stay within a major version: upgrading 1.x to 2.x requires
+the checksum-pinned installation procedure above, preserving the recorded distribution origin.
+The Cloud pins above support both the `latest-2` channel and exact-version selectors.
+Honor a requested exact version and keep it separate from channel selection; never silently
+substitute a channel for it. For a customer installer, inspect the verified script and use
+only selectors it supports, preserving the customer's origin and installation settings.
+Proceed if the setup request covers installation; otherwise ask once. Keep customer origins unchanged. Rerun the unadorned version probe after updating. If declined, failed or
 still incompatible, stop without modifying the skill package or diagnosing an auth failure.

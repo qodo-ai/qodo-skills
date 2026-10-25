@@ -4,7 +4,7 @@ description: Review local changes with Qodo during substantive coding milestones
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.9"
+  version: "1.10.10"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -15,12 +15,9 @@ metadata:
 
 ## Description
 
-Review **local changes during coding and before handing off completed work**. `qodo review` diffs your working tree against a base commit, includes new/untracked files, and sends the diff plus any
-**coding-session context** you supply to Qodo's review engine. It returns structured findings you then evaluate and — with the user's say-so (or `autofix`) — fix in code. Nothing is pushed and no
-PR is created; only the base commit must already be on the remote (the reviewer clones it).
+Review **local changes during coding and before handing off completed work**. `qodo review` sends your diff, new/untracked files and coding-session context to Qodo. Evaluate its structured findings and apply authorized fixes. Only the base commit must be on the remote; the command never pushes or creates a PR.
 
-Use this skill for local changes, including unpushed work on an existing PR. Use `qodo-review-resolver`
-to work on findings from the PR's remote review; do not duplicate that review for an unchanged pushed snapshot.
+Use this skill for local changes, including unpushed work on an existing PR. Use `qodo-review-resolver` to work on findings from the PR's remote review; do not duplicate that review for an unchanged pushed snapshot.
 
 ## Prerequisites
 
@@ -105,22 +102,25 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 
 ## Runtime compatibility gate
 Resolve the executable using this skill's command-not-found fallback, then run `<qodo> --version`
-with no provenance flags. This skill requires Qodo CLI **1.6.0 or newer**. If older or
-unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure. Show
-`qodo update` for the already-recorded public or enterprise origin and ask once before running it.
-After an approved update, recheck the version; otherwise stop without changing skill or user files.
+with no provenance flags. This skill requires Qodo CLI **2.0.0 or newer** and a runtime with review API v2.
+If older or unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure.
+Automatic updates stay within a major version; ask once before explicit 2.x installation with a
+checksum-pinned installer supplied by Qodo or the organization. Preserve the recorded origin and
+never invent a digest. Recheck the version after installation; otherwise stop without changing files.
 
 ## Quick start
 You just wrote the code, so you hold the one input the reviewer can't get anywhere else: **why**.
 Attach it on every run — write the session context first, then review:
+Before each new submission, read [Review-turn context](references/review-turn-context.md) and refresh `recent_work`.
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.9 --distribution marketplace --host antigravity
+qodo read whoami --json --skill qodo-review --skill-version 1.10.10 --distribution marketplace --host antigravity
 review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
 qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
 { "summary": "<what this change does and why>",
-  "decisions": ["<a choice you made and its rationale>"] }
+  "decisions": ["<a choice you made and its rationale>"],
+  "recent_work": ["<what changed since the previous review; fixes only or added behavior>"] }
 EOF
 qodo review --base "$review_base" --context-file ctx.json # context from a file
 qodo review --base "$review_base" --ticket <TICKET_URL> ... # ticket URL (repeatable)
@@ -289,24 +289,25 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
 - The **branch name**, **HEAD commit**, and a **description** synthesized from your commit messages.
 - Any **ticket refs** and **session context** you attach (below).
 
-`--json` returns `findings` from this call, with optional `meta` and `finding_state` on newer engines.
-For repeated reviews, read `finding_state.introduced` **and** `.still_open`; an empty `findings`
-array alone does not mean clean. `.resolved` records detected fixes; `.dismissed` preserves dismissals.
+`--json` returns each finding once in `findings`; `finding_state` buckets reference IDs. Assess `.introduced`
+**and** `.still_open`; report detected fixes in `.resolved` and stored dismissals in `.dismissed`. Older buckets contain full objects.
+Default fields: `id`, `title`, `description`, `category`, `action_level`, `attribution_status`, `git_sha`,
+`location`, `evidence.citations`. Inspect the code location and evidence; preserve the original finding ID.
+`--extended` adds stored supporting detail; it changes neither review depth nor execution.
+Local `review_agent_comment` is stored reviewer feedback in both views; reuse carries it forward without new execution. Read it alongside findings and coverage.
+For authorized status writes, group IDs by `meta.local_review_ids[id]`; report unavailable references.
+Fix instructions and reviewer internals are excluded. See the [field guide](references/finding-results.md) for field details.
 If `finding_state.complete` or `meta.coverage.complete` is false, report the incomplete coverage.
-
 `meta.analysis.mode` is `full`, `incremental`, or `reused`. Reused means the same reviewed snapshot
 and compatible context; earlier open findings remain open. The CLI privately saves the submitted patch.
-It advances its checkpoint after collecting an eligible result, including via `review status`.
-Failed or older completions cannot replace a newer checkpoint.
+It advances its checkpoint after collecting an eligible result, including via `review status`; failed or older completions cannot replace a newer checkpoint.
 Keep the same base, path scope, requested depth mode and context during a fix loop. Changed context, expired or
 unverifiable checkpoints, and unsupported deltas fall back to full review. Never fabricate a checkpoint.
 For a deliberately fresh assessment use `--full` (confirm support with `--help`). It controls scope,
 not depth; it is not needed on every fix. Changing the requested depth mode invalidates compatible
 checkpoint coverage. Auto does not promise a fixed effective tier; rely on returned analysis/coverage.
 Older engines omit these fields: use their findings and coverage without claiming reuse.
-`meta.reviewers.ran` / `.skipped`, `meta.depth`, and `meta.safety_net.reinjected` describe coverage.
-A reused result has no new reviewer execution. Attach missing input for a material skipped dimension.
-Never remove context merely to make an incremental checkpoint eligible.
+Prefer `meta.run.passes` for actual outcomes; legacy `meta.reviewers` describes configured dimensions. Report failed/skipped components and missing metadata; reuse has no new execution.
 
 ## Attach coding-session context (this is the point)
 
@@ -329,6 +330,7 @@ Attach the intent and decisions behind your change. Three channels:
       "Chose a version column over a table lock to avoid contention on the hot path.",
       "Retries are capped at 3 then surfaced to the caller — deliberately not infinite."
     ],
+    "recent_work": ["Added optimistic locking; this turn includes new behavior."],
     "context_refs": [
       { "kind": "ticket", "url": "https://acme.atlassian.net/browse/PAY-412" },
       { "kind": "spec", "url": "https://acme.example/specs/orders-v2", "label": "Orders v2 spec" },
@@ -358,7 +360,7 @@ The reviewer cannot see your chat or a ticket you merely name. So:
 - **Calibrate, don't suppress.** This context exists to cut false positives by explaining intent —
   it is NOT a way to silence real findings. Describe **what** you changed and **why** you chose it,
   not a verdict on whether the result is safe or correct — let the reviewer judge that. A summary that
-  argues the code is fine reads as an excuse (and needlessly triggers a second, no-excuse safety pass);
+  argues the code is fine reads as an excuse;
   never write a "decision" whose purpose is to argue a bug or security issue away. The reviewer will
   (and should) still flag genuine problems.
 
@@ -475,9 +477,7 @@ on the first Qodo call after the unadorned version probe and keep session contex
 
 ## Error Handling
 
-Read the structured result even after a non-zero command. Preserve closed-preview, cancellation,
-rate-limit, connection, and tool-loop states; follow the bounded recovery above and never discard
-context or widen authority merely to obtain a green result.
+Read the structured result after non-zero exits. Follow bounded recovery; preserve context and authority.
 
 ## Guardrails
 

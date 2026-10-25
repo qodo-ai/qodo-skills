@@ -4,7 +4,7 @@ description: Understand how code works, how a change was done before, and which 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.6"
+  version: "1.1.7"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -80,12 +80,13 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
-CLI **1.6.0 or newer**.
+CLI **2.0.0 or newer**.
+On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
-runtime, show `qodo update` as the update command for the runtime's already-recorded origin, and ask
-once before running it. For a customer deployment, keep its organization-provided update origin;
+runtime. Automatic updates stay within a major version; ask once before an explicit 2.x installation
+using a checksum-pinned installer supplied by Qodo or the organization. For a customer deployment, keep its organization-provided update origin;
 never switch it to the public service. After an approved update, rerun the unadorned version probe
 and continue only when it satisfies the minimum. If the user declines or the update fails, stop with
 the current skill and user files unchanged.
@@ -94,7 +95,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.6 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.7 --distribution marketplace --host claude-code
 qodo read codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
 qodo read codebase grep --repo owner/repo --pattern "chargeCard" --json
 qodo read codebase read-file --repo owner/repo --path src/pay.py --json
