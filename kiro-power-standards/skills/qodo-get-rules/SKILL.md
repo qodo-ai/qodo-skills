@@ -4,7 +4,7 @@ description: Retrieve and apply Qodo coding rules relevant to implementation, pl
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.6"
+  version: "1.1.7"
   recommended: "false"
   package: "qodo-standards"
   distribution: "kiro-power"
@@ -64,12 +64,13 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 Only on the retrieval path, resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
-CLI **1.6.0 or newer**.
+CLI **2.0.0 or newer**.
+On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
-runtime, show `qodo update` as the update command for the runtime's already-recorded origin, and ask
-once before running it. For a customer deployment, keep its organization-provided update origin;
+runtime. Automatic updates stay within a major version; ask once before an explicit 2.x installation
+using a checksum-pinned installer supplied by Qodo or the organization. For a customer deployment, keep its organization-provided update origin;
 never switch it to the public service. After an approved update, rerun the unadorned version probe
 and continue only when it satisfies the minimum. If the user declines or the update fails, stop with
 the current skill and user files unchanged.
@@ -78,7 +79,7 @@ the current skill and user files unchanged.
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.6 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.7 --distribution kiro-power --host kiro
 qodo read rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json

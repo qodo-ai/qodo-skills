@@ -4,7 +4,7 @@ description: Set up Qodo in a coding agent — install the CLI, sign in, and ver
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.10"
+  version: "1.0.11"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -52,14 +52,14 @@ If missing on POSIX, try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version`.
 For a missing, old or unparseable runtime, follow the reference. Setup requests cover installation subject
 to host approvals; plugin installation alone does not. Retain the selected deployment.
 
-Keep the executable as `<qodo>`. Require Qodo CLI **1.6.0 or newer** before authentication.
+Keep the executable as `<qodo>`. Require Qodo CLI **2.0.0 or newer** before authentication.
 
 ### 2. Connect
 
 Run:
 
 ```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.10 --distribution marketplace --host antigravity
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.11 --distribution marketplace --host antigravity
 ```
 
 Reuse a successful identity check. On failure, read
@@ -76,7 +76,7 @@ approval is not blanket permission. Stop on cancellation or denied permission.
 Only after identity succeeds, run:
 
 ```sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.10 --distribution marketplace --host antigravity
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.11 --distribution marketplace --host antigravity
 ```
 
 Require a usable catalog and the task's capability; unrelated tools do not establish access.

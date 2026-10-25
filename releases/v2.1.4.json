@@ -1,0 +1,46 @@
+{
+  "version": "2.1.4",
+  "summary": "Update Qodo skills and marketplace packages.\n- Merge pull request #141 from qodo-ai/fix/automatic-enterprise-skill-additions\n- docs(review): adopt consolidated findings and local run metadata (#124)\n- docs(setup): pin published CLI 2 installers with exact versions (#143)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.11",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-codebase-wisdom",
+      "version": "1.1.7",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-get-rules",
+      "version": "1.1.7",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-manage-standards",
+      "version": "1.0.8",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review",
+      "version": "1.10.10",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.9",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.2",
+      "change": "patch"
+    }
+  ]
+}

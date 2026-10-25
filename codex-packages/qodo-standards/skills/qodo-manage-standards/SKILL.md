@@ -4,7 +4,7 @@ description: Discover, configure, and manage Qodo Review Standards using managed
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.7"
+  version: "1.0.8"
   recommended: "false"
   package: "qodo-standards"
   distribution: "marketplace"
@@ -77,12 +77,13 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 First resolve the executable using the `qodo: command not found` fallback below. Before any other
 Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
 This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
-CLI **1.6.0 or newer**.
+CLI **2.0.0 or newer**.
+On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
 If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
 do not describe the failure as an authentication problem. Explain that the skill is newer than the
-runtime, show `qodo update` as the update command for the runtime's already-recorded origin, and ask
-once before running it. For a customer deployment, keep its organization-provided update origin;
+runtime. Automatic updates stay within a major version; ask once before an explicit 2.x installation
+using a checksum-pinned installer supplied by Qodo or the organization. For a customer deployment, keep its organization-provided update origin;
 never switch it to the public service. After an approved update, rerun the unadorned version probe
 and continue only when it satisfies the minimum. If the user declines or the update fails, stop with
 the current skill and user files unchanged.
@@ -93,7 +94,7 @@ PowerShell: save each `--args` JSON object below as UTF-8 without a BOM; use `--
 
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.7 --distribution marketplace --host codex
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.8 --distribution marketplace --host codex
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
