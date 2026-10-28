@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qodo-standards",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Optional Qodo standards discovery and review rules/skills administration workflows.",
   "author": {
     "name": "Qodo",

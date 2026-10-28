@@ -1,7 +1,7 @@
 {
   "name": "qodo",
   "displayName": "Qodo",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Set up Qodo, explore code and repository history, review local changes, and resolve pull-request findings directly from Antigravity.",
   "logo": "assets/qodo.png",
   "suggestedPrompts": [
