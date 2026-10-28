@@ -30,22 +30,24 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 (default ~/.qodo). It also configures its launchers and shell PATH integration.
 
 1. Resolve the distribution from this interaction and keep its installer URL, expected
-   SHA-256, channel and distribution/auth settings together throughout installation.
-   For Qodo Cloud use these published, immutable installer pins. Their default channel
-   installs CLI 2. For an exact version, pass `--version <version>` on POSIX or set
+   SHA-256 and distribution/auth settings together throughout installation, preserving
+   any explicitly provided version or channel. For Qodo Cloud use these published,
+   immutable installer pins. For a normal install, run the verified script without adding
+   a selector; the installer chooses the distribution-approved version and reports it.
+   For an explicitly requested exact version, pass `--version <version>` on POSIX or set
    `$env:QODO_INSTALL_VERSION = '<version>'` on PowerShell before executing the saved
-   script. Otherwise, select `latest-2` with `--channel=latest-2` on POSIX or
-   `$env:QODO_CHANNEL = 'latest-2'` on PowerShell. Do not combine an exact version with
+   script. Only when a channel is explicitly provided, pass `--channel=<name>` on POSIX or
+   set `$env:QODO_CHANNEL = '<name>'` on PowerShell. Do not combine an exact version with
    an explicit channel; clear a previously set selector before choosing the other.
 
    | Platform | Installer URL | Expected SHA-256 |
    | --- | --- | --- |
-   | POSIX | `https://get.qodo.ai/installers/95713ec51993b14f7ce971e4b2ef983ae803b32dd225fdc707e0bfc17139c756/install.sh` | `95713ec51993b14f7ce971e4b2ef983ae803b32dd225fdc707e0bfc17139c756` |
-   | PowerShell | `https://get.qodo.ai/installers/8f77ce6aa4190a64bcb11b36e22a450f94610f4cf0ae8446c4e391d4f4c3b08d/install.ps1` | `8f77ce6aa4190a64bcb11b36e22a450f94610f4cf0ae8446c4e391d4f4c3b08d` |
+   | POSIX | `https://get.qodo.ai/installers/9dfe51a938ac0b7e193d03a1acc7d5f4d35a829efff6aff79b3fd4114f17d8ff/install.sh` | `9dfe51a938ac0b7e193d03a1acc7d5f4d35a829efff6aff79b3fd4114f17d8ff` |
+   | PowerShell | `https://get.qodo.ai/installers/b0386d363d07e62384d099ddf41347f48cc1e80ed842c2916fb181c9356ed96e/install.ps1` | `b0386d363d07e62384d099ddf41347f48cc1e80ed842c2916fb181c9356ed96e` |
 
    For a customer deployment, use its exact installer URL and expected SHA-256 from the
    organization-provided installation instructions. Preserve QODO_INSTALL_BASE, the login
-   endpoint and any channel/installer arguments. Do not fetch the public installer or apply
+   endpoint and any explicitly supplied installer arguments. Do not fetch the public installer or apply
    a Cloud digest to a customer script. A base or login endpoint alone does not establish the
    installer URL and checksum; obtain missing information from the administrator. Never guess
    a mirror path or fall back to the public distribution.
@@ -80,9 +82,9 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 ## Old or unparseable runtime
 
 Do not run whoami or login until the minimum CLI version in SKILL.md is met. Explain the
-compatibility issue. Automatic updates stay within a major version: upgrading 1.x to 2.x requires
+compatibility issue. Automatic updates stay within a major version: moving to a newer major uses
 the checksum-pinned installation procedure above, preserving the recorded distribution origin.
-The Cloud pins above support both the `latest-2` channel and exact-version selectors.
+For a normal install, let the verified installer choose the distribution-approved version.
 Honor a requested exact version and keep it separate from channel selection; never silently
 substitute a channel for it. For a customer installer, inspect the verified script and use
 only selectors it supports, preserving the customer's origin and installation settings.
