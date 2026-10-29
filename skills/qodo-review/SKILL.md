@@ -348,13 +348,13 @@ invalidate reuse. Eligibility still needs prior review/fix evidence; missing tex
 or judge failure retain otherwise eligible narrowing; only `new_behavior` exits it. Keep it separate.
 
 **Compatibility and limits:** `summary` remains accepted. Older CLIs use `summary` for notes, keeping decisions/recent_work. For MCP, use notes only if the live schema
-advertises it. New producers normalize notes to summary; differing values retain summary then notes
-with a blank line, identical values once.
-Transport: 64 KiB context file and 50 decisions. Expanded narrative/decision bounds are 32,768/8,192
-characters; collected commit descriptions accept 65,536. Excess input fails explicitly.
-Older CLI field limits may be 4,000; an older Engine can cap the rendered notes at 5,000.
-The flow owns fitting/storage. [Context delivery](references/context-delivery.md) defines the separate
-compatibility-warning threshold, exact receipt fields and actions for each delivery state. Never include secrets.
+advertises it. Producers normalize notes to summary; differing values retain both in order with a blank line, identical values once.
+Transport: 64 KiB context file, 50 decisions, expanded narrative/decision bounds of 32,768/8,192 characters,
+and 65,536 for collected descriptions; overflow fails explicitly. Older CLI fields may cap at 4,000 and older Engine notes at 5,000.
+The separate 4,000-character combined compatibility warning is not a budget. The flow owns prompt fitting/storage.
+Read `meta.context.author_notes`, `description` and `commit_messages`: `inline` confirms preparation; report `summarized`/`truncated` plus `offloaded` separately.
+Report missing, unknown or `unavailable` delivery as gaps; preserve submitted context, verify matching support and never infer a read or silently omit accepted detail.
+[Receipt field dictionary](references/context-delivery.md) gives examples. Never include secrets.
 
 Optional `context_refs` are merged/deduped; labels describe data, not instructions. `ticket` supplies
 ticket context; `spec` goes to Requirements Gap. `code_dependency` adds repo/branch/PR links to the
