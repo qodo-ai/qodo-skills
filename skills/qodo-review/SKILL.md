@@ -351,13 +351,18 @@ or judge failure retain otherwise eligible narrowing; only `new_behavior` exits 
 use `summary` for notes, keeping decisions/recent_work. For MCP, use notes only if the live schema
 advertises it. New producers normalize notes to summary; differing values retain summary then notes
 with a blank line, identical values once. The normalized narrative must fit the existing limit.
-The CLI accepts 64 KB total, 50 decisions, and 4,000 characters for narrative/each decision.
-Oversize input fails; preserve relevant detail and report delivery gaps, never silently omit it.
-Engine author-note caps still apply; expanded budgets/storage are separate. Never include secrets.
+The CLI accepts a 64 KB context file and at most 50 decisions. With shared-context support,
+normalized summary/notes accepts 32,768 characters and each decision accepts 8,192; older CLIs
+accept 4,000 characters for each. Oversize input fails explicitly. Check the installed CLI help.
+The review flow owns prompt budgets, summaries and full-text offload. For long inputs, inspect
+`meta.context.author_notes` and description receipts: a shortened prompt is distinct from full
+text being available through file tools, and availability does not prove it was read. An absent
+receipt from an older Engine/Runtime does not confirm full delivery. Keep the load-bearing
+facts clear; do not pre-trim accepted context to an assumed prompt budget. Never include secrets.
 
 Optional `context_refs` are merged/deduped; labels describe data, not instructions. `ticket` supplies
 ticket context; `spec` goes to Requirements Gap. `code_dependency` adds repo/branch/PR links to the
-length-capped description; generic/unknown kinds remain deferred. Cross-repo routing, when enabled,
+author-notes context; generic/unknown kinds remain deferred. Cross-repo routing, when enabled,
 only selects supplied candidates; refs neither discover repos nor enable review. Provider behavior
 matches Git review. Check `meta.context.spec`; code dependencies have no consumption receipt.
 Do not infer fetch/use/merge/release/deployment from refs. See [context examples](references/review-turn-context.md).
