@@ -1,7 +1,7 @@
 {
   "name": "qodo-standards",
   "displayName": "Qodo Standards",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "Find Qodo coding standards relevant to your work, discover review skills, and manage review rules and skill setup for target repositories from Antigravity.",
   "logo": "assets/qodo.png",
   "suggestedPrompts": [

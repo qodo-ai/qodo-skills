@@ -1,0 +1,16 @@
+{
+  "version": "2.1.6",
+  "summary": "Update Qodo skills and marketplace packages.\n- docs: sharpen compatible SessionContext authoring guidance (#146)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.10.11",
+      "change": "patch"
+    }
+  ]
+}
