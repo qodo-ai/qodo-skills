@@ -1,54 +1,57 @@
-# Review-turn context
+# Session context examples
 
-Before each new review, refresh `recent_work` in the context file with what changed since the
-previous review of this branch or worktree. Keep the overall rationale in `summary` and durable
-choices in `decisions`; `recent_work` is the current turn's work, not the whole session history.
-
-Describe the actual changes and whether they only address earlier findings or add behavior.
-Bug fixes, regression tests and behavior-preserving cleanup can be fixes only. A turn that adds
-a capability or extends an interface includes new behavior, even when it also fixes findings.
-Do not infer fixes only from a small diff or from having addressed one review finding.
-
-For a fixes-only turn:
+The canonical field meanings, ownership guidance, limits and compatibility behavior live in
+[the Local Review skill](../SKILL.md#attach-coding-session-context). This reference illustrates them.
 
 ```json
 {
-  "summary": "Preserve the existing retry behavior while correcting error handling.",
-  "decisions": ["Keep the existing retry limit and public API."],
+  "decisions": [
+    "The user requested macOS-only support; their rationale was not recorded.",
+    "The user chose full tests after opening the PR to keep PR creation fast.",
+    "The coding agent reused run_cmd to preserve its existing cancellation handling."
+  ],
+  "notes": "Expected: subprocess failures return a diagnostic. Existing guard: src/commands.py:run_cmd catches CalledProcessError. Verification: command tests passed; live execution was not tested.",
   "recent_work": [
-    "Fixes only: corrected the timeout path identified by the previous review.",
-    "Added a regression test for that timeout; no capability or interface was added."
+    "Corrected timeout handling identified by the previous review.",
+    "Added cancellation to the API; this round includes new behavior."
+  ],
+  "context_refs": [
+    { "kind": "ticket", "url": "https://acme.atlassian.net/browse/PAY-412" },
+    { "kind": "spec", "url": "https://acme.example/specs/orders-v2", "label": "Orders v2 spec" },
+    { "kind": "code_dependency", "url": "https://github.com/acme/orders-api/pull/42", "label": "API change" }
   ]
 }
 ```
 
-For a turn that also adds behavior:
+Older-CLI representation of the same context (only the narrative field name changes):
 
 ```json
 {
-  "summary": "Support cancellation while preserving retry behavior.",
-  "decisions": ["Cancellation uses the existing operation ownership checks."],
+  "decisions": [
+    "The user requested macOS-only support; their rationale was not recorded.",
+    "The user chose full tests after opening the PR to keep PR creation fast.",
+    "The coding agent reused run_cmd to preserve its existing cancellation handling."
+  ],
   "recent_work": [
-    "Corrected the timeout finding from the previous review.",
-    "Added cancellation to the public API; this turn includes new behavior."
-  ]
+    "Corrected timeout handling identified by the previous review.",
+    "Added cancellation to the API; this round includes new behavior."
+  ],
+  "context_refs": [
+    {
+      "kind": "ticket",
+      "url": "https://acme.atlassian.net/browse/PAY-412"
+    },
+    {
+      "kind": "spec",
+      "url": "https://acme.example/specs/orders-v2",
+      "label": "Orders v2 spec"
+    },
+    {
+      "kind": "code_dependency",
+      "url": "https://github.com/acme/orders-api/pull/42",
+      "label": "API change"
+    }
+  ],
+  "summary": "Expected: subprocess failures return a diagnostic. Existing guard: src/commands.py:run_cmd catches CalledProcessError. Verification: command tests passed; live execution was not tested."
 }
 ```
-
-Send this through `--context-file` (file or stdin), or keep `.qodo/session-context.json` updated.
-For a prepared MCP review, put the same notes in `params.session_context.recent_work` after
-checking the live input schema. Preserve the original notes and arguments on an uncertain
-submission retry; result collection does not submit new notes or rerun the review.
-
-Keep entries oldest first. At most 50 strings of 2,000 characters are accepted, and a CLI
-context file has a 64KB total limit. Condense oversized notes before submitting; the client
-rejects them rather than silently truncating them.
-
-The engine reads these notes only to judge fix-loop intent. They are not rendered into the
-review or included in the checkpoint profile hash. They are author context, not an override:
-the existing detector still checks eligibility and the judge decides whether there is new
-behavior. In an otherwise eligible round, missing notes, an unclear verdict or judge failure
-keep narrowing; only a `new_behavior` verdict exits it. A fixes-only statement alone does not
-make a round eligible. Refresh the notes even when the engine may reuse an unchanged snapshot.
-This policy narrows the agent roster and retained action levels; it does not select the diff scope
-or prevent checkpoint reuse. A new-behavior note is not a guarantee of a full review.
