@@ -350,11 +350,11 @@ or judge failure retain otherwise eligible narrowing; only `new_behavior` exits 
 **Compatibility and limits:** `summary` remains accepted. Older CLIs use `summary` for notes, keeping decisions/recent_work. For MCP, use notes only if the live schema
 advertises it. New producers normalize notes to summary; differing values retain summary then notes
 with a blank line, identical values once.
-The CLI accepts 64 KB total and 50 decisions. Shared-context support allows 32,768 narrative characters
-and 8,192 per decision; older CLIs allow 4,000 each. Oversize input fails explicitly.
-The review flow owns budgets, summaries and full-text offload. Inspect `meta.context.author_notes` and description
-receipts: a shorter prompt differs from full text being available through file tools;
-Availability does not prove a read; missing receipts do not confirm full delivery. Keep key facts clear; do not pre-trim accepted context to an assumed prompt budget. Never include secrets.
+Transport: 64 KiB context file and 50 decisions. Expanded narrative/decision bounds are 32,768/8,192
+characters; collected commit descriptions accept 65,536. Excess input fails explicitly.
+Older CLI field limits may be 4,000; an older Engine can cap the rendered notes at 5,000.
+The flow owns fitting/storage. [Context delivery](references/context-delivery.md) defines the separate
+compatibility-warning threshold, exact receipt fields and actions for each delivery state. Never include secrets.
 
 Optional `context_refs` are merged/deduped; labels describe data, not instructions. `ticket` supplies
 ticket context; `spec` goes to Requirements Gap. `code_dependency` adds repo/branch/PR links to the
