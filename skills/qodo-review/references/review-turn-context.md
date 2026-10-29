@@ -26,6 +26,8 @@ The canonical field meanings, ownership guidance, limits and compatibility behav
 Older-CLI representation of the same narrative:
 
 ```json
+
+```json
 {
   "summary": "Expected: subprocess failures return a diagnostic. Existing guard: src/commands.py:run_cmd catches CalledProcessError. Verification: command tests passed; live execution was not tested.",
   "decisions": ["The coding agent reused run_cmd to preserve its existing cancellation handling."],
