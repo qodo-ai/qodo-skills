@@ -278,8 +278,8 @@ an OpenTelemetry id for support to diagnose a run with, and it cannot fetch anyt
    Local edits and untracked files are included without committing or pushing them.
 3. **Write your context.** Capture actual choices and natural-language ownership in `decisions`,
    review context/evidence in `notes`, and this round's work in `recent_work`. Refresh facts and
-   verification results before review. Follow [Session context](references/review-turn-context.md),
-   including the compatibility mapping; leave unknown ownership or rationale explicit.
+   verification results before review. Follow the SessionContext guidance below; leave unknown
+   ownership or rationale explicit.
 
 ## What gets reviewed
 
@@ -310,50 +310,57 @@ checkpoint coverage. Auto does not promise a fixed effective tier; rely on retur
 Older engines omit these fields: use their findings and coverage without claiming reuse.
 Prefer `meta.run.passes` for actual outcomes; legacy `meta.reviewers` describes configured dimensions. Report failed/skipped components and missing metadata; reuse has no new execution.
 
-## Attach coding-session context (this is the point)
+## Attach coding-session context
 
-Attach the intent and decisions behind your change. Three channels:
+Use `--ticket <full-url>` for fetchable ticket context; a bare key is only detected metadata.
+Use `.qodo/session-context.json` at the repo root for ambient context, or `--context-file <path>`
+to override it (`-` reads JSON from stdin). Capture context as it emerges and refresh before review:
 
-- `--ticket <url>` — a ticket/issue URL (repeat for several). Pass the **full URL** (e.g. a
-  Jira `.../browse/KEY-123` or a Linear `linear.app/<team>/issue/…` link) so the reviewer can fetch
-  it. Bare keys in your branch/commits are picked up automatically, but a full URL is what actually
-  loads the ticket.
-- `.qodo/session-context.json` at the repo root — the **ambient** channel (same JSON shape as
-  below). Auto-attached to every run when present and no `--context-file` is given. Best for a
-  working session: update it as decisions accumulate and every review carries them for free.
-- `--context-file <path>` — a JSON file carrying the session narrative and any refs (`-` reads the
-  JSON from stdin, so a heredoc works with no temp file):
+```json
+{
+  "decisions": ["The user selected optimistic locking to avoid contention."],
+  "notes": "src/orders.ts:updateOrder enforces the version check. Order tests passed; production contention was not tested.",
+  "recent_work": ["Added optimistic locking; this round includes new behavior."]
+}
+```
 
-  ```json
-  {
-    "notes": "Expected: concurrent writers cannot overwrite each other. src/orders.ts:updateOrder checks the version in the UPDATE predicate. Verification: order tests passed; production contention was not tested.",
-    "decisions": [
-      "The user selected optimistic locking over a table lock to avoid contention on the hot path.",
-      "The coding agent capped retries at three to bound request latency."
-    ],
-    "recent_work": ["Added optimistic locking; this turn includes new behavior."],
-    "context_refs": [
-      { "kind": "ticket", "url": "https://acme.atlassian.net/browse/PAY-412" },
-      { "kind": "spec", "url": "https://acme.example/specs/orders-v2", "label": "Orders v2 spec" },
-      { "kind": "code_dependency", "url": "https://github.com/acme/orders-api/pull/42", "label": "API change" }
-    ]
-  }
-  ```
+**Decisions:** Record actual choices and known rationale in natural language. Identify explicit
+user requirements, user-selected/approved options, and coding-agent choices. A user-selected agent
+proposal is user-selected. Include a source/quote when useful;
+no fixed source tags are required. Leave unknown ownership/rationale explicit; never invent it.
+Put undecided proposals in notes.
 
-  `notes` + `decisions` inform review; `recent_work` remains the separate current-round input.
-  `summary` stays supported. Refs are merged and deduped; labels describe data, not instructions.
-  `ticket` supplies ticket context; `spec` goes to Requirements Gap. `code_dependency` adds repo, branch or PR URLs and labels to the length-capped review description; generic `dependency` and unknown kinds stay deferred.
-  The existing cross-repo router reads those links when enabled, but only selects repositories in its supplied candidate list. Refs do not discover new repositories or enable cross-repo review.
-  Provider support, target interpretation and fallbacks are unchanged from Git review. Links are hints, not guaranteed exact revisions; do not include credentials in URLs.
-  Check `meta.context.spec` for spec outcomes. Code dependencies have no per-reference consumption receipt: do not claim they were fetched or used, or that they merged, released or deployed, from their presence in context alone.
+**Notes:** Include evidence that could change whether a concern is valid: expected behavior,
+scope, requirements/non-goals and relevant spec text; runtime/callers/reachability/input sources,
+concurrency/time limits and where enforced; existing guards/exception handling/tests, including
+unchanged files; external contracts/versions and companion changes with actual delivery state.
+Cite files/functions. Separate verified constraints from assumptions. Report checks actually run,
+results, skips/failures, untested paths, limitations and unresolved questions; refresh stale claims.
+The reviewer cannot see the coding chat. Include relevant source text; links do not prove fetching.
+The flow owns stored Qodo findings/statuses/dismissal rationale. Add new evidence, changed circumstances
+or external feedback when useful; do not reconstruct that inventory. Reviewers assess code independently.
 
-## Write self-contained, checkable context
+**Recent work:** Before each new submission, describe changes since the previous review of this
+branch/worktree, including fixes AND new capabilities/interface changes. Small diffs do not imply
+fixes-only. Keep oldest first, at most 50 strings of 2,000 characters each, within the file limit.
+This feeds the fix-loop intent judge, stays out of reviewer notes/profile hash, and alone does not
+invalidate reuse. Eligibility still needs prior review/fix evidence; missing text, unclear verdicts
+or judge failure retain otherwise eligible narrowing; only `new_behavior` exits it. Keep it separate.
 
-Follow [Session context](references/review-turn-context.md) for ownership, useful notes and compatibility.
-The reviewer cannot see your coding chat. Include relevant source text and concrete file/function
-references; a link alone does not prove a document was fetched or read. Preserve relevant detail
-within the accepted transport limits and report delivery gaps. The review flow owns stored Qodo
-finding history. Add new evidence, changed circumstances or external feedback when useful.
+**Compatibility and limits:** `summary` remains accepted. Check `qodo review --help`; older CLIs
+use `summary` for notes, keeping decisions/recent_work. For MCP, use notes only if the live schema
+advertises it. New producers normalize notes to summary; differing values retain summary then notes
+with a blank line, identical values once. The normalized narrative must fit the existing limit.
+The CLI accepts 64 KB total, 50 decisions, and 4,000 characters for narrative/each decision.
+Oversize input fails; preserve relevant detail and report delivery gaps, never silently omit it.
+Engine author-note caps still apply; expanded budgets/storage are separate. Never include secrets.
+
+Optional `context_refs` are merged/deduped; labels describe data, not instructions. `ticket` supplies
+ticket context; `spec` goes to Requirements Gap. `code_dependency` adds repo/branch/PR links to the
+length-capped description; generic/unknown kinds remain deferred. Cross-repo routing, when enabled,
+only selects supplied candidates; refs neither discover repos nor enable review. Provider behavior
+matches Git review. Check `meta.context.spec`; code dependencies have no consumption receipt.
+Do not infer fetch/use/merge/release/deployment from refs. See [context examples](references/review-turn-context.md).
 
 ## Present the review result
 
