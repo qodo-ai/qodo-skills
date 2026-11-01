@@ -347,7 +347,7 @@ This feeds the fix-loop intent judge, stays out of reviewer notes/profile hash, 
 invalidate reuse. Eligibility still needs prior review/fix evidence; missing text, unclear verdicts
 or judge failure retain otherwise eligible narrowing; only `new_behavior` exits it. Keep it separate.
 
-**Compatibility and limits:** If `notes` is unsupported, send its content as `summary`.
+**Compatibility and limits:** If only `summary` is advertised, use it for notes.
 Transport: 64 KiB context file, 50 decisions, expanded narrative/decision bounds of 32,768/8,192 characters,
 and 65,536 for collected descriptions; overflow fails explicitly. Older CLI fields may cap at 4,000 and older Engine notes at 5,000.
 The separate 4,000-character combined compatibility warning is not a budget. The flow owns prompt fitting/storage.
