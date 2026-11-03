@@ -90,4 +90,5 @@ jobs:
           RELEASE_TAG: ${{ matrix.tag }}
           RELEASE_COMMIT: ${{ matrix.commit }}
           RELEASE_CATALOG: release-source/distribution/marketplaces.json
+          SOURCE_CATALOG: distribution/marketplaces.json
         run: node scripts/verify-marketplace-visibility.mjs

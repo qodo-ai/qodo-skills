@@ -5,6 +5,20 @@ import { fileURLToPath } from 'node:url';
 import { verifyMarketplace } from './marketplace-release.mjs';
 import { resolveVerificationRelease } from './plan-marketplace-verification.mjs';
 
+/** Kiro follows main, so its current listing policy can differ from an older reference release. */
+export function verificationContract(provider, released, current) {
+  const reference = released.providers?.find((entry) => entry.id === provider);
+  if (provider !== 'kiro' || reference?.mode !== 'provider-tracked-branch' || reference.sourceRef !== 'main') {
+    return released;
+  }
+  const source = current.providers?.find((entry) => entry.id === 'kiro');
+  if (source?.mode !== 'provider-tracked-branch' || source.sourceRef !== 'main'
+    || source.listings?.length !== 1 || source.listings[0].package !== 'qodo') {
+    throw new Error('Kiro verification requires the current core-only main-source contract');
+  }
+  return { ...released, providers: released.providers.map((entry) => entry.id === 'kiro' ? source : entry) };
+}
+
 export async function checkVisibility(provider, context, contract, verify = verifyMarketplace) {
   const selected = contract.providers?.find((entry) => entry.id === provider);
   if (!selected || !['claude', 'kiro'].includes(provider) || !selected.listings?.length) {
@@ -35,10 +49,12 @@ export function visibilitySummary(result) {
 }
 
 async function main() {
-  const { PROVIDER, RELEASE_TAG, RELEASE_COMMIT, RELEASE_CATALOG, GITHUB_STEP_SUMMARY } = process.env;
+  const { PROVIDER, RELEASE_TAG, RELEASE_COMMIT, RELEASE_CATALOG, SOURCE_CATALOG, GITHUB_STEP_SUMMARY } = process.env;
   const context = await resolveVerificationRelease(RELEASE_TAG, { token: process.env.GITHUB_TOKEN || '' });
   if (context.commit !== RELEASE_COMMIT) throw new Error('Release commit differs from the verification plan');
-  const contract = JSON.parse(readFileSync(RELEASE_CATALOG, 'utf8'));
+  const released = JSON.parse(readFileSync(RELEASE_CATALOG, 'utf8'));
+  const current = JSON.parse(readFileSync(SOURCE_CATALOG || new URL('../distribution/marketplaces.json', import.meta.url), 'utf8'));
+  const contract = verificationContract(PROVIDER, released, current);
   const result = await checkVisibility(PROVIDER, context, contract);
   if (GITHUB_STEP_SUMMARY) appendFileSync(GITHUB_STEP_SUMMARY, visibilitySummary(result));
   console.log(JSON.stringify(result));

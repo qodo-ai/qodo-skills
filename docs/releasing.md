@@ -283,17 +283,18 @@ are still required; local checks do not guarantee approval. The
 [OpenAI submission errors reference](https://developers.openai.com/plugins/deploy/submission-errors)
 (checked: 2026-09-05) is the contract behind these checks.
 
-Kiro's provider listings use `main/kiro-power` for core and `main/kiro-power-standards` for
-optional Standards. `directory-entries.json` carries those source URLs, paths, branches and
-package descriptions. The existing core listing already uses `main`; adding the separate
-`qodo-standards` directory entry still requires provider acceptance.
+Kiro publishes only core Qodo from `main/kiro-power`. Standards is excluded from Kiro's
+marketplace contract. `directory-entries.json` contains only that core listing. Retained
+Standards adapters are not a Kiro publication requirement. Shipping requires a release
+with the core-only contract; do not hand off an older packet requesting Standards.
 
 Kiro follows a moving branch. Merged source changes can therefore become available independently
 of immutable GitHub releases or marketplace handoff approval. The observer validates the full
 repository/path/branch/clone-URL records, resolves `main`, and reports its observed commit. It does
 not claim the source matches the packet's reference release. The verifier reads JSON documents
-and Next.js Flight data embedded in directory HTML without executing provider scripts. A missing
-listing or incorrect source still fails verification. No branch promotion, App write token, or
+and Next.js Flight data embedded in directory HTML without executing provider scripts. For Kiro, the observer uses the trusted current-main listing contract even when its
+reference release predates a policy change; other providers retain their immutable
+release contracts. A missing core listing or incorrect source still fails verification. No branch promotion, App write token, or
 legacy Kiro branch ruleset is required by marketplace shipping. Immutable release publication
 keeps its separate App audit, protected approval, and no-bypass tag protections.
 

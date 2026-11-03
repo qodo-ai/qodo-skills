@@ -188,8 +188,9 @@ if (JSON.stringify(providerIds) !== JSON.stringify(expectedProviders)) {
 }
 for (const provider of marketplaces.providers ?? []) {
   const listingPackages = (provider.listings ?? []).map((entry) => entry.package).sort();
-  if (JSON.stringify(listingPackages) !== JSON.stringify([...installPackageNames].sort())) {
-    fail(`${provider.id}: listings must cover every install package exactly once`);
+  const expectedPackages = provider.id === 'kiro' ? [catalog.package.name] : [...installPackageNames].sort();
+  if (JSON.stringify(listingPackages) !== JSON.stringify(expectedPackages)) {
+    fail(`${provider.id}: listings must match the provider package scope exactly once`);
   }
   if (![provider.submissionUrl, provider.directoryUrl].every((url) => String(url).startsWith('https://'))) {
     fail(`${provider.id}: release URLs must use HTTPS`);
@@ -307,7 +308,6 @@ for (const skill of catalog.skills ?? []) {
   }
   for (const error of validateSkillDelivery(skillText, deliveryHeading)) fail(`${skill.name}: ${error}`);
 }
-
 const expectedVersions = [
   ['package.json', json('package.json').version],
   ['packages/qodo/plugin.json', json('packages/qodo/plugin.json').version],
@@ -325,7 +325,6 @@ const expectedVersions = [
 for (const [path, version] of expectedVersions) {
   if (version !== packageVersion) fail(`${path}: version ${version ?? '<missing>'} != ${packageVersion}`);
 }
-
 const agentPlugin = json('packages/qodo/plugin.json');
 if (agentPlugin.$schema !== 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json') {
   fail('packages/qodo/plugin.json: unsupported Agent Plugins schema');

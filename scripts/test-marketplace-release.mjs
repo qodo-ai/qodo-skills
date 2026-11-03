@@ -120,7 +120,7 @@ const kiroDocument = JSON.stringify({
   ],
 });
 const kiroResults = verifyKiroDocument(kiroDocument, context);
-assert.equal(kiroResults.length, 2);
+assert.equal(kiroResults.length, 1);
 assert.equal(kiroResults[0].branch, 'main');
 assert.equal(kiroResults[0].commit, undefined);
 assert.throws(() => verifyKiroDocument('{}', context), /Kiro qodo/);
