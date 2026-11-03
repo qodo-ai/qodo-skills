@@ -298,8 +298,8 @@ release contracts. A missing core listing or incorrect source still fails verifi
 legacy Kiro branch ruleset is required by marketplace shipping. Immutable release publication
 keeps its separate App audit, protected approval, and no-bypass tag protections.
 
-Core listing identity remains `qodo`; Qodo Standards remains the separately installable
-`qodo-standards` listing. **Marketplaces: Ship release** selects providers, not individual listings, and
+Core listing identity remains `qodo`. Claude and Codex also offer the separately installable
+`qodo-standards` listing; Kiro ships core only. **Marketplaces: Ship release** selects providers, not individual listings, and
 ships every configured listing for each selected provider together. Optionality is an installation
 choice, not a separate release selector. Never replace the core listing during a source migration.
 
@@ -310,7 +310,7 @@ For every selected provider, record:
 1. provider-visible source path and observed commit/version; distinguish moving Kiro `main` from a release pin;
 2. fresh core install with exactly five canonical skill entries;
 3. upgrade from the currently published version without duplicates;
-4. Qodo Standards absent until explicitly installed;
+4. Qodo Standards absent from the core install; verify its separate opt-in installation for Claude and Codex, and its exclusion for Kiro;
 5. `qodo-setup`, one read workflow, and one approval-gated write workflow;
 6. host-owned update and new-session activation.
 
