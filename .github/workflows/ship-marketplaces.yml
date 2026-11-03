@@ -108,8 +108,9 @@ jobs:
           import { readFileSync } from 'node:fs';
           const contract = JSON.parse(readFileSync('distribution/marketplaces.json', 'utf8'));
           const kiro = contract.providers.find(({ id }) => id === 'kiro');
-          if (kiro?.mode !== 'provider-tracked-branch' || kiro?.sourceRef !== 'main') {
-            throw new Error('Select a release whose Kiro contract tracks main; legacy release-branch promotion is no longer supported.');
+          if (kiro?.mode !== 'provider-tracked-branch' || kiro?.sourceRef !== 'main'
+            || kiro.listings?.length !== 1 || kiro.listings[0].package !== 'qodo') {
+            throw new Error('Select a release whose Kiro contract tracks main with core Qodo only; Standards is excluded from Kiro.');
           }
           NODE
 

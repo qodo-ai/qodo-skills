@@ -4,8 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { planMarketplaceVerification } from '../scripts/plan-marketplace-verification.mjs';
-import { checkVisibility, visibilitySummary } from '../scripts/verify-marketplace-visibility.mjs';
+import { checkVisibility, visibilitySummary, verificationContract } from '../scripts/verify-marketplace-visibility.mjs';
 import { verifyClaudeDocument, verifyKiroDocument } from '../scripts/marketplace-release.mjs';
 
 const sha = 'a'.repeat(40);
@@ -185,6 +186,71 @@ test('shipping rejects an old Kiro contract after legacy branch promotion is rem
       assert.equal(result.status, status, result.stderr);
       if (status) assert.match(result.stderr, /Select a release whose Kiro contract tracks main/);
     }
+    Object.assign(candidate.providers.find((entry) => entry.id === 'kiro'), { mode: 'provider-tracked-branch', sourceRef: 'main' });
+    candidate.providers.find((entry) => entry.id === 'kiro').listings.push({ package: 'qodo-standards' });
+    writeFileSync(join(temp, 'distribution/marketplaces.json'), JSON.stringify(candidate));
+    const legacy = spawnSync(process.execPath, ['--input-type=module'], { input: guard, cwd: temp, encoding: 'utf8' });
+    assert.equal(legacy.status, 1);
+    assert.match(legacy.stderr, /Standards is excluded from Kiro/);
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+});
+
+
+test('moving Kiro uses the current core-only policy while immutable providers keep their release contract', async () => {
+  const released = structuredClone(contract);
+  released.providers.find(({ id }) => id === 'kiro').listings.push({
+    package: 'qodo-standards', id: 'qodo-standards', sourcePath: 'kiro-power-standards',
+  });
+  const current = verificationContract('kiro', released, contract);
+  const fixture = readFileSync(new URL('../scripts/fixtures/kiro-powers.html', import.meta.url), 'utf8');
+  const result = await checkVisibility('kiro', { tag: 'v2.0.2', commit: sha }, current,
+    async (_, context, config) => verifyKiroDocument(fixture, context, config));
+  assert.equal(result.state, 'provider-visible');
+  assert.deepEqual(result.listings.map(({ id }) => id), ['qodo']);
+  assert.strictEqual(verificationContract('claude', released, contract), released);
+  const legacy = structuredClone(released);
+  Object.assign(legacy.providers.find(({ id }) => id === 'kiro'), {
+    mode: 'protected-release-branch', sourceRef: 'marketplace-kiro',
+  });
+  assert.strictEqual(verificationContract('kiro', legacy, contract), legacy);
+  const invalid = structuredClone(contract);
+  invalid.providers.find(({ id }) => id === 'kiro').listings.push({ package: 'qodo-standards' });
+  assert.throws(() => verificationContract('kiro', released, invalid), /core-only main-source contract/);
+});
+
+test('observer CLI checks current Kiro core even when the last shipped release expected Standards', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'kiro observer policy-'));
+  try {
+    const released = structuredClone(contract);
+    released.providers.find(({ id }) => id === 'kiro').listings.push({
+      package: 'qodo-standards', id: 'qodo-standards', sourcePath: 'kiro-power-standards',
+    });
+    const catalogPath = join(temp, 'released.json');
+    writeFileSync(catalogPath, JSON.stringify(released));
+    const preload = join(temp, 'fetch.mjs');
+    const fixturePath = fileURLToPath(new URL('../scripts/fixtures/kiro-powers.html', import.meta.url));
+    writeFileSync(preload, `import { readFileSync } from 'node:fs';
+      globalThis.fetch = async (url) => {
+        if (url.includes('/releases/tags/')) return Response.json({ tag_name: 'v2.1.6', immutable: true, draft: false, prerelease: false });
+        if (url.endsWith('/commits/v2.1.6')) return Response.json({ sha: '${sha}' });
+        if (url.endsWith('/commits/main')) return Response.json({ sha: '${'b'.repeat(40)}' });
+        if (url === '${contract.providers.find(({ id }) => id === 'kiro').directoryUrl}') return new Response(readFileSync(${JSON.stringify(fixturePath)}, 'utf8'));
+        throw new Error('Unexpected network request: ' + url);
+      };`);
+    const result = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, 'scripts/verify-marketplace-visibility.mjs'], {
+      encoding: 'utf8', timeout: 10_000,
+      env: { ...process.env, PROVIDER: 'kiro', RELEASE_TAG: 'v2.1.6', RELEASE_COMMIT: sha,
+        RELEASE_CATALOG: catalogPath, SOURCE_CATALOG: fileURLToPath(new URL('../distribution/marketplaces.json', import.meta.url)),
+        GITHUB_STEP_SUMMARY: join(temp, 'summary.md') },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    const observed = JSON.parse(result.stdout);
+    assert.equal(observed.state, 'provider-visible');
+    assert.equal(observed.verification, 'branch-source');
+    assert.deepEqual(observed.listings.map(({ id }) => id), ['qodo']);
+    assert.ok(observed.listings.every(({ commit }) => commit === 'b'.repeat(40)));
   } finally {
     rmSync(temp, { recursive: true, force: true });
   }

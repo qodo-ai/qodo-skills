@@ -115,7 +115,8 @@ function pluginManifest(value, adapterSet) {
       license: pkg.license,
     };
   }
-  const kiroListing = adapterSet === 'kiro' ? listing('kiro', value.name) : undefined;
+  // Retained, unlisted adapters use canonical metadata without requiring a marketplace listing.
+  const kiroListing = adapterSet === 'kiro' ? provider('kiro').listings.find((entry) => entry.package === value.name) : undefined;
   return {
     $schema: 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
     name: value.name,
