@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { planMarketplaceVerification } from '../scripts/plan-marketplace-verification.mjs';
 import { checkVisibility, visibilitySummary, verificationContract } from '../scripts/verify-marketplace-visibility.mjs';
 import { verifyClaudeDocument, verifyKiroDocument } from '../scripts/marketplace-release.mjs';
@@ -221,7 +221,7 @@ test('moving Kiro uses the current core-only policy while immutable providers ke
 });
 
 test('observer CLI checks current Kiro core even when the last shipped release expected Standards', () => {
-  const temp = mkdtempSync(join(tmpdir(), 'kiro-observer-policy-'));
+  const temp = mkdtempSync(join(tmpdir(), 'kiro observer policy-'));
   try {
     const released = structuredClone(contract);
     released.providers.find(({ id }) => id === 'kiro').listings.push({
@@ -239,7 +239,7 @@ test('observer CLI checks current Kiro core even when the last shipped release e
         if (url === '${contract.providers.find(({ id }) => id === 'kiro').directoryUrl}') return new Response(readFileSync(${JSON.stringify(fixturePath)}, 'utf8'));
         throw new Error('Unexpected network request: ' + url);
       };`);
-    const result = spawnSync(process.execPath, ['--import', preload, 'scripts/verify-marketplace-visibility.mjs'], {
+    const result = spawnSync(process.execPath, ['--import', pathToFileURL(preload).href, 'scripts/verify-marketplace-visibility.mjs'], {
       encoding: 'utf8', timeout: 10_000,
       env: { ...process.env, PROVIDER: 'kiro', RELEASE_TAG: 'v2.1.6', RELEASE_COMMIT: sha,
         RELEASE_CATALOG: catalogPath, SOURCE_CATALOG: fileURLToPath(new URL('../distribution/marketplaces.json', import.meta.url)),
