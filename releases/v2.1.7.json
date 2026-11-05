@@ -1,0 +1,16 @@
+{
+  "version": "2.1.7",
+  "summary": "Update Qodo skills and marketplace packages.\n- fix: align Kiro workflows with core-only marketplace policy (#149)\n- docs: explain shared review context limits and delivery (#148)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.10.12",
+      "change": "patch"
+    }
+  ]
+}
