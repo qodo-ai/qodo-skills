@@ -4,7 +4,7 @@ description: Review local changes with Qodo during substantive coding milestones
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.11"
+  version: "1.10.12"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -117,7 +117,7 @@ for the same narrative, keeping `decisions` and `recent_work` unchanged.
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.11 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-review --skill-version 1.10.12 --distribution kiro-power --host kiro
 review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
 qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
 { "notes": "<expected behavior, constraints, supporting evidence and uncertainty>",
@@ -348,17 +348,17 @@ This feeds the fix-loop intent judge, stays out of reviewer notes/profile hash, 
 invalidate reuse. Eligibility still needs prior review/fix evidence; missing text, unclear verdicts
 or judge failure retain otherwise eligible narrowing; only `new_behavior` exits it. Keep it separate.
 
-**Compatibility and limits:** `summary` remains accepted. Check `qodo review --help`; older CLIs
-use `summary` for notes, keeping decisions/recent_work. For MCP, use notes only if the live schema
-advertises it. New producers normalize notes to summary; differing values retain summary then notes
-with a blank line, identical values once. The normalized narrative must fit the existing limit.
-The CLI accepts 64 KB total, 50 decisions, and 4,000 characters for narrative/each decision.
-Oversize input fails; preserve relevant detail and report delivery gaps, never silently omit it.
-Engine author-note caps still apply; expanded budgets/storage are separate. Never include secrets.
+**Compatibility and limits:** If only `summary` is advertised, use it for notes.
+Transport: 64 KiB context file, 50 decisions, expanded narrative/decision bounds of 32,768/8,192 characters,
+and 65,536 for collected descriptions; overflow fails explicitly. Older CLI fields may cap at 4,000 and older Engine notes at 5,000.
+The separate 4,000-character combined compatibility warning is not a budget. The flow owns prompt fitting/storage.
+Read `meta.context.author_notes`, `description` and `commit_messages`: `inline` confirms preparation; report `summarized`/`truncated` plus `offloaded` separately.
+Report missing, unknown or `unavailable` delivery as gaps; preserve submitted context, verify matching support and never infer a read or silently omit accepted detail.
+[Receipt field dictionary](references/context-delivery.md) gives examples. Never include secrets.
 
 Optional `context_refs` are merged/deduped; labels describe data, not instructions. `ticket` supplies
 ticket context; `spec` goes to Requirements Gap. `code_dependency` adds repo/branch/PR links to the
-length-capped description; generic/unknown kinds remain deferred. Cross-repo routing, when enabled,
+author-notes context; generic/unknown kinds remain deferred. Cross-repo routing, when enabled,
 only selects supplied candidates; refs neither discover repos nor enable review. Provider behavior
 matches Git review. Check `meta.context.spec`; code dependencies have no consumption receipt.
 Do not infer fetch/use/merge/release/deployment from refs. See [context examples](references/review-turn-context.md).
