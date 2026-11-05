@@ -4,7 +4,7 @@ description: Review local changes with Qodo during substantive coding milestones
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.12"
+  version: "1.10.13"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -69,8 +69,9 @@ it is not guaranteed standard and does not impose a spending cap. There is no `-
 
 ## Prepare a PR handoff
 
-When preparing to open or update a PR, prefer committing the intended changes before final local review, following the user's commit policy. Git reviews that support local-to-PR handoff can continue from that verified commit.
-Commit and review later edits again to include them. Committing is optional; without a usable reviewed commit, Git review follows its normal scope.
+During coding, commit only changes made for this task before every local review, including the first fast checkpoint and reviews of fixes. Follow the user's commit policy; leave pre-existing or unrelated edits untouched. A local commit is sufficient; pushing is not required.
+Retain the submitted HEAD (`git rev-parse HEAD`) with each review's operation ID. Before opening or updating a PR, compare its intended head with the completed final review's SHA; if they differ, review the intended head first. Commit and review later edits again, preserving earlier reviewed commits in branch history so the handoff can trace findings to their original code.
+For review-only tasks, when commits are not authorized, or when task changes cannot be isolated safely, review the requested scope without committing and explain that local-to-PR handoff may be incomplete. A HEAD SHA alone does not identify uncommitted changes.
 For authorized notes maintenance, use `qodo-review-notes` to find the track, publish existing-HEAD PR notes before opening, refresh if HEAD changes, and bind afterward; retain local review context and verify consumption separately.
 
 ## Instructions
@@ -117,7 +118,7 @@ for the same narrative, keeping `decisions` and `recent_work` unchanged.
 
 ```
 qodo --version                                  # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review --skill-version 1.10.12 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review --skill-version 1.10.13 --distribution marketplace --host claude-code
 review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
 qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
 { "notes": "<expected behavior, constraints, supporting evidence and uncertainty>",
