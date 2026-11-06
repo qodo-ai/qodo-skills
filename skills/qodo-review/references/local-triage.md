@@ -41,3 +41,9 @@ An applicable decision can follow the finding into the same verified PR or Gerri
 It does not suppress unrelated Changes, waive repository merge policy, or automatically
 cover a changed concern. The server supplies authenticated ownership; do not pass actor,
 workspace, or origin values as tool arguments.
+
+## Dismissal reasons
+
+Every dismissal must send `false_positive`, `intentional`, `deferred`, or `rejected` and a short
+explanation. If the caller omits the reason, use `rejected` and "Finding deliberately dismissed
+by the caller." Never send the system-only `thread_resolved`, `design_changed`, or `rule_changed`.
