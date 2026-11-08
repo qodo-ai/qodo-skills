@@ -56,8 +56,11 @@ def collect(refs, default_repo, cfg):
 @bounded_operation
 def refresh(sdir, old, cfg):
     from .product import scope
-    with scope({'product': True}):
-        return _refresh(sdir, old, cfg)
+    from .session_writer import session_writer
+    with scope({'product': True}), session_writer(sdir):
+        # The caller may have read before a newer enrichment was accepted.
+        current = json.loads((sdir / 'review-data.json').read_text())
+        return _refresh(sdir, current, cfg)
 
 
 def _refresh(sdir, old, cfg):

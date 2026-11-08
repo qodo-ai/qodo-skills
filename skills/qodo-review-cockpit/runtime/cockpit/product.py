@@ -86,6 +86,23 @@ def presentation_links(value):
     return value
 
 
+def local_patch_evidence(pr):
+    """Local collection quality, independent of Qodo's authoritative review run."""
+    files = ((pr.get('read_evidence') or {}).get('sections') or {}).get('files') or {}
+    if pr.get('files_complete', files.get('complete')) is not True:
+        return {'complete':False, 'reason':'Changed-file list completeness is unknown.'}
+    if pr.get('files_missing', 0) > 0:
+        return {'complete':False, 'reason':f"{pr['files_missing']} known changed files are missing."}
+    missing = []
+    for file in pr.get('files', []):
+        patch = file.get('patch_evidence') or {}
+        if patch.get('complete') is not True or not patch.get('items') or not all(item.get('patch_complete') is True for item in patch['items']):
+            missing.append(file.get('path') or 'unknown file')
+    if missing:
+        return {'complete':False, 'reason':'Patch evidence is missing or incomplete for ' + ', '.join(missing) + '.'}
+    return {'complete':True, 'reason':None}
+
+
 def project_pr(pr):
     """Presentation authority is separate from useful comment-derived evidence."""
     sections = (pr.get('read_evidence') or {}).get('sections') or {}
@@ -99,13 +116,11 @@ def project_pr(pr):
                       'status': observed if authoritative else 'unknown',
                       'text': scan.get('text') if authoritative else 'Comment evidence; current-head scanner run unverified'})
     review = qodo_current(pr)
-    paths = pr.get('files_complete', (sections.get('files') or {}).get('complete')) is True
-    patch_states = [(f.get('patch_evidence') or {}) for f in pr.get('files', [])]
-    patches = paths and all(p.get('complete') is True and p.get('items') and
-                           all(item.get('patch_complete') is True for item in p['items']) for p in patch_states)
-    complete = not pr.get('collection_incomplete') and patches and paths and review and ci and known(('comments', 'inline_comments', 'annotations')) and all(s['authoritative'] for s in scans)
+    patch_proof = local_patch_evidence(pr)
+    patches = patch_proof['complete']
+    complete = not pr.get('collection_incomplete') and patches and review and ci and known(('comments', 'inline_comments', 'annotations')) and all(s['authoritative'] for s in scans)
     return presentation_links({**pr, 'product': True, 'scans': scans,
-            'product_evidence': {'qodo_complete': review, 'ci_complete': ci, 'patches_complete': bool(patches), 'quality_complete': complete}})
+            'product_evidence': {'qodo_complete': review, 'ci_complete': ci, 'patches_complete': patches, 'patches_reason': patch_proof['reason'], 'quality_complete': complete}})
 
 
 def project_data(data):

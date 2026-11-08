@@ -213,13 +213,17 @@ def approval(data: dict, level: str, limit: str = APPROVAL_LIMIT, gate: dict | N
     from .product import enabled
     if enabled(data) and not data.get("prs"):
         unreviewed = ["no observed PRs"]
-    local_incomplete = [p['key'] for p in data.get('prs', []) if (enabled(data) or enabled(p)) and p.get('files_complete', ((p.get('read_evidence') or {}).get('sections', {}).get('files') or {}).get('complete')) is not True]
+    from .product import local_patch_evidence
+    local_proofs = {p['key']: local_patch_evidence(p) for p in data.get('prs', []) if enabled(data) or enabled(p)}
+    local_incomplete = [key for key, proof in local_proofs.items() if not proof['complete']]
+    local_file_incomplete = [p['key'] for p in data.get('prs', []) if (enabled(data) or enabled(p)) and
+                            (p.get('files_complete', ((p.get('read_evidence') or {}).get('sections', {}).get('files') or {}).get('complete')) is not True or p.get('files_missing', 0) > 0)]
     package_incomplete = enabled(data) and (data.get('collection') or {}).get('complete') is False
     reasons = []
     if package_incomplete:
         reasons.append('Work package collection is incomplete; requested changes or evidence are missing.')
     if local_incomplete:
-        reasons.append('Changed-file completeness is unknown on ' + ', '.join(local_incomplete) + '; all protected paths cannot be verified.')
+        reasons.append('Local patch/file coverage is incomplete: ' + '; '.join(key + ': ' + local_proofs[key]['reason'] for key in local_incomplete))
     prot = (gate or {}).get("count") or 0
     if (gate or {}).get("error"):
         reasons.append(f"The criticality map couldn't be read ({gate['error']}), so protected paths can't be checked; a person approves.")
@@ -241,7 +245,7 @@ def approval(data: dict, level: str, limit: str = APPROVAL_LIMIT, gate: dict | N
     reasons.append(f"No complete Qodo review of the current commit on {', '.join(unreviewed)}." if unreviewed else "Qodo authority applies only to the collected PRs; the requested work package is incomplete." if package_incomplete else "Qodo reviewed every PR.")
     ok = level != "unknown" and _rank(level) <= _rank(limit) and not high and not unreviewed and not prot and not (gate or {}).get("error") and not unseen and not (gate or {}).get("owners_unchecked") and not local_incomplete and not package_incomplete
     heads = {p["key"]: (p.get("head_sha") or "")[:7] for p in data.get("prs", [])}
-    return {"limit": limit, "result": "approve" if ok else "human review", "reasons": reasons, "blocked_by_path": bool(local_incomplete or prot or unseen or (gate or {}).get("error") or (gate or {}).get("owners_unchecked")),
+    return {"limit": limit, "result": "approve" if ok else "human review", "reasons": reasons, "blocked_by_path": bool(local_file_incomplete or prot or unseen or (gate or {}).get("error") or (gate or {}).get("owners_unchecked")),
             "heads": heads}   # what a result is for: a new commit voids it
 
 

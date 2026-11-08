@@ -66,6 +66,23 @@ from .product import session_operation
 
 @session_operation
 def enrich(sdir: Path, payload: dict, agent: str = "claude/review-prs") -> dict:
+    from .product import enabled
+    if not enabled():
+        return _enrich(sdir, payload, agent)
+    from copy import deepcopy
+    from .session_writer import session_writer
+    from .util import _merge
+    with session_writer(sdir):
+        authored_file = sdir / 'enrich.json'
+        previous = json.loads(authored_file.read_text()) if authored_file.is_file() else {}
+        authored = _merge(previous, deepcopy(payload))
+        # Normalizers can enrich their input; persist only the original authored values.
+        result = _enrich(sdir, deepcopy(authored), agent)
+        write_json(authored_file, authored)
+        return result
+
+
+def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
     cfg = session_config(sdir)
     p = sdir / "review-data.json"
     data = json.loads(p.read_text())

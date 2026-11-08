@@ -66,6 +66,8 @@ def _read(cmd: str, leaf: str, args: list[str]) -> tuple[dict | None, str | None
             err = out.get("error")
             code = (err.get("code") or err.get("message")) if isinstance(err, dict) else err
             return None, f"{leaf}: {code or f'exit {r.returncode}'}"
+        if enabled() and out.get('qar_operation_result_truncated'):
+            return None, f'{leaf}: truncated result'
         if not out.get("result_is_page"):
             if out.get('qar_operation_result_truncated'):
                 return None, f'{leaf}: truncated result'

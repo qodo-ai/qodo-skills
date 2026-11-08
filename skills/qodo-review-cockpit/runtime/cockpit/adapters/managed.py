@@ -157,14 +157,16 @@ class Client:
             # Mixing revisions would associate patches/evidence with the wrong head. Abort collection.
             if revision and page.get('revision') != revision:
                 raise ReadError('Change revision changed or missing while reading ' + kind + '; restart collection')
+            next_cursor = page.get('next_cursor')
+            if next_cursor and next_cursor in seen:
+                return {'items': items, 'pages': pages, 'rejected_page': page, 'complete': False,
+                        'status': 'bounded', 'error': 'Review-data continuation cursor did not advance', 'next_cursor': next_cursor}
             pages.append(page)
             items.extend(page.get('items') or [])
-            cursor = page.get('next_cursor')
+            cursor = next_cursor
             if not cursor:
                 complete = page.get('complete') if page.get('complete') in (True, False) else None
                 return {'items': items, 'pages': pages, 'complete': complete, 'status': 'observed', 'next_cursor': None}
-            if cursor in seen:
-                break
             seen.add(cursor)
         return {'items': items, 'pages': pages, 'complete': False, 'status': 'bounded', 'next_cursor': cursor}
 
