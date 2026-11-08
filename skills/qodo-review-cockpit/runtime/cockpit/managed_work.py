@@ -130,9 +130,13 @@ def live_state(prs, since_default=''):
             ready = client.pages(identity, 'readiness', pr['number'], ctx['revision'])
             comments = client.pages(identity, 'comments', pr['number'], ctx['revision'])
             reviews = client.pages(identity, 'reviews', pr['number'], ctx['revision'])
-            r = next(iter(ready['items']), {})
+            observed_ready = next(iter(ready['items']), {})
+            known_readiness = ready.get('complete') is True
+            r = observed_ready if known_readiness else {}
+            known_comments = comments.get('complete') is True
             head, old = ctx.get('head_sha'), pr.get('head_sha')
             since = pr.get('collected_at') or since_default
+            observed_comments = sum(c.get('created_at', '') > since for c in comments['items'])
             from .collect import human_reviews
             known_reviews = reviews.get('complete') is True
             normalized = normalize_reviews(reviews['items'])
@@ -144,7 +148,9 @@ def live_state(prs, since_default=''):
                              'new_commits': -1 if head != old else 0, 'state': str(r.get('state') or '').upper() or None, 'merge_state': r.get('native_state'),
                              'draft': r.get('draft'), 'review_decision': decision, 'approved_by': newly_observed, 'current_approved_by': human['approvals'] if human else None,
                              'reviews_complete': known_reviews, 'review_decision_source': 'observed_human_reviews' if human else 'unknown',
-                             'new_comments': sum(c.get('created_at', '') > since for c in comments['items']),
+                             'new_comments': observed_comments if known_comments else None,
+                             'new_comments_observed': observed_comments, 'comments_complete': known_comments,
+                             'readiness_complete': known_readiness, 'observed_readiness': observed_ready,
                              'read_evidence': {'context': ctx, 'readiness': ready, 'comments': comments, 'reviews': reviews}}
         except ReadError as e:
             out[pr['key']] = {'error': str(e), 'complete': False}

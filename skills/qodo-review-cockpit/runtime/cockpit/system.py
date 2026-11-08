@@ -44,15 +44,16 @@ FETCH_BUDGET = 90      # seconds for all of them
 _files: dict = {}
 
 
-def _excerpt(repo: str, path: str, ref: str, lo: int, hi: int, budget: dict) -> tuple[str, int] | None:
+def _excerpt(repo: str, path: str, ref: str, lo: int, hi: int, budget: dict, provider_host: str | None = None) -> tuple[str, int] | None:
     """Lines lo..hi of a file at a ref, read-only through gh, each file read once; None when it can't be read."""
     from .product import enabled
     if enabled():
         from .adapters.managed import Client, ReadBudget, ReadError
         cache = budget.setdefault('_managed_excerpts', {})
         identities = budget.setdefault('_managed_identities', {})
-        identity_key = identities.get(repo) or {}
-        key = (identity_key.get('provider'), identity_key.get('provider_host'), identity_key.get('repository_url') or repo, path, ref)
+        selector = (repo, provider_host)
+        identity_key = identities.get(selector) or {}
+        key = (provider_host, identity_key.get('provider'), identity_key.get('provider_host'), identity_key.get('repository_url') or repo, path, ref)
         for start, end, content, evidence in cache.get(key, []):
             if start <= lo and hi <= end:
                 lines = content.splitlines()[lo-start:hi-start+1]
@@ -65,10 +66,12 @@ def _excerpt(repo: str, path: str, ref: str, lo: int, hi: int, budget: dict) -> 
             client = budget['_managed_client'] = Client(budget=ReadBudget(max_calls=MAX_FETCHES*2, seconds=left))
         budget['n'] += 1
         try:
-            if repo not in identities:
-                identities[repo] = client.identity(repo)
-            identity = identities[repo]
-            key = (identity.get('provider'), identity.get('provider_host'), identity.get('repository_url') or repo, path, ref)
+            if selector not in identities:
+                identities[selector] = client.identity(repo, provider_host)
+            identity = identities[selector]
+            if provider_host and identity.get('provider_host') != provider_host:
+                raise ReadError('Source repository host does not match the authored citation')
+            key = (provider_host, identity.get('provider'), identity.get('provider_host'), identity.get('repository_url') or repo, path, ref)
             result = client.read('codebase', 'read-file', repo=identity.get('repository_url') or identity['repo'], path=path, ref=ref, start_line=max(1, lo), limit_lines=min(MAX_EXCERPT, hi-lo+1))
         except ReadError:
             return None
@@ -167,19 +170,22 @@ def _ref(raw, prs: dict, where: str, warn: list, fetch: dict | None) -> dict | N
     pr = matches[0] if matches else {}
     base = pr.get('base')
     ref = _s(raw.get('ref'), 80) or base or 'HEAD'
+    source_host = raw.get('provider_host') or (pr.get('identity') or {}).get('provider_host')
     if product:
+        if source_host:
+            out['provider_host'] = source_host
         if ref in ('HEAD', base):
             ref = pr.get('base_sha') or ref
         elif ref == pr.get('head'):
             ref = pr.get('head_sha') or ref
         if fetch is not None and pr.get('identity'):
-            fetch.setdefault('_managed_identities', {})[repo] = pr['identity']
+            fetch.setdefault('_managed_identities', {})[(repo, source_host)] = pr['identity']
     out.update(repo=repo, ref=ref)
     if raw.get('excerpt') and not product:
         out['excerpt'] = str(raw['excerpt'])[:4000]
         out['excerpt_cut'] = int(raw.get('excerpt_cut') or 0)
     elif fetch is not None and lo:
-        got = _excerpt(repo, path, out['ref'], lo, hi or lo, fetch)
+        got = _excerpt(repo, path, out['ref'], lo, hi or lo, fetch, provider_host=source_host) if product else _excerpt(repo, path, out['ref'], lo, hi or lo, fetch)
         if got and product:
             text, cut, ev = got
             out.update(excerpt_cut=cut, source_evidence=ev)

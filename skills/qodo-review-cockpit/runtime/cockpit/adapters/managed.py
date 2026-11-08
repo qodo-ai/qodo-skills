@@ -157,6 +157,9 @@ class Client:
             # Mixing revisions would associate patches/evidence with the wrong head. Abort collection.
             if revision and page.get('revision') != revision:
                 raise ReadError('Change revision changed or missing while reading ' + kind + '; restart collection')
+            if page.get('qar_operation_result_truncated'):
+                return {'items': items, 'pages': pages, 'rejected_page': page, 'complete': False,
+                        'status': 'bounded', 'error': 'QAR truncated the review-data page', 'next_cursor': cursor}
             next_cursor = page.get('next_cursor')
             if next_cursor and next_cursor in seen:
                 return {'items': items, 'pages': pages, 'rejected_page': page, 'complete': False,
