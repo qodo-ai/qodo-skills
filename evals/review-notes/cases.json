@@ -91,7 +91,8 @@
           {"name": "payload mismatch regression", "result": "failed", "tested_commit_sha": "cccccccccccccccccccccccccccccccccccccccc", "performed_at": "2026-01-02T12:20:00Z", "evidence_ref": "https://ci.example.test/runs/19"}
         ],
         "planned_checks": ["Concurrent load test; it has not run."],
-        "tested_tree_sha": "Unknown for both checks.",
+        "tested_tree_sha": null,
+        "tested_tree_sha_note": "Unknown for both checks; omit it from writes or use null.",
         "shared_evidence": "Only the supplied CI URL is accessible; the absolute local path is unshared."
       }
     },

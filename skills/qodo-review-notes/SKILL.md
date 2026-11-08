@@ -139,8 +139,9 @@ on terminal history or a local filesystem path as the shared identity.
 
 Track search returns published records; it cannot discover never-published drafts. When resuming,
 recover IDs from the task record or ask for an existing draft ID before creating a replacement if
-an earlier track may be unpublished. Publish known, intended shared track notes at intake so later
-sessions can discover them; later draft edits remain separate from that published context.
+an earlier track may be unpublished. Publish known, intended shared track notes at intake only
+when publication is authorized, so later sessions can discover them. Keep a draft-only request
+unpublished; later draft edits remain separate from any existing published context.
 
 ## Maintain Development Track Notes
 
