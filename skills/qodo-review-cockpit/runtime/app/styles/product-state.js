@@ -1,7 +1,14 @@
 /* Product-only hydration of the existing durable local event contract. No provider operations. */
 const PRODUCT_STATE = (() => {
-  function hydrate(data, stored = {}) {
+  function hydrate(data, stored = null, mode = 'snapshot') {
+    // Exported events seed a new reader. Existing snapshot readers own their local edits.
+    const savedSnapshot = mode !== 'serve' && stored && Object.keys(stored).length > 0;
+    stored = stored || {};
     const keys = new Set((data.prs || []).map((p) => p.key)), notes = new Map(), marks = new Map();
+    if (savedSnapshot) return {...stored,
+      notes:(stored.notes || []).filter((n) => keys.has(n.anchor?.pr)),
+      verdict:Object.fromEntries(Object.entries(stored.verdict || {}).filter(([key]) => keys.has(key))),
+      marks:(stored.marks || []).filter((m) => keys.has(m.pr))};
     let state = {};
     for (const event of data.events || []) {
       if (event.session && event.session !== data.session) continue;

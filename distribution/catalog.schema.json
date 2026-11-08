@@ -52,7 +52,7 @@
           "description": { "type": "string", "minLength": 1 },
           "license": { "type": "string", "minLength": 1 },
           "managed": { "type": "boolean" },
-          "providerListed": { "type": "boolean" },
+          "providerListed": { "type": "boolean", "description": "External curated provider submissions only; local package discovery remains available." },
           "antigravity": {
             "type": "object",
             "additionalProperties": false,

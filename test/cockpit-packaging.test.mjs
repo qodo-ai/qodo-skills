@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
@@ -40,6 +41,8 @@ const policy = '# fixture release policy\n';
 function sourceFixture(t) {
   const path = temp(t);
   git(path, 'init', '-q');
+  git(path, 'config', 'core.autocrlf', 'false');
+  git(path, 'config', 'core.safecrlf', 'false');
   git(path, 'remote', 'add', 'origin', 'https://github.com/qodo-ai/pr-review-cockpit.git');
   git(path, 'config', 'user.name', 'ZzAuthor'); git(path, 'config', 'user.email', 'zzauthor@example.invalid');
   const files = { 'cockpit/__init__.py': '', 'cockpit/__main__.py': 'print("fixture")\n',
@@ -103,9 +106,65 @@ test('policy exceptions are path-scoped and never weaken private-data or per-fil
   assert.throws(() => importRuntime({ ...options, commit: git(options.source, 'rev-parse', 'HEAD') }), /512 KiB/);
 });
 
+test('only the exact reviewed favicon ships raw through all four host projections', (t) => {
+  const options = sourceFixture(t);
+  // Deliberately retain CRLF, non-ASCII text and internal/scanner markers: the upstream binary branch
+  // admits inspected hashes as raw bytes, without stripping or text replacements.
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg">\r\n<!-- release:internal -->\r\n<!-- SECRET_TEST π -->\r\n<!-- /release:internal -->\r\n<circle r="1"/>\r\n</svg>\r\n');
+  const sha256 = createHash('sha256').update(svg).digest('hex');
+  put(join(options.source, 'app/favicon.svg'), svg);
+  put(join(options.source, 'app/other.svg'), svg);
+  const manifestPath = join(options.source, 'release/manifest.json');
+  const upstream = JSON.parse(readFileSync(manifestPath));
+  upstream.binaries = {reviewed: {'app/favicon.svg': {sha256, note: 'Synthetic inspected SVG fixture'}}};
+  upstream.replacements = [{path:'app/favicon.svg',from:'SECRET_TEST',to:'rewritten'}];
+  put(manifestPath, JSON.stringify(upstream));
+  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Pin inspected favicon fixture');
+  const commit = git(options.source, 'rev-parse', 'HEAD');
+  const projectionRoot = temp(t);
+  for (const path of ['scripts', 'distribution', 'skills']) {
+    cpSync(join(root, path), join(projectionRoot, path), {recursive: true});
+  }
+  const destination = join(projectionRoot, 'skills', skillName);
+  const receipt = importRuntime({...options, commit, destination});
+  const favicon = receipt.files.find((file) => file.path === 'app/favicon.svg');
+  assert.equal(favicon.reviewedSha256, sha256); assert.equal(favicon.sourceSha256, sha256);
+  assert.equal(favicon.sha256, sha256); assert.equal(favicon.strippedLines, 0);
+  assert(!receipt.files.some((file) => file.path === 'app/other.svg'));
+  assert(readFileSync(join(destination, 'runtime/app/favicon.svg')).equals(svg));
+  execFileSync(process.execPath, [join(projectionRoot, 'scripts/sync-adapters.mjs')], {stdio: 'pipe'});
+  for (const host of ['packages/qodo-cockpit', 'codex-packages/qodo-cockpit',
+    'antigravity-plugins/qodo-cockpit', 'kiro-power-cockpit']) {
+    const installed = join(projectionRoot, host, 'skills', skillName);
+    assert.deepEqual(verifyRuntime(installed), receipt, host);
+    assert(readFileSync(join(installed, 'runtime/app/favicon.svg')).equals(svg), host);
+  }
+});
+
+test('unreviewed or changed favicon hashes fail before replacing the existing payload', (t) => {
+  const options = sourceFixture(t);
+  importRuntime(options);
+  const receiptPath = join(options.destination, 'runtime-manifest.json');
+  const before = readFileSync(receiptPath);
+  const priorFile = readFileSync(join(options.destination, 'runtime/app/index.html'));
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>\n';
+  put(join(options.source, 'app/favicon.svg'), svg);
+  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Unreviewed favicon fixture');
+  assert.throws(() => importRuntime({...options, commit:git(options.source, 'rev-parse', 'HEAD')}), /Reviewed favicon SHA-256/);
+  const manifestPath = join(options.source, 'release/manifest.json');
+  const upstream = JSON.parse(readFileSync(manifestPath));
+  upstream.binaries = {reviewed: {'app/favicon.svg': {sha256:'0'.repeat(64)}}};
+  put(manifestPath, JSON.stringify(upstream));
+  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Wrong reviewed hash fixture');
+  assert.throws(() => importRuntime({...options, commit:git(options.source, 'rev-parse', 'HEAD')}), /Reviewed favicon SHA-256/);
+  assert(readFileSync(receiptPath).equals(before));
+  assert(readFileSync(join(options.destination, 'runtime/app/index.html')).equals(priorFile));
+  assert(!existsSync(join(options.destination, 'runtime/app/favicon.svg')));
+});
+
 test('resource allowlist excludes real data, local config, binaries and traversal', () => {
   for (const path of ['memory/amr/MEMORY.md', 'sessions/a.json', 'config.local.json',
-    'app/design.png', 'app/.env', 'cockpit/__pycache__/a.pyc', 'install.sh', 'PLAN.md']) assert.equal(selected(path), false);
+    'app/design.png', 'app/other.svg', 'app/nested/favicon.svg', 'app/.env', 'cockpit/__pycache__/a.pyc', 'install.sh', 'PLAN.md']) assert.equal(selected(path), false);
   for (const path of ['../x', 'app/../x', '/app/index.html']) assert.throws(() => selected(path));
   assert.equal(kiroRoot('qodo'), 'kiro-power');
   assert.equal(kiroRoot('qodo-cockpit'), 'kiro-power-cockpit');

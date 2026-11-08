@@ -128,7 +128,7 @@ main.wrap{margin-left:0}   /* the contents and the review start where the header
 }
 @media (max-width:900px){ .snav-tg{display:none} }
 .snav-wp{flex:none; display:flex; flex-direction:column; align-items:flex-start; gap:2px; margin:12px 10px 0; padding:10px 12px; border-radius:10px; background:var(--sunk)}   /* the package picker, set apart above the pages by its tint alone */
-.snav-wp .wpk-b:hover, .snav-wp .wpk-b[aria-expanded="true"]{background:var(--surface)}   /* its hover shows on the tint */
+.snav-wp .wpk-b:hover, .snav-wp .wpk-b[aria-expanded="true"]{background:none; border-color:transparent} .snav-wp .wpk-m{top:calc(100% + 18px); left:-12px}   /* the menu opens below the grey box, with a gap, its left edge on the box's */   /* its hover shows on the tint */
 .snav-wp h1{margin:0; font-size:12px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--faint)}
 .snav-wp .fname{max-width:100%; font-size:15px; font-weight:600; color:var(--ink)} .snav-wp .fname::before{content:none}   /* the header's slash doesn't belong in the nav */
 .snav-wp .wpk{display:flex; max-width:100%} .snav-wp .wpk[hidden]{display:none}
@@ -170,16 +170,17 @@ header.top{z-index:40} .hrow{padding-block:12px}
 .wpk{position:relative; display:inline-flex; min-width:0} .wpk[hidden]{display:none}
 .wpk-b{display:inline-flex; align-items:center; gap:6px; min-width:0; max-width:420px; margin-left:-6px; padding:3px 8px; border:1px solid transparent; border-radius:8px; background:none; font:inherit; font-size:15px; font-weight:500; color:var(--muted); cursor:pointer}
 .wpk-b span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.wpk-b:hover, .wpk-b[aria-expanded="true"]{color:var(--ink); border-color:var(--line); background:var(--sunk)}
+.wpk-b:hover, .wpk-b[aria-expanded="true"]{color:var(--ink)}   /* no box: it reads as a title that opens the menu */
 .wpk-b svg{flex:none; width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
 .wpk-m{position:absolute; top:calc(100% + 6px); left:-8px; z-index:80; width:min(380px, calc(100vw - 24px)); max-height:min(70vh, 520px); overflow-y:auto; padding:6px; background:var(--surface); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow)}
-.wpk-h{margin:0; padding:8px 10px 6px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
+.wpk-top{position:sticky; top:-6px; z-index:1; margin:-6px -6px 4px; padding:6px 6px 10px; background:var(--surface); border-radius:8px 8px 0 0}   /* the title and search stay put while the list scrolls */
+.wpk-h{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0; padding:4px 4px 6px 10px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
 .wpk-m .hopt{align-items:flex-start} .wpk-m .hopt[hidden]{display:none} .wpk-m .hrad{margin-top:3px}
 .wpk-tx{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1} .wpk-tx b{white-space:nowrap; overflow:hidden; text-overflow:ellipsis} .wpk-tx small{font-size:12.5px; color:var(--muted)}
 .wpk-tag{flex:none; margin-top:1px; padding:1px 7px; border-radius:999px; background:var(--sunk); font-size:11px; color:var(--muted)}
-.wpk-q{display:block; width:100%; box-sizing:border-box; margin:2px 0 4px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font:inherit; font-size:14px}
+.wpk-h .wz-ic .sico{width:16px; height:16px} .wpk-h .wz-ic{text-transform:none; letter-spacing:0}   /* the title, and Manage work packages */
+.wpk-q{display:block; width:calc(100% - 12px); box-sizing:border-box; margin:2px 6px 0; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font:inherit; font-size:14px}
 .wpk-none{margin:0; padding:8px 10px; font-size:13px; color:var(--faint)}
-.wpk-f{margin:6px 0 0; padding:8px 10px 4px; border-top:1px solid var(--line); font-size:12.5px; color:var(--faint)}
 .fname::before{content:"/"; color:var(--faint); margin-right:10px; font-weight:400}
 .hact{display:flex; align-items:center; gap:6px; flex:none; margin-left:auto}
 .hact .hbtn{display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--muted); cursor:pointer; position:relative}
@@ -1047,14 +1048,24 @@ body.nv-none .wtabs-w::after{width:calc(100vw - 40px)} @media (max-width:900px){
 .tpl-o[aria-pressed="true"] .tpl-i{background:var(--accent); color:var(--accent-ink)}
    /* the wizard's subtitle */
 .tpl-gal{margin:0 0 18px; font-size:13px; color:var(--muted)} .tpl-gal button{border:0; padding:0; background:none; color:var(--accent-text); font:inherit; font-weight:600; cursor:pointer} .tpl-gal button:hover{text-decoration:underline}   /* the marketplace, one line, as the other way in */
+.lg-del{margin-left:auto; border-color:color-mix(in srgb, var(--bad) 55%, transparent); color:var(--bad)} .lg-del + .btn{margin-left:0}   /* My layouts: the bin, then Delete or Keep */
+.wpks-c{max-width:920px; height:auto; margin:auto} .wpks-in{width:100%; box-sizing:border-box; font-family:var(--f-body)}
+.mine-bar{display:flex; align-items:flex-start; gap:16px} .mine-bar .lmod-p{flex:1} .mine-b{display:flex; flex:none; gap:8px} .mine-bar .btn{flex:none; display:inline-flex; align-items:center; gap:6px} .mine-bar .sico{width:14px; height:14px}   /* My layouts: the intro, and Add current layout */
+.mtbl{overflow:auto; max-height:calc(100vh - 220px); border:1px solid var(--dlg-line, var(--line)); border-radius:10px} .mtbl table{width:100%; border-collapse:separate; border-spacing:0; font-size:13.5px}
+.mtbl th{position:sticky; top:0; z-index:1; padding:0; text-align:left; background:var(--dlg-tile, var(--sunk)); border-bottom:1px solid var(--dlg-line, var(--line)); font:600 11.5px/1.4 var(--f-body); letter-spacing:.04em; text-transform:uppercase; color:var(--muted); white-space:nowrap}
+.mtbl th.mt-a{padding:10px 14px; text-align:center} .mt-s{display:inline-flex; align-items:center; gap:6px; width:100%; padding:10px 14px; border:0; background:none; color:inherit; font:inherit; letter-spacing:inherit; text-transform:inherit; cursor:pointer} .mtbl th:not(:first-child) .mt-s{justify-content:center}
+.mt-s i{font-style:normal; font-size:11px; opacity:.45} .mt-s:hover{color:var(--ink)} .mt-s:hover i, th[aria-sort="ascending"] .mt-s i, th[aria-sort="descending"] .mt-s i{opacity:1; color:var(--accent-text)} th[aria-sort="ascending"], th[aria-sort="descending"]{color:var(--ink)}
+.mtbl td{padding:12px 14px; vertical-align:middle; border-bottom:1px solid var(--dlg-line, var(--line))} .mtbl tbody tr:last-child td{border-bottom:0} .mtbl tbody tr:hover td{background:color-mix(in srgb, var(--ink) 4%, transparent)} .mtbl tr.mt-here td{background:color-mix(in srgb, var(--accent) 6%, transparent)}
+.mt-n b{font-weight:600} .mt-n small{display:block; margin-top:3px; font-size:12px; line-height:1.4; color:var(--muted)} .mt-n .mt-pg{color:var(--faint)} .mt-num{text-align:center; font-variant-numeric:tabular-nums; white-space:nowrap} .mt-t{text-align:center; white-space:nowrap; color:var(--muted)}
+.mt-a{white-space:nowrap; text-align:center} .mt-warn{margin-right:6px; font-size:12px; color:var(--bad)} .mt-play{color:var(--accent-text)} .mt-play .sico{fill:currentColor; stroke:none} .mt-a > * + *{margin-left:4px} .mt-a .wz-ic[disabled]{opacity:.35; cursor:default}   /* the management tables: My layouts and Manage work packages */
 .lg-pages{font-size:12px; line-height:1.45; color:var(--faint)} .lg-pages em{font-style:normal; color:var(--muted)}   /* the gallery card's pages, in order */
 .tpl-b{display:flex; gap:8px} .tpl-b .btn.pri{display:inline-flex; align-items:center; gap:6px} .tpl-b .sico{width:15px; height:15px} .lmod-f{position:sticky; bottom:-20px; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:12px; margin:auto -20px -20px; flex:none; padding:12px 20px; border-top:1px solid var(--dlg-line, var(--line)); background:var(--dlg, var(--surface)); font-size:13.5px; color:var(--muted)}   /* the gallery's sticky footer: what's been added, and Done */
 .lmod-h{display:flex; align-items:center; gap:8px; margin-bottom:4px} .lmod-h b{flex:1; font-size:16px} .lmod-p{margin:0 0 14px; color:var(--muted); font-size:13.5px}
 .wgal-q{display:block; width:100%; box-sizing:border-box; margin:0 0 14px; padding:8px 12px; border:1px solid var(--line-strong); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; font-size:14px} .wgal-none{margin:0 0 12px; font-size:13.5px; color:var(--muted)} .wtile[hidden]{display:none}
 .wgal{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px}
-.wgal-sec[hidden]{display:none} details.wgal-sec > summary{list-style:none; cursor:pointer} details.wgal-sec > summary::-webkit-details-marker{display:none} details.wgal-sec > summary .chev{margin-left:auto} details.wgal-sec[open] > summary .chev{transform:rotate(45deg)} details.wgal-sec:not([open]) > summary{margin-bottom:0} .wgal-sec + .wgal-sec{margin-top:26px; padding-top:22px; border-top:1px solid var(--dlg-line, var(--line))}   /* Popular, then the rest */
+.wgal-sec[hidden]{display:none} details.wgal-sec > summary{list-style:none; cursor:pointer} details.wgal-sec > summary::-webkit-details-marker{display:none} details.wgal-sec > summary .chev{margin-left:auto} details.wgal-sec[open] > summary .chev{transform:rotate(45deg)} details.wgal-sec:not([open]) > summary{margin-bottom:0} .wgal-sec.more{margin-bottom:20px} .wgal-sec + .wgal-sec{margin-top:26px; padding-top:22px; border-top:1px solid var(--dlg-line, var(--line))}   /* Popular, then the rest */
 .wgal-h{display:flex; align-items:baseline; gap:10px; margin:0 0 12px; font:600 12px/1.4 var(--f-body); letter-spacing:.07em; text-transform:uppercase; color:var(--ink)} .wgal-h span{font-weight:400; letter-spacing:0; text-transform:none; font-size:12.5px; color:var(--muted)}
-.wgal-sec.pop .wgal{padding:14px; border-radius:12px; background:color-mix(in srgb, var(--accent) 6%, transparent)}
+.wgal-sec.pop{padding:14px 16px 16px; border:1px solid var(--accent-line); border-radius:12px; background:color-mix(in srgb, var(--accent) 7%, transparent)} .wgal-sec.pop > .wgal-h{font-size:15px; letter-spacing:0; text-transform:none; align-items:center} .wgal-star{display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:7px; background:var(--accent); color:var(--accent-ink); font-style:normal; font-size:14px}   /* Popular: an accent panel with a starred title, so it reads first */
 @media (max-width:640px){ .lmod{padding:16px} }
 .wtile{display:flex; flex-direction:column; gap:6px; padding:10px; border:1px solid var(--dlg-line, var(--line)); border-radius:10px; background:var(--dlg-tile, var(--surface)); color:var(--ink)}
 .wtile:hover:not(.on), .wtile:focus-within{border-color:var(--accent-line)} .wtile.on{opacity:.55}
@@ -1098,7 +1109,7 @@ body.nv-none .wtabs-w::after{width:calc(100vw - 40px)} @media (max-width:900px){
 .vd-k{font:600 11px/1.4 var(--f-body); letter-spacing:.07em; text-transform:uppercase; color:var(--faint)}
 .vd-t > b{font-size:22px; font-weight:650; line-height:1.2; color:var(--ink)} .vd-lv.low{color:var(--add)} .vd-lv.medium{color:var(--warn)} .vd-lv.high{color:var(--bad)} .vd-n.none{color:var(--add)}
 .vd-meter{display:flex; gap:4px} .vd-meter i{flex:1; height:6px; border-radius:3px; background:var(--sunk)} .vd-meter i.low{background:var(--add)} .vd-meter i.medium{background:var(--warn)} .vd-meter i.high{background:var(--bad)}
-.vd-sev{display:flex; flex-wrap:wrap; gap:6px} .vd-s{font:500 12px/1.6 var(--f-body); padding:0 8px; border-radius:999px; background:var(--sunk); color:var(--muted)}
+.vd-sev{display:flex; flex-wrap:wrap; gap:6px} .vd-s{font:500 12px/1.6 var(--f-body); padding:0 8px; border-radius:999px; background:var(--sunk); color:var(--muted)} a.vd-s{text-decoration:none} a.vd-s:hover{text-decoration:underline; filter:brightness(.95)}   /* a chip that opens its PR or comment */
 .vd-s.high{background:var(--tag-high-bg); color:var(--tag-high)} .vd-s.medium{background:var(--tag-med-bg); color:var(--tag-med)} .vd-s.none{background:var(--add-bg); color:var(--add)}
 @media (max-width:640px){ .vd-m{grid-template-columns:1fr} }
 /* Package contents: its size as chips, plain line counts */
@@ -1120,7 +1131,8 @@ body.nv-none .wtabs-w::after{width:calc(100vw - 40px)} @media (max-width:900px){
 .smod-b{padding:14px 16px 18px; min-width:0} .smod-k{margin:0 0 8px; font:600 11px/1.4 var(--f-body); letter-spacing:.07em; text-transform:uppercase; color:var(--faint)}
 body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpop, body.ask-off .qa-btn{display:none !important}   /* Settings › Show Ask Qodo off */
 .smod-k2{margin-top:18px} .smod-b .smod-r + .smod-r{margin-top:8px} .smod-src{display:flex; flex-direction:column; gap:10px}
-.src-f{display:flex; gap:8px} .src-in{flex:1; min-width:0; padding:7px 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg); color:var(--ink); font:13px var(--f-mono)}
+.src-f{display:flex; gap:8px} .src-rv{flex:none; align-self:center} .src-rv .sico{width:16px; height:16px}   /* Show in Finder */ .smod-path{overflow-x:auto; white-space:nowrap; user-select:all}   /* the app settings file: one line, selectable */
+.src-in{flex:1; min-width:0; padding:7px 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg); color:var(--ink); font:13px var(--f-mono)}
 .src-m{margin:0; font-size:12.5px; color:var(--muted)} .src-m.bad{color:var(--bad)} .src-m code{font:12px var(--f-mono)}
 .src-def{padding:0; border:0; background:none; color:var(--accent-text); font:inherit; cursor:pointer; text-decoration:underline}
 .bwg .bhop-t{margin:0 0 10px; font-weight:600; color:var(--ink)}   /* the hop-by-hop widget names the request it follows */
@@ -1176,7 +1188,11 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .snav-foot .htip{top:auto; bottom:calc(100% + 8px); left:0; right:auto}
 .nv-mm .hsub{right:auto; left:calc(100% + 10px); top:auto; bottom:-6px} .nv-mm .hsub::after{left:auto; right:100%; width:12px}   /* Review styles opens to the right, away from the nav */
 .snav-rf{font-size:14px; padding:7px 12px; border:1px solid var(--line-strong); background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.05); color:var(--ink)} .snav-rf:hover{border-color:var(--accent-line)} .snav-rf[aria-disabled="true"]{color:var(--muted); box-shadow:none}   /* reads as a button, not a nav row */
-.snav-rf svg{width:18px; height:18px} .snav-foot .htip .ft-r{gap:6px; align-items:center; margin-top:6px; color:var(--ink); font-weight:500} .snav-foot .htip .ft-r:first-child{margin-top:0} .snav-foot .htip .ft-r svg{width:12px; height:12px; fill:currentColor} .snav-foot .htip .ft-r ~ li:not(.ft-r){padding-left:18px}
+.snav-rf svg{width:18px; height:18px} .snav-foot .htip .ft-h{display:flex; flex-direction:column; gap:1px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--line)} .ft-h span{font-size:11.5px; color:var(--faint)} .ft-h b{font-size:15px; font-weight:600; color:var(--ink)}   /* when the data was fetched: the time leads, its label quiet */
+.srv{display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:8px 0 0; padding:8px 0 0; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted)} .srv span{flex:1}
+.srv em{flex-basis:100%; font-style:normal; font-size:12px; color:var(--bad)} .srv-dot{flex:none; width:8px; height:8px; border-radius:50%; background:var(--faint)} .srv-dot.up{background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent)} .srv-dot.down{background:var(--bad)}
+.snav-rf.srv-down{position:relative} .snav-rf.srv-down::after{content:""; position:absolute; top:3px; right:3px; width:7px; height:7px; border-radius:50%; background:var(--bad)}   /* the server check: in the refresh menu, and a red dot on the button when down */
+.ft-r{gap:6px; align-items:center; margin-top:6px; color:var(--ink); font-weight:500} .snav-foot .htip .ft-r:first-child{margin-top:0} .snav-foot .htip .ft-r svg{width:12px; height:12px; fill:currentColor} .snav-foot .htip .ft-r ~ li:not(.ft-r){padding-left:18px}
 .snav-foot .htip code{font:inherit; font-size:12px; font-variant-numeric:tabular-nums; color:var(--muted); background:none; border:0; padding:0}   /* the nav's own type, no mono chips */   /* the details open upwards from the foot */
 
 /* the … menu, the floating Save bar, the add placeholders */
@@ -1207,5 +1223,6 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 {{KIT}}
 {{CONTRACT_MAP}}
 </script>
-<script>{{PACKAGE_SCRIPT}}</script>
+<script>
+{{PACKAGE_SCRIPT}}</script>
 

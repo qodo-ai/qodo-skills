@@ -86,6 +86,27 @@ class PermissionDenied(PermissionError):
     """Stop this path. Callers must surface it rather than try alternate credentials/transports."""
 
 
+def decode_result(result, group, tool):
+    try:
+        out = json.loads(result.stdout)
+    except ValueError as e:
+        if any(code in (result.stderr or '').lower() for code in ('not_logged_in', 'token_expired', 'invalid_token', 'forbidden', 'permission denied')):
+            raise PermissionDenied(f'{group}/{tool}: CLI authentication or permission unavailable; owner action required') from e
+        raise ReadError(f'{group}/{tool}: unreadable response (exit {result.returncode})') from e
+    if result.returncode or (isinstance(out, dict) and out.get('error')):
+        err = out.get('error') if isinstance(out, dict) else None
+        code = str((err or {}).get('code', 'unavailable')) if isinstance(err, dict) else 'unavailable'
+        metadata = (err.get('metadata') or {}) if isinstance(err, dict) else {}
+        if str(metadata.get('upstream_status')) in ('401', '403'):
+            raise ScopedPermissionDenied(f'{group}/{tool}: provider permission limited ({metadata["upstream_status"]}); no retry or fallback')
+        if any(x in code.upper() for x in ('PERMISSION', 'FORBIDDEN', 'DENIED', 'NOT-IN-SCOPE', 'UNAUTHORIZED', 'NO-CREDENTIAL', 'NOT_LOGGED_IN', 'TOKEN_EXPIRED', 'INVALID_TOKEN')):
+            raise PermissionDenied(f'{group}/{tool}: {code}; owner action required')
+        raise ReadError(f'{group}/{tool}: {code} (exit {result.returncode})')
+    if not isinstance(out, dict):
+        raise ReadError(f'{group}/{tool}: expected object')
+    return out
+
+
 class Client:
     def __init__(self, command=None, budget=None):
         self.budget = budget or current_budget() or ReadBudget()
@@ -105,31 +126,14 @@ class Client:
             raise PermissionDenied(f'{group}/{tool}: process permission denied; owner action required') from e
         except (OSError, subprocess.TimeoutExpired) as e:
             raise ReadError(f'{group}/{tool}: {type(e).__name__}') from e
-        try:
-            out = json.loads(result.stdout)
-        except ValueError as e:
-            if any(code in (result.stderr or '').lower() for code in ('not_logged_in', 'token_expired', 'invalid_token', 'forbidden', 'permission denied')):
-                raise PermissionDenied(f'{group}/{tool}: CLI authentication or permission unavailable; owner action required') from e
-            raise ReadError(f'{group}/{tool}: unreadable response (exit {result.returncode})') from e
-        if result.returncode or (isinstance(out, dict) and out.get('error')):
-            err = out.get('error') if isinstance(out, dict) else None
-            code = str((err or {}).get('code', 'unavailable')) if isinstance(err, dict) else 'unavailable'
-            metadata = (err.get('metadata') or {}) if isinstance(err, dict) else {}
-            if str(metadata.get('upstream_status')) in ('401', '403'):
-                raise ScopedPermissionDenied(f'{group}/{tool}: provider permission limited ({metadata["upstream_status"]}); no retry or fallback')
-            if any(x in code.upper() for x in ('PERMISSION', 'FORBIDDEN', 'DENIED', 'NOT-IN-SCOPE', 'UNAUTHORIZED', 'NO-CREDENTIAL', 'NOT_LOGGED_IN', 'TOKEN_EXPIRED', 'INVALID_TOKEN')):
-                raise PermissionDenied(f'{group}/{tool}: {code}; owner action required')
-            raise ReadError(f'{group}/{tool}: {code} (exit {result.returncode})')
-        if not isinstance(out, dict):
-            raise ReadError(f'{group}/{tool}: expected object')
-        return out
+        return decode_result(result, group, tool)
 
     def identity(self, repo, host=None):
         # Native URL routes are not necessarily the registry's canonical full_name.
         native_route = '/_git/' in repo or bool(re.match(r'^projects/[^/]+/repos/', repo, re.I))
         result = self.read('codebase', 'search-repos', query=repo.rsplit('/', 1)[-1] if native_route else repo, max_results=1000)
         matches = [r for r in result.get('repos', []) if
-                   (r.get('full_name') == repo or (native_route and urlsplit(r.get('html_url') or '').path.rstrip('/') == '/' + repo.rstrip('/'))) and
+                   (r.get('full_name') == repo or (str(r.get('provider') or '').lower() == 'github' and str(r.get('full_name') or '').casefold() == repo.casefold()) or (native_route and urlsplit(r.get('html_url') or '').path.rstrip('/') == '/' + repo.rstrip('/'))) and
                    (not host or urlsplit(r.get('html_url') or '').hostname == host)]
         if len(matches) != 1 or result.get('truncated') or result.get('next_page_token'):
             raise ReadError('Repository discovery is ambiguous, missing or truncated; supply an exact registered repository and host URL')
@@ -205,7 +209,7 @@ class Client:
                            'state': c.get('conclusion') or c.get('state') or c.get('status') or 'unknown',
                            'url': c.get('url') or c.get('details_url') or c.get('target_url')})
         head = context.get('head_sha')
-        reviews = [{**r, 'user': r.get('actor') or r.get('user') or {}, 'commit_id': r.get('reviewed_revision') or r.get('commit_sha') or r.get('commit_id')} for r in evidence['reviews']['items']]
+        reviews = normalize_reviews(evidence['reviews']['items'])
         return {'key': f"{identity['repo']}#{number}", 'repo': identity['repo'], 'number': number,
                 'provider': identity['provider'], 'provider_host': identity['provider_host'], 'repository_url': identity.get('repository_url'),
                 'product': True, 'identity': identity, 'title': change.get('title') or f'Change {number}', 'body': change.get('body') or '',
@@ -216,6 +220,19 @@ class Client:
                 '_threads': None, 'provider_threads': evidence['threads'], 'summary': '', 'risk': '', 'diagrams': [],
                 'read_evidence': {'capabilities': caps, 'context': context, 'sections': evidence},
                 **human_reviews(reviews, head)}
+
+
+def normalize_reviews(items):
+    """Canonical actors and reviewed revisions into the existing human-review model."""
+    reviews = []
+    for review in items:
+        actor = dict(review.get('actor') or review.get('user') or {})
+        if actor.get('is_bot') is True or str(actor.get('type') or '').lower() == 'bot':
+            actor['type'] = 'Bot'
+        reviews.append({**review, 'user': actor,
+                        'commit_id': review.get('reviewed_revision') or review.get('commit_sha') or review.get('commit_id'),
+                        'submitted_at': review.get('submitted_at') or review.get('created_at') or ''})
+    return reviews
 
 
 def parse_ref(ref, default_repo=None):

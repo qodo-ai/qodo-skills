@@ -89,11 +89,17 @@ def catalog() -> dict:
         return _CATALOG
     if _MISSED[0] is not None and time.monotonic() - _MISSED[0] < RETRY_SECONDS:
         return {}
-    qodo, cat = qodo_bin(), {}
+    from .product import enabled
+    product = enabled()
+    from .adapters.managed import Client, decode_result, ReadError
+    qodo, cat = (Client().command if product else qodo_bin()), {}
     if qodo:
         try:
             r = subprocess.run([qodo, "read", "tools", "--json"], capture_output=True, text=True, timeout=CALL_TIMEOUT)
-            doc, _ = json.JSONDecoder().raw_decode(r.stdout.strip())   # the CLI may print a trace line after the JSON
+            if product:
+                doc = decode_result(r, 'read', 'tools')
+            else:
+                doc, _ = json.JSONDecoder().raw_decode(r.stdout.strip())   # older CLI may append a trace line
             tools = doc.get("tools") if isinstance(doc, dict) else None
             for t in tools if isinstance(tools, list) else []:
                 if not isinstance(t, dict) or t.get("access") != "read" or t.get("mutating") or not (t.get("group") and t.get("leaf")):
@@ -103,6 +109,12 @@ def catalog() -> dict:
                 cat[f"{t['group']} {t['leaf']}"] = {"description": str(t.get("description") or ""),
                                                    "params": sorted(props) if isinstance(props, dict) else [],
                                                    "required": [x for x in req if isinstance(x, str)] if isinstance(req, list) else []}
+        except PermissionError:
+            if product:
+                raise
+            cat = {}
+        except ReadError:
+            cat = {}
         except (OSError, subprocess.TimeoutExpired, ValueError, TypeError, AttributeError):
             cat = {}
     if cat:   # an empty answer may be an outage: try again a minute later instead of keeping it
@@ -168,6 +180,19 @@ def _session(tool: str, args: dict, sdir: Path) -> str:
     return _cut("\n".join(hits) or "no matches")
 
 
+def _product_session(sdir):
+    from .product import enabled
+    if enabled():
+        return True
+    if not sdir or not (sdir / 'review-data.json').is_file():
+        return False
+    try:
+        data = json.loads((sdir / 'review-data.json').read_text())
+    except ValueError:
+        return False  # standalone session tools may intentionally read non-JSON text
+    return isinstance(data, dict) and enabled(data)
+
+
 def run_read(call: dict, cat: dict, sdir: Path | None = None, timeout: float = CALL_TIMEOUT) -> str:
     """One of the agent's calls, only if it names a known read tool with known, plain arguments."""
     tool = str(call.get("tool") or "").strip()
@@ -191,6 +216,15 @@ def run_read(call: dict, cat: dict, sdir: Path | None = None, timeout: float = C
         except (OSError, ValueError) as e:
             return f"failed: {e}"
     group, leaf, qodo = *tool.split(" ", 1), qodo_bin()
+    from .product import enabled
+    product = _product_session(sdir)
+    if product:
+        from .adapters.managed import Client, ReadBudget, ReadError
+        try:
+            result = Client(budget=ReadBudget(seconds=max(0, timeout))).read(group, leaf, **args)
+        except ReadError as error:
+            return f'failed: {error}'
+        return _cut(json.dumps(result))
     if not qodo:   # the catalog is cached, but the CLI can go away since
         return "failed: Qodo's CLI isn't available now"
     try:
@@ -282,6 +316,9 @@ def ask(prompt: str, sdir: Path, agent: str = "auto", deadline: float = DEADLINE
         raise AskError("no question")
     if len(prompt) > MAX_PROMPT:
         raise AskError(f"the question and its report index are over {MAX_PROMPT // 1000} k characters")
+    from .product import enabled, activate
+    if _product_session(sdir):
+        activate()
     who = pick(agent)
     global _CATALOG
     if qodo and qodo != _QODO["cmd"]:

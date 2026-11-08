@@ -253,7 +253,7 @@ function triAll() {   // every selected PR's findings, numbered once across the 
   ts.forEach((t) => { const fs = t.snapshot.findings || [], st = Object.fromEntries(fs.map((f) => [f.id, f.attribution_status]));
     t.targets.forEach((x) => out.push({ ...x, pr: t.pr, prd: t, key: t.pr + "|" + x.id, add: +x.add || 0, rem: +x.rem || 0, status: x.id in st ? st[x.id] || "pending" : fs.length ? "missing" : "pending" })); });
   ts.forEach((t) => { const ids = new Set(t.targets.map((x) => x.id));
-    (t.snapshot.findings || []).filter((f) => !ids.has(f.id) && TOPENST.includes(f.attribution_status)).forEach((f) => out.push({ isNew: true, id: f.id, pr: t.pr, prd: t, key: t.pr + "|" + f.id, title: f.title || "", sev: TSEVL[f.action_level] || "Low", desc: f.description || "", status: f.attribution_status || "pending", badges: [],
+    (t.snapshot.findings || []).filter((f) => !ids.has(f.id)).forEach((f) => out.push({ isNew: TOPENST.includes(f.attribution_status), qodo: !TOPENST.includes(f.attribution_status), id: f.id, pr: t.pr, prd: t, key: t.pr + "|" + f.id, title: f.title || "", sev: TSEVL[f.action_level] || "Low", desc: f.description || "", status: f.attribution_status || "pending", badges: [],
       locs: f.file_path ? [`${f.file_path}${f.start_line ? (f.end_line && f.end_line !== f.start_line ? `, lines ${f.start_line}–${f.end_line}` : `, line ${f.start_line}`) : ""}`] : [] })); });
   return out.map((x, i) => ({ ...x, n: i + 1 }));
 }
@@ -285,9 +285,9 @@ function triPrompt(all) {   // as the per-PR triage page writes it, one section 
 }
 function triRef(x) {   // one finding, to ask the agent about it
   const [st] = TCLOSED[x.status] || TOPENL[x.status] || [""];
-  const L = [`Question about a Qodo review finding on ${shortPr(x.pr)} (${x.prd.url}).`, "", x.isNew ? `New finding, not triaged yet: ${x.title}` : `Finding #${x.n}: ${x.title}`];
+  const L = [`Question about a Qodo review finding on ${shortPr(x.pr)} (${x.prd.url}).`, "", x.isNew ? `New finding, not triaged yet: ${x.title}` : x.qodo ? `Closed finding, not triaged: ${x.title}` : `Finding #${x.n}: ${x.title}`];
   if (x.id) L.push(`Qodo finding id: ${x.id}`); L.push([x.sev, ...(x.badges || []), st && `status: ${st}`].filter(Boolean).join(" · ")); (x.locs || []).forEach((l) => L.push("Location: " + l));
-  if (x.isNew) { if (x.desc) L.push("", "Qodo's description:", x.desc); }
+  if (x.isNew || x.qodo) { if (x.desc) L.push("", "Qodo's description:", x.desc); }   // Qodo's own text: no triage verdict, recommendation or size to quote
   else { L.push("", `Triage verdict: ${TVERD[x.verdict] || x.verdict}. Recommendation: ${x.rec}`, `Estimated fix size: +${x.add} / −${x.rem} lines`); if (x.impact) L.push("", "Impact:", x.impact); if (x.why) L.push("", "Why it happens:", x.why); }
   L.push("", "Read the code at the locations above, then answer my question. Don't change code or Qodo's records unless I ask.", "", "My question: ");
   return L.join("\n");
@@ -307,9 +307,9 @@ function triCard(x) {
   const c = tClosed(x), [stl, stt] = TCLOSED[x.status] || TOPENL[x.status] || [], open = TV.open[x.key] ?? TV.all ?? false;
   const meta = [`<span class="tpr">${esc(shortPr(x.pr))}</span>`, (x.locs || [])[0] ? `<span class="tloc">${esc(base(x.locs[0].split(",")[0]))}</span>` : "", `<span class="dst ${TSEVT[x.sev] || "low"}">${esc(x.sev)}</span>`,
     ...(x.badges || []).map((b) => `<span class="tbadge">${esc(b)}</span>`), x.isNew ? `<span class="dkind">New</span>` : x.verdict ? `<span class="dkind">${TVERD[x.verdict] || esc(x.verdict)}</span>` : "",
-    x.isNew ? "" : diffnums(x.add, x.rem), stl ? `<span class="tstat ${stt}">${stl}</span>` : "", triChosen(x)].join("");
+    x.isNew || x.qodo ? "" : diffnums(x.add, x.rem), stl ? `<span class="tstat ${stt}">${stl}</span>` : "", triChosen(x)].join("");
   const sec = (h, html) => (html ? `<section class="dsec"><h4>${h}</h4>${/^\s*</.test(html) ? tSafe(html) : `<p>${esc(html)}</p>`}</section>` : "");
-  const body = x.isNew ? `<section class="dsec"><h4>Qodo's finding</h4><p class="tdesc">${esc(x.desc || "No description.")}</p></section>`
+  const body = x.isNew || x.qodo ? `<section class="dsec"><h4>Qodo's finding</h4><p class="tdesc">${esc(x.desc || "No description.")}</p></section>`
     : `<div class="tgrid">${sec("Impact", x.impact_html || x.impact)}${sec("Why it happens", x.why_html || x.why)}</div>${(x.code || []).map(triCode).join("")}
       <section class="dsec"><h4>Recommendation</h4><p>${esc(x.rec || "")}</p><p class="tsize">Estimated fix size ${diffnums(x.add, x.rem)}${x.note ? ` <span class="muted">${esc(x.note)}</span>` : ""}</p></section>`;
   return `<details class="dcard tcard${c ? " ok" : ""}" data-tk="${esc(x.key)}"${open ? " open" : ""}${tShown(x) ? "" : " hidden"}><summary><span class="dnum">${x.n}</span><span class="tsum"><span class="dtitle">${esc(x.title)}</span><span class="tmeta">${meta}</span></span>
@@ -325,14 +325,15 @@ function bTriage() {
     ${closed ? `<label class="tchk"><input type="checkbox" data-tclosed${TV.closed ? " checked" : ""}> Show closed findings <span class="dfn">${closed}</span></label>` : ""}<span class="dall"><button class="btn sm" data-tall="open">Expand all</button><button class="btn sm" data-tall="close">Collapse all</button></span></div>`;
   const by = (k) => all.filter((x) => x.status && TCLOSED[x.status] && TCLOSED[x.status][0] === k).length, res = by("Resolved"), dis = by("Dismissed"), out = by("Outdated");
   const sumOpen = TV.open._sum ?? false, rows = all.filter(tShown).map((x) => `<tr${tClosed(x) ? ' class="tdim"' : ""}><td class="n">${x.n}</td><td><span class="dst ${TSEVT[x.sev] || "low"}">${esc(x.sev)}</span></td><td><b>${esc(x.title)}</b><div class="tmeta"><span class="tpr">${esc(shortPr(x.pr))}</span>${(x.badges || []).map((b) => `<span class="tbadge">${esc(b)}</span>`).join("")}</div></td>
-    <td>${x.isNew ? "" : diffnums(x.add, x.rem)}</td><td>${x.isNew ? '<span class="dkind">New</span>' : `<span class="dkind">${TVERD[x.verdict] || ""}</span>`}</td><td data-tcell="${esc(x.key)}">${tClosed(x) ? `<span class="tstat ${(TCLOSED[x.status] || [])[1] || ""}">${(TCLOSED[x.status] || [])[0]}</span>` : triChosen(x) || '<span class="muted">—</span>'}</td></tr>`).join("");
+    <td>${x.isNew || x.qodo ? "" : diffnums(x.add, x.rem)}</td><td>${x.isNew ? '<span class="dkind">New</span>' : `<span class="dkind">${TVERD[x.verdict] || ""}</span>`}</td><td data-tcell="${esc(x.key)}">${tClosed(x) ? `<span class="tstat ${(TCLOSED[x.status] || [])[1] || ""}">${(TCLOSED[x.status] || [])[0]}</span>` : triChosen(x) || '<span class="muted">—</span>'}</td></tr>`).join("");
   const summary = `<details class="dcard tblock" data-tk="_sum"${sumOpen ? " open" : ""}><summary><span class="dnum">≡</span><span class="dtitle">Finding summary</span><span class="chev" aria-hidden="true"></span></summary><div class="dbody">
     ${closed ? `<p class="muted">${closed} of ${all.length} addressed in Qodo: ${[res && `${res} resolved`, dis && `${dis} dismissed`, out && `${out} outdated`].filter(Boolean).join(", ")}.</p>` : ""}
     <div class="ttable"><table><thead><tr><th>#</th><th>Severity</th><th>Finding</th><th>Size</th><th>Recommendation</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table></div></div></details>`;
   const [aa, ar] = tSum(open.filter((x) => !x.isNew)), fixes = open.filter((x) => !x.isNew && x.verdict === "fix"), [fa, fr] = tSum(fixes);
-  const est = `<div class="tests"><span>All open findings</span>${diffnums(aa, ar)}<span class="muted">${pl1(open.filter((x) => !x.isNew).length, "finding")}</span><span>Recommended findings only</span>${diffnums(fa, fr)}<span class="muted">${pl1(fixes.length, "finding")}</span></div>`;
+  const est = `<details class="dcard tblock" data-tk="_est"${TV.open._est ?? true ? " open" : ""}><summary><span class="dnum">±</span><span class="dtitle">Fix estimates</span><span class="chev" aria-hidden="true"></span></summary><div class="dbody"><div class="tests"><span>All open findings</span>${open.some((x) => !x.isNew) ? diffnums(aa, ar) : '<span class="muted">None open</span>'}<span class="muted">${open.some((x) => !x.isNew) ? pl1(open.filter((x) => !x.isNew).length, "finding") : ""}</span><span>Recommended findings only</span>${fixes.length ? diffnums(fa, fr) : '<span class="muted">None open</span>'}<span class="muted">${fixes.length ? pl1(fixes.length, "finding") : ""}</span></div></div></details>`;
   const promptCard = `<details class="dcard tblock" data-tk="_prompt"${TV.open._prompt ?? true ? " open" : ""}><summary><span class="dnum">&gt;_</span><span class="dtitle">Prompt for the agent</span><span class="tmeta"><span class="muted ttally">${triTally(all)}</span></span><span class="chev" aria-hidden="true"></span></summary><div class="dbody tprompt-b">${triPromptBody(all)}</div></details>`;
-  return tools + est + summary + `<div class="tdiv"><span>${pl1(all.filter(tShown).length, "finding")}</span></div><div class="dlist">${all.map(triCard).join("")}</div>` + promptCard
+  const hid = TV.closed ? 0 : closed;
+  return tools + summary + est + `<div class="tdiv"><span>${pl1(open.length, "open finding")}${closed ? ` · ${closed} closed${hid ? " hidden" : ""}` : ""}</span></div><div class="dlist">${all.map(triCard).join("")}</div>` + promptCard
     + (quiet.length ? `<p class="tri-none">${quiet.map((t) => `${esc(shortPr(t.pr))}: ${(t.counts || {}).reviewed === false ? "not reviewed by Qodo" : "every finding is closed"}`).join(" · ")}</p>` : "");
 }
 const triTally = (all) => { const open = all.filter((x) => !tClosed(x)), n = (v) => open.filter((x) => tSt(x).action === v).length, und = open.filter((x) => !tSt(x).action).length;

@@ -129,6 +129,10 @@ function markbar(target, pr, { compact = false, note = true, label = "" } = {}) 
 // One quiet pill for passing checks; only failing / pending / skipped ones get named.
 function checksSummary(pr) {
   const ks = pr.checks || [];
+  if (pr.product && !pr.product_evidence?.ci_complete) {
+    const reported = ks.map((k) => `<span class="pill">${esc(k.name)}: ${esc(String(k.state || k.conclusion || 'unknown').toLowerCase())} (reported)</span>`).join('');
+    return '<span class="pill">CI: Unknown (coverage incomplete)</span>' + reported;
+  }
   if (!ks.length) return "";
   const ok = ks.filter((k) => /SUCC|PASS/i.test(k.state));
   const rest = ks.filter((k) => !ok.includes(k));
@@ -949,9 +953,12 @@ function render() {
   let localNotice = document.getElementById('product-notice');
   if (S.data?.product && !localNotice) {
     localNotice = document.createElement('aside'); localNotice.id = 'product-notice';
-    localNotice.textContent = 'Local review and export only. Notes and accept/dismiss marks stay local; provider threads and Qodo dispositions are unchanged.';
     localNotice.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:var(--surface);color:var(--ink);border-top:1px solid var(--line);padding:8px;font:12px sans-serif';
     document.body.appendChild(localNotice);
+  }
+  if (S.data?.product && localNotice) {
+    localNotice.textContent = 'Local review and export only. Notes and accept/dismiss marks stay local; provider threads and Qodo dispositions are unchanged.';
+    if (S.data.collection?.complete === false) localNotice.textContent += ` Work package incomplete: ${S.data.collection.collected_refs?.length || 0} of ${S.data.collection.requested_refs?.length || 0} requested changes retained.`;
   }
   if (S.composerOpen) { renderDrawer(); renderTabs(); return; } // don't wipe a note being typed
   const sy = window.scrollY;

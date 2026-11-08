@@ -252,6 +252,9 @@ def handoffs(fl: dict, methods: dict, warn: list[str]) -> None:
 
 # ---------- triage pages ----------
 
+KEEP = ("id", "title", "description", "action_level", "attribution_status", "file_path", "start_line", "end_line", "finding_source", "category")   # what a card needs of each Qodo finding
+
+
 def load_triage(tdir: Path, data: dict, warn: list[str]) -> list[dict]:
     out = []
     for p in data["prs"]:
@@ -265,7 +268,10 @@ def load_triage(tdir: Path, data: dict, warn: list[str]) -> list[dict]:
             if left:
                 warn.append(f"{p['key']} has {len(left)} open findings but no {html.name}")
                 continue
-            out.append({"pr": p["key"], "html": "", "counts": {"open": 0, "reviewed": bool(raw.get("review_session")), "closed": len(raw.get("findings") or [])}})
+            rs = raw.get("review_session")
+            out.append({"pr": p["key"], "html": "", "counts": {"open": 0, "reviewed": bool(rs), "closed": len(raw.get("findings") or [])},
+                        **({"url": p.get("url") or "", "sha": str((rs or {}).get("commit_sha") or "")[:9], "review_url": "", "targets": [],   # every finding closed: listed under Show closed findings
+                            "snapshot": {"review": rs, "findings": [{k: f.get(k) for k in KEEP} for f in raw.get("findings") or []]}} if rs and raw.get("findings") else {})})
             continue
         spec = json.loads((tdir / f"triage-{p['number']}.json").read_text()) if (tdir / f"triage-{p['number']}.json").is_file() else {}
         repo = (spec.get("pr") or {}).get("repo")
@@ -323,9 +329,8 @@ def triage_page(page: str, spec: dict, raw: dict | None = None, name: str = "", 
     targets = [{**t, "impact_html": (by.get(str(t.get("id"))) or {}).get("impact") or "", "why_html": (by.get(str(t.get("id"))) or {}).get("why") or "",
                 "note": ((by.get(str(t.get("id"))) or {}).get("size") or {}).get("note") or "", "code": code(t.get("num"))} for t in found]
     snap = raw if raw and raw.get("findings") is not None else (const("SNAPSHOT") or {})   # the current findings file wins over the page's snapshot
-    keep = ("id", "title", "description", "action_level", "attribution_status", "file_path", "start_line", "end_line", "finding_source", "category")
     return {"url": const("PR_URL") or (spec.get("pr") or {}).get("url") or "", "sha": const("SHA") or "", "review_url": (spec.get("pr") or {}).get("review_url") or "",
-            "targets": targets, "snapshot": {"review": snap.get("review") or {}, "findings": [{k: f.get(k) for k in keep} for f in snap.get("findings") or []]}}
+            "targets": targets, "snapshot": {"review": snap.get("review") or {}, "findings": [{k: f.get(k) for k in KEEP} for f in snap.get("findings") or []]}}
 
 
 

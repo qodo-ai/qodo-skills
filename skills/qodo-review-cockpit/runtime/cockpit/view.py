@@ -115,6 +115,8 @@ def _pr_view(p: dict) -> dict:
         "key": p["key"], "repo": p["repo"], "number": p["number"], "title": p["title"], "url": p.get("url"),
         "author": p.get("author"), "base": p.get("base"), "head": p.get("head"), "head_sha": p.get("head_sha"),
         "add": p.get("additions", 0), "del": p.get("deletions", 0),
+        "approvals": p.get("approvals") or [], "changes_requested": p.get("changes_requested") or [],   # human reviews at collection time
+        "unresolved_threads": p.get("unresolved_threads"), "unresolved_ids": p.get("unresolved_ids") or [],   # review conversations not resolved at collection time (None: not read)
         "summary": p.get("summary"), "risk": p.get("risk"), "story": p.get("story") or [], "layers": p.get("layers") or [],
         "findings": [{**{k: f.get(k) for k in keep}, "why": f.get("stance_why"), "body": (f.get("body") or "")[:900]}
                      for f in p.get("findings", [])],
@@ -167,6 +169,15 @@ def _media(data: dict, sdir: Path, inline: bool) -> list[dict]:
     return out
 
 
+def package_name(sdir: Path) -> str:
+    """The name you gave a work package in Manage work packages (package.json in its folder), else ""."""
+    try:
+        n = json.loads((sdir / "package.json").read_text()).get("name")
+    except (OSError, ValueError, AttributeError):
+        return ""
+    return n.strip()[:80] if isinstance(n, str) else ""
+
+
 def title_of(data: dict) -> str:
     st = data.get("story") or []
     if len(st) > 1 and st[0].get("kind") == "notice":
@@ -204,8 +215,8 @@ def view_data(sdir: Path, *, inline_media: bool = False, data: dict | None = Non
         data = project_data(data)
     ctx = data.get("context") or {}
     effective_impact = data.get("impact") or _derived_impact(data)
-    out = {"case": data["session"], "session": data["session"], "title": title_of(data), "blurb": blurb_of(data),
-           "product": bool(data.get("product")), "demo": bool(data.get("demo")), "dummy": bool(data.get("dummy")), "story": data.get("story") or [], "sources": ctx.get("sources", []), "related": ctx.get("related", []),
+    out = {"case": data["session"], "session": data["session"], "title": package_name(sdir) or title_of(data), "blurb": blurb_of(data),
+           "collection": data.get("collection"), "product": bool(data.get("product")), "demo": bool(data.get("demo")), "dummy": bool(data.get("dummy")), "story": data.get("story") or [], "sources": ctx.get("sources", []), "related": ctx.get("related", []),
            "impact": effective_impact, "impact_source": "review" if data.get("impact") else "diff",
            "deploy": data.get("deploy") or [], "door": data.get("door"), "notices": data.get("notices") or [],
            "reviewed_at": data.get("created"),   # when the PRs were collected: the freshness line in every style

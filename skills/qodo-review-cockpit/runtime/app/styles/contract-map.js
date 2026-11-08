@@ -383,6 +383,7 @@ const CM = (() => {
     return `<li class="ref"><div class="rh">${url ? `<a class="rp" href="${esc(url)}" target="_blank" rel="noopener">${esc(r.path)}${ln}</a>` : `<span class="rp">${esc(r.path)}${ln}</span>`}${where}
       ${has ? `<button class="tb" type="button" data-cmcode="${esc(key)}" aria-expanded="${open}">${open ? "hide code" : "code"}</button>` : ""}${canNote ? `<button class="tb" type="button" data-cmhere="${esc(JSON.stringify({ pr: r.pr, path: r.path, line: r.at }))}" title="A comment on this line of ${esc(short(r.pr))}">💬 comment here</button>` : ""}</div>
       ${r.note ? `<div class="rn">${md(r.note)}</div>` : ""}
+      ${r.source_evidence && r.source_evidence.complete !== true ? `<p class="muted">Source excerpt: ${esc(r.source_evidence.status || 'unverified')}. ${esc(r.source_evidence.reason || 'Freshness and requested range completeness are not proven.')}${r.source_evidence.next_start_line ? ` Continue at line ${esc(r.source_evidence.next_start_line)}.` : ''}</p>` : ''}
       <div class="cw" data-cmbox="${esc(key)}"${open ? "" : " hidden"}>${r.diff ? codeHtml({ lines: r.lines || [], cut: r.cut || 0 }) : `<pre>${esc(r.excerpt || "")}${r.excerpt_cut ? `\n… ${r.excerpt_cut} more lines` : ""}</pre>`}</div></li>`;
   }
   function refsSec(title, refs, c, side, empty, openChanged) {

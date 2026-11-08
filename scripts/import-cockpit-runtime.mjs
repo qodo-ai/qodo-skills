@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const skill = join(root, 'skills/qodo-review-cockpit');
+const REVIEWED_FAVICON = 'app/favicon.svg';
 const hash = (data) => createHash('sha256').update(data).digest('hex');
 const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^GIT_/i.test(key)));
 function git(source, args) {
@@ -20,7 +21,7 @@ function safe(path) {
 export function selected(path) {
   safe(path);
   if (path.split('/').some((p) => p.startsWith('.') && p !== '.keep')) return false;
-  return /^(cockpit\/.*\.py|app\/.*\.(?:html|js|css)|config\.json|LICENSE|NOTICE(?:\.txt)?|fixtures\/(?:build_demo\.py|demo-[^/]+\.json|demo-memory\/.*\.md))$/.test(path);
+  return path === REVIEWED_FAVICON || /^(cockpit\/.*\.py|app\/.*\.(?:html|js|css)|config\.json|LICENSE|NOTICE(?:\.txt)?|fixtures\/(?:build_demo\.py|demo-[^/]+\.json|demo-memory\/.*\.md))$/.test(path);
 }
 // Apply the committed upstream release manifest with the same marker/exception rules.
 function matches(path, patterns) {
@@ -49,6 +50,15 @@ function sanitizeFiles(source, commit, files, manifest) {
   return files.map((file) => {
     assert(!matches(file.path, manifest.never), `Excluded runtime path: ${file.path}`);
     const data = Buffer.from(file.data, 'base64');
+    if (file.path === REVIEWED_FAVICON) {
+      // Upstream treats SVG as binary: a reviewed exact hash admits raw bytes, without text transforms.
+      const approved = manifest.binaries?.reviewed?.[file.path]?.sha256;
+      assert(/^[a-f0-9]{64}$/.test(approved ?? '') && approved === hash(data),
+        `Reviewed favicon SHA-256 is missing or does not match the committed blob: ${file.path}`);
+      const text = new TextDecoder('utf-8', { fatal: true }).decode(data);
+      assert(!text.includes('\0'), 'Reviewed favicon must be UTF-8 text for existing host projections');
+      return { path: file.path, data: file.data, strippedLines: 0, reviewedSha256: approved };
+    }
     const text = new TextDecoder('utf-8', { fatal: true }).decode(data);
     assert(!text.includes('\0'), `Binary runtime file: ${file.path}`);
     let inside = false, strippedLines = 0;
@@ -117,7 +127,8 @@ export function importRuntime({ source, commit, destination = skill }) {
       'Preserve the original Cockpit LICENSE exactly');
     const original = files.find((x) => x.path === f.path);
     return { path: f.path, sourceSha256: original.sourceSha256, sourceBytes: original.sourceBytes,
-      sha256: hash(data), bytes: data.length, strippedLines: f.strippedLines };
+      sha256: hash(data), bytes: data.length, strippedLines: f.strippedLines,
+      ...(f.reviewedSha256 ? { reviewedSha256: f.reviewedSha256 } : {}) };
   });
   // All validation happens before replacing the previous imported resource tree.
   const target = join(destination, 'runtime');
@@ -153,6 +164,10 @@ export function verifyRuntime(destination = skill) {
     const data = readFileSync(join(destination, 'runtime', file.path));
     assert.equal(data.length, file.bytes, file.path);
     assert.equal(hash(data), file.sha256, file.path);
+    if (file.path === REVIEWED_FAVICON) {
+      assert.equal(file.reviewedSha256, file.sha256, 'Favicon must retain upstream reviewed hash');
+      assert.equal(file.sourceSha256, file.sha256, 'Favicon bytes must remain unchanged from source');
+    }
     assert(data.length <= 512 * 1024, file.path);
     total += data.length;
   }

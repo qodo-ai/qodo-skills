@@ -121,6 +121,9 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
             "styles": menu(sdir, data, mode, links),
             "missing": missing_content(style, data), "recipes": _recipes(),
             "session": sdir.name if mode == "serve" else None}
+    if mode == "serve":   # your app settings, the same in every session; a snapshot keeps its reader's own
+        from . import appstate
+        host["app"] = {"keys": list(appstate.APP_KEYS), "state": appstate.load(), "path": str(appstate.path())}
     tpl = (STYLES_DIR / meta["template"]).read_text()
     if '{{PACKAGE_SCRIPT}}' in tpl:
         tpl = tpl.replace('{{PACKAGE_SCRIPT}}', (STYLES_DIR / 'product-state.js').read_text() + '\n' + (STYLES_DIR / 'package.js').read_text())
@@ -142,6 +145,10 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
                 gaps.append(pr['qodo_read_error'])
             rows.append('<li>' + _esc(pr['key']) + ': ' + _esc('; '.join(gaps) or 'bounded source pages exhausted; mutable evidence observed per page') + '</li>')
         tpl += '<details style="margin:16px;padding:12px"><summary>Managed source evidence and limits</summary><p>Review data is observed per page. Unknown or unavailable evidence does not establish a clean review. Diagrams and fonts may require their public CDNs.</p><ul>' + ''.join(rows) + '</ul></details>'
+    if enabled(data) and (data.get('collection') or {}).get('complete') is False:
+        coll = data['collection']
+        gap = f"Work package collection incomplete: {len(coll.get('collected_refs') or [])} of {len(coll.get('requested_refs') or [])} requested changes retained. Omitted: {', '.join(coll.get('omitted_refs') or []) or 'some source evidence'}."
+        tpl = tpl.replace('</title>', '</title><div role="status" style="padding:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line)">' + _esc(gap) + '</div>', 1)
     html = tpl.replace("{{TITLE}}", _esc(page_title), 1)
     extra = ""
     if "{{WALKTHROUGH}}" in html:   # Execution walkthrough and Finding review: always drawn, with data only when the session has their files
@@ -155,11 +162,20 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
     return html.replace("{{KIT}}", kit)
 
 
+def favicon_link() -> str:
+    """The Qodo icon for a browser tab, inline so a saved page keeps it too."""
+    import base64
+    svg = (ROOT / "app" / "favicon.svg").read_bytes()
+    return f'<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,{base64.b64encode(svg).decode()}">'
+
+
 def as_document(fragment: str) -> str:
-    """A full HTML document around a style fragment (for serve and plain export)."""
+    """A full HTML document around a style fragment (for serve and plain export), with the Qodo tab icon in its head
+    (a style's own icon link moves there too: browsers ignore one in the body)."""
     m = re.search(r"<title>.*?</title>", fragment, re.S)
     head_title = m.group(0) if m else "<title>PR review</title>"
     body = fragment[m.end():] if m else fragment
+    body = re.sub(r'<link rel="icon"[^>]*>\s*', "", body, count=1)
     return ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-            f"{head_title}\n</head>\n<body>\n{body.strip()}\n</body>\n</html>\n")
+            f"{head_title}\n{favicon_link()}\n</head>\n<body>\n{body.strip()}\n</body>\n</html>\n")

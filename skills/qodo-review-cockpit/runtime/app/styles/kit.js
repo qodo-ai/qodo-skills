@@ -150,7 +150,7 @@ const KIT = (() => {
     else if (e.key === "+" || e.key === "=") mx.zoom(1.25); else if (e.key === "-") mx.zoom(0.8); else if (e.key === "0") mx.fit(); }, true);
   const mermaidBox = (src) => `<div class="mbox" data-mermaid="${esc(src)}"><pre>${esc(src)}</pre></div>`;
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (_) { return d; } },
-                  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} } };
+                  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} if (APPK && APPK.has(k)) appPush(k, v); } };
   /* ---------- host: the cockpit server when served, nothing in a snapshot ---------- */
   let host = { mode: "snapshot", styles: [] };
   try { const el = document.getElementById("cockpit-host"); if (el) host = JSON.parse(el.textContent); } catch (_) {}
@@ -159,6 +159,23 @@ const KIT = (() => {
     const fetch0 = window.fetch.bind(window);
     window.fetch = (u, o = {}) => fetch0(u, typeof u === "string" && u.startsWith("/api/") ? { ...o, headers: { ...(o.headers || {}), "X-Cockpit-Session": host.session } } : o);
   }
+  /* app settings (layout, Page views, theme, saved layouts): kept by the server for every session and port; this browser holds a copy */
+  const APPK = served && host.app ? new Set(host.app.keys || []) : null, appQ = {};
+  let appT = 0, appWarned = false;
+  function appFlush(unload) {   // send what changed; a failed save goes back in the queue and says so once, so it isn't lost quietly
+    clearTimeout(appT); const set = { ...appQ }; Object.keys(appQ).forEach((k) => delete appQ[k]); if (!Object.keys(set).length) return;
+    const body = JSON.stringify({ set });
+    fetch("/api/app-state", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: unload === true && body.length < 60000 })   // keepalive caps a body at 64 KiB
+      .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `the server answered ${r.status}`); appWarned = false; })
+      .catch((e) => { Object.keys(set).forEach((k) => { if (!(k in appQ)) appQ[k] = set[k]; });
+        if (unload !== true && !appWarned) { appWarned = true; window.dispatchEvent(new CustomEvent("cockpit:app-save-failed", { detail: e.message || "no connection" })); } }); }
+  function appPush(k, v) { appQ[k] = v === undefined ? null : v; clearTimeout(appT); appT = setTimeout(appFlush, 300); }
+  if (APPK) { const st = host.app.state || {}, fresh = !Object.keys(st).length, up = {};
+    APPK.forEach((k) => { if (Object.hasOwn(st, k)) { try { localStorage.setItem(k, JSON.stringify(st[k])); } catch (_) {} }
+      else if (fresh) { const v = store.get(k, undefined); if (v !== undefined) up[k] = v; }   // only the very first time: this browser's settings become the shared ones
+      else { try { localStorage.removeItem(k); } catch (_) {} } });   // after that, a setting the server doesn't have was removed: the old copy mustn't bring it back
+    if (Object.keys(up).length) { Object.assign(appQ, up); appFlush(); }
+    window.addEventListener("pagehide", () => appFlush(true)); }
   /* send note events to the session; resolves true when the server took them */
   const inflight = new Set();   // sends not answered yet: Publish waits for them, so its preview has every note
   const send = async (events) => {

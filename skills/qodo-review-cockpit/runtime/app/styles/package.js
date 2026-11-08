@@ -1,15 +1,15 @@
-
 (() => {
 const { esc, md, cases, caseIds, base, TIERS, TIER_NAME, minutes, codeHtml, store, sevRank } = KIT;
 const C = cases[caseIds[0]];
 const $ = (s) => document.querySelector(s);
 const SKEY = "focus:" + C.session;
-const S = Object.assign({ tab: "overview", pr: "all", lens: null, file: null, read: {}, notes: [], verdict: {}, picks: {}, open: {} }, store.get(SKEY, {}));
-if (KIT.host.product) Object.assign(S, PRODUCT_STATE.hydrate(C, S));
+const cachedState = store.get(SKEY, null);
+const S = Object.assign({ tab: "overview", pr: "all", lens: null, file: null, read: {}, notes: [], verdict: {}, picks: {}, open: {} }, cachedState || {});
+if (KIT.host.product) Object.assign(S, PRODUCT_STATE.hydrate(C, cachedState, KIT.host.mode));
 S.open = {};
 let lastProductState = JSON.stringify({read:S.read,verdict:S.verdict,picks:S.picks});
 const save = () => {
-  store.set(SKEY, { tab: S.tab, pr: S.pr, lens: S.lens, read: S.read, notes: S.notes, verdict: S.verdict, picks: S.picks, bview: S.bview, pview: S.pview, pgroup: S.pgroup, iview: S.iview });
+  store.set(SKEY, { tab: S.tab, pr: S.pr, lens: S.lens, read: S.read, notes: S.notes, verdict: S.verdict, picks: S.picks, marks: S.marks, bview: S.bview, pview: S.pview, pgroup: S.pgroup, iview: S.iview });
   if (KIT.host.product && KIT.served) {
     const state = {read:S.read,verdict:S.verdict,picks:S.picks}, encoded = JSON.stringify(state);
     if (encoded !== lastProductState) { lastProductState = encoded; KIT.send([{type:'package_state',target:{kind:'package',id:C.session},state}]); }
@@ -549,7 +549,9 @@ function ddrop(key, label, cur, opts) {   // the design system's dropdown: a but
   return `<div class="ddrop"><button type="button" class="ddrop-b" data-ddrop aria-haspopup="listbox" aria-expanded="false" aria-label="${esc(label)}"><span>${esc(c[1])}</span>${c[2] !== undefined ? `<span class="dfn">${c[2]}</span>` : ""}${DDCV}</button>
     <div class="ddrop-m" role="listbox" aria-label="${esc(label)}" hidden>${opts.map(([v, t, n]) => `<button type="button" class="hopt${v === cur ? " on" : ""}" role="option" aria-selected="${v === cur}" data-ddpick="${esc(key)}:${esc(v)}"><i class="hrad" aria-hidden="true"></i><b>${esc(t)}</b>${n !== undefined ? `<span class="dfn">${n}</span>` : ""}</button>`).join("")}</div></div>`;
 }
-document.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches("[data-wmore]") && LD) LD.moreOpen = e.target.open; }, true);   // More widgets stays as you left it while you add
+document.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches("[data-wmore]") && LD) LD.moreOpen = e.target.open; }, true);
+document.addEventListener("click", (e) => { const d = e.target.closest && e.target.closest("[data-wmore] > summary"); if (!d) return; const m = d.parentElement;   // opening More widgets scrolls it up into view, so its tiles don't open below the footer
+  if (!m.open) requestAnimationFrame(() => { const c = m.closest(".lmod-c"); c.scrollTo({ top: c.scrollTop + m.getBoundingClientRect().top - c.getBoundingClientRect().top - 12, behavior: "smooth" }); }); });   // More widgets stays as you left it while you add
 const ddClose = (except) => document.querySelectorAll(".ddrop-m:not([hidden])").forEach((m) => { if (m === except) return; m.hidden = true; m.previousElementSibling.setAttribute("aria-expanded", "false"); });
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-ddrop]"), pick = e.target.closest && e.target.closest("[data-ddpick]");
@@ -1031,15 +1033,17 @@ function prChips(p) {   // what stands between the PR and merging first, then th
   const bad = ch.filter((c) => CI_BAD.includes(st(c))).length, wait = ch.filter((c) => !CI_BAD.includes(st(c)) && !CI_OK.includes(st(c))).length;
   const open = p.findings.filter(isOpen).length, out = [];
   if (v.merge_state === "DIRTY") out.push(["bad", "Merge conflicts"]);
-  if (bad) out.push(["bad", `CI failing: ${bad} of ${ch.length}`]);
+  if (!productCiUnknown([p]) && bad) out.push(["bad", `CI failing: ${bad} of ${ch.length}`]);
   if (v.review_decision === "CHANGES_REQUESTED") out.push(["bad", "Changes requested"]);
   if (v.merge_state === "BEHIND") out.push(["warn", "Behind its base"]);
   if (v.merge_state === "BLOCKED" && v.review_decision === "APPROVED") out.push(["warn", "Blocked by checks or rules"]);
-  if (wait) out.push(["warn", `CI running: ${wait} of ${ch.length}`]);
+  if (!productCiUnknown([p]) && wait) out.push(["warn", `CI running: ${wait} of ${ch.length}`]);
   if (open) out.push(["warn", pl(open, "open finding")]);
+  else if (productEvidenceUnknown([p])) out.push(["info", "Review: Unknown"]);
   if (v.moved) out.push(["info", v.new_commits > 0 ? `${pl(v.new_commits, "new commit")} since this review` : "New commits since this review"]);
   if (v.new_comments) out.push(["info", pl(v.new_comments, "new comment")]);
-  if (ch.length && !bad && !wait) out.push(["ok", `CI passed ${ch.length}/${ch.length}`]);
+  if (productCiUnknown([p])) out.push(["info", "CI: Unknown"]);
+  if (!productCiUnknown([p]) && ch.length && !bad && !wait) out.push(["ok", `CI passed ${ch.length}/${ch.length}`]);
   if (v.review_decision === "APPROVED") out.push(["ok", "Approved"]);
   return out.map(([t, x]) => `<span class="pchip ${t}">${esc(x)}</span>`).join("");
 }
@@ -1099,9 +1103,10 @@ function pkCells(p) {   // one PR's merge, findings, CI and size, each a word wi
   const bad = ch.filter((c) => CI_BAD.includes(st(c))).length, wait = ch.filter((c) => !CI_BAD.includes(st(c)) && !CI_OK.includes(st(c))).length, open = p.findings.filter(isOpen).length;
   const passed = ch.filter((c) => st(c) === "SUCCESS").length, skipped = ch.length - bad - wait - passed;   // neutral and skipped checks are not passes
   const merge = prState(p) === "merged" ? ["ok", "Merged"] : m === "DIRTY" ? ["bad", "Conflicts"] : m === "BEHIND" ? ["warn", "Behind its base"] : m === "BLOCKED" ? ["warn", "Blocked"] : m === "CLEAN" || m === "UNSTABLE" || m === "HAS_HOOKS" ? ["ok", "Ready"] : ["", "Unknown"];
-  const ci = !ch.length ? ["", "No checks"] : bad ? ["bad", `${bad} of ${ch.length} failing`] : wait ? ["warn", `${wait} of ${ch.length} running`]
+  const ciUnknown = productCiUnknown([p]);
+  const ci = ciUnknown ? ["", "Unknown"] : !ch.length ? ["", "No checks"] : bad ? ["bad", `${bad} of ${ch.length} failing`] : wait ? ["warn", `${wait} of ${ch.length} running`]
     : !passed ? ["", `${skipped} skipped`] : skipped ? ["ok", `${passed} passed, ${skipped} skipped`] : ["ok", `${passed}/${ch.length} passed`];
-  return { merge, ci, open, bad, wait, passed, checks: ch.length, add: p.add || 0, del: p.del || 0 };
+  return { merge, ci, ciUnknown, qualityUnknown:productEvidenceUnknown([p]), open, bad, wait, passed, checks: ch.length, add: p.add || 0, del: p.del || 0 };
 }
 const pkDot = ([tone, t]) => `<span class="pkd${tone ? " " + tone : ""}">${esc(t)}</span>`;
 const pkNum = (a, d) => `<span class="pkln" title="${a.toLocaleString()} added, ${d.toLocaleString()} removed">${(a + d).toLocaleString()}</span>`;
@@ -1112,15 +1117,15 @@ function pkTable(groups) {   // a repo per row, opening to a row per PR in merge
     const conf = cs.filter((c) => c.merge[1] === "Conflicts").length, ready = cs.filter((c) => c.merge[0] === "ok").length;
     const fail = cs.filter((c) => c.bad).length, run = cs.filter((c) => c.wait).length, found = cs.reduce((a, c) => a + c.open, 0), [a, d] = pkgLines(g.ps);
     const merge = conf ? ["bad", `${conf} with conflicts`] : ready === cs.length ? ["ok", "All ready"] : ["warn", `${ready} of ${cs.length} ready`];
-    const ci = fail ? ["bad", `${fail} PR${fail === 1 ? "" : "s"} failing`] : run ? ["warn", `${run} running`]
+    const ci = cs.some((c) => c.ciUnknown) ? ["", "Unknown"] : fail ? ["bad", `${fail} PR${fail === 1 ? "" : "s"} failing`] : run ? ["warn", `${run} running`]
       : cs.every((c) => c.checks && c.passed === c.checks) ? ["ok", "All passed"] : cs.some((c) => c.passed) ? ["ok", "Passed, some skipped or missing"] : ["", "No passing checks"];
     const sub = [pl(g.ps.length, "PR"), g.stacks ? pl(g.stacks, "stack") : ""].filter(Boolean).join(" · ");
     const repoRow = `<tr class="pkt-r" data-pktog="${esc(key)}" aria-expanded="${open}" tabindex="0"><td><div class="pkt-n"><span class="pkt-cv" aria-hidden="true"></span>${g.href ? `<a class="pkgh" href="${esc(g.href)}" target="_blank" rel="noopener" title="Open ${esc(g.repo)} on GitHub" aria-label="Open ${esc(g.repo)} on GitHub">${GHICON}</a>` : `<span class="pkgh">${GHICON}</span>`}<span><b>${esc(g.repo)}</b><em>${esc(sub)}</em></span></div></td>
-      <td>${pkDot(merge)}</td><td>${found ? pkDot(["warn", String(found)]) : '<span class="pkd">None</span>'}</td><td>${pkDot(ci)}</td><td class="r">${pkNum(a, d)}</td></tr>`;
+      <td>${pkDot(merge)}</td><td>${found ? pkDot(["warn", String(found)]) : cs.some((c) => c.qualityUnknown) ? pkDot(['','Unknown']) : '<span class="pkd">None</span>'}</td><td>${pkDot(ci)}</td><td class="r">${pkNum(a, d)}</td></tr>`;
     const kids = open ? g.rows.map(([p, how]) => { const c = pkCells(p), s = prState(p);
       return `<tr class="pkt-c"><td><div class="pkt-n"><span class="pkt-ar" aria-hidden="true">↳</span><span class="pkst ${s}" title="${esc(STATE_NAME[s])}"><svg viewBox="0 0 16 16" role="img" aria-label="${esc(STATE_NAME[s])}">${PRICON[s || "open"]}</svg></span>
         <span><span class="pkt-t">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="Open on GitHub">${esc(strip(p.title))}</a>` : esc(strip(p.title))}<span class="num">#${esc(p.number)}</span></span><em>${[how, p.author].filter(Boolean).map(esc).join(" · ")}</em></span></div></td>
-        <td>${pkDot(c.merge)}</td><td>${c.open ? pkDot(["warn", String(c.open)]) : '<span class="pkd">None</span>'}</td><td>${pkDot(c.ci)}</td><td class="r">${pkNum(c.add, c.del)}</td></tr>`; }).join("") : "";
+        <td>${pkDot(c.merge)}</td><td>${c.open ? pkDot(["warn", String(c.open)]) : c.qualityUnknown ? pkDot(['','Unknown']) : '<span class="pkd">None</span>'}</td><td>${pkDot(c.ci)}</td><td class="r">${pkNum(c.add, c.del)}</td></tr>`; }).join("") : "";
     return `<tbody>${repoRow}${kids}</tbody>`; }).join("");
   return `<div class="tscroll pkt-w"><table class="pkt-tab">${head}${body}</table></div>`;
 }
@@ -1165,12 +1170,12 @@ const HICON = {
   moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
   chev: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>' };
 let WPKS = [];   // the work packages on this machine, for the switcher beside the title
-const wpkMeta = (s) => {
-  const repos = [...new Set(s.prs.map((k) => String(k).split("#")[0].split("/").pop()))], at = s.created ? new Date(s.created) : null;
-  return [pl1(s.prs.length, "PR"), repos.length > 2 ? `${repos.length} repos` : repos.join(", "), at && !isNaN(at) ? at.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""].filter(Boolean).join(" · ");
+const wpkMeta = (s) => {   // the package in counts: PRs, repos and stacks, no names
+  const repos = s.repos ?? new Set(s.prs.map((k) => String(k).split("#")[0])).size;
+  return [pl1(s.prs.length, "PR"), pl1(repos, "repo"), pl1(s.stacks || 0, "stack")].join(" · ");
 };
 function wpkDraw() {
-  const box = $("#wpk"); if (!box || WPKS.length < 2) return;
+  const box = $("#wpk"); if (!box || !WPKS.length) return;   // one package still gets the menu: its gear opens Manage work packages
   const item = (s) => {
     const tag = s.dummy ? ["Dummy", "A copy with made-up PRs, for trying the page"] : s.demo ? ["Demo", ""]
       : s.story ? null : ["Refresh", `The agent hasn't written this package's story yet. Ask Claude Code: /review-prs refresh session ${s.id}`];
@@ -1180,8 +1185,8 @@ function wpkDraw() {
       : `<button type="button" class="hopt" role="menuitemradio" aria-checked="false" data-wpk-go="${esc(s.id)}" data-wpk-q="${q}">${inner}</button>`;
   };
   const me = WPKS.find((s) => s.id === KIT.host.session);
-  box.innerHTML = `<button type="button" class="wpk-b" data-wpk aria-haspopup="menu" aria-expanded="false" title="Switch work package"><span>${esc(me ? me.title : C.title)}</span>${HICON.chev}</button>`
-    + `<div class="wpk-m" role="menu" aria-label="Work packages" hidden><p class="wpk-h">Work packages on this machine</p><input class="wpk-q" type="search" placeholder="Search work packages" aria-label="Search work packages" autocomplete="off">${WPKS.map(item).join("")}<p class="wpk-none" hidden>No work package matches.</p><p class="wpk-f">New ones appear here once /review-prs collects them.</p></div>`;
+  box.innerHTML = `<button type="button" class="wpk-b" data-wpk aria-haspopup="menu" aria-expanded="false" aria-label="${esc(me ? me.title : C.title)}: switch work package"><span>${esc(me ? me.title : C.title)}</span>${HICON.chev}</button>`
+    + `<div class="wpk-m" role="menu" aria-label="Work packages" hidden><div class="wpk-top"><div class="wpk-h"><span>Work packages on this machine</span><button type="button" class="wz-ic" data-wpk-manage aria-label="Manage work packages" title="Manage work packages">${MICON.gear}</button></div><input class="wpk-q" type="search" placeholder="Search work packages" aria-label="Search work packages" autocomplete="off"></div>${WPKS.map(item).join("")}<p class="wpk-none" hidden>No work package matches.</p></div>`;
   box.hidden = false; $("#ttl").hidden = true;
 }
 function wpkFilter(v) {   // the search box: keep packages whose name or PRs contain every word typed
@@ -1206,6 +1211,7 @@ async function wpkGo(id) {   // the server keeps the pick until it restarts; thi
 }
 document.addEventListener("click", (e) => {
   const go = e.target.closest && e.target.closest("[data-wpk-go]"); if (go) return wpkGo(go.dataset.wpkGo);
+  if (e.target.closest && e.target.closest("[data-wpk-manage]")) { wpkClose(); return lDialog({ kind: "wpks" }); }
   const b = e.target.closest && e.target.closest("[data-wpk]"), m = $("#wpk .wpk-m");
   if (b && m) { const open = m.hidden; m.hidden = !open; b.setAttribute("aria-expanded", String(open)); if (open) { const q = m.querySelector(".wpk-q"); q.value = ""; wpkFilter(""); q.focus(); } return; }
   if (!(e.target.closest && e.target.closest(".wpk-m"))) wpkClose();
@@ -1215,6 +1221,7 @@ if (KIT.served) fetch("/api/sessions").then((r) => r.json()).then((j) => { WPKS 
 const TKEY = "cockpit:theme", DARKQ = matchMedia("(prefers-color-scheme: dark)");
 const themeNow = () => document.documentElement.dataset.theme || (DARKQ.matches ? "dark" : "light");
 const themeMark = () => document.querySelectorAll("[data-theme-set]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themeSet === themeNow()));
+{ const t = store.get(TKEY, null); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; }   // the shared theme, once the app settings have arrived
 function setTheme(t) {   // a pick sticks across reviews; until then the page is dark
   document.documentElement.dataset.theme = t; store.set(TKEY, t); themeMark();
   if (window.mermaid) { KIT.mermaidReset(); KIT.mermaid($("#panel")); }
@@ -1232,7 +1239,7 @@ function freshHtml() {   // the side nav's foot: refresh, with how long ago the 
 }
 const folderBtn = () => KIT.served ? `<span class="tipw ft-fw"><button class="snav-fd" data-reveal aria-label="Open the data folder">${MICON.folder}</button><span class="htip" role="tooltip"><b>${/Mac/.test(navigator.platform) ? "Open the data folder in Finder" : "Open the data folder"}</b><p>This review's session folder: its data, execution walkthrough and triage pages (sessions/${esc(KIT.host.session || "")})</p></span></span>` : "";   // beside the refresh: where its data lives
 const drawHead = () => { $("#cknav").innerHTML = headActions(); $("#snavfoot").innerHTML = freshHtml(); };   // the header's buttons and the nav's refresh, drawn together
-setInterval(() => { const h = document.querySelector(".hago"); if (h && C.reviewed_at) h.textContent = "Refreshed " + agoText(C.reviewed_at); }, 60000);   // the label keeps up as time passes
+setInterval(() => { const h = document.querySelector(".hago"); if (h && C.reviewed_at) h.textContent = agoText(C.reviewed_at); }, 60000);   // the label keeps up as time passes
 function freshTip() {
   const at = C.reviewed_at ? new Date(C.reviewed_at) : null, when = at && !isNaN(at) ? at.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
   const row = (p) => { const v = LIVE[p.key] || {};
@@ -1240,8 +1247,21 @@ function freshTip() {
   const rows = [...new Set(C.prs.map((p) => p.repo))].map((r) => `<li class="ft-r">${GHICON}${esc(String(r).split("/").pop())}</li>${C.prs.filter((p) => p.repo === r).map(row).join("")}`).join("");   // grouped by repo, each named once
   const act = C.demo ? "The demo is fixed; there's nothing to re-read." : KIT.served ? ""
     : `A snapshot. To refresh, ask Claude Code: <code>/review-prs refresh session ${esc(C.session || "")}</code>`;
-  return `<b>Refreshed${when ? ` ${esc(when)}` : ""}</b><ul>${rows}</ul>${act ? `<p>${act}</p>` : ""}`;
+  return `<div class="ft-h"><span>Review data fetched</span><b class="ft-ago" title="${esc(when)}">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : "—"}</b></div><ul>${rows}</ul>${act ? `<p>${act}</p>` : ""}`   // the time first, then what it covers
+    + (KIT.served && !C.demo ? `<div class="srv" data-srv>${srvText()}</div>` : "");   // the server check last
 }
+const SRV = { ok: null, at: 0, err: "" };   // the local server, as the last check found it
+const srvAgo = () => { const s = Math.round((Date.now() - SRV.at) / 1000); return s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.round(s / 60)} min ago`; };
+const srvText = () => SRV.ok === null ? `<i class="srv-dot"></i><span>Checking the local server…</span>`
+  : `<i class="srv-dot ${SRV.ok ? "up" : "down"}"></i><span>${SRV.ok ? "Server up" : "Server not responding"} · last ping ${SRV.at ? srvAgo() : "never"}</span>${SRV.ok ? "" : `<em>${esc(SRV.err)}. Start it again with /review-prs, or <code>python3 -m cockpit serve</code></em>`}`;
+const srvPaint = () => { document.querySelectorAll("[data-srv]").forEach((e) => (e.innerHTML = srvText())); if (C.reviewed_at) document.querySelectorAll(".ft-ago").forEach((e) => (e.textContent = agoText(C.reviewed_at))); document.querySelectorAll(".snav-rf").forEach((b) => b.classList.toggle("srv-down", SRV.ok === false)); };
+async function srvPing() {   // every 15 s: is the local server still answering? A timeout or a refused connection reads as down
+  const ac = new AbortController(), t = setTimeout(() => ac.abort(), 5000);
+  try { const r = await fetch("/api/health", { cache: "no-store", signal: ac.signal }); if (!r.ok) throw new Error(`It answered ${r.status}`); SRV.ok = true; SRV.at = Date.now(); SRV.err = ""; }
+  catch (e) { SRV.ok = false; SRV.err = e.name === "AbortError" ? "No answer in 5 s" : e.message === "Failed to fetch" ? "The connection was refused" : e.message; }
+  finally { clearTimeout(t); srvPaint(); }
+}
+if (KIT.served && !C.demo) { srvPing(); setInterval(srvPing, 15000); setInterval(srvPaint, 5000); }   // the "ago" keeps up between pings
 const LAYOUT1 = { cockpit: "Cockpit", focus: "Focus", risk: "Briefing", package: "Work Package", guided: "Guided", behavior: "Behavior", console: "Console", onepage: "One-page", decisions: "Decisions" };   // one word per layout
 const oneWord = (s) => LAYOUT1[s.id] || String(s.name || "").split(" ")[0];
 const MICON = {
@@ -1258,18 +1278,23 @@ function keysHtml() {   // the keys for the part of the page being read; clickin
       : `<button class="kd-row" ${a ? `data-kd="${a}"` : "disabled"}><span class="kd-k"><kbd>${esc(k)}</kbd></span><span>${esc(t)}</span></button>`; }).join("")}</div>`;
 }
 function settingsHtml() {   // the Settings modal: its tabs down the left, like a small side menu; the open one on the right
-  const tabs = [["general", "General", MICON.gear], KIT.served && ["packages", "Work packages", MICON.folder], ["keys", "Shortcuts", MICON.keys]].filter(Boolean);
+  const tabs = [["general", "General", MICON.gear], KIT.served && ["packages", "File paths", MICON.folder], ["keys", "Shortcuts", MICON.keys]].filter(Boolean);
   if (!tabs.some((t) => t[0] === SETTAB)) SETTAB = "general";
   const body = SETTAB === "keys" ? keysHtml()
-    : SETTAB === "packages" ? `<p class="smod-k">Work packages</p><div class="smod-r smod-src"><span><b>Work package folder</b><em>The Workpackage menu lists the packages in this folder, and new reviews are collected into it</em></span>
-        <form class="src-f" data-src-form><input class="src-in" name="path" spellcheck="false" autocomplete="off" placeholder="Loading…" aria-label="Work package folder"><button class="btn pri sm" type="submit">Save</button></form>
+    : SETTAB === "packages" ? `<p class="smod-k">File paths</p><div class="smod-r smod-src"><span><b>Work package folder</b><em>The Workpackage menu lists the packages in this folder, and new reviews are collected into it</em></span>
+        <form class="src-f" data-src-form><input class="src-in" name="path" spellcheck="false" autocomplete="off" placeholder="Loading…" aria-label="Work package folder"><button class="btn pri sm" type="submit">Save</button><button class="wz-ic src-rv" type="button" data-reveal="sessions" aria-label="Show the work package folder in Finder" title="Show in Finder">${MICON.folder}</button></form>
         <p class="src-m" aria-live="polite"></p></div>`
+      + (KIT.host.app && KIT.host.app.path ? `<div class="smod-r smod-src"><span><b>App settings file</b><em>Your layout, Page views, theme, menus and saved layouts, shared by every review on this machine</em></span>
+        <div class="src-f"><code class="src-in smod-path">${esc(KIT.host.app.path)}</code><button class="btn sm" type="button" data-copy-apppath>Copy</button><button class="wz-ic src-rv" type="button" data-reveal="app-state" aria-label="Show the app settings file in Finder" title="Show in Finder">${MICON.folder}</button></div></div>` : "")
     : `<p class="smod-k">Navigation</p><button class="hsrow htg smod-r" role="switch" aria-checked="${SUBON}" data-subon><span><b>Show sub-menus</b><em>A page with several widgets lists them under its name in the side menu, opened with its arrow. Hidden while editing pages and widgets</em></span><i class="hsw" aria-hidden="true"></i></button>
       <p class="smod-k smod-k2">Ask Qodo</p><button class="hsrow htg smod-r" role="switch" aria-checked="${ASKON}" data-askon><span><b>Show Ask Qodo</b><em>The Ask Qodo button, the Ask buttons on items and the prompt over selected text, on every page</em></span><i class="hsw" aria-hidden="true"></i></button>`;
   return `<div class="smod-c" role="dialog" aria-modal="true" aria-labelledby="smod-t"><div class="smod-h"><b id="smod-t">Settings</b><button type="button" data-smod-close aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
     <div class="smod-g"><nav class="smod-nav" role="tablist" aria-orientation="vertical" aria-label="Settings">${tabs.map(([k, t, ic]) => `<button class="smod-t" role="tab" data-settab="${k}" aria-selected="${SETTAB === k}">${ic}<span>${t}</span></button>`).join("")}</nav>
     <div class="smod-b" role="tabpanel">${body}</div></div></div>`;
 }
+document.addEventListener("click", (e) => { if (!(e.target.closest && e.target.closest("[data-copy-apppath]"))) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(KIT.host.app.path) : Promise.reject()).then(() => toast("Path copied"), () => toast("Couldn't copy the path")); });
+window.addEventListener("cockpit:app-save-failed", (e) => toast(`Couldn't save your app settings: ${e.detail}. They stay in this browser and are sent with the next change`));
 function srcMsg(j) {   // the folder's line: how many packages it holds, and whether it is the default
   const m = document.querySelector(".src-m"); if (!m) return;
   m.classList.toggle("bad", !!j.error);
@@ -1321,7 +1346,7 @@ document.addEventListener("click", (e) => {
   if (e.target.closest && (e.target.closest("[data-smod-close]") || e.target.classList.contains("smod"))) return setOpen(false);
   const rv = e.target.closest && e.target.closest("[data-reveal]");
   if (rv) {
-    return fetch("/api/reveal", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((r) => r.json())
+    return fetch("/api/reveal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(rv.dataset.reveal ? { target: rv.dataset.reveal } : {}) }).then((r) => r.json())
       .then((j) => toast(j.ok ? `Opened ${j.path}` : `Couldn't open the folder: ${j.error}`), () => toast("Couldn't reach the Cockpit")); }
   const sub = e.target.closest && e.target.closest("[data-hsub]");
   if (sub) { const l = sub.parentNode, open = !l.classList.contains("open"); l.classList.toggle("open", open); sub.setAttribute("aria-expanded", String(open)); return; }
@@ -1350,15 +1375,14 @@ document.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => { const m = document.querySelector(".vw-m:not([hidden])"); if (m && !m.contains(e.target) && !(e.target.closest && e.target.closest("[data-vw]"))) { m.hidden = true; const t = document.querySelector("[data-vw]"); if (t) t.setAttribute("aria-expanded", "false"); } }, true);   // capture: closes even when another button stops the click
 document.addEventListener("keydown", (e) => { const m = document.querySelector(".vw-m:not([hidden])"); if (m && e.key === "Escape") { m.hidden = true; const t = document.querySelector("[data-vw]"); t.setAttribute("aria-expanded", "false"); t.focus(); } });
 const SHAREICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/></svg>';
-function sharePrompt() {   // what someone else gives their agent to open this same work package review
-  // Product sharing uses the installed managed skill; it never suggests provider clients.
+function sharePrompt() {   // generic setup steps from the README, with this package's PRs filled in, so any agent can rebuild the review
+  // Product sharing uses the installed managed skill.
   if (KIT.host.product) return `Open this work package with the installed qodo-review-cockpit skill: ${C.prs.map((p) => p.url || p.key).join(" ")}. Use managed Qodo reads, local notes and export only. Install the skill through your approved Qodo tooling if it is unavailable.`;
-  const prs = C.prs.map((p) => p.url || p.key), n = prs.length;
   return "Open this review with the installed qodo-review-cockpit skill.";
 }
 const COPYICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
 function shareMenu() {   // how to share: the steps, then the copy button
-  return `<p class="vw-h">Share this review</p><ol class="sh-s"><li><b>Copy the prompt</b> below.</li><li><b>Send it</b> to the person you're sharing with, in Slack or email.</li><li>They <b>paste it into their agent</b> (Claude Code or Codex). It installs the PR Review Cockpit and the Qodo toolbox if they're missing, then opens this review with the same ${C.prs.length} PRs.</li></ol>`
+  return `<p class="vw-h">Share this review</p><ol class="sh-s"><li><b>Copy the prompt</b> below.</li><li><b>Send it</b> to the person you're sharing with, in Slack or email.</li><li>They <b>paste it into their agent</b> (Claude Code or Codex). It installs the PR Review Cockpit if it's missing, then rebuilds this review from the same ${C.prs.length} PRs.</li></ol>`
     + `<button type="button" class="sh-cp" role="menuitem" data-share-copy>${COPYICON}Copy to clipboard</button>`;
 }
 function shareClose(focus) { const m = document.querySelector(".sh-m"), b = document.querySelector("[data-share]"); if (m) m.hidden = true; if (b) { b.setAttribute("aria-expanded", "false"); if (focus) b.focus(); } }
@@ -1371,9 +1395,10 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => { const m = document.querySelector(".sh-m:not([hidden])"); if (m && e.key === "Escape") shareClose(true); });
 function headActions() {
   const name = (KIT.host.styles.find((s) => s.id === KIT.host.style) || {}).name || "";
-  return `<div class="vw"><button type="button" class="hbtn" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}</button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div><div class="vw"><button type="button" class="hbtn" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Page view" title="Page view: how this page's widgets open">${EYE}</button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
+  return `<div class="vw"><button type="button" class="hbtn" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Page view" title="Page view: how this page's widgets open">${EYE}</button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
 
-    + `<div class="theme" role="group" aria-label="Theme">${[["light", "Light", HICON.sun], ["dark", "Dark", HICON.moon]].map(([k, n, i]) => `<button type="button" data-theme-set="${k}" aria-pressed="${themeNow() === k}" aria-label="${n} mode" title="${n} mode">${i}</button>`).join("")}</div>`;
+    + `<div class="theme" role="group" aria-label="Theme">${[["light", "Light", HICON.sun], ["dark", "Dark", HICON.moon]].map(([k, n, i]) => `<button type="button" data-theme-set="${k}" aria-pressed="${themeNow() === k}" aria-label="${n} mode" title="${n} mode">${i}</button>`).join("")}</div>`
+    + `<div class="vw"><button type="button" class="hbtn" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}</button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`;   // Share sits on the far right
 }
 if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; keepScroll(() => {}); drawHead(); }).catch(() => {});
 const OVERVIEW = ["prs", "brief", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"];
@@ -2110,7 +2135,7 @@ function sQuality() {   // Quality: the summary, tests, CI, findings
   const open = list.reduce((a, p) => a + p.findings.filter(isOpen).length, 0), parts = qParts(list);
   return [sums.length && { id: "q-summary", label: "Summary", icon: "brief", sub: "", html: `<p class="qsum">${sums.map(md).join(" ")}</p>` },
     { id: "q-tests", label: "Tests", icon: "flask", sub: chip(weak.length ? `${weak.length} weakened` : un.length ? `${un.length} untested` : "none weakened", weak.length || un.length ? "warn" : "ok"), html: parts.tests },
-    { id: "q-ci", label: "CI checks", icon: "ci", sub: rows.length ? (bad ? chip(`${bad} failing`, "bad") : wait ? chip(`${wait} running`) : chip(`${rows.length} passed`, "ok")) : "", html: qCi(list) },
+    { id: "q-ci", label: "CI checks", icon: "ci", sub: productCiUnknown(list) ? chip("Unknown") : rows.length ? (bad ? chip(`${bad} failing`, "bad") : wait ? chip(`${wait} running`) : chip(`${rows.length} passed`, "ok")) : "", html: qCi(list) },
     { id: "q-findings", label: "Findings", icon: "findings", sub: chip(`${open} open`, open ? "warn" : "ok"), html: vFindings() }].filter(Boolean);
 }
 function sWalk() {   // Review walkthrough: one section per PR, its units in reading order
@@ -2156,6 +2181,9 @@ const LYICON = {   // the layout editor's icons: more options, a page, a widget,
   more: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>',
   page: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 12v6"/><path d="M9 15h6"/></svg>',
   widget: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><path d="M17.5 14v7"/><path d="M14 17.5h7"/></svg>',
+  play: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L7.5 3.64A1 1 0 0 0 6 4.5z"/></svg>',
+  pen: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
+  save: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>',
   bin: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
   reset: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
   tpl: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/></svg>',
@@ -2163,7 +2191,7 @@ const LYICON = {   // the layout editor's icons: more options, a page, a widget,
 function nvMore(btn) {   // the … menu opens beside its nav item (fixed, so the nav's scroll doesn't clip it)
   let m = document.querySelector(".nv-mm"); if (m && !m.hidden) { m.hidden = true; btn.setAttribute("aria-expanded", "false"); return; }
   if (!m) { m = document.createElement("div"); m.className = "nv-mm hmenu"; m.setAttribute("role", "menu"); document.body.appendChild(m); }
-  m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Marketplace</span></button><button class="hsrow" role="menuitem" data-ly="tpl">${LYICON.tpl}<span>Layout wizard</span></button><button class="hsrow" role="menuitem" data-ly="reset">${LYICON.reset}<span>Reset default</span></button><div class="hsep"></div>${stylesMenu()}`;
+  m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Marketplace</span></button><button class="hsrow" role="menuitem" data-ly="tpl">${LYICON.tpl}<span>Layout wizard</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="mine">${LYICON.page}<span>My layouts</span></button><button class="hsrow" role="menuitem" data-ly="my-new">${LYICON.save}<span>Add to my layouts</span></button><div class="hsep"></div>${stylesMenu()}`;
   const r = btn.getBoundingClientRect(); m.style.left = r.right + 8 + "px"; m.hidden = false; m.style.top = Math.max(8, Math.min(r.top, innerHeight - m.offsetHeight - 8)) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
 }
 document.addEventListener("click", (e) => {
@@ -2183,10 +2211,18 @@ function lsavePlace() {   // centred on the content column, wherever the side me
 window.addEventListener("resize", lsavePlace);
 const VDICON = { ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>', no: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
   unknown: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>' };
-function vdPrs(name, hit, known) {   // a card counting the PRs in a bad state, with each one's number; unknown until GitHub has been read
+const vdLink = (href, cls, title, text) => href && /^https:\/\//.test(href) ? `<a class="vd-s ${cls}" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(title)}">${text}</a>` : `<span class="vd-s ${cls}" title="${esc(title)}">${text}</span>`;
+function vdPrs(name, hit, known, tone = "high", path = "") {   // a card counting the PRs in a state; each number links to its PR (path: a tab of it, e.g. /checks)
   return `<div class="vd-t"><span class="vd-k">${esc(name)}</span><b class="vd-n${known && !hit.length ? " none" : ""}">${known ? hit.length : "—"}</b>
-    <span class="vd-sev">${!known ? `<span class="vd-s">not checked yet</span>` : hit.length ? hit.map((p) => `<span class="vd-s high" title="${esc(strip(p.title))}">#${esc(p.number)}</span>`).join("") : `<span class="vd-s none">none</span>`}</span></div>`;
+    <span class="vd-sev">${!known ? `<span class="vd-s">not checked yet</span>` : hit.length ? hit.map((p) => vdLink(p.url && p.url + path, tone, `${strip(p.title)}: open on GitHub`, `#${esc(p.number)}`)).join("") : `<span class="vd-s none">none</span>`}</span></div>`;
 }
+function vdThreads(ps) {   // unresolved review conversations across the PRs: GitHub's live count once read, else the count collected with the PR
+  const live = (p) => LIVE[p.key] && LIVE[p.key].unresolved != null, n = (p) => (live(p) ? LIVE[p.key].unresolved : p.unresolved_threads), first = (p) => ((live(p) ? LIVE[p.key].unresolved_ids : p.unresolved_ids) || [])[0], known = ps.filter((p) => n(p) != null), hit = known.filter((p) => n(p) > 0), tot = hit.reduce((a, p) => a + n(p), 0);
+  return `<div class="vd-t"><span class="vd-k">Unresolved comments</span><b class="vd-n${known.length && !tot ? " none" : ""}">${known.length ? tot : "—"}</b>
+    <span class="vd-sev">${!known.length ? `<span class="vd-s">not checked yet</span>` : hit.length ? hit.map((p) => vdLink(p.url && (first(p) ? `${p.url}#discussion_r${first(p)}` : p.url), "medium", `${strip(p.title)}: open its first unresolved comment on GitHub`, `#${esc(p.number)} · ${n(p)}`)).join("") : `<span class="vd-s none">none</span>`}</span></div>`;
+}
+const awaitingReview = (p) => { const L = LIVE[p.key];   // open, not a draft, and no human approval yet: GitHub's live review decision once read, else the approvals collected with the PR
+  return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length; };
 function bVerdict() {   // the bottom line: can the package merge as it is, then Merge Risk and the open findings behind that answer
   const ps = prs(), A = RK && RK.approval, ok = C.dummy || (!!A && A.result === "approve"), fs = KIT.openFindings({ ...C, prs: ps }), lv = RK ? RK.level : "", LV = ["low", "medium", "high"];
   const st = !A && !C.dummy ? ["unknown", "No verdict yet", "Merge Risk hasn't been assessed for this package."]
@@ -2197,8 +2233,10 @@ function bVerdict() {   // the bottom line: can the package merge as it is, then
       <span class="vd-meter" role="img" aria-label="${esc(lv || "unknown")} of low, medium, high">${LV.map((k, i) => `<i class="${lv && i <= LV.indexOf(lv) ? esc(lv) : ""}"></i>`).join("")}</span></div>
     <div class="vd-t"><span class="vd-k">Open findings</span><b class="vd-n${fs.length ? "" : " none"}">${fs.length}</b>
       <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
-    ${vdPrs("PRs failing CI", ps.filter((p) => (p.checks || []).some((c) => CI_BAD.includes(String(c.state || c.conclusion || "").toUpperCase()))), true)}
-    ${vdPrs("PRs with merge conflicts", ps.filter((p) => (LIVE[p.key] || {}).merge_state === "DIRTY"), Object.keys(LIVE).length > 0)}</div></div>`;
+    ${vdPrs("PRs failing CI", ps.filter((p) => (p.checks || []).some((c) => CI_BAD.includes(String(c.state || c.conclusion || "").toUpperCase()))), true, "high", "/checks")}
+    ${vdPrs("PRs with merge conflicts", ps.filter((p) => (LIVE[p.key] || {}).merge_state === "DIRTY"), Object.keys(LIVE).length > 0)}
+    ${vdPrs("PRs awaiting human review", ps.filter(awaitingReview), true, "medium")}
+    ${vdThreads(ps)}</div></div>`;
 }
 function crumb() {   // the header names the page, then the open section
   const pg = (TABS.find((x) => x[0] === S.tab) || TABS[0])[1], cur = SECT[S.tab], d = (cur && document.querySelector(`#panel details.sec[open][data-sec="${cur}"] > summary h2`)) || document.querySelector('#panel .wtab[aria-selected="true"] span');
@@ -3020,15 +3058,16 @@ const sketch = (w) => `<svg class="wsk" viewBox="0 0 160 90" aria-hidden="true">
 const LKEY = "cockpit:package-layout:4";   // :4, the default below; a layout saved under an older key starts over from it
 const BRIEF3 = ["assets", "summary", ...BEH6];   // the Design brief page: assets, summary, then each Go deeper part
 const LDEF = () => ({ pages: [   // the default pages, in order: what anyone opening the style sees until they edit it
-  { id: "verdict", label: "Verdict", icon: "verdict", widgets: ["verdict"] },
-  { id: "prs", label: "Package contents", icon: "prs", widgets: ["prstable"] },
+  { id: "prs", label: "Overview", icon: "ovw", names: { prstable: "Package contents" }, widgets: ["verdict", "prstable"] },
   { id: "brief", label: "Requirements", icon: "brief", widgets: BRIEF3.slice() },
   { id: "coding-agent-decisions", label: "Decisions", icon: "decisions", widgets: ["decisions"] },
   { id: "risk", label: "Merge Risk", icon: "risk", widgets: RISK5.slice() },
-  { id: "issues", label: "Quality & Issue findings", icon: "issues", widgets: ["issues"] },
   { id: "plan", label: "Code reading", icon: "plan", widgets: ["plan"] },
   { id: "builder", label: "Execution walkthrough", icon: "builder", widgets: ["builder"] },
-  { id: "triage", label: "Finding review", icon: "triage", widgets: ["triage"] }] });
+  { id: "triage", label: "Finding review", icon: "triage", widgets: ["triage"] },
+  { id: "system", label: "System", icon: "ovw", widgets: ["system"] }] });
+const VIEWDEF = { prs: { mode: "open", wide: true, fit: true }, brief: { mode: "open", wide: true }, "coding-agent-decisions": { mode: "open", wide: true }, risk: { mode: "accordion", wide: true },
+  plan: { mode: "open", wide: true }, builder: { mode: "open", wide: true, fit: true }, triage: { mode: "open", wide: true }, system: { mode: "open", wide: true } };   // the default layout's Page view, page by page
 const PICONS = ["verdict", "ovw", "prs", "brief", "plan", "risk", "issues", "decisions", "builder", "triage", "stories", "arch", "changes", "findings", "walk", "review", "contracts", "scope", "starts", "flow", "other", "flask", "ci", "merge"];
 function cleanLayout(x) {   // what a stored layout may hold: named pages, known widgets, each widget once
   if (!x || !Array.isArray(x.pages)) return null;
@@ -3079,12 +3118,18 @@ function dialogHtml() {
       ${(() => { const pop = new Set(LD.pop || []), tile = (w) => { const a = at(w), here = !np && p.widgets.includes(w);
         return `<div class="wtile${here ? " on" : ""}" data-wfind="${esc((WIDGETS[w][0] + " " + WIDGETS[w][1]).toLowerCase())}">${sketch(w)}<span class="wt-n"><span class="stile">${sico(w)}</span><b>${esc(WIDGETS[w][0])}</b></span><span class="wt-d">${esc(WIDGETS[w][1])}</span>
           <span class="wt-f"><span class="wt-s">${here ? "On this page" : a.length ? `Also on ${esc(a.map((x) => x.label).join(", "))}` : has(w) ? "" : "No data in this review"}</span><button class="btn sm" data-ly="add" data-lyv="${w}"${here ? " disabled" : ""} aria-label="Add ${esc(WIDGETS[w][0])}">${here ? "Added" : "Add"}</button></span></div>`; };
-        const ws = Object.keys(WIDGETS), sec = (cls, title, sub, list) => list.length ? `<section class="wgal-sec ${cls}"><p class="wgal-h">${title}<span>${sub}</span></p><div class="wgal">${list.map(tile).join("")}</div></section>` : "";
+        const ws = Object.keys(WIDGETS), sec = (cls, title, sub, list) => list.length ? `<section class="wgal-sec ${cls}"><p class="wgal-h"><i class="wgal-star" aria-hidden="true">★</i>${title}<span>${sub}</span></p><div class="wgal">${list.map(tile).join("")}</div></section>` : "";
         const fold = (cls, title, sub, list) => list.length ? `<details class="wgal-sec ${cls}" data-wmore${LD.moreOpen || LD.q ? " open" : ""}><summary class="wgal-h">${title}<span>${sub}</span><span class="chev" aria-hidden="true"></span></summary><div class="wgal">${list.map(tile).join("")}</div></details>` : "";   // the rest, folded until opened
-        return sec("pop", "Popular", "In your layout now", ws.filter((w) => pop.has(w))) + fold("more", "More widgets", "Everything else the review can show", ws.filter((w) => !pop.has(w))); })()}
+        return sec("pop", "Popular", "In your layout now, plus the System map", ws.filter((w) => pop.has(w))) + fold("more", "More widgets", "Everything else the review can show", ws.filter((w) => !pop.has(w))); })()}
       <div class="lmod-f"><span>${LD.added ? `${pl1(LD.added, "widget")} added to ${esc(p.label)}` : np ? "Pick the new page's first widget" : `Pick the widgets to add to ${esc(p.label)}`}</span><button class="btn pri" data-ly="close">Done</button></div></div>`; }
   if (LD.kind === "tpl") return tplHtml();
   if (LD.kind === "lgal") return lgalHtml();
+  if (LD.kind === "wpks") return wpksHtml();
+  if (LD.kind === "mine") return mineHtml();
+  if (LD.kind === "mysave") return `<div class="lmod-c sm" role="dialog" aria-modal="true" aria-label="Add to my layouts"><div class="lmod-h"><b>Add to my layouts</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
+    <p class="lmod-p">Saves your pages, widgets and each page's Page view. Find it in My layouts in the More menu, in any review.</p>
+    <label class="wz-l">Layout name<input data-ly-name maxlength="40" value="${esc(LD.name)}" placeholder="e.g. My thorough review"></label>
+    <div class="wz-row"><button class="btn pri" data-ly="my-save">Save</button><button class="btn" data-ly="${LD.back ? "mine" : "close"}">Cancel</button></div></div>`;
   if (LD.kind === "wname") return `<div class="lmod-c sm" role="dialog" aria-modal="true" aria-label="Rename widget"><div class="lmod-h"><b>Rename widget</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
     <label class="wz-l">Name on ${esc(p.label)}<input data-ly-name maxlength="40" value="${esc(LD.name)}" placeholder="${esc((BLOCKS[LD.w] && BLOCKS[LD.w].label) || WIDGETS[LD.w][0])}"></label>
     <div class="wz-row"><button class="btn pri" data-ly="w-save">Save</button><button class="btn" data-ly="close">Cancel</button>${(p.names || {})[LD.w] ? `<button class="btn" data-ly="w-reset" style="margin-left:auto">Use its own name</button>` : ""}</div></div>`;
@@ -3103,7 +3148,7 @@ function lDialog(d) {   // open, redraw or (null) close the dialog; a redraw kee
   if (!d) return el && el.remove();
   if (!el) { el = document.createElement("div"); el.id = "ldlg"; el.className = "lmod"; document.body.appendChild(el); }
   const top = (el.querySelector(".lmod-c") || {}).scrollTop || 0;
-  if (d.kind === "gallery" && !d.pop) d.pop = [...new Set(LAYOUT.pages.flatMap((x) => x.widgets))];   // Popular: what the layout used when the gallery opened, so a tile doesn't jump when added
+  if (d.kind === "gallery" && !d.pop) d.pop = [...new Set([...LAYOUT.pages.flatMap((x) => x.widgets), "system"])];   // Popular: what the layout used when the gallery opened, so a tile doesn't jump when added
   el.innerHTML = dialogHtml(); const f = el.querySelector("[data-ly-name], [data-wgal-q]");
   if (f && f.matches("[data-wgal-q]") && d.q) { f.value = d.q; f.dispatchEvent(new Event("input", { bubbles: true })); }
   el.querySelector(".lmod-c").scrollTop = top; if (f && document.activeElement !== f) f.focus({ preventScroll: true });
@@ -3142,11 +3187,7 @@ function tplHtml() {
 }
 /* the layout gallery: each review style's parts, in its order, rebuilt from Work Package's widgets */
 const LGAL = [
-  { id: "package", name: "Work Package", from: "This style's default", what: "The verdict, the PRs, the requirements and decisions, then Merge Risk, findings, reading and the walkthroughs", views: { brief: { mode: "accordion" }, risk: { mode: "tabs" } }, pages: LDEF().pages },
-  { id: "dana", mine: true, name: "Dana's layout", from: "Dana's own layout", what: "Two pages: the scope (product, PRs, the verdict and Merge Risk) as tabs, then one review page with the reading, walkthrough, findings, decisions and the system",
-    pages: [{ id: "verdict", label: "Scope", icon: "ovw", names: { verdict: "Merge overview", prstable: "Package contents", summary: "Product overview" }, widgets: ["summary", "prstable", "verdict", "rsum"] },
-      { id: "code-reading", label: "Review", icon: "plan", widgets: ["plan", "builder", "triage", "rsum", "decisions", "system", "arch"] }],
-    views: { verdict: { mode: "tabs" }, "code-reading": { mode: "accordion", fit: true, wide: false } } },   // its Page view per page comes with it
+  { id: "package", name: "Work Package", from: "This style's default", what: "An overview with the verdict and the PRs, then the requirements, decisions, Merge Risk, code reading, the walkthrough, finding review and the system map", views: VIEWDEF, pages: LDEF().pages },
   { id: "cockpit", name: "Cockpit", from: "The Cockpit app", what: "The story first, then the reading plan, the walk through the code, the findings and your review", views: { story: { mode: "open" }, plan: { mode: "open" }, findings: { mode: "tabs" } }, pages: [
     { id: "story", label: "Story", icon: "stories", widgets: ["summary", "stories", "flow"] }, { id: "plan", label: "Reading plan", icon: "plan", widgets: ["plan", "starts"] },
     { id: "walk", label: "Walk", icon: "walk", widgets: ["walk"] }, { id: "findings", label: "Findings", icon: "findings", widgets: ["findings", "triage"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },
@@ -3178,7 +3219,64 @@ const LGAL = [
     { id: "decisions", label: "Decisions", icon: "decisions", widgets: ["decisions", "bdec"] }, { id: "rollout", label: "Rollout", icon: "merge", widgets: ["impact", "rdeep"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] }];
 const lgMode = (p, views) => ((views || {})[p.id] || {}).mode || (p.widgets.length === 1 ? "open" : "accordion");   // a page's Page view in a template: its own, else one widget open, several as an accordion
 function lgViews(pages, views) { pages.forEach((p) => (PV[p.id] = { wide: false, fit: false, ...((views || {})[p.id] || {}), mode: lgMode(p, views) })); store.set(PVKEY, PV); }   // set for every page, so no older choice leaks in
+const MYKEY = "cockpit:my-layouts";   // your saved layouts, kept with the app settings so every review has them
+if (!Array.isArray(store.get(MYKEY, null))) store.set(MYKEY, [{ id: "dana", name: "Dana's layout", from: "Dana's own layout", what: "Two pages: the scope (product, PRs, the verdict and Merge Risk) as tabs, then one review page with the reading, walkthrough, findings, decisions and the system",
+    pages: [{ id: "verdict", label: "Scope", icon: "ovw", names: { verdict: "Merge overview", prstable: "Package contents", summary: "Product overview" }, widgets: ["summary", "prstable", "verdict", "rsum"] },
+      { id: "code-reading", label: "Review", icon: "plan", widgets: ["plan", "builder", "triage", "rsum", "decisions", "system", "arch"] }],
+    views: { verdict: { mode: "tabs" }, "code-reading": { mode: "accordion", fit: true, wide: false } } }]);   // the first time: Dana's layout to start from
+const myLayouts = () => (store.get(MYKEY, []) || []).filter((g) => g && g.id && g.name && cleanLayout(g)).map((g) => ({ ...g, mine: true, pages: cleanLayout(g).pages,
+  from: g.from || (g.saved ? `Saved ${new Date(g.saved).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "Saved"), what: g.what || "Your pages, widgets and Page views, as you saved them" }));
+function mySave(name) {   // the layout and its Page views as they are now, under a name; the same name replaces that one
+  const views = Object.fromEntries(LAYOUT.pages.map((p) => { const v = { ...VDEF, ...(PV[p.id] || {}) }; return [p.id, { mode: v.mode, wide: !!v.wide, fit: !!v.fit }]; }));
+  const list = (store.get(MYKEY, []) || []).filter((g) => g && g.name !== name);
+  list.push({ id: "my-" + Date.now().toString(36), name, saved: new Date().toISOString(), pages: JSON.parse(JSON.stringify(LAYOUT.pages)), views });
+  store.set(MYKEY, list);
+}
 const LGMODE = { accordion: "accordion", manual: "folded", tabs: "as tabs", open: "" };
+if (!store.get(PVKEY, null) && !store.get(LKEY, null)) lgViews(LAYOUT.pages, VIEWDEF);   // a first visit starts with the default Page views
+const MSORT = { name: (g) => g.name.toLowerCase(), pages: (g) => g.pages.length, widgets: (g) => g.pages.reduce((a, x) => a + x.widgets.length, 0), saved: (g) => g.saved || "" };
+function mineHtml() {   // My layouts: your saved layouts, to use, rename or delete; every column sorts
+  const list = mSorted(myLayouts(), MSORT), row = (g) => { const ren = LD.ren === g.id, rm = LD.rm === g.id, at = g.saved ? new Date(g.saved) : null;
+    const name = ren ? `<input class="src-in wpks-in" data-ly-name maxlength="40" value="${esc(g.name)}" aria-label="New name for ${esc(g.name)}">` : `<b>${esc(g.name)}</b>`;
+    const acts = ren ? `<button class="btn pri sm" data-ly="mine-ren-save" data-lyv="${esc(g.id)}">Save</button><button class="btn sm" data-ly="wpk-x">Cancel</button>`
+      : rm ? `<button class="btn sm lg-del" data-ly="my-rm" data-lyv="${esc(g.id)}">Delete</button><button class="btn sm" data-ly="wpk-x">Keep</button>`
+      : `<button class="wz-ic mt-play" data-ly="lgal-use" data-lyv="${esc(g.id)}" aria-label="Apply ${esc(g.name)}" title="Apply this layout">${LYICON.play}</button><button class="wz-ic" data-ly="wpk-ren" data-lyv="${esc(g.id)}" aria-label="Rename ${esc(g.name)}" title="Rename">${LYICON.pen}</button>`
+        + `<button class="wz-ic" data-ly="wpk-ask" data-lyv="${esc(g.id)}" aria-label="Delete ${esc(g.name)}" title="Delete this layout">${LYICON.bin}</button>`;
+    return `<tr><td class="mt-n">${name}<small>${esc(g.what)}</small><small class="mt-pg">${esc(g.pages.map((x) => x.label).join(" · "))}</small></td><td class="mt-num">${MSORT.pages(g)}</td><td class="mt-num">${MSORT.widgets(g)}</td>
+      <td class="mt-t" title="${at && !isNaN(at) ? esc(at.toLocaleString()) : ""}">${at && !isNaN(at) ? esc(agoText(g.saved)) : "—"}</td><td class="mt-a">${acts}</td></tr>`; };
+  return `<div class="lmod-c wpks-c" role="dialog" aria-modal="true" aria-label="My layouts"><div class="lmod-h"><b>My layouts</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
+    <div class="mine-bar"><p class="lmod-p">Layouts you saved, shared by every review on this machine. Using one replaces your pages and widgets, with its Page views.</p><span class="mine-b"><button class="btn sm" data-ly="reset" title="Back to the Work Package default pages, widgets and Page views">${LYICON.reset}Reset to default</button><button class="btn pri sm" data-ly="my-new">${LYICON.save}Add current layout</button></span></div>
+    ${list.length ? `<div class="mtbl"><table><thead><tr>${mTh("name", "Name")}${mTh("pages", "Pages", 1)}${mTh("widgets", "Widgets", 1)}${mTh("saved", "Saved")}<th class="mt-a">Actions</th></tr></thead><tbody>${list.map(row).join("")}</tbody></table></div>`
+      : `<p class="tri-none">No saved layouts yet. Set up the pages the way you like, then use Add current layout.</p>`}</div>`;
+}
+const mTh = (k, label, num) => { const on = (LD.sort || {}).k === k, dir = on ? LD.sort.dir : 0;   // a header that sorts its column: once ascending, again descending
+  return `<th class="${num ? "mt-num" : ""}" aria-sort="${on ? (dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" class="mt-s" data-ly="sort" data-lyv="${k}">${label}<i aria-hidden="true">${on ? (dir > 0 ? "↑" : "↓") : "↕"}</i></button></th>`; };
+function mSorted(list, keys) {   // the rows in the chosen column's order; as the server lists them until a header is clicked
+  const so = LD.sort; if (!so || !keys[so.k]) return list;
+  return list.slice().sort((a, b) => { const x = keys[so.k](a), y = keys[so.k](b); return (x < y ? -1 : x > y ? 1 : 0) * so.dir; });
+}
+const WSORT = { name: (s) => s.title.toLowerCase(), prs: (s) => s.prs.length, repos: (s) => s.repos || 0, stacks: (s) => s.stacks || 0, refreshed: (s) => s.created || "" };
+function wpksHtml() {   // Manage work packages: every package on this machine, with open folder, rename and delete; every column sorts
+  const row = (s) => { const here = s.id === KIT.host.session, at = s.created ? new Date(s.created) : null, ren = LD.ren === s.id, rm = LD.rm === s.id;
+    const name = ren ? `<input class="src-in wpks-in" data-ly-name maxlength="80" value="${esc(s.named ? s.title : "")}" placeholder="${esc(s.auto || s.title)}" aria-label="New name for ${esc(s.title)}">`
+      : `<b>${esc(s.title)}</b>${here ? ` <span class="wpk-tag">Open here</span>` : ""}`;
+    const acts = ren ? `<button class="btn pri sm" data-ly="wpk-ren-save" data-lyv="${esc(s.id)}">Save</button><button class="btn sm" data-ly="wpk-x">Cancel</button>`
+      : rm ? `<span class="mt-warn">Open tabs of it will stop working</span><button class="btn sm lg-del" data-ly="wpk-del" data-lyv="${esc(s.id)}">Delete</button><button class="btn sm" data-ly="wpk-x">Keep</button>`
+      : `<button class="wz-ic" data-ly="wpk-open" data-lyv="${esc(s.id)}" aria-label="Show ${esc(s.title)} in Finder" title="Show in Finder">${MICON.folder}</button>`
+        + `<button class="wz-ic" data-ly="wpk-ren" data-lyv="${esc(s.id)}" aria-label="Rename ${esc(s.title)}" title="Rename">${LYICON.pen}</button>`
+        + `<button class="wz-ic" data-ly="wpk-ask" data-lyv="${esc(s.id)}" aria-label="Delete ${esc(s.title)}" title="${here ? "Open here: switch to another package to delete it" : "Delete: moves its folder to the Trash"}"${here ? " disabled" : ""}>${LYICON.bin}</button>`;
+    return `<tr${here ? ' class="mt-here"' : ""}><td class="mt-n">${name}</td><td class="mt-num">${s.prs.length}</td><td class="mt-num">${WSORT.repos(s)}</td><td class="mt-num">${WSORT.stacks(s)}</td>
+      <td class="mt-t" title="${at && !isNaN(at) ? esc(at.toLocaleString()) : ""}">${s.created ? esc(agoText(s.created)) : "—"}</td><td class="mt-a">${acts}</td></tr>`; };
+  return `<div class="lmod-c wpks-c" role="dialog" aria-modal="true" aria-label="Manage work packages"><div class="lmod-h"><b>Manage work packages</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
+    <p class="lmod-p">${pl1(WPKS.length, "work package")} on this machine. Deleting one moves its folder to the Trash; a tab still showing it, here or on another port, stops working.</p>
+    <div class="mtbl"><table><thead><tr>${mTh("name", "Name")}${mTh("prs", "PRs", 1)}${mTh("repos", "Repos", 1)}${mTh("stacks", "Stacks", 1)}${mTh("refreshed", "Last refreshed")}<th class="mt-a">Actions</th></tr></thead><tbody>${mSorted(WPKS, WSORT).map(row).join("")}</tbody></table></div></div>`;
+}
+async function wpkPost(path, body, done) {   // a change to the packages: redraw the menu and the table from the server's new list
+  try { const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }), j = await r.json();
+    if (!r.ok || j.error) throw new Error(j.error || r.statusText);
+    if (j.sessions) { WPKS = j.sessions; wpkDraw(); } if (LD && LD.kind === "wpks") { LD.ren = LD.rm = null; lDialog(LD); } toast(done(j));
+  } catch (err) { toast(`Couldn't change it: ${err.message}`); }
+}
 function lgSketch(g) {   // the layout in miniature: its pages down the side, its first page's lead widget drawn, the rest as bars
   const ps = g.pages.slice(0, 7), first = g.pages[0].widgets, lead = SKETCH[first[0]] ? SKETCH[first[0]]() : "";
   return `<svg class="wsk" viewBox="0 0 160 90" aria-hidden="true">${kR(4, 4, 34, 82, "k0", 4)}${rows(ps.length, (i) => kR(8, 9 + i * 11, i ? 26 : 26, 6, i ? "k1" : "ka", 2))}
@@ -3189,9 +3287,9 @@ function lgalHtml() {
   const card = (g) => { const nw = g.pages.reduce((a, x) => a + x.widgets.length, 0);
     return `<div class="wtile lgt">${lgSketch(g)}<span class="wt-n"><b>${esc(g.name)}</b></span><span class="wt-d">${esc(g.what)}</span>
       <span class="lg-pages">${g.pages.map((x) => esc(x.label) + (x.widgets.length > 1 && LGMODE[lgMode(x, g.views)] ? ` <em>(${LGMODE[lgMode(x, g.views)]})</em>` : "")).join(" · ")}</span>
-      <span class="wt-f"><span class="wt-s">${esc(g.from)} · ${pl(g.pages.length, "page")}, ${pl(nw, "widget")}</span><button class="btn sm" data-ly="lgal-use" data-lyv="${g.id}" aria-label="Use the ${esc(g.name)} layout">Use</button></span></div>`; };
+      <span class="wt-f"><span class="wt-s">${esc(g.from)} · ${pl(g.pages.length, "page")}, ${pl(nw, "widget")}</span><button class="btn sm" data-ly="lgal-use" data-lyv="${esc(g.id)}" aria-label="Use the ${esc(g.name)} layout">Use</button></span></div>`; };
   const sec = (title, sub, list) => list.length ? `<section class="wgal-sec"><p class="wgal-h">${title}<span>${sub}</span></p><div class="wgal">${list.map(card).join("")}</div></section>` : "";
-  const cards = sec("Review styles", "Each review style rebuilt as a Work Package layout", LGAL.filter((g) => !g.mine)) + sec("My layouts", "Saved from your own reviews", LGAL.filter((g) => g.mine));   // the styles, then yours
+  const cards = sec("Review styles", "Each review style rebuilt as a Work Package layout", LGAL);   // the styles, then yours
   return `<div class="lmod-c" role="dialog" aria-modal="true" aria-label="Layout Marketplace"><div class="lmod-h"><b>Layout Marketplace</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
     <p class="lmod-p">Each review style's parts, in its order, rebuilt as a Work Package layout. Using one replaces your pages and widgets; change them after with Customize in the More menu.</p>${cards}</div>`;
 }
@@ -3213,11 +3311,24 @@ document.addEventListener("click", (e) => {
   if (a === "rm") { ws.splice(i, 1); return lDraw(); }
   if (a === "tpl") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "tpl", ...(store.get("cockpit:layout-template:2", null) || { who: "other", depth: "thorough", type: "full" }), kind: "tpl" }); }
   if (a === "lgal") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "lgal" }); }
-  if (a === "lgal-use") { const g = LGAL.find((x) => x.id === v); if (!g) return; LAYOUT = cleanLayout({ pages: JSON.parse(JSON.stringify(g.pages)) }) || LDEF(); S.tab = LAYOUT.pages[0].id;
+  if (a === "lgal-use") { const g = LGAL.concat(myLayouts()).find((x) => x.id === v); if (!g) return; LAYOUT = cleanLayout({ pages: JSON.parse(JSON.stringify(g.pages)) }) || LDEF(); S.tab = LAYOUT.pages[0].id;
     lgViews(LAYOUT.pages, g.views); EDIT = false; lDialog(null); lDraw(); return toast(`Layout: ${g.name}`); }
   if (a === "tpl-pick") { const [k, val] = v.split(":"); LD[k] = val; return lDialog(LD); }
   if (a === "tpl-use") { const pick = { who: LD.who, depth: LD.depth, type: LD.type }; store.set("cockpit:layout-template:2", pick); LAYOUT = cleanLayout(tplLayout(pick)) || LDEF(); lgViews(LAYOUT.pages, pick.depth === "thorough" ? { risk: { mode: "tabs" } } : {}); S.tab = LAYOUT.pages[0].id; EDIT = false; lDialog(null); lDraw(); return toast("Layout made from the template"); }
-  if (a === "reset") { LAYOUT = LDEF(); lgViews(LAYOUT.pages, (LGAL.find((g) => g.id === "package") || {}).views); S.tab = LAYOUT.pages[0].id; lDraw(); return toast("Layout reset to the default"); }   // its own Page views too, so none left by another layout stays
+  if (a === "reset") { LAYOUT = LDEF(); lgViews(LAYOUT.pages, (LGAL.find((g) => g.id === "package") || {}).views); S.tab = LAYOUT.pages[0].id; lDialog(null); lDraw(); return toast("Layout reset to the default"); }   // its own Page views too, so none left by another layout stays
+  if (a === "wpk-open") return fetch("/api/reveal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ target: "session", session: v }) }).then((r) => r.json()).then((j) => toast(j.ok ? `Opened ${j.path}` : `Couldn't open the folder: ${j.error}`), () => toast("Couldn't reach the Cockpit"));
+  if (a === "wpk-ren" || a === "wpk-ask") { LD.ren = a === "wpk-ren" ? v : null; LD.rm = a === "wpk-ask" ? v : null; return lDialog(LD); }
+  if (a === "sort") { const so = LD.sort, big = ["pages", "widgets", "saved", "prs", "repos", "stacks", "refreshed"].includes(v); LD.sort = so && so.k === v ? { k: v, dir: -so.dir } : { k: v, dir: big ? -1 : 1 }; return lDialog(LD); }
+  if (a === "wpk-x") { LD.ren = LD.rm = null; return lDialog(LD); }
+  if (a === "wpk-ren-save") { const name = document.querySelector("[data-ly-name]").value.trim(); return wpkPost("/api/session-rename", { session: v, name }, () => name ? `Renamed to ${name}` : "Back to its own name"); }
+  if (a === "wpk-del") { const s0 = WPKS.find((x) => x.id === v); return wpkPost("/api/session-delete", { session: v }, (j) => `Moved ${s0 ? s0.title : "it"} to ${j.trash}`); }
+  if (a === "mine") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "mine" }); }
+  if (a === "mine-ren-save") { const name = document.querySelector("[data-ly-name]").value.trim().slice(0, 40); if (!name) return document.querySelector("[data-ly-name]").focus();
+    store.set(MYKEY, (store.get(MYKEY, []) || []).map((g) => (g && g.id === v ? { ...g, name } : g))); LD.ren = null; lDialog(LD); return toast(`Renamed to ${name}`); }
+  if (a === "my-new") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "mysave", name: "", back: !!(LD && LD.kind === "mine") }); }   // from My layouts, saving goes back to it
+  if (a === "my-save") { const f = document.querySelector("[data-ly-name]"), name = f.value.trim().slice(0, 40); if (!name) return f.focus();
+    const had = (store.get(MYKEY, []) || []).some((g) => g && g.name === name); mySave(name); lDialog(LD.back ? { kind: "mine" } : null); return toast(had ? `Updated in My layouts: ${name}` : `Added to My layouts: ${name}`); }
+  if (a === "my-rm") { const g = myLayouts().find((x) => x.id === v); store.set(MYKEY, (store.get(MYKEY, []) || []).filter((x) => x && x.id !== v)); LD.rm = null; lDialog(LD); return toast(`Deleted ${g ? g.name : "the layout"}`); }
   if (a === "page-new") return lDialog({ kind: "gallery", newPage: true });
   if (a === "page-edit") return lDialog({ kind: "page", page: p.id, name: p.label, icon: p.icon });
   if (a === "w-edit") return lDialog({ kind: "wname", w: v, name: wname(v) });
@@ -3271,7 +3382,7 @@ document.addEventListener("keydown", (e) => {   // on a handle, the arrow keys m
 }, true);
 document.addEventListener("keydown", (e) => { if (!LD) return;
   if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); lDialog(null); }
-  else if (e.key === "Enter" && e.target.matches && e.target.matches("[data-ly-name]")) { e.preventDefault(); document.querySelector('[data-ly="page-save"], [data-ly="w-save"]').click(); } }, true);
+  else if (e.key === "Enter" && e.target.matches && e.target.matches("[data-ly-name]")) { e.preventDefault(); document.querySelector('[data-ly="page-save"], [data-ly="w-save"], [data-ly="my-save"], [data-ly="wpk-ren-save"], [data-ly="mine-ren-save"]').click(); } }, true);
 RECIPE = layoutRecipe(); TABS = tabsOf(RECIPE);
 const h0 = ((location.hash || "").slice(1) || "").replace(/^plan$/, "walk");
 if (S.tab === "plan") S.tab = "walk";

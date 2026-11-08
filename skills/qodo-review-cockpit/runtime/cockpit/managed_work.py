@@ -5,7 +5,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from .adapters.managed import Client, ReadError, bounded_operation, parse_ref
+from .adapters.managed import Client, ReadError, BudgetExceeded, bounded_operation, normalize_reviews, parse_ref
 from .util import write_json
 
 
@@ -14,15 +14,12 @@ def canonical_identity(pr):
     return (identity.get('provider') or pr.get('provider'), identity.get('provider_host') or pr.get('provider_host'), pr['repo'])
 
 
-def qualify_keys(prs):
-    grouped = defaultdict(list)
+def validate_identities(prs):
+    grouped = defaultdict(set)
     for pr in prs:
-        grouped[pr['key']].append(pr)
-    for group in grouped.values():
-        if len({canonical_identity(p) for p in group}) > 1:
-            for pr in group:
-                provider, host, repo = canonical_identity(pr)
-                pr['key'] = f'{provider}@{host}/{repo}#{pr["number"]}'
+        grouped[pr['repo']].add(canonical_identity(pr))
+    if any(len(identities) > 1 for identities in grouped.values()):
+        raise ReadError('The same repository path maps to different provider/hosts. Review these repositories in separate sessions; no associations were built.')
     return prs
 
 
@@ -37,8 +34,23 @@ def _rows(result):
 def collect(refs, default_repo, cfg):
     from .collect import build
     client = Client()
-    prs = [client.change(repo, number, host) for repo, number, host in (parse_ref(r, default_repo) for r in refs)]
-    return build(qualify_keys(prs), cfg)
+    requested = list(refs)
+    prs, omitted = [], []
+    for index, ref in enumerate(requested):
+        try:
+            repo, number, host = parse_ref(ref, default_repo)
+            prs.append(client.change(repo, number, host))
+            validate_identities(prs)
+        except BudgetExceeded:
+            if not prs:
+                raise
+            omitted = requested[index:]
+            break
+    meta = {'complete': not omitted, 'requested_refs': requested, 'collected_refs': requested[:len(prs)],
+            'omitted_refs': omitted, 'default_repo': default_repo,
+            'reason': 'budget_exhausted' if omitted else None}
+    return build(prs, cfg, collection_meta=meta)
+
 
 
 @bounded_operation
@@ -47,9 +59,21 @@ def refresh(sdir, old, cfg):
     from .product import activate
     activate()
     client = Client()
-    prs = [{**client.change(p['repo'], p['number'], identity=p.get('identity')), 'key': p['key']} for p in old['prs']]
+    prs = []
+    previous_collection = old.get('collection') or {}
+    requested = previous_collection.get('requested_refs') or [p.get('url') or f"{p['repo']}#{p['number']}" for p in old['prs']]
+    for ref in requested:
+        repo, number, host = parse_ref(ref, previous_collection.get('default_repo'))
+        previous = next((p for p in old['prs'] if p['repo'] == repo and p['number'] == number and
+                         (not host or (p.get('identity') or {}).get('provider_host') == host)), {})
+        pr = client.change(repo, number, host, identity=previous.get('identity'))
+        pr['key'] = previous.get('key') or pr['key']
+        prs.append(pr)
+        validate_identities(prs)
+    meta = {'complete': True, 'requested_refs': requested, 'collected_refs': requested,
+            'omitted_refs': [], 'default_repo': previous_collection.get('default_repo'), 'reason': None}
     known = {e.get('github_id') for e in _events(sdir) if e.get('github_id')}
-    build(prs, cfg, session=sdir.name, reviewer_login=old.get('reviewer_login'), skip_github_ids=known, dest=sdir)
+    build(prs, cfg, session=sdir.name, reviewer_login=old.get('reviewer_login'), skip_github_ids=known, dest=sdir, collection_meta=meta, require_complete_budget=True)
     data = json.loads((sdir / 'review-data.json').read_text())
     if old.get('reviewers'):
         from .reviewers import basis
@@ -77,9 +101,17 @@ def live_state(prs, since_default=''):
             r = next(iter(ready['items']), {})
             head, old = ctx.get('head_sha'), pr.get('head_sha')
             since = pr.get('collected_at') or since_default
+            from .collect import human_reviews
+            known_reviews = reviews.get('complete') is True
+            normalized = normalize_reviews(reviews['items'])
+            human = human_reviews(normalized, head) if known_reviews and head else None
+            baseline = pr.get('approvals') if pr.get('head_sha') == head and isinstance(pr.get('approvals'), list) else []
+            newly_observed = [name for name in human['approvals'] if name not in baseline] if human else None
+            decision = ('CHANGES_REQUESTED' if human['changes_requested'] else 'APPROVED' if human['approvals'] else None) if human else None
             out[pr['key']] = {'head': head, 'snapshot_head': old, 'moved': bool(head and old and head != old),
                              'new_commits': -1 if head != old else 0, 'state': r.get('state'), 'merge_state': r.get('native_state'),
-                             'draft': r.get('draft'), 'review_decision': None, 'approved_by': [],
+                             'draft': r.get('draft'), 'review_decision': decision, 'approved_by': newly_observed, 'current_approved_by': human['approvals'] if human else None,
+                             'reviews_complete': known_reviews, 'review_decision_source': 'observed_human_reviews' if human else 'unknown',
                              'new_comments': sum(c.get('created_at', '') > since for c in comments['items']),
                              'read_evidence': {'context': ctx, 'readiness': ready, 'comments': comments, 'reviews': reviews}}
         except ReadError as e:

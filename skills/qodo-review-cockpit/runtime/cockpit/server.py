@@ -13,7 +13,7 @@ from pathlib import Path
 from .distill import distill, latest_state, load_events
 from .memory import AMR, OKF, git_commit
 from . import threads
-from .util import EMOJI, ROOT, SESSIONS, gh, mem_path, memory_on, now_iso, session_config, set_sessions
+from .util import EMOJI, ROOT, SESSIONS, gh, mem_path, memory_on, now_iso, session_config, set_sessions, write_json
 
 APP = ROOT / "app"
 _lock = threading.Lock()
@@ -41,7 +41,7 @@ def _friendly(title: str) -> str:
 
 def list_sessions() -> list[dict]:
     """Every work package collected on this machine, newest first, for the page header's switcher."""
-    from .view import title_of
+    from .view import package_name, title_of
     out = []
     for d in (SESSIONS.iterdir() if SESSIONS.is_dir() else []):
         if not session_named(d.name):
@@ -54,7 +54,10 @@ def list_sessions() -> list[dict]:
         if title == "PR review" and data.get("prs"):   # no story yet: the feature most of its PRs are named for
             names = [_friendly(p.get("title") or "") for p in data["prs"]]
             title = max(names, key=names.count) or title
-        out.append({"id": d.name, "title": title, "prs": [p.get("key") for p in data.get("prs", [])],
+        name = package_name(d)
+        out.append({"id": d.name, "title": name or title, "auto": title, "named": bool(name), "prs": [p.get("key") for p in data.get("prs", [])],
+                    "repos": len({p.get("repo") for p in data.get("prs", [])}), "stacks": len([c for c in (data.get("context") or {}).get("stacks") or [] if len(c) > 1]),
+                    "path": str(d).replace(str(Path.home()), "~", 1),
                     "created": data.get("created", ""), "story": (d / "enrich.json").is_file(),
                     "demo": bool(data.get("demo")), "dummy": bool(data.get("dummy"))})
     return sorted(out, key=lambda s: (s["created"], s["id"]), reverse=True)
@@ -228,12 +231,22 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         route = self.path.split("?")[0]
+        if route == "/api/health":   # the page's server check: answers before any package is picked, so a gone package can't hide a live server
+            return self._json({"ok": True, "time": now_iso()})
         if not self._pick_session():
             return self._json({"error": "this work package is no longer on this machine; reload the page"}, 404)
         if route == "/api/sessions":
             return self._json({"current": self.sdir.name, "sessions": list_sessions()})
         if route == "/api/sources":   # Settings › Work packages: the folder the switcher lists
             return self._json(_sources())
+        if route == "/favicon.ico":   # the Qodo icon, for a browser that asks before reading the page's own link
+            b = (ROOT / "app" / "favicon.svg").read_bytes()   # not APP: do_GET imports another APP from .styles below
+            self.send_response(200); self.send_header("Content-Type", "image/svg+xml"); self.send_header("Content-Length", str(len(b))); self.end_headers()
+            self.wfile.write(b)
+            return
+        if route == "/api/app-state":   # your app settings, shared by every session and port
+            from . import appstate
+            return self._json({"keys": list(appstate.APP_KEYS), "state": appstate.load(), "path": str(appstate.path())})
         if route == "/" and self.style != "cockpit":
             return self._style(self.style)
         if route.startswith("/s/"):
@@ -283,15 +296,50 @@ class Handler(SimpleHTTPRequestHandler):
         Handler._live_cache[self.sdir.name] = (time.time(), res)
         return res
 
-    def _reveal(self):
-        """Open the session folder in the system file manager (Finder on macOS); never a path from the request."""
+    def _reveal(self, target=None):
+        """Open a folder in the system file manager (Finder on macOS): this session's (the default), the work package
+        folder ("sessions") or the app settings file's ("app-state", the file selected). Never a path from the request."""
         import subprocess
         import sys
-        cmd = ["open"] if sys.platform == "darwin" else ["explorer"] if sys.platform == "win32" else ["xdg-open"]
-        r = subprocess.run([*cmd, str(self.sdir)], capture_output=True, text=True, timeout=10)
+        from . import appstate, util
+        if target not in (None, "", "sessions", "app-state") and not (isinstance(target, dict) and session_named(target.get("session"))):
+            return {"error": "unknown folder"}
+        p = session_named(target["session"]) if isinstance(target, dict) else util.SESSIONS if target == "sessions" else appstate.path() if target == "app-state" else self.sdir
+        pick = target == "app-state" and p.is_file()   # select the file in its folder; before it exists, open the folder
+        if target == "app-state" and not pick:
+            p = p.parent
+        if sys.platform == "darwin":
+            argv = ["open", "-R", str(p)] if pick else ["open", str(p)]
+        elif sys.platform == "win32":
+            argv = ["explorer", f"/select,{p}"] if pick else ["explorer", str(p)]
+        else:
+            argv = ["xdg-open", str(p.parent if pick else p)]
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=10)
         if r.returncode and sys.platform != "win32":   # explorer exits 1 even when the folder opened
-            return {"error": (r.stderr or "").strip() or f"{cmd[0]} exited with {r.returncode}"}
-        return {"ok": True, "path": str(self.sdir).replace(str(Path.home()), "~", 1)}
+            return {"error": (r.stderr or "").strip() or f"{argv[0]} exited with {r.returncode}"}
+        return {"ok": True, "path": str(p).replace(str(Path.home()), "~", 1)}
+
+    def _trash(self, name):
+        """Move a work package's folder to the Trash (macOS), else to trash/ in the data home: recoverable, never
+        the package this page or this server has open, never a refresh in progress."""
+        import shutil
+        import sys
+        from . import util
+        d = session_named(name)
+        if not d:
+            return {"error": "unknown work package"}, 404
+        if d in (self.sdir, Handler.sdir):
+            return {"error": "this package is open here; switch to another before deleting it"}, 409
+        bin_ = Path.home() / ".Trash" if sys.platform == "darwin" else util.HOME / "trash"
+        with Handler._refresh_lock:   # the lock a refresh starts under: none can begin between this check and the move
+            if (Handler._refreshing.get(d.name) or {}).get("state") == "running":
+                return {"error": "this package is refreshing; delete it once that finishes"}, 409
+            bin_.mkdir(parents=True, exist_ok=True)
+            dest, n = bin_ / d.name, 2
+            while dest.exists():
+                dest, n = bin_ / f"{d.name} {n}", n + 1
+            shutil.move(str(d), str(dest))
+        return {"ok": True, "trash": str(dest).replace(str(Path.home()), "~", 1), "sessions": list_sessions()}, 200
 
     def _refresh(self, data):
         """Re-collect the session in the background (`cockpit refresh`): notes, marks and the story stay."""
@@ -378,8 +426,27 @@ class Handler(SimpleHTTPRequestHandler):
                         return self._json({"error": f"{p} is not a folder on this machine"}, 400)
                 set_sessions(path)
                 return self._json({"ok": True, **_sources()})
+            if self.path == "/api/app-state":   # save app settings: {"set": {key: value or null}}
+                from . import appstate
+                try:
+                    return self._json({"ok": True, "state": appstate.update((body or {}).get("set") if isinstance(body, dict) else None)})
+                except ValueError as e:
+                    return self._json({"error": str(e)}, 400)
             if self.path == "/api/reveal":   # Settings › Open the data folder: this package's session folder
-                return self._json(self._reveal())
+                b = body if isinstance(body, dict) else {}
+                return self._json(self._reveal({"session": b["session"]} if b.get("target") == "session" else b.get("target")))
+            if self.path == "/api/session-rename":   # Manage work packages: a name of your own, or "" for the one the review gives it
+                d, name = session_named((body or {}).get("session")), (body or {}).get("name")
+                if not d or not isinstance(name, str):
+                    return self._json({"error": "unknown work package"}, 404)
+                name = name.strip()[:80]
+                if name:
+                    write_json(d / "package.json", {"name": name})
+                else:
+                    (d / "package.json").unlink(missing_ok=True)
+                return self._json({"ok": True, "sessions": list_sessions()})
+            if self.path == "/api/session-delete":   # Manage work packages: move a package's folder to the Trash
+                return self._json(*self._trash((body or {}).get("session")))
             if self.path == "/api/recipes":   # save a recipe made in the page (Remix)
                 from . import recipes as R
                 try:

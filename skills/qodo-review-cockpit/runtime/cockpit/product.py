@@ -41,11 +41,14 @@ def project_pr(pr):
                       'text': scan.get('text') if authoritative else 'Comment evidence; current-head scanner run unverified'})
     review = qodo_current(pr)
     paths = pr.get('files_complete', (sections.get('files') or {}).get('complete')) is True
-    complete = paths and review and ci and known(('comments', 'inline_comments', 'annotations')) and all(s['authoritative'] for s in scans)
+    patch_states = [(f.get('patch_evidence') or {}) for f in pr.get('files', [])]
+    patches = paths and all(p.get('complete') is True and p.get('items') and
+                           all(item.get('patch_complete') is True for item in p['items']) for p in patch_states)
+    complete = not pr.get('collection_incomplete') and patches and paths and review and ci and known(('comments', 'inline_comments', 'annotations')) and all(s['authoritative'] for s in scans)
     return {**pr, 'product': True, 'scans': scans,
-            'product_evidence': {'qodo_complete': review, 'ci_complete': ci, 'quality_complete': complete}}
+            'product_evidence': {'qodo_complete': review, 'ci_complete': ci, 'patches_complete': bool(patches), 'quality_complete': complete}}
 
 
 def project_data(data):
     return {**data, 'product': True, 'provider_writes': False,
-            'prs': [project_pr(p) for p in data.get('prs', [])]}
+            'prs': [project_pr({**p, 'collection_incomplete': (data.get('collection') or {}).get('complete') is False}) for p in data.get('prs', [])]}

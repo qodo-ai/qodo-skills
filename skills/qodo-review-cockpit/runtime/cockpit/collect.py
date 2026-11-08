@@ -217,6 +217,8 @@ def fetch_pr(repo: str, number: int, annotation_checks: list[str] | None = None)
         "head": v.get("headRefName"), "prior_bases": prior_bases(repo, number), "head_sha": v.get("headRefOid"), "additions": v.get("additions", 0),
         "deletions": v.get("deletions", 0), "labels": [l["name"] for l in v.get("labels", [])], **human_reviews(reviews, v.get("headRefOid")),
         "files": files, "checks": checks, "created": v.get("createdAt"), "_raw_comments": raw, "_threads": review_threads,
+        "unresolved_threads": sum(1 for t in review_threads.values() if not t["resolved"]) if review_threads is not None else None,
+        "unresolved_ids": sorted(c for c, t in review_threads.items() if not t["resolved"])[:50] if review_threads is not None else [],   # first comment of each, for links
         "_annotations": fetch_annotations(repo, v.get("headRefOid"), annotation_checks or []),
         **_tests_and_coverage(repo, v.get("headRefOid"), raw),
         "summary": "", "risk": "", "diagrams": [], **({"files_missing": missing} if missing else {}),
@@ -433,7 +435,8 @@ def import_own_comments(pr: dict, reviewer_login: str | None, session: str) -> l
 
 def build(prs: list[dict], cfg: dict, *, demo: bool = False, session: str | None = None,
           reviewer_login: str | None = None, open_prs: dict | None = None,
-          skip_github_ids: set | None = None, dest: Path | None = None) -> tuple[str, Path]:
+          skip_github_ids: set | None = None, dest: Path | None = None,
+          collection_meta: dict | None = None, require_complete_budget: bool = False) -> tuple[str, Path]:
     """`dest` pins the session folder (a refresh), so a work package folder change mid-run can't redirect the writes."""
     session = session or _dt.datetime.now().strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
     sdir = dest or SESSIONS / session
@@ -494,10 +497,19 @@ def build(prs: list[dict], cfg: dict, *, demo: bool = False, session: str | None
     if not demo:   # sister PRs elsewhere: by ticket, and by the descriptions' owner/repo#N mentions
         data["context"]["related"] = related_elsewhere(prs, data["context"])
     if product:
-        from .adapters.managed import current_budget
+        from .adapters.managed import current_budget, BudgetExceeded
         budget = current_budget()
         if budget:
             data['managed_read_budget'] = budget.summary()
+            if require_complete_budget and data['managed_read_budget']['exhausted']:
+                raise BudgetExceeded('Refresh read budget exhausted; the previous saved session is unchanged')
+        if collection_meta is not None:
+            meta = dict(collection_meta)
+            if (data.get('managed_read_budget') or {}).get('exhausted'):
+                meta.update(complete=False, reason='budget_exhausted')
+            data['collection'] = meta
+            if not meta['complete']:
+                print(f"Collection incomplete: {len(prs)} of {len(meta['requested_refs'])} requested changes retained; missing evidence remains unknown", file=sys.stderr)
     write_json(sdir / "review-data.json", data)
     ev_path = sdir / "events.jsonl"
     with ev_path.open("a") as fh:
@@ -535,7 +547,12 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
         # an approval is news of its own, not "a comment"; the other reviews are comments to read
         new_comments = sum(1 for c in (v.get("comments") or []) if (c.get("createdAt") or "") > since) + \
             sum(1 for r in new_reviews if r.get("state") != "APPROVED")
-        out[key] = {"head": head, "snapshot_head": old, "moved": bool(head and old and head != old), "new_commits": ahead,
+        try:   # review conversations still open, for the verdict: how many, and the first comment of each for its link
+            open_ids = sorted(c for c, t in threads.fetch(repo, num).items() if not t["resolved"])
+            unresolved = len(open_ids)
+        except (RuntimeError, ValueError, KeyError):
+            open_ids, unresolved = [], None
+        out[key] = {"head": head, "snapshot_head": old, "moved": bool(head and old and head != old), "new_commits": ahead, "unresolved": unresolved, "unresolved_ids": open_ids[:50],
                     "state": v.get("state"), "merge_state": v.get("mergeStateStatus"), "review_decision": v.get("reviewDecision"),
                     "draft": v.get("isDraft"), "new_comments": new_comments, "approved_by": approvers}
     return out
@@ -544,12 +561,13 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
 def refresh(sdir: Path, cfg: dict | None = None) -> dict:
     """Re-collect the session's PRs into the same session: notes, marks and verdicts stay, the
     enrichment (sessions/<id>/enrich.json) is re-applied so its warnings show what drifted."""
-    cfg = cfg or load_config()
     old = json.loads((sdir / "review-data.json").read_text())
-    if old.get('product'):
+    from .product import enabled
+    if enabled(old):
         from .managed_work import refresh as managed_refresh
         from .util import session_config
-        return managed_refresh(sdir, old, session_config(sdir))
+        return managed_refresh(sdir, old, cfg or session_config(sdir))
+    cfg = cfg or load_config()
     try:
         login = gh(["api", "user", "--jq", ".login"]).strip()
     except RuntimeError:
