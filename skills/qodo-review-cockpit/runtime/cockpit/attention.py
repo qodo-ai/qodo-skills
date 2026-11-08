@@ -47,6 +47,8 @@ def _has_new_version(old: str, new: list[str]) -> bool:
 def _ci_ran_green(pr: dict) -> int:
     """How many checks ran and succeeded, when none failed or is still running: 0 otherwise.
     Skipped, neutral or cancelled checks didn't run anything, so they never count as tests passing."""
+    if _ci_passed(pr) is not True:
+        return 0
     states = [str(k.get("state") or "").upper() for k in pr.get("checks") or []]
     ran = [x for x in states if not re.search(r"SKIP|NEUTRAL|CANCEL", x)]
     if not ran or not all(re.search(r"SUCC|PASS", x) for x in ran):
@@ -62,6 +64,10 @@ def _ci_passed(pr: dict) -> bool | None:
     states = [str(k.get("state") or "") for k in ks if not re.search(r"CANCEL", str(k.get("state")), re.I)]   # superseded runs
     if any(re.search(r"FAIL|ERROR|TIMED_OUT|ACTION_REQUIRED", x, re.I) for x in states):
         return False
+    from .product import enabled
+    sections = (pr.get('read_evidence') or {}).get('sections', {})
+    if enabled(pr) and any(sections.get(kind, {}).get('complete') is not True for kind in ('checks', 'statuses')):
+        return None
     if all(re.search(r"SUCC|PASS|SKIP|NEUTRAL", x, re.I) for x in states):
         return True
     return None

@@ -215,6 +215,9 @@ class Client:
                            'url': c.get('url') or c.get('details_url') or c.get('target_url')})
         head = context.get('head_sha')
         reviews = normalize_reviews(evidence['reviews']['items'])
+        human = human_reviews(reviews, head)
+        if not head:
+            human['approvals'] = []
         return {'key': f"{identity['repo']}#{number}", 'repo': identity['repo'], 'number': number,
                 'provider': identity['provider'], 'provider_host': identity['provider_host'], 'repository_url': identity.get('repository_url'),
                 'product': True, 'identity': identity, 'title': change.get('title') or f'Change {number}', 'body': change.get('body') or '',
@@ -224,7 +227,7 @@ class Client:
                 'files': files, 'files_complete': evidence['files']['complete'], 'files_missing': max(0, (change.get('changed_files') or 0)-len(files)), 'checks': checks, '_raw_comments': comments, '_annotations': evidence['annotations']['items'],
                 '_threads': None, 'provider_threads': evidence['threads'], 'summary': '', 'risk': '', 'diagrams': [],
                 'read_evidence': {'capabilities': caps, 'context': context, 'sections': evidence},
-                **human_reviews(reviews, head)}
+                **human}
 
 
 def normalize_reviews(items):
