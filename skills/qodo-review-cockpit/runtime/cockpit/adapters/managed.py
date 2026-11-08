@@ -97,6 +97,8 @@ def decode_result(result, group, tool):
         err = out.get('error') if isinstance(out, dict) else None
         code = str((err or {}).get('code', 'unavailable')) if isinstance(err, dict) else 'unavailable'
         metadata = (err.get('metadata') or {}) if isinstance(err, dict) else {}
+        if code.upper().startswith('MT-AUTH-'):
+            raise PermissionDenied(f'{group}/{tool}: {code}; owner action required')
         if str(metadata.get('upstream_status')) in ('401', '403'):
             raise ScopedPermissionDenied(f'{group}/{tool}: provider permission limited ({metadata["upstream_status"]}); no retry or fallback')
         if any(x in code.upper() for x in ('PERMISSION', 'FORBIDDEN', 'DENIED', 'NOT-IN-SCOPE', 'UNAUTHORIZED', 'NO-CREDENTIAL', 'NOT_LOGGED_IN', 'TOKEN_EXPIRED', 'INVALID_TOKEN')):
