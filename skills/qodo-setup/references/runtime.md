@@ -90,7 +90,9 @@ compatibility issue. For a parsed 1.x runtime, ordinary `qodo update` can reach 
 the recorded origin has enabled legacy migration. Use the CLI's supported update check to choose
 the route; if the legacy alias still advertises 1.x, the same-origin recovery is
 `qodo update --channel latest-2`. Do not assume migration is active on every origin or claim that
-updates can never cross majors. Choose one approved runtime attempt; if it fails or remains
+updates can never cross majors. This exception covers only approved 1.x to stable 2.x; it does
+not authorize other major migrations or change future-major automatic-update policy.
+Choose one approved runtime attempt; if it fails or remains
 incompatible, stop instead of retrying through another route.
 
 For an unparseable runtime or no supported updater, use the checksum-pinned installation
