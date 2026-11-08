@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
 from inspect import signature
+from urllib.parse import urlsplit
 
 _SELECTED = ContextVar("cockpit_product_operation", default=False)
 
@@ -59,6 +60,32 @@ def qodo_current(pr):
                 rv.get('commit') == pr['head_sha'] and rv.get('run_id') and rv.get('bounded') is False)
 
 
+_LINK_FIELDS = {'url', 'qodo_url', 'repository_url', 'html_url', 'details_url', 'target_url', 'source_url', 'report_url', 'href'}
+# These envelopes are source evidence, not normalized presentation objects.
+_PROVENANCE_FIELDS = {'read_evidence', 'qodo_review_evidence', 'qodo_review', 'patch_evidence', 'source_evidence',
+                      'identity', 'provenance', 'raw', 'raw_metadata', 'provider_threads', '_raw_comments', '_annotations', '_threads'}
+
+
+def safe_http_url(value):
+    if not isinstance(value, str) or any(ord(c) <= 32 or ord(c) == 127 for c in value):
+        return None
+    try:
+        parsed = urlsplit(value)
+        return value if parsed.scheme.lower() in ('http', 'https') and parsed.netloc and parsed.hostname else None
+    except ValueError:
+        return None
+
+
+def presentation_links(value):
+    """Copy normalized links for product rendering; retain raw/provenance envelopes verbatim."""
+    if isinstance(value, list):
+        return [presentation_links(item) for item in value]
+    if isinstance(value, dict):
+        return {key: item if key in _PROVENANCE_FIELDS else safe_http_url(item) if key in _LINK_FIELDS else presentation_links(item)
+                for key, item in value.items()}
+    return value
+
+
 def project_pr(pr):
     """Presentation authority is separate from useful comment-derived evidence."""
     sections = (pr.get('read_evidence') or {}).get('sections') or {}
@@ -77,10 +104,10 @@ def project_pr(pr):
     patches = paths and all(p.get('complete') is True and p.get('items') and
                            all(item.get('patch_complete') is True for item in p['items']) for p in patch_states)
     complete = not pr.get('collection_incomplete') and patches and paths and review and ci and known(('comments', 'inline_comments', 'annotations')) and all(s['authoritative'] for s in scans)
-    return {**pr, 'product': True, 'scans': scans,
-            'product_evidence': {'qodo_complete': review, 'ci_complete': ci, 'patches_complete': bool(patches), 'quality_complete': complete}}
+    return presentation_links({**pr, 'product': True, 'scans': scans,
+            'product_evidence': {'qodo_complete': review, 'ci_complete': ci, 'patches_complete': bool(patches), 'quality_complete': complete}})
 
 
 def project_data(data):
-    return {**data, 'product': True, 'provider_writes': False,
-            'prs': [project_pr({**p, 'collection_incomplete': (data.get('collection') or {}).get('complete') is False}) for p in data.get('prs', [])]}
+    return presentation_links({**data, 'product': True, 'provider_writes': False,
+            'prs': [project_pr({**p, 'collection_incomplete': (data.get('collection') or {}).get('complete') is False}) for p in data.get('prs', [])]})

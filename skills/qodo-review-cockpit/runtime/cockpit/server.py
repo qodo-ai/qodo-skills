@@ -229,12 +229,29 @@ class Handler(SimpleHTTPRequestHandler):
             return
         return self._html(as_document(render(name, self.sdir, mode="serve")))
 
+    def _origin_error(self):
+        """The existing local host/same-origin request boundary, shared by product reads."""
+        origin = self.headers.get('Origin')
+        host = self.headers.get('Host', '')
+        if host.rpartition(':')[0] not in ('127.0.0.1', 'localhost', '[::1]'):
+            return 'unknown host'
+        if origin and not origin.endswith('//' + host):
+            return 'cross-origin request refused'
+        return None
+
     def do_GET(self):
+        from .product import enabled
+        error = self._origin_error()
+        if error and (enabled() or getattr(getattr(self, 'server', None), 'product', False)):
+            return self._json({'error': error}, 403)
         route = self.path.split("?")[0]
         if route == "/api/health":   # the page's server check: answers before any package is picked, so a gone package can't hide a live server
             return self._json({"ok": True, "time": now_iso()})
         if not self._pick_session():
             return self._json({"error": "this work package is no longer on this machine; reload the page"}, 404)
+        if error and json.loads((self.sdir / 'review-data.json').read_text()).get('product'):
+            # Only inspect the selected session's mode before rejecting; no data projection or route runs.
+            return self._json({'error': error}, 403)
         from .product import scope
         with scope(self._data()):
             return self._get_selected(route)
@@ -387,12 +404,9 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         # Only accept same-origin JSON requests (blocks drive-by form posts from other sites).
-        origin = self.headers.get("Origin")
-        host = self.headers.get("Host", "")
-        if host.rpartition(":")[0] not in ("127.0.0.1", "localhost", "[::1]"):   # a rebound DNS name reaches 127.0.0.1 too
-            return self._json({"error": "unknown host"}, 403)
-        if origin and not origin.endswith("//" + host):
-            return self._json({"error": "cross-origin request refused"}, 403)
+        error = self._origin_error()
+        if error:
+            return self._json({'error': error}, 403)
         if "application/json" not in (self.headers.get("Content-Type") or ""):
             return self._json({"error": "JSON body required"}, 415)
         if not self._pick_session():
