@@ -56,7 +56,7 @@ test('Antigravity manifests satisfy the Marketplace contract and exact package m
       author,
       homepage: catalog.package.homepage,
       repository: catalog.package.repository,
-      license: catalog.package.license,
+      license: pkg.license ?? catalog.package.license,
     });
     assert.match(manifest.name, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
     assert.ok(manifest.description.length >= 120 && manifest.description.length <= 160);

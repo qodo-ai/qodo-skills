@@ -114,6 +114,21 @@ test('supporting files, catalog display metadata, and packaging fixes are collec
   assert.ok(readFileSync(join(f.root, 'antigravity-plugins/qodo/README.md'), 'utf8').includes(`v${result.version}`));
 });
 
+test('a projection-helper-only edit requires a packaging release without changing skill versions', (t) => {
+  const f = fixture(t);
+  f.edit('scripts/package-projections.mjs', '\n// Projection-policy fixture correction.\n');
+  f.commit('change projection policy only');
+  const plan = planSkillRelease(f.root);
+  assert.equal(plan.pending, true);
+  assert.deepEqual(plan.skills, []);
+  assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
+  const result = prepareSkillRelease(f.root, plan);
+  assert.deepEqual(result.changes, []);
+  assert.equal(readJson(f.root, `releases/v${result.version}.json`).package.change, 'patch');
+  f.commit('version projection policy release');
+  f.check('scripts/validate-diff.mjs', f.base);
+});
+
 test('a new skill already merged to main uses initial relative to the last prepared release', (t) => {
   const f = fixture(t);
   const catalog = readJson(f.root, 'distribution/catalog.json');

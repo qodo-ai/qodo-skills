@@ -16,8 +16,17 @@ plugins remain owned by their host.
 |---|---:|---|
 | `qodo` | Yes | setup, codebase wisdom, local review, PR review resolver |
 | `qodo-standards` | No | rules discovery and standards administration |
+| `qodo-cockpit` | No | interactive PR/work-package review, local notes/marks, refresh/resume and export |
 
-Qodo Standards stays a separate opt-in package. Updating the core package never installs it.
+Qodo Standards and Cockpit are separate opt-in packages. Updating core never installs either.
+Cockpit requires Python 3.9+ and Qodo CLI2+, keeps state outside installed resources, and does
+not publish provider comments or finding dispositions. Its runtime retains Qodo commercial terms;
+core and Standards retain their MIT metadata.
+
+Cockpit host resources are generated for a release containing the optional package; external
+provider listings are deferred. Current CLI/enterprise managed installers support only core and
+Standards. For explicit native/portable Cockpit installation, see its
+[package and host guidance](skills/qodo-review-cockpit/references/packaging.md#install-scope-and-current-managed-compatibility).
 
 ## Contribute a skill update
 

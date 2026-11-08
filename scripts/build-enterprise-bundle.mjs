@@ -1,4 +1,5 @@
 /** Build the deterministic, offline Qodo enterprise skills release assets. */
+import { managedPackages, kiroRoot } from './package-projections.mjs';
 import { createHash } from 'node:crypto';
 import {
   mkdirSync,
@@ -170,7 +171,7 @@ function buildDiscoveryFeeds({ catalog, outputDir, repositoryRoot }) {
   const skillMetadata = new Map(catalog.skills.map((skill) => [skill.name, skill]));
   const packages = [];
   const assets = [];
-  for (const installPackage of catalog.installPackages) {
+  for (const installPackage of managedPackages(catalog)) {
     const entries = [];
     for (const skillName of installPackage.skills) {
       const files = [];
@@ -262,12 +263,12 @@ export function buildEnterpriseBundle({ output, commit, releaseIndex }, reposito
   const catalog = JSON.parse(readFileSync(join(repositoryRoot, 'distribution', 'catalog.json'), 'utf8'));
   const version = catalog.package.version;
   const files = [];
-  const packages = catalog.installPackages.map((installPackage) => {
+  const packages = managedPackages(catalog).map((installPackage) => {
     const roots = packageRoots(installPackage.name);
     const sources = {
       claude: join(repositoryRoot, 'packages', installPackage.name),
       codex: join(repositoryRoot, 'codex-packages', installPackage.name),
-      kiro: join(repositoryRoot, installPackage.name === 'qodo' ? 'kiro-power' : 'kiro-power-standards'),
+      kiro: join(repositoryRoot, kiroRoot(installPackage.name)),
     };
     for (const [provider, source] of Object.entries(sources)) collectProjection(provider, source, roots[provider], files);
     for (const skill of installPackage.skills) {

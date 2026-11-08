@@ -263,6 +263,7 @@ try {
   copyFileSync(join(root, 'releases', `${releaseTag}.json`), join(checkout, 'releases', `${releaseTag}.json`));
   copyFileSync(join(root, 'scripts', 'release-notes.mjs'), join(checkout, 'scripts', 'release-notes.mjs'));
   copyFileSync(join(root, 'scripts', 'build-release-index.mjs'), join(checkout, 'scripts', 'build-release-index.mjs'));
+  copyFileSync(join(root, 'scripts', 'package-projections.mjs'), join(checkout, 'scripts', 'package-projections.mjs'));
   copyFileSync(join(root, 'scripts', 'publish-release.sh'), join(checkout, 'scripts', 'publish-release.sh'));
   copyFileSync(join(root, 'scripts', 'publish-release.cmd'), join(checkout, 'scripts', 'publish-release.cmd'));
   chmodSync(join(checkout, 'scripts', 'publish-release.sh'), 0o755);

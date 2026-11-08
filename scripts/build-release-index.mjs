@@ -1,4 +1,5 @@
 /** Build the compact, checksummed skill-version index consumed by the Qodo CLI. */
+import { managedPackages } from './package-projections.mjs';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -26,11 +27,11 @@ const indexPath = join(outputDirectory, 'qodo-skills-index.json');
 const checksumPath = `${indexPath}.sha256`;
 
 const packageBySkill = new Map();
-for (const installPackage of catalog.installPackages) {
+for (const installPackage of managedPackages(catalog)) {
   for (const skillName of installPackage.skills) packageBySkill.set(skillName, installPackage.name);
 }
 
-const skills = Object.fromEntries(catalog.skills.map((skill) => {
+const skills = Object.fromEntries(catalog.skills.filter((skill) => packageBySkill.has(skill.name)).map((skill) => {
   const packageName = packageBySkill.get(skill.name);
   if (!packageName) throw new Error(`${skill.name}: missing install package`);
   return [skill.name, { version: skill.version, package: packageName }];

@@ -10,10 +10,10 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
+import { providerPackages, kiroRoot } from './package-projections.mjs';
 import { stampSkillProvenance } from './skill-provenance.mjs';
 import { validateCodexPortalManifest } from './codex-portal-contract.mjs';
 import { validateSkillDelivery } from './skill-delivery.mjs';
-
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const errors = [];
 const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
@@ -25,17 +25,16 @@ const deliverySections = new Map([
   ['qodo-review', 'Present the review result'],
   ['qodo-review-resolver', 'Present the review state'],
   ['qodo-review-notes', 'Report the result'],
+  ['qodo-review-cockpit', 'Present the review result'],
 ]);
 const forbiddenRuntimeBypass = new RegExp([
   ['QODO', '_', 'API', '_KEY'].join(''), '|',
   ['\\bAPI', '_KEY\\b'].join(''), '|',
   'qodo-platform\\.', '[^\\s]+', '\\/rules\\/v1',
 ].join(''), 'i');
-
 function fail(message) {
   errors.push(message);
 }
-
 function json(path) {
   try {
     return JSON.parse(readFileSync(join(root, path), 'utf8'));
@@ -188,7 +187,7 @@ if (JSON.stringify(providerIds) !== JSON.stringify(expectedProviders)) {
 }
 for (const provider of marketplaces.providers ?? []) {
   const listingPackages = (provider.listings ?? []).map((entry) => entry.package).sort();
-  const expectedPackages = provider.id === 'kiro' ? [catalog.package.name] : [...installPackageNames].sort();
+  const expectedPackages = provider.id === 'kiro' ? [catalog.package.name] : providerPackages(catalog).map((pkg) => pkg.name).sort();
   if (JSON.stringify(listingPackages) !== JSON.stringify(expectedPackages)) {
     fail(`${provider.id}: listings must match the provider package scope exactly once`);
   }
@@ -394,7 +393,7 @@ for (const path of [
 for (const installPackage of catalog.installPackages ?? []) {
   for (const packageRoot of [
     `packages/${installPackage.name}`, `codex-packages/${installPackage.name}`,
-    installPackage.name === catalog.package.name ? 'kiro-power' : 'kiro-power-standards',
+    kiroRoot(installPackage.name),
   ]) {
     const names = readdirSync(join(root, packageRoot, 'skills')).sort();
     if (JSON.stringify(names) !== JSON.stringify([...installPackage.skills].sort())) {
@@ -407,7 +406,7 @@ for (const installPackage of catalog.installPackages ?? []) {
       [`packages/${installPackage.name}/skills/${skillName}/SKILL.md`, 'marketplace', 'claude-code'],
       [`codex-packages/${installPackage.name}/skills/${skillName}/SKILL.md`, 'marketplace', 'codex'],
       [
-        `${installPackage.name === catalog.package.name ? 'kiro-power' : 'kiro-power-standards'}/skills/${skillName}/SKILL.md`,
+        `${kiroRoot(installPackage.name)}/skills/${skillName}/SKILL.md`,
         'kiro-power',
         'kiro',
       ],
@@ -469,7 +468,8 @@ for (const change of Array.isArray(release.skills) ? release.skills : []) {
 
 for (const file of walk(root)) {
   const path = relative(root, file);
-  if (/\.(md|mjs|json|ya?ml)$/.test(path)) {
+  // Imported upstream resources are hash-verified separately; the line limit applies to authored source.
+  if (/\.(md|mjs|json|ya?ml)$/.test(path) && !path.split('\\').join('/').includes('skills/qodo-review-cockpit/runtime/')) {
     const text = readFileSync(file, 'utf8');
     const lines = text.endsWith('\n') ? text.slice(0, -1).split('\n').length : text.split('\n').length;
     if (lines > 500) fail(`${path}: ${lines} lines exceeds the 500-line limit`);
