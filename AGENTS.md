@@ -9,6 +9,11 @@
 - Every skill frontmatter includes `name`, `description`, and standard `metadata` containing
   `vendor`, `version`, and `recommended` string fields.
 - Keep every source file below 500 lines; extract focused references or scripts when needed.
+- The pinned upstream snapshot in `skills/qodo-review-cockpit/runtime/` is exempt from
+  that line-count guideline. Preserve its component terms and manifest hashes, enforce
+  the unchanged 512 KiB per-resource limit, and never edit the copied files by hand.
+  Make runtime changes upstream and re-import; authored skill instructions and tooling
+  still follow the 500-line guideline.
 - Use Node built-ins for repository automation. Do not add a runtime dependency without a
   documented need and approval.
 - Contributors edit canonical skills and catalog metadata in ordinary PRs, leaving existing
