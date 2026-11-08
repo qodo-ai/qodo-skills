@@ -55,16 +55,28 @@ def collect(refs, default_repo, cfg):
 
 @bounded_operation
 def refresh(sdir, old, cfg):
+    from .product import scope
+    with scope({'product': True}):
+        return _refresh(sdir, old, cfg)
+
+
+def _refresh(sdir, old, cfg):
     from .collect import build, _events
-    from .product import activate
-    activate()
     client = Client()
     prs = []
     previous_collection = old.get('collection') or {}
     requested = previous_collection.get('requested_refs') or [p.get('url') or f"{p['repo']}#{p['number']}" for p in old['prs']]
     for ref in requested:
         repo, number, host = parse_ref(ref, previous_collection.get('default_repo'))
-        previous = next((p for p in old['prs'] if p['repo'] == repo and p['number'] == number and
+        collected = previous_collection.get('collected_refs') or []
+        paired = list(zip(collected, old['prs'])) if len(collected) == len(old['prs']) else []
+        # Exact saved inputs and returned native URLs bind to the identity observed at collection.
+        saved = [p for p in old['prs'] if p.get('url') == ref or any(saved_ref == ref and candidate is p for saved_ref, candidate in paired)]
+        saved = [p for p in saved if p['number'] == number and (p.get('identity') or {}).get('repo') == p['repo'] and
+                 (not host or (p.get('identity') or {}).get('provider_host') == host)]
+        if len(saved) > 1:
+            raise ReadError('Saved input reference maps to multiple changes; no identity was selected')
+        previous = saved[0] if saved else next((p for p in old['prs'] if p['repo'] == repo and p['number'] == number and
                          (not host or (p.get('identity') or {}).get('provider_host') == host)), {})
         pr = client.change(repo, number, host, identity=previous.get('identity'))
         pr['key'] = previous.get('key') or pr['key']

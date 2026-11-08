@@ -110,7 +110,7 @@ def _pr_view(p: dict) -> dict:
     for r in att.get("ranges", []):
         t = tiers.setdefault(r["path"], {"deep": 0, "review": 0, "skim": 0, "skip": 0})
         t[r["tier"]] = t.get(r["tier"], 0) + r.get("lines", 0)
-    keep = ("id", "source", "category", "severity", "status", "verdict", "path", "line", "end_line", "side", "title", "stance", "url", "scanner", "local", "status_why", "qodo_type")
+    keep = ("id", "source", "category", "severity", "status", "verdict", "path", "line", "end_line", "side", "title", "stance", "url", "scanner", "local", "status_why", "qodo_type", "review_source", "git_sha", "review_run_id", "created_at", "commit", "qodo_id")
     return {
         "key": p["key"], "repo": p["repo"], "number": p["number"], "title": p["title"], "url": p.get("url"),
         "author": p.get("author"), "base": p.get("base"), "head": p.get("head"), "head_sha": p.get("head_sha"), "base_sha": p.get("base_sha"),
@@ -120,7 +120,7 @@ def _pr_view(p: dict) -> dict:
         "summary": p.get("summary"), "risk": p.get("risk"), "story": p.get("story") or [], "layers": p.get("layers") or [],
         "findings": [{**{k: f.get(k) for k in keep}, "why": f.get("stance_why"), "body": (f.get("body") or "")[:900]}
                      for f in p.get("findings", [])],
-        "attention": {"summary": att.get("summary"), "blocks": blocks, "must_read": att.get("must_read", []),
+        "attention": {**({"coverage": {"complete": bool((p.get("product_evidence") or {}).get("patches_complete")), "scope": "observed_subset" if not (p.get("product_evidence") or {}).get("patches_complete") else "complete"}} if p.get("product") else {}), "summary": att.get("summary"), "blocks": blocks, "must_read": att.get("must_read", []),
                       # skim and skip, per file and reason, for the plan bar's segments
                       "ranges": [{k: r.get(k) for k in ("path", "tier", "lines", "reason", "evidence")}
                                  for r in att.get("ranges", []) if r.get("tier") in ("skim", "skip")]},

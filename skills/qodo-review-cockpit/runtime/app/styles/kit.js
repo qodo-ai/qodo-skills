@@ -27,6 +27,8 @@ const KIT = (() => {
   /* a local finding: what the author's own `qodo review` found before the PR, its status as that review left it */
   const localTag = (f) => {
     const l = f.local;
+    if (l?.origin === 'managed') return ` <span class="local" title="${esc(`Qodo records this finding from local_skill before the PR${l.at ? ' on '+String(l.at).slice(0,10) : ''}. This origin does not establish a completed PR review.`)}">· before the PR</span>`;
+    if (!l && f.review_source && f.review_source !== 'git_pr') return ` <span class="local">${esc(f.review_source === 'unknown' ? '· review origin unknown' : '· review source: '+f.review_source)}</span>`;
     if (!l) return "";
     const when = l.at ? ` on ${String(l.at).slice(0, 10)}` : "";
     if (f.source !== "qodo-local") return ` <span class="local" title="${esc(`The author's local review${when} found this too, and left it ${l.status || "open"}${l.reason ? `: ${l.reason}` : ""}`)}">· also found before the PR</span>`;
@@ -41,7 +43,7 @@ const KIT = (() => {
     || (f.scanner && f.scanner.kind === "lint");
   /* what the author fixed or dismissed before the PR: the closed local findings, each with what became of it */
   const localDone = (findings) => {
-    const done = (findings || []).filter((f) => f.source === "qodo-local" && f.status && f.status !== "open");
+    const done = (findings || []).filter((f) => f.source === "qodo-local" && f.local?.origin !== "managed" && f.status && f.status !== "open");
     if (!done.length) return "";
     const what = (f) => f.status === "resolved" ? "fixed" : f.status === "dismissed" ? "dismissed" : f.status;
     return `<div class="local-done"><p class="muted" style="font-size:14px;margin:12px 0 4px">Before the PR, the author's own review closed ${done.length}:</p><ul style="margin:0;padding-left:20px;font-size:14px">${done.map((f) =>

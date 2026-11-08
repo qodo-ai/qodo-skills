@@ -2,14 +2,46 @@
 from __future__ import annotations
 
 import os
+import json
+from contextlib import contextmanager
+from contextvars import ContextVar
+from functools import wraps
+from inspect import signature
+
+_SELECTED = ContextVar("cockpit_product_operation", default=False)
 
 
 def enabled(data=None):
-    return os.environ.get('REVIEW_COCKPIT_PRODUCT') == '1' or bool((data or {}).get('product'))
+    return os.environ.get('REVIEW_COCKPIT_PRODUCT') == '1' or _SELECTED.get() or bool((data or {}).get('product'))
 
 
 def activate():
     os.environ['REVIEW_COCKPIT_PRODUCT'] = '1'
+
+
+@contextmanager
+def scope(data=None):
+    """Session/operation choice is local to this context, never a process environment toggle."""
+    token = _SELECTED.set(enabled(data))
+    try:
+        yield
+    finally:
+        _SELECTED.reset(token)
+
+
+def session_operation(fn):
+    """Scope transitive reads to the saved session for the duration of one operation."""
+    params = signature(fn)
+    @wraps(fn)
+    def run(*args, **kwargs):
+        bound = params.bind(*args, **kwargs).arguments
+        sdir = bound['sdir']
+        path = sdir / 'review-data.json'
+        saved = json.loads(path.read_text()) if path.is_file() else {}
+        data = bound.get('data') or {}
+        with scope({'product': bool(saved.get('product') or data.get('product'))}):
+            return fn(*args, **kwargs)
+    return run
 
 
 def local_only(data=None):

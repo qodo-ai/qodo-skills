@@ -457,7 +457,12 @@ def plan(pr: dict) -> dict:
         g["lines"] += r["lines"]
         g["files"].add(r["path"])
     groups = sorted(({**g, "files": sorted(g["files"])} for g in rest.values()), key=lambda g: (g["tier"] != "skim", -g["lines"]))
-    return {"pr": pr["key"], "summary": att["summary"], "must_read": must, "safe_to_skip": groups}
+    out = {"pr": pr["key"], "summary": att["summary"], "must_read": must, "safe_to_skip": groups}
+    from .product import enabled, project_pr
+    if enabled(pr):
+        complete = project_pr(pr)['product_evidence']['patches_complete']
+        out['coverage'] = {'complete': complete, 'scope': 'complete' if complete else 'observed_subset'}
+    return out
 
 
 def plan_markdown(pr: dict) -> str:
@@ -467,8 +472,12 @@ def plan_markdown(pr: dict) -> str:
     if not s.get("total"):
         return ""
     deep, read = s.get("deep", 0), s.get("review", 0)
-    lines = [f"<details><summary>Review plan: deep-read {deep}, read {read} of {s['total']} changed lines "
+    partial = (p.get("coverage") or {}).get("complete") is False
+    scope = "observed changed lines" if partial else "changed lines"
+    lines = [f"<details><summary>Review plan: deep-read {deep}, read {read} of {s['total']} {scope} "
              f"({round(100 * (deep + read) / s['total'])}%)</summary>", ""]
+    if partial:
+        lines += ["Coverage incomplete: this plan covers only the observed patch subset; percentages describe that subset.", ""]
     lines += [f"- {'Deep-read' if m['tier'] == 'deep' else 'Read'} `{m['path']}` {m['from']}–{m['to']}"
               + (f" ({', '.join(m['why_deep']) if m['tier'] == 'deep' else m['reason']})" if m["tier"] == "deep" or m["reason"] != "code" else "")
               for m in p["must_read"][:15]]

@@ -311,14 +311,15 @@ def _has_answer(reply: str) -> bool:
     return isinstance(v, dict) and isinstance(v.get("answer"), str) and bool(v["answer"].strip())
 
 
+from .product import session_operation
+
+
+@session_operation
 def ask(prompt: str, sdir: Path, agent: str = "auto", deadline: float = DEADLINE, qid: str | None = None, qodo: str | None = None) -> dict:
     if not isinstance(prompt, str) or not prompt.strip():
         raise AskError("no question")
     if len(prompt) > MAX_PROMPT:
         raise AskError(f"the question and its report index are over {MAX_PROMPT // 1000} k characters")
-    from .product import enabled, activate
-    if _product_session(sdir):
-        activate()
     who = pick(agent)
     global _CATALOG
     if qodo and qodo != _QODO["cmd"]:

@@ -142,10 +142,9 @@ def memory_on(cfg: dict) -> bool:
 def session_config(sdir: Path) -> dict:
     """Config with the memory locations recorded in a session (demo sessions use a copy)."""
     data = json.loads((sdir / "review-data.json").read_text())
-    if data.get('product'):
-        from .product import activate
-        activate()
-    cfg = load_config()
+    from .product import scope
+    with scope(data):
+        cfg = load_config()
     if data.get("memory"):
         mem = dict(data["memory"])
         mem["auto_commit"] = str(mem.get("auto_commit")).lower() == "true"

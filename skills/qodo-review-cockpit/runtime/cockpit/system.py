@@ -149,6 +149,21 @@ def _ref(raw, prs: dict, where: str, warn: list, fetch: dict | None) -> dict | N
         out.update(repo=repo, source_evidence={'status':'unavailable', 'complete':False, 'reason':'ambiguous provider repository'})
         warn.append(f'{where}: source repository identity is ambiguous; no source read')
         return out
+    explicit = _s(raw.get('ref'), 80)
+    immutable = bool(re.fullmatch(r'[0-9a-fA-F]{40}|[0-9a-fA-F]{64}', explicit))
+    if product and not immutable:
+        candidates = set()
+        for match in matches:
+            if not explicit or explicit == 'HEAD' or explicit == match.get('base'):
+                candidates.add(match.get('base_sha'))
+            elif explicit == match.get('head'):
+                candidates.add(match.get('head_sha'))
+            else:
+                candidates.add(None)
+        if len(candidates) != 1 or any(not isinstance(value, str) or not re.fullmatch(r'[0-9a-fA-F]{40}|[0-9a-fA-F]{64}', value) for value in candidates):
+            out.update(repo=repo, ref=explicit or 'HEAD', source_evidence={'status':'unavailable', 'complete':False, 'reason':'source revision is ambiguous; cite an explicit immutable SHA'})
+            warn.append(f'{where}: no unique immutable source revision; no source read')
+            return out
     pr = matches[0] if matches else {}
     base = pr.get('base')
     ref = _s(raw.get('ref'), 80) or base or 'HEAD'
@@ -185,10 +200,13 @@ def _ref(raw, prs: dict, where: str, warn: list, fetch: dict | None) -> dict | N
 
 
 def normalize(raw, data: dict, fetch: bool = True) -> tuple[dict | None, list[str]]:
+    from .product import scope
+    with scope(data):
+        return _normalize(raw, data, fetch)
+
+
+def _normalize(raw, data: dict, fetch: bool = True) -> tuple[dict | None, list[str]]:
     """The skill's system section, checked: components, contracts with their refs, flows."""
-    if data.get('product'):
-        from .product import activate
-        activate()
     if raw is None:
         return None, []
     if not isinstance(raw, dict):

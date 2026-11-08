@@ -61,6 +61,10 @@ def story_anchors(pr: dict, beats: list) -> list[dict]:
     return out
 
 
+from .product import session_operation
+
+
+@session_operation
 def enrich(sdir: Path, payload: dict, agent: str = "claude/review-prs") -> dict:
     cfg = session_config(sdir)
     p = sdir / "review-data.json"

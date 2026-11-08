@@ -143,6 +143,8 @@ function checksSummary(pr) {
 // A local finding: what the author's own `qodo review` found before the PR. Its status is as that review left it.
 function localPill(f) {
   const l = f.local;
+  if (l?.origin === 'managed') return `<span class="pill" title="Qodo records this finding from local_skill before the PR. This origin does not establish a completed PR review.">before the PR</span>`;
+  if (!l && f.review_source && f.review_source !== 'git_pr') return `<span class="pill">${esc(f.review_source === 'unknown' ? 'review origin unknown' : 'review source: '+f.review_source)}</span>`;
   if (!l) return "";
   const when = l.at ? ` on ${esc(String(l.at).slice(0, 10))}` : "";
   if (f.source !== "qodo-local") return `<span class="pill" title="The author's local review${when} found this too, and left it ${esc(l.status || "open")}${l.reason ? ": " + esc(l.reason) : ""}">also found before the PR</span>`;

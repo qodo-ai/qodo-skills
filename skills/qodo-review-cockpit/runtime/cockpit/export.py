@@ -25,6 +25,10 @@ def _safe_json(obj) -> str:
     return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/").replace("<!--", "<\\!--")
 
 
+from .product import session_operation
+
+
+@session_operation
 def build(sdir: Path, styles: list[dict] | None = None) -> str:
     """The full app as one file. styles: the other styles exported next to it, for its style links."""
     cfg = session_config(sdir)

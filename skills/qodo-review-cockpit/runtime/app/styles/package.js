@@ -72,18 +72,20 @@ function planSegs(list) {
   return segs;
 }
 function planBar(list, opts = {}) {   // one continuous section per tier (or type), labelled with its share; hover lists the files
+  const partial = list.some((p) => p.product && p.attention.coverage?.complete !== true);
   const files = planFiles(list), tot = files.reduce((a, x) => a + x.v, 0) || 1;
   SEGS = [];
   const sect = (key, label, cls, pick, mixOf) => { const mine = files.map((x) => [x, pick(x)]).filter(([, n]) => n), lines = mine.reduce((a, [, n]) => a + n, 0); if (!lines) return "";
     const mix = {}; mine.forEach(([x, n]) => mixOf(x, n).forEach(([k, v]) => (mix[k] = (mix[k] || 0) + v)));
     const pct = Math.round((100 * lines) / tot), id = SEGS.push({ sect: true, key, label, cls, lines, pct, mix, jump: { tier: "skim" },
       files: mine.map(([x, n]) => ({ path: x.f.path, pr: x.p.key, lines: n })).sort((a, b) => b.lines - a.lines) }) - 1;
-    return `<button class="psec ${cls}" style="flex:${lines} 1 0" data-seg="${id}" aria-label="${esc(`${label}: ${pct}%, ${lines} lines in ${mine.length} files`)}"><span data-short="${pct}%">${esc(label)} ${pct}%</span></button>`; };
+    return `<button class="psec ${cls}" style="flex:${lines} 1 0" data-seg="${id}" aria-label="${esc(`${label}: ${pct}%${partial ? " of observed subset" : ""}, ${lines} lines in ${mine.length} files`)}"><span data-short="${pct}%">${esc(label)} ${pct}%</span></button>`; };
   const segs = byType() ? FTYPES.map(([ty, label]) => sect("ty:" + ty, label, "ty-" + ty, (x) => (x.ty === ty ? x.v : 0), (x) => TIERS.filter((k) => x.t[k]).map((k) => ["t-" + k, x.t[k]]))).join("")
     : TIERS.map((t) => sect("t:" + t, t === "deep" ? "Must read" : TIER_NAME[t], "t-" + t, (x) => x.t[t] || 0, (x, n) => [["ty-" + x.ty, n]])).join("");
   const open = opts.map !== false;   // the map is always shown, and follows Group by
   const grp = `<span class="pviews" role="group" aria-label="Group by">${[["tier", "Importance"], ["type", "Type"]].map(([k, t]) => `<button class="pv" data-pgroup="${k}" aria-pressed="${(byType() ? "type" : "tier") === k}">${t}</button>`).join("")}</span>`;
-  return `<div class="plan"><div class="sub chead"><span><b class="ctitle">Code reading</b><span class="muted n psum">${tot.toLocaleString()} changed lines</span></span></div>
+  return `<div class="plan"><div class="sub chead"><span><b class="ctitle">Code reading</b><span class="muted n psum">${tot.toLocaleString()} ${partial ? "observed changed lines" : "changed lines"}</span></span></div>
+    ${partial ? `<p class="muted" role="note">Coverage incomplete: this reading plan covers only the observed patch subset. Percentages describe that subset; omitted changed lines are unknown.</p>` : ""}
     <div class="ptools">${open ? planViewTabs() : ""}${grp}${open && pview() === "tree" ? `<button class="pmap-tog trall" data-trall aria-expanded="${S.trAll !== false}">${S.trAll !== false ? "Collapse all" : "Expand all"}</button>` : ""}</div>
     <div class="pbar psecs" role="group" aria-label="Reading plan, one section per ${byType() ? "file type" : "tier"}">${segs}</div>
     <div class="segslot">${segList()}</div>${open ? planVisual(list, planSegs(list)) : ""}</div>`;

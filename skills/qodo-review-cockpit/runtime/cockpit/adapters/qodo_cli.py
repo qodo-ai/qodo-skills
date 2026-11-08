@@ -104,6 +104,14 @@ def to_finding(pr: dict, f: dict) -> dict:
            "url": _first(f, "url", "comment_url"), "qodo_url": _first(f, "portal_url", "finding_url"),
            "qodo_type": _type(f), "commit": _first(f, "commit_sha", "commit"),
            "inline_comment_id": _first(f, "inline_comment_id")}   # its GitHub thread, when the review comment's link isn't matched
+    from ..product import enabled
+    if enabled(pr):
+        origin = f.get('review_source') or 'unknown'
+        out.update(review_source=origin, git_sha=f.get('git_sha'), review_run_id=f.get('review_run_id'), created_at=f.get('created_at'))
+        out['commit'] = f.get('git_sha') or out.get('commit')
+        if origin == 'local_skill':
+            out['source'] = 'qodo-local'
+            out['local'] = {'origin':'managed', 'review_id':f.get('review_run_id'), 'at':f.get('created_at'), 'commit':f.get('git_sha')}
     if status:
         out["status"] = status
         out["closed_as"] = str(f.get("attribution_status") or "").lower()   # detected_after_merge is closed, not fixed

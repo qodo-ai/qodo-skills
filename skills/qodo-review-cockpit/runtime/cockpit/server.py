@@ -235,6 +235,11 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json({"ok": True, "time": now_iso()})
         if not self._pick_session():
             return self._json({"error": "this work package is no longer on this machine; reload the page"}, 404)
+        from .product import scope
+        with scope(self._data()):
+            return self._get_selected(route)
+
+    def _get_selected(self, route):
         if route == "/api/sessions":
             return self._json({"current": self.sdir.name, "sessions": list_sessions()})
         if route == "/api/sources":   # Settings › Work packages: the folder the switcher lists
@@ -360,7 +365,9 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception as e:   # shown on the button's tooltip
                 Handler._refreshing[key] = {"state": "error", "error": str(e)[:300]}
             Handler._live_cache.pop(key, None)
-        threading.Thread(target=run, daemon=True).start()
+        from contextvars import copy_context
+        context = copy_context()
+        threading.Thread(target=lambda: context.run(run), daemon=True).start()
         return {"ok": True, "state": "running"}
 
     def _media(self, name: str):
@@ -390,6 +397,11 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json({"error": "JSON body required"}, 415)
         if not self._pick_session():
             return self._json({"error": "this work package is no longer on this machine; reload the page"}, 404)
+        from .product import scope
+        with scope(self._data()):
+            return self._post_selected()
+
+    def _post_selected(self):
         try:
             body = self._body()
             data = self._data()
@@ -645,7 +657,7 @@ def serve(sdir: Path, port: int | None = None, open_browser: bool = True, style:
     port = port or cfg.get("port", 8765)
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     from .product import enabled
-    httpd.product = enabled(json.loads((sdir / 'review-data.json').read_text()))
+    httpd.product = enabled()  # explicit launch profile, independent of the selected saved session
     url = f"http://127.0.0.1:{port}/"
     print(f"Review cockpit: {url}  (session {sdir.name}, style {Handler.style}; Ctrl+C to stop)")
     if Handler.style != "cockpit":

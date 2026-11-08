@@ -104,6 +104,10 @@ def _recipes() -> list[dict]:
         return []
 
 
+from .product import session_operation
+
+
+@session_operation
 def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None = None, data: dict | None = None,
            links: dict[str, str] | None = None) -> str:
     """The style as a page fragment (title, fonts, styles, markup, scripts; no html/head/body).
