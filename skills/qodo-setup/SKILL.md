@@ -12,16 +12,30 @@ metadata:
 
 # Set up Qodo
 
-Verify connection/tools, then return to the task. Skill installation is not readiness. Never handle credentials. Resolve references relative to this SKILL.md.
+## Description
 
-## Connected MCP
+Skill installation is not readiness. References are relative to this SKILL.md.
 
-Inspect host-connected QAR schemas and call a harmless read. Check isError before structuredContent. Catalog visibility proves neither read nor write access; never test-write. Host/QAR own auth. Report missing tools, MT-AUTH-FORBIDDEN or connection errors without requesting API keys. For MCP-only setup, hand back. Use the same deployment if CLI access is requested/needed for local collection.
+## Prerequisites
 
-## Runtime
+Shell or host-connected QAR MCP; never handle credentials.
 
-PowerShell: resolve the verified native/Node invocation in [runtime.md](references/runtime.md). POSIX: probe `qodo --version`, then `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version` if missing. For missing runtime, follow that verified installation procedure. Setup requests cover installation subject to host approvals; plugin installation alone does not.
-Keep the executable as `<qodo>`. Require CLI **2.0.0 or newer** before authentication. Compatible versions continue below without update preflight.
+## Instructions
+
+### Connected MCP
+
+Inspect QAR schemas; call a harmless read and check isError before structuredContent. A catalog proves neither read nor write access; never test-write. Host/QAR own auth. Report missing tools, MT-AUTH-FORBIDDEN or connection errors; never request API keys. For MCP-only setup, hand back. CLI collection uses the same deployment.
+
+### Runtime
+
+PowerShell: resolve the verified native/Node invocation in [runtime.md](references/runtime.md). POSIX: probe:
+
+```sh
+qodo --version
+```
+
+Then try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version` if missing. Use that verified installer if missing. Setup covers installation subject to host approvals; plugin installation alone does not.
+Keep the executable as `<qodo>`. Require Qodo CLI **2.0.0 or newer** before auth; compatible versions skip update preflight.
 
 ### Compatibility recovery
 
@@ -29,12 +43,18 @@ For old/unparseable versions, stop authenticated calls and explain. Before updat
 For parsed1.x, normal `qodo update` reaches approved stable2.x only if that origin enables migration. Require a newer compatible same-origin2.x target from the selected route's supported check. If legacy aliases serve1.x, check latest-2 before proposing `qodo update --channel latest-2`. Missing/failed checks stop; never assume activation or unrelated future-major authority.
 For unparseable version/no supported updater, use the checksum-pinned installer reference. Preserve supported customer selectors/settings; normal verified installation selects the approved version. Explain the route; reuse covering runtime/installation authority or ask once before changing it. Make one approved attempt, reprobe unadorned version, and stop on denial/failure/incompatibility without another route, skill edits or an auth diagnosis.
 
-## Connect and verify
+### Connect and verify
 
-Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.12 --distribution skills-sh`. Reuse success. On failure read [authentication.md](references/authentication.md) before login; preserve deployment, never fall back to Cloud. Wait for login and recheck identity. Stop on denial/cancellation; diagnostic approval is not blanket authority.
-Only after identity succeeds run `<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.12 --distribution skills-sh`. Require the task's capability. On failure report signed in but tools unavailable, the exact error and that command as retry; do not log in again. Reuse verified execution context with required host approvals.
+Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.12 --distribution skills-sh`. Reuse success. Read [authentication.md](references/authentication.md) before login on failure; preserve deployment, never fall back to Cloud. Wait/recheck identity; stop on denial/cancellation. Diagnostic approval is not blanket authority.
+Only after identity succeeds run `<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.12 --distribution skills-sh`. Require task capability. On failure report signed in but tools unavailable, exact error and that retry; do not log in again. Reuse verified context with host approvals.
 
-## Handoff
+## Configuration
 
-Runtime/login setup does not authorize enterprise installation/maintenance. Disclose packages/maintenance; preserve opt-outs, edits, owners and optional choices. Never install optional Standards. For QODO_NOTICE/repeated Kiro read approvals read [host-recovery.md](references/host-recovery.md). CLI owns credentials, transport and updates; lifecycle owners update skills.
-Report verified scope and one next action. Never claim readiness after failure, disable Keychain, copy credentials, change host permissions or offer unrestricted approvals. Readiness does not guarantee a later call succeeds.
+Setup does not authorize enterprise installation/maintenance. Disclose packages/maintenance; preserve opt-outs, edits, owners and choices. Never install optional Standards. For QODO_NOTICE/repeated Kiro read approvals read [host-recovery.md](references/host-recovery.md). CLI owns credentials/transport/updates; lifecycle owners update skills.
+## Error Handling
+
+Report the error and one next action. Never claim readiness after failure, disable Keychain, copy credentials, change permissions or offer unrestricted approvals.
+
+## 4. Hand off
+
+Confirm Qodo connection/tools and return to the task. Readiness does not guarantee later access.
