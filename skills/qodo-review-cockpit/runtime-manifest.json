@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "source": "https://github.com/qodo-ai/pr-review-cockpit",
-  "commit": "78418d7dbf39758c7eb5ccd6accbcd66c0de8364",
+  "commit": "6ee6e4876e3df9db0539fe8465bddee88ceaaf40",
   "license": "Qodo agreement or Qodo Terms of Use; see runtime/LICENSE",
   "policy": {
     "buildSha256": "8af7ca9b20f66f8990dab7bc109f805b335685ce5a70e71507a6cf0f5c8e0c29",
     "manifestSha256": "9290bacf163f92499b17ae3a38b75f2aea6d2352709cd95ee252cbc389a18f59"
   },
-  "totalBytes": 2395318,
+  "totalBytes": 2395470,
   "files": [
 {"path":"LICENSE","sourceSha256":"7d6ba799ade7a73f2a7dc7dd3613b673a4ad4e8f89a97084c4d9530d37442246","sourceBytes":279,"sha256":"7d6ba799ade7a73f2a7dc7dd3613b673a4ad4e8f89a97084c4d9530d37442246","bytes":279,"strippedLines":0},
 {"path":"app/app.css","sourceSha256":"1348743c6332407e91bd990f4dfa38d69770f41e99697daeac0ec7ca3b0e20b7","sourceBytes":30470,"sha256":"1348743c6332407e91bd990f4dfa38d69770f41e99697daeac0ec7ca3b0e20b7","bytes":30470,"strippedLines":0},
@@ -52,7 +52,7 @@
 {"path":"cockpit/home.py","sourceSha256":"5618eb35295c06f8bd87e0bbe6c003ac0d6db033777c1f843bb80a8377f41741","sourceBytes":4253,"sha256":"5618eb35295c06f8bd87e0bbe6c003ac0d6db033777c1f843bb80a8377f41741","bytes":4253,"strippedLines":0},
 {"path":"cockpit/impact.py","sourceSha256":"c96f6ff5a7e0f4975c77715d3060858539b74f7c900f04e5d707b70bac8bf257","sourceBytes":20714,"sha256":"c96f6ff5a7e0f4975c77715d3060858539b74f7c900f04e5d707b70bac8bf257","bytes":20714,"strippedLines":0},
 {"path":"cockpit/layers.py","sourceSha256":"bf6ca75bfd8a4d6437cbfe1f26eddfdea9ed8ac235ad67dc9a13d4be6e715058","sourceBytes":5733,"sha256":"bf6ca75bfd8a4d6437cbfe1f26eddfdea9ed8ac235ad67dc9a13d4be6e715058","bytes":5733,"strippedLines":0},
-{"path":"cockpit/managed_work.py","sourceSha256":"6757127edb441eeed103d455053be156b650aeed4f932bed99ef334c4c7930dd","sourceBytes":13957,"sha256":"6757127edb441eeed103d455053be156b650aeed4f932bed99ef334c4c7930dd","bytes":13957,"strippedLines":0},
+{"path":"cockpit/managed_work.py","sourceSha256":"952c16d3a20d62cad2d55ce06ca5259b8cfa7c0aaa34003ae4707b7248d0cc4d","sourceBytes":14109,"sha256":"952c16d3a20d62cad2d55ce06ca5259b8cfa7c0aaa34003ae4707b7248d0cc4d","bytes":14109,"strippedLines":0},
 {"path":"cockpit/memory.py","sourceSha256":"7ef31eede73d2d20690adf65c2a5a8505648dc7252ae142d565ef2f3c1f39e13","sourceBytes":16416,"sha256":"7ef31eede73d2d20690adf65c2a5a8505648dc7252ae142d565ef2f3c1f39e13","bytes":16416,"strippedLines":0},
 {"path":"cockpit/notes.py","sourceSha256":"6ce73c7164c76c00ad18c0cd4b9899f664b64b788baa16725c3396185480ffa3","sourceBytes":8696,"sha256":"6ce73c7164c76c00ad18c0cd4b9899f664b64b788baa16725c3396185480ffa3","bytes":8696,"strippedLines":0},
 {"path":"cockpit/overlaps.py","sourceSha256":"059c6c494f5dec997ebe04b07f0e1aabfc450a7c3575c5cd59e59666bef21134","sourceBytes":22305,"sha256":"059c6c494f5dec997ebe04b07f0e1aabfc450a7c3575c5cd59e59666bef21134","bytes":22305,"strippedLines":0},

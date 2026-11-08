@@ -133,10 +133,10 @@ def live_state(prs, since_default=''):
             observed_ready = next(iter(ready['items']), {})
             known_readiness = ready.get('complete') is True
             r = observed_ready if known_readiness else {}
-            known_comments = comments.get('complete') is True
+            known_comments = comments.get('complete') is True and all(isinstance(c.get('created_at'), str) and c['created_at'] for c in comments['items'])
             head, old = ctx.get('head_sha'), pr.get('head_sha')
             since = pr.get('collected_at') or since_default
-            observed_comments = sum(c.get('created_at', '') > since for c in comments['items'])
+            observed_comments = sum(isinstance(c.get('created_at'), str) and bool(c['created_at']) and c['created_at'] > since for c in comments['items'])
             from .collect import human_reviews
             known_reviews = reviews.get('complete') is True
             normalized = normalize_reviews(reviews['items'])
