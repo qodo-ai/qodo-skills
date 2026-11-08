@@ -52,6 +52,12 @@ def probe(command, gate):
 
 
 def main():
+    # The pinned runtime reads/writes UTF-8 review content. Windows otherwise uses
+    # a legacy code page; enable Python's process-wide mode before any probes or IO.
+    if not sys.flags.utf8_mode:
+        os.environ["PYTHONUTF8"] = "1"
+        os.execv(sys.executable, [sys.executable, "-X", "utf8", "-B",
+                                str(Path(__file__).resolve()), *sys.argv[1:]])
     if not (RUNTIME / "cockpit" / "__main__.py").is_file():
         sys.exit("Cockpit package error: pinned runtime resources are missing; reinstall through your existing skills channel.")
     cli = shutil.which(os.environ.get("REVIEW_COCKPIT_QODO") or "qodo")

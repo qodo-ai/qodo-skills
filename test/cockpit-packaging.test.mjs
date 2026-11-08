@@ -17,7 +17,10 @@ const skillName = 'qodo-review-cockpit';
 const canonical = join(root, 'skills', skillName);
 const python = execFileSync(process.platform === 'win32' ? 'python' : 'python3', ['-c', 'import sys; print(sys.executable)'], { encoding: 'utf8' }).trim();
 function temp(t) {
-  const path = realpathSync(mkdtempSync(join(tmpdir(), 'cockpit-package-')));
+  let path = realpathSync(mkdtempSync(join(tmpdir(), 'cockpit-package-')));
+  // Python expands Windows 8.3 aliases; compare the same canonical spelling.
+  if (process.platform === 'win32') path = execFileSync(python,
+    ['-c', 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())', path], {encoding: 'utf8'}).trim();
   t.after(() => { chmodTree(path, 0o755, 0o644); rmSync(path, { recursive: true, force: true }); });
   return path;
 }
@@ -186,7 +189,7 @@ function installedFixture(t, resources = canonical, stubEngine = true) {
   const home = join(path, 'state');
   const run = (extra = {}, args = ['home']) => spawnSync(python, ['-B', join(installed, 'scripts/launch.py'), ...args], {
     cwd: path, encoding: 'utf8', env: { ...process.env, PATH: bin, HOME: path, USERPROFILE: path,
-      REVIEW_COCKPIT_HOME: home, PROBE_LOG: log, ...extra },
+      REVIEW_COCKPIT_HOME: home, PROBE_LOG: log, PYTHONUTF8: '0', ...extra },
   });
   return { path, installed, home, log, run };
 }
@@ -289,10 +292,11 @@ test('actual generated Claude/Codex installs collect, refresh, retain notes/mark
     assert.equal(content.behavior.files[0].hunks[0].lines[0].text, 'The helper returns two instead of one.');
     assert.equal(content.prs[0].decisions[0].id, 'larger-value');
     assert.deepEqual(content.prs[0].layer_coverage.uncovered, []);
-    const note = f.run({}, ['note', '--session', sid, '--pr', pr, 'Installed package reviewer note']);
+    const noteText = 'Installed package reviewer note — שלום 👍';
+    const note = f.run({}, ['note', '--session', sid, '--pr', pr, noteText]);
     assert.equal(note.status, 0, note.stderr);
     const events = join(sessions, sid, 'events.jsonl'), before = readFileSync(events, 'utf8');
-    assert(before.includes('Installed package reviewer note'));
+    assert(before.split('\n').filter(Boolean).map(JSON.parse).some((event) => event.note === noteText || event.text === noteText));
     const mark = f.run({}, ['mark', '--session', sid, '--pr', pr, '👍']);
     assert.equal(mark.status, 0, mark.stderr);
     const persisted = readFileSync(events, 'utf8');

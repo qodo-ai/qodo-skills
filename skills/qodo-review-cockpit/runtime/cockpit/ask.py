@@ -74,6 +74,7 @@ def pick(want: str = "auto") -> str:
 
 _CATALOG: dict | None = None
 _MISSED: list = [None]   # when the catalog last came back empty; tried again after RETRY_SECONDS
+_PRODUCT_CATALOG: dict = {}   # product catalogs/outages are isolated by the selected CLI command
 RETRY_SECONDS = 60
 _QODO = {"cmd": "qodo"}   # the configured command (qodo_findings.command), as the findings adapter uses it
 
@@ -85,14 +86,17 @@ def qodo_bin() -> str | None:
 def catalog() -> dict:
     """Qodo's read catalog, "group leaf" -> {description, params, required}; only tools it marks non-mutating."""
     global _CATALOG
-    if _CATALOG is not None:
-        return _CATALOG
-    if _MISSED[0] is not None and time.monotonic() - _MISSED[0] < RETRY_SECONDS:
-        return {}
     from .product import enabled
     product = enabled()
     from .adapters.managed import Client, decode_result, ReadError
     qodo, cat = (Client().command if product else qodo_bin()), {}
+    cached = _PRODUCT_CATALOG.setdefault(qodo, {'catalog': None, 'missed': None}) if product else None
+    previous = cached['catalog'] if product else _CATALOG
+    missed = cached['missed'] if product else _MISSED[0]
+    if previous is not None:
+        return previous
+    if missed is not None and time.monotonic() - missed < RETRY_SECONDS:
+        return {}
     if qodo:
         try:
             r = subprocess.run([qodo, "read", "tools", "--json"], capture_output=True, text=True, timeout=CALL_TIMEOUT)
@@ -118,9 +122,15 @@ def catalog() -> dict:
         except (OSError, subprocess.TimeoutExpired, ValueError, TypeError, AttributeError):
             cat = {}
     if cat:   # an empty answer may be an outage: try again a minute later instead of keeping it
-        _CATALOG = cat
+        if product:
+            cached['catalog'] = cat
+        else:
+            _CATALOG = cat
     else:
-        _MISSED[0] = time.monotonic()
+        if product:
+            cached['missed'] = time.monotonic()
+        else:
+            _MISSED[0] = time.monotonic()
     return cat
 
 

@@ -246,7 +246,10 @@ def reviewers(data, cfg, max_calls):
                 for rv in normalize_reviews(reviews['items']):
                     actor = rv['user']
                     login = actor.get('login')
-                    if login and login not in excluded and actor.get('type') != 'Bot' and not login.endswith('[bot]'):
+                    excluded_login = login in excluded
+                    if login and identity.get('provider') == 'github':
+                        excluded_login = login.casefold() in {x.casefold() for x in excluded if x}
+                    if login and not excluded_login and actor.get('type') != 'Bot' and not login.endswith('[bot]'):
                         evidence[login].append({'pr': pr['key'], 'why': f'Reviewed {pr["repo"]}#{number}; recent history, path ownership unverified', 'source': reviews})
         except ReadError as e:
             failed += 1
