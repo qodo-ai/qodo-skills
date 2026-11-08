@@ -12,12 +12,11 @@ Give an evaluating agent only the selected skill snapshot, `cases.json`, and thi
 > check results are synthetic inputs. Do not access services, repositories or credentials.
 > Treat the case's facts as the complete available evidence. Describe the next tool operations
 > with the fields you would send and write the resulting complete note content when a write is
-> appropriate. If no write is appropriate, explain why. Do not invent a tool result, identifier,
-> approval, performed check or missing fact. Retain each case ID in your output.
-
-Generating and retaining new client retry keys (`creation_key` and transport idempotency keys)
-is allowed; these are not existing record identifiers. For a new record use `expected_revision=0`.
-Do not invent a notes/track ID or claim the simulated write returned one.
+> appropriate. If no write is appropriate, explain why. Retain supplied client retry keys; when
+> missing, generating and retaining a new `creation_key` or transport idempotency key is allowed.
+> These are client values, not existing record IDs. Use `expected_revision=0` for a new record.
+> Do not invent an existing record/repository identifier, tool result, approval, performed check
+> or missing fact, or claim a simulated write returned a notes/track ID. Retain each case ID.
 
 The skill may request discovery/read operations. Record them and use the case's supplied schema
 and record facts; do not claim a real tool invocation. Missing facts can remain explicit gaps.

@@ -18,6 +18,7 @@
       "user_request": "Prepare a plan to prevent duplicate order submissions. Do not implement it. Keep the planning notes as a draft for our review.",
       "facts": {
         "existing_track": null,
+        "creation_key": "fixture-plan-draft-create-1",
         "discovery": "Complete issue-scoped search found no track; no earlier draft is known.",
         "goal": "Retries after a mobile timeout must not create another order.",
         "constraints": ["Existing clients cannot be upgraded together.", "The API and worker are deployed separately."],
@@ -64,6 +65,7 @@
       "facts": {
         "discovery": "No relevant track or existing PR notes were found; no wider delivery effort exists.",
         "change": "Pass explicit empty environment metadata to a buffer-only analytics fixture.",
+        "creation_key": "fixture-small-fix-create-1",
         "reason": "CI supplies environment metadata that the buffer-only fixture did not intend to test; dedicated environment tests still cover it.",
         "base_branch": "main",
         "source_branch": "fix/analytics-buffer-fixture",
