@@ -241,7 +241,12 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       `# ${value.displayName} for Kiro`,
       '',
       'Generated skills contain the complete reviewed Qodo playbooks for this release.',
-      `Install or update ${value.displayName} through the Kiro Powers marketplace.`,
+      ...(value.providerListed === false ? [
+        'This optional Power has no curated marketplace listing.',
+        `Use the complete released \`${kiroRoot(value.name)}\` folder as a local Power source.`,
+        'In Kiro: Powers > Add Custom Power > Import power from a folder; select that directory.',
+        'Local installation guide: https://kiro.dev/docs/powers/installation/#from-local-path',
+      ] : [`Install or update ${value.displayName} through the Kiro Powers marketplace.`]),
       'The Qodo CLI remains a separate runtime and is never bundled here.',
       '',
       '## Optional read-only permission',

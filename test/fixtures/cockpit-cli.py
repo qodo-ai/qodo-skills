@@ -52,7 +52,7 @@ elif tool == 'read-review-data':
     if kind == 'files':
         rows = [{'filename': 'src/demo.py', 'additions': 1, 'deletions': 1, 'patch_available': True}]
     elif kind == 'patch':
-        rows = [{'path': 'src/demo.py', 'patch': '@@ -1 +1 @@\n-before\n+after\n', 'patch_complete': True}]
+        rows = [{'path': 'src/demo.py', 'patch': '@@ -1,2 +1,2 @@\n def limit():\n-    return 1\n+    return 2\n', 'patch_complete': True}]
     answer = {'revision': revision, 'items': rows, 'complete': True, 'next_cursor': None}
 elif tool == 'list-prs':
     answer = {'pull_requests': []}
@@ -62,7 +62,7 @@ elif tool == 'findings':
 elif tool == 'for-pr':
     answer = {'status': 'no_pr_notes', 'pr': None, 'track': None}
 elif tool == 'read-file':
-    answer = {'content': 'after\n', 'resolved_ref': head}
+    answer = {'content': 'def limit():\n    return 2\n', 'resolved_ref': head}
 else:
     print(json.dumps({'error': {'code': 'fixture_unexpected_tool'}}))
     sys.exit(1)

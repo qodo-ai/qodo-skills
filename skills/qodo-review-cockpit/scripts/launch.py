@@ -33,8 +33,9 @@ def provenance():
             "--distribution", values["distribution"]]
     # Generated hosts carry the host on the provenance-bearing invocation.
     host = re.search(r"--distribution [a-z0-9-]+ --host ([a-z0-9-]+)", text)
-    if host:
-        args += ["--host", host.group(1)]
+    host_value = values.get("host") or (host.group(1) if host else None)
+    if host_value:
+        args += ["--host", host_value]
     return args
 
 

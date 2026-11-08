@@ -4,7 +4,8 @@ The separate optional `qodo-cockpit` package includes this skill without activat
 `runtime-manifest.json` pins the Qodo Cockpit repository commit and every imported file's original
 and sanitized SHA-256/size. `runtime/` holds the engine, app assets, shipped config and LICENSE.
 The launcher locates it relative to its own installed file. No clone or network fetch occurs at
-runtime. Updates come through the existing Qodo skills distribution, never a Cockpit updater.
+runtime. Manifest hashes are verified during import/build/tests for provenance and reproducibility;
+they are not a runtime attestation or a new signed-updater trust anchor. Updates come through the existing Qodo skills distribution, never a Cockpit updater.
 
 Canonical skill/launcher/import automation follows the qodo-skills repository MIT license.
 The imported Cockpit payload remains Copyright Qodo, governed by the user's Qodo agreement or
@@ -36,8 +37,12 @@ live browser/provider acceptance and from merge/release/marketplace visibility.
 Choose the optional Cockpit package explicitly; core and Standards membership/license stay unchanged.
 Generated roots are packages/qodo-cockpit (Claude), codex-packages/qodo-cockpit,
 antigravity-plugins/qodo-cockpit and kiro-power-cockpit. Native installers consume these roots
-as complete packages. No hooks start the server; invoke the skill after selecting its installation.
-External directory/provider submissions are deferred; a generated local package is not a live listing.
+as complete packages. For Kiro, use Powers > Add Custom Power > Import power from a folder and
+select the complete kiro-power-cockpit directory; see the [official local installation guide](https://kiro.dev/docs/powers/installation/#from-local-path).
+No hooks start the server; invoke the skill after selecting its installation.
+External curated directory/provider submissions are deferred (`providerListed: false`). The
+local Claude/Codex marketplace indexes intentionally expose the optional package for explicit
+selection; that local discovery is distinct from an external curated directory submission.
 
 For a supported skills.sh host, the existing explicit single-skill route is:
 

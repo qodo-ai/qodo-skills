@@ -1,0 +1,37 @@
+{
+  "reviewer": "",
+  "port": 8765,
+  "style": "package",
+  "adapters": ["qodo_comments", "qodo_local", "scanners"],
+  "scanners": {
+    "snyk": {"name": "Snyk", "logins": ["snyk-io[bot]"], "statuses": ["code/snyk*", "security/snyk*", "license/snyk*"]},
+    "upwind": {"name": "Upwind", "logins": ["upwind-code-*[bot]"], "statuses": ["Upwind-Code-*"]},
+    "sonar": {"name": "SonarQube", "logins": ["sonarqubecloud[bot]"],
+              "checks": ["*SonarCloud Code Analysis", "*SonarQube Code Analysis", "sonarqubecloud"]},
+    "code_scanning": {"name": "GitHub code scanning", "logins": ["github-advanced-security[bot]"]},
+    "gitguardian": {"name": "GitGuardian", "logins": ["gitguardian[bot]"]},
+    "socket": {"name": "Socket", "logins": ["socket-security[bot]"]},
+    "copilot": {"name": "Copilot", "logins": ["Copilot", "copilot-pull-request-reviewer[bot]"]},
+    "codex": {"name": "Codex", "logins": ["chatgpt-codex-connector[bot]"]},
+    "codacy": {"parser": "check_annotations", "name": "Codacy", "checks": ["codacy-production", "Codacy*"]}
+  },
+  "qodo_bot_logins": [
+    "qodo-merge-pro[bot]",
+    "qodo-pentest-1[bot]",
+    "qodo-merge[bot]",
+    "qodo-ai[bot]",
+    "qodo-code-review[bot]",
+    "codiumai-pr-agent-pro[bot]",
+    "pr-agent[bot]"
+  ],
+  "qodo_api": {"enabled": false, "command": null, "endpoint": null},
+  "qodo_findings": {"source": "auto", "command": "qodo"},
+  "memory": {"amr": "memory/amr", "okf": "memory/okf", "auto_commit": true, "commit_branches": ["main", "master"]},
+  "attention": {"read_target": 0.3, "skim_target": 0.3, "additive_tests": "skip"},
+  "notes": {"enabled": true, "command": "qodo", "provider_host": "github.com"},
+  "overlaps": {"enabled": true, "tolerance": 5, "max_diffs": 15, "max_paths": 25, "agent_max_age_days": 14,
+               "sources": {"open_prs": true, "merged": true, "sessions": true, "agent_sessions": false},
+               "agent_sources": ["checkpoints", "tracks"]},
+  "criticality": {"codeowners": "off", "map": []},
+  "distill": {"dismiss_threshold": 3, "rule_ttl_days": 60}
+}

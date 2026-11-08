@@ -1,10 +1,27 @@
 # Evidence-backed review content
 
-Write enrichment to a UTF-8 JSON file outside the installed package, then apply it through
-`<cockpit> enrich FILE --session ID`. Read bundled runtime/cockpit/enrich.py and the relevant
-validator (story.py, behavior.py, decisions.py, layers.py, risk.py, walkthrough.py) when a field
-is unclear. The pinned validator is authoritative; do not guess another installation's schema.
-Read its warnings and repair the input. Never rewrite collected source evidence to silence them.
+Start with [story and behavior](story-and-behavior.md), then read
+[decisions, risk and contracts](decisions-risk-contracts.md) for consequential choices or seams.
+The goal is a review the human can reason through: user/caller outcome, changed promises, evidence,
+compatibility and decisions. Keep detail one level below the opening story.
+
+[example-enrich.json](example-enrich.json) is a complete small payload for the synthetic
+`demo/repo#1` fixture: `src/demo.py` changes `return 1` to `return 2` on line 2. It shows a brief,
+explicit flow skip, reviewer question, guided code layer, decision, quality gap and behavior diff.
+It deliberately leaves caller compatibility unknown. Replace every identity, path/range and claim
+with the actual collected evidence before using this shape on a real PR.
+
+Write the adapted UTF-8 JSON outside installed resources, then run:
+
+```sh
+<cockpit> enrich /chosen/enrich.json --session <id>
+<cockpit> plan --session <id>
+```
+
+Read every returned warning. Repair invalid refs and unsupported claims; preserve genuine evidence
+or coverage gaps. Enrichment warnings are not an excuse to rewrite collected source data. The
+bundled engine validates the example in the package tests, including reapplication on refresh.
+Read a specific bundled validator only for an additional conditional field the guides do not cover.
 
 ## Main enrichment
 

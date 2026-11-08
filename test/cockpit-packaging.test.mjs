@@ -148,6 +148,18 @@ test('installed launcher works from unrelated cwd/read-only resources with order
   assert(!existsSync(join(f.installed, 'runtime/cockpit/__pycache__')));
 });
 
+test('installed metadata host takes precedence over a body example stamp', (t) => {
+  const f = installedFixture(t);
+  const path = join(f.installed, 'SKILL.md');
+  put(path, readFileSync(path, 'utf8').replace('  distribution: "skills-sh"',
+    '  distribution: "skills-sh"\n  host: "kiro"')
+    .replace('--distribution skills-sh\n', '--distribution skills-sh --host codex\n'));
+  const result = f.run();
+  assert.equal(result.status, 0, result.stderr);
+  const auth = readFileSync(f.log, 'utf8').trim().split('\n').map(JSON.parse)[1];
+  assert.deepEqual(auth.slice(-2), ['--host', 'kiro']);
+});
+
 test('version and auth failures stop before later probes; installed state home is refused', (t) => {
   const f = installedFixture(t);
   const old = f.run({ CLI_VERSION: '1.99.0' });
@@ -211,6 +223,13 @@ test('actual generated Claude/Codex installs collect, refresh, retain notes/mark
     assert.equal(data.product, true); assert.equal(data.provider_writes, false);
     assert.equal(data.memory.enabled, 'False');
     const pr = data.prs[0].key;
+    const enriched = f.run({}, ['enrich', join(f.installed, 'references/example-enrich.json'), '--session', sid]);
+    assert.equal(enriched.status, 0, enriched.stderr);
+    assert.deepEqual(JSON.parse(enriched.stdout).warnings, []);
+    const content = JSON.parse(readFileSync(join(sessions, sid, 'review-data.json')));
+    assert.equal(content.behavior.files[0].hunks[0].lines[0].text, 'The helper returns two instead of one.');
+    assert.equal(content.prs[0].decisions[0].id, 'larger-value');
+    assert.deepEqual(content.prs[0].layer_coverage.uncovered, []);
     const note = f.run({}, ['note', '--session', sid, '--pr', pr, 'Installed package reviewer note']);
     assert.equal(note.status, 0, note.stderr);
     const events = join(sessions, sid, 'events.jsonl'), before = readFileSync(events, 'utf8');
@@ -257,6 +276,10 @@ function archiveFiles(archive) {
 
 test('optional hosts retain pinned runtime while legacy managed packages remain unchanged', (t) => {
   const manifest = verifyRuntime();
+  const readme = readFileSync(join(root, 'kiro-power-cockpit/README.md'), 'utf8');
+  assert(readme.includes('kiro-power-cockpit'));
+  assert(readme.includes('local'));
+  assert(!readme.includes('through the Kiro Powers marketplace'));
   const hosts = ['packages/qodo-cockpit', 'codex-packages/qodo-cockpit', 'antigravity-plugins/qodo-cockpit', 'kiro-power-cockpit'];
   for (const host of hosts) assert.deepEqual(verifyRuntime(join(root, host, 'skills', skillName)), manifest, host);
   const { bundle } = buildCliManagedBundle(root);
