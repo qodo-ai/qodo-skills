@@ -2228,7 +2228,7 @@ function vdThreads(ps) {   // unresolved review conversations across the PRs: Gi
   return `<div class="vd-t"><span class="vd-k">Unresolved comments</span><b class="vd-n${known.length && !tot ? " none" : ""}">${known.length ? tot : "—"}</b>
     <span class="vd-sev">${!known.length ? `<span class="vd-s">not checked yet</span>` : hit.length ? hit.map((p) => vdLink(p.url && (first(p) ? `${p.url}#discussion_r${first(p)}` : p.url), "medium", `${strip(p.title)}: open its first unresolved comment on GitHub`, `#${esc(p.number)} · ${n(p)}`)).join("") : `<span class="vd-s none">none</span>`}</span></div>`;
 }
-const reviewCoverageKnown = (p) => !C.product || (LIVE[p.key] ? LIVE[p.key].reviews_complete === true : p.read_evidence?.sections?.reviews?.complete === true);
+const reviewCoverageKnown = (p) => !C.product || (LIVE[p.key] ? LIVE[p.key].reviews_complete === true : p.review_decision_complete === true && p.read_evidence?.sections?.reviews?.complete === true);
 const awaitingReview = (p) => { const L = LIVE[p.key];
   if (!reviewCoverageKnown(p)) return null;
   return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length; };

@@ -115,7 +115,7 @@ def _pr_view(p: dict) -> dict:
         "key": p["key"], "repo": p["repo"], "number": p["number"], "title": p["title"], "url": p.get("url"),
         "author": p.get("author"), "base": p.get("base"), "head": p.get("head"), "head_sha": p.get("head_sha"), "base_sha": p.get("base_sha"),
         "add": p.get("additions", 0), "del": p.get("deletions", 0),
-        "approvals": p.get("approvals") or [], "changes_requested": p.get("changes_requested") or [],   # human reviews at collection time
+        **({"review_decision_complete": p.get("review_decision_complete")} if p.get("product") else {}), "approvals": p.get("approvals") or [], "changes_requested": p.get("changes_requested") or [],   # human reviews at collection time
         "unresolved_threads": p.get("unresolved_threads"), "unresolved_ids": p.get("unresolved_ids") or [],   # review conversations not resolved at collection time (None: not read)
         "summary": p.get("summary"), "risk": p.get("risk"), "story": p.get("story") or [], "layers": p.get("layers") or [],
         "findings": [{**{k: f.get(k) for k in keep}, "why": f.get("stance_why"), "body": (f.get("body") or "")[:900]}

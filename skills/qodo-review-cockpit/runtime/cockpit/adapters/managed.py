@@ -174,7 +174,7 @@ class Client:
         return {'items': items, 'pages': pages, 'complete': False, 'status': 'bounded', 'next_cursor': cursor}
 
     def change(self, repo, number, host=None, identity=None):
-        from ..collect import parse_diff, human_reviews
+        from ..collect import parse_diff
         identity = identity or self.identity(repo, host)
         caps = self.read('codebase', 'get-read-capabilities', **identity)
         context = self.read('codebase', 'get-change-context', **identity, change_number=number)
@@ -215,9 +215,10 @@ class Client:
                            'url': c.get('url') or c.get('details_url') or c.get('target_url')})
         head = context.get('head_sha')
         reviews = normalize_reviews(evidence['reviews']['items'])
-        human = human_reviews(reviews, head)
-        if not head:
-            human['approvals'] = []
+        human, decision_known = human_review_decision(reviews, head)
+        decision_known = decision_known and evidence['reviews'].get('complete') is True
+        if not decision_known:
+            human = {'approvals': [], 'changes_requested': []}
         return {'key': f"{identity['repo']}#{number}", 'repo': identity['repo'], 'number': number,
                 'provider': identity['provider'], 'provider_host': identity['provider_host'], 'repository_url': identity.get('repository_url'),
                 'product': True, 'identity': identity, 'title': change.get('title') or f'Change {number}', 'body': change.get('body') or '',
@@ -227,7 +228,23 @@ class Client:
                 'files': files, 'files_complete': evidence['files']['complete'], 'files_missing': max(0, (change.get('changed_files') or 0)-len(files)), 'checks': checks, '_raw_comments': comments, '_annotations': evidence['annotations']['items'],
                 '_threads': None, 'provider_threads': evidence['threads'], 'summary': '', 'risk': '', 'diagrams': [],
                 'read_evidence': {'capabilities': caps, 'context': context, 'sections': evidence},
-                **human}
+                'review_decision_complete': decision_known, **human}
+
+
+
+def human_review_decision(reviews, head):
+    """Latest decisive human review needs a head and ordering evidence, not only a full page."""
+    from ..collect import human_reviews
+    decisive = []
+    for review in reviews:
+        actor = review.get('user') or {}
+        login = actor.get('login') or ''
+        if not login or actor.get('type') == 'Bot' or login.endswith('[bot]') or login.lower().startswith('qodo'):
+            continue
+        if str(review.get('state') or '').upper() in ('APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'):
+            decisive.append(review)
+    known = bool(head) and all(isinstance(review.get('submitted_at'), str) and review['submitted_at'] for review in decisive)
+    return (human_reviews(reviews, head) if known else {'approvals': [], 'changes_requested': []}), known
 
 
 def normalize_reviews(items):
@@ -237,9 +254,10 @@ def normalize_reviews(items):
         actor = dict(review.get('actor') or review.get('user') or {})
         if actor.get('is_bot') is True or str(actor.get('type') or '').lower() == 'bot':
             actor['type'] = 'Bot'
+        submitted = review.get('submitted_at') or review.get('created_at')
         reviews.append({**review, 'user': actor,
                         'commit_id': review.get('reviewed_revision') or review.get('commit_sha') or review.get('commit_id'),
-                        'submitted_at': review.get('submitted_at') or review.get('created_at') or ''})
+                        'submitted_at': submitted if isinstance(submitted, str) else ''})
     return reviews
 
 

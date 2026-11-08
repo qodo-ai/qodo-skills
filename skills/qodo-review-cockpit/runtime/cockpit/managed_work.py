@@ -5,7 +5,7 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from .adapters.managed import Client, ReadError, BudgetExceeded, bounded_operation, normalize_reviews, parse_ref
+from .adapters.managed import human_review_decision, Client, ReadError, BudgetExceeded, bounded_operation, normalize_reviews, parse_ref
 from .util import write_json
 
 
@@ -137,10 +137,10 @@ def live_state(prs, since_default=''):
             head, old = ctx.get('head_sha'), pr.get('head_sha')
             since = pr.get('collected_at') or since_default
             observed_comments = sum(isinstance(c.get('created_at'), str) and bool(c['created_at']) and c['created_at'] > since for c in comments['items'])
-            from .collect import human_reviews
-            known_reviews = reviews.get('complete') is True
             normalized = normalize_reviews(reviews['items'])
-            human = human_reviews(normalized, head) if known_reviews and head else None
+            qualified, ordered = human_review_decision(normalized, head)
+            known_reviews = reviews.get('complete') is True and ordered
+            human = qualified if known_reviews else None
             baseline = pr.get('approvals') if pr.get('head_sha') == head and isinstance(pr.get('approvals'), list) else []
             newly_observed = [name for name in human['approvals'] if name not in baseline] if human else None
             decision = ('CHANGES_REQUESTED' if human['changes_requested'] else 'APPROVED' if human['approvals'] else None) if human else None
