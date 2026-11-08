@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "instructionMode": "embedded",
-  "packageVersion": "2.1.8",
+  "packageVersion": "2.1.9",
   "minimumCliVersion": "2.0.0",
   "repository": "https://github.com/qodo-ai/qodo-skills",
   "skills": {
@@ -22,7 +22,7 @@
       "package": "qodo-standards"
     },
     "qodo-review": {
-      "version": "1.10.13",
+      "version": "1.10.14",
       "package": "qodo"
     },
     "qodo-review-resolver": {
@@ -30,7 +30,7 @@
       "package": "qodo"
     },
     "qodo-review-notes": {
-      "version": "1.0.2",
+      "version": "1.0.3",
       "package": "qodo"
     }
   }
