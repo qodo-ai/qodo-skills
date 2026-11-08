@@ -1,0 +1,21 @@
+{
+  "version": "2.1.9",
+  "summary": "Update Qodo skills and marketplace packages.\n- feat: improve notes for plan and PR review (AT-1273) (#155)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.10.14",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.3",
+      "change": "patch"
+    }
+  ]
+}
