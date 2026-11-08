@@ -47,7 +47,11 @@ coverage honestly; don't lower attention merely to hit a percentage target.
 
 ## Conditional styles and walkthrough
 
-Use `<cockpit> styles` to discover ready layouts and pass the same `--style` to serve/export.
+V1 qualifies the default Work Package (`--style package`) for product review and export.
+Use `<cockpit> styles` to inspect bundled layouts; its upstream `ready` flag does not certify
+managed-evidence completeness. Retained legacy layouts, including Briefing/Focus, have known
+status-label and export limits. Do not select them as a qualified product review without a
+separate validation step and an explicit explanation of those limits.
 Default package uses story and behavior; risk needs scenario factors and rollback evidence,
 while decisions needs plan-alignment content. If content is missing, keep that gap visible.
 The ordinary review UI works without personal code-review-master or qodo-findings-triage skills.
