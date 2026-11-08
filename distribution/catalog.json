@@ -41,7 +41,8 @@
         "qodo-codebase-wisdom",
         "qodo-review",
         "qodo-review-notes",
-        "qodo-review-resolver"
+        "qodo-review-resolver",
+        "qodo-review-cockpit"
       ],
       "compatibilityAliases": {
         "codebase-wisdom": "qodo-codebase-wisdom",
@@ -128,6 +129,14 @@
       "displayName": "Qodo Review Notes",
       "shortDescription": "Maintain development tracks and PR reviewer context.",
       "defaultPrompt": "Use $qodo-review-notes to find the development track and publish PR Review Notes."
+    },
+    {
+      "name": "qodo-review-cockpit",
+      "version": "1.0.0",
+      "recommended": true,
+      "displayName": "Qodo Review Cockpit",
+      "shortDescription": "Review PR work packages in an interactive browser.",
+      "defaultPrompt": "Use $qodo-review-cockpit to review these PRs together in the interactive browser Cockpit."
     }
   ]
 }
