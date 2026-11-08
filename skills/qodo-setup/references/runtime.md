@@ -93,7 +93,7 @@ the route; if the legacy alias still advertises 1.x, the same-origin recovery is
 updates can never cross majors. Choose one approved runtime attempt; if it fails or remains
 incompatible, stop instead of retrying through another route.
 
-For an unparseable runtime or no usable update route, use the checksum-pinned installation
+For an unparseable runtime or no supported updater, use the checksum-pinned installation
 procedure above, preserving the recorded distribution origin. For a normal install, let the
 verified installer choose the distribution-approved version. Honor a requested exact version
 and update hold; never silently substitute a channel for an explicit version. For a customer

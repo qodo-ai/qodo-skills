@@ -70,7 +70,7 @@ installation. For a parsed 1.x runtime, `qodo update` can reach approved 2.x whe
 origin has enabled legacy migration. Use the CLI's supported update check to select the route;
 if its legacy alias still advertises 1.x, the same-origin recovery is `qodo update --channel latest-2`.
 Do not assume every origin has activated migration or claim that normal updates can never cross majors.
-For an unparseable runtime or no usable update route, use a checksum-pinned installer supplied by
+For an unparseable runtime or no supported updater, use a checksum-pinned installer supplied by
 Qodo or the organization with covering installation authorization. Preserve the recorded origin,
 explicit version choices and update holds; never switch an enterprise deployment to the public
 service or invent a digest. Make one approved runtime attempt, then rerun the unadorned version
@@ -388,13 +388,15 @@ Never widen approval, change owners or add optional packages. Report persistent 
 ### Runtime recovery
 
 Stop if a runtime upgrade was already attempted. Reuse the version and source preflight above,
-including the presence-only `QODO_UPDATE_BASE_URL` check. Inspect the supported CLI update check
-and require a newer compatible release at the recorded source. Choose the single upgrade route
-from the compatibility gate: ordinary update, approved legacy 1.x `latest-2` recovery, or the
-checksum-pinned installer when the runtime is unparseable or has no usable update route.
+including the presence-only `QODO_UPDATE_BASE_URL` check. If the version is unparseable or the
+CLI has no supported updater, choose the checksum-pinned installation gate before requiring an
+update-check result. Otherwise use the supported CLI update check to require a newer compatible
+target at the recorded source, then choose ordinary update or approved legacy 1.x `latest-2`
+recovery as described above. A failed check, missing metadata or unavailable compatible target
+is a stop; do not switch to an installer to bypass it.
 Explain the CLI prerequisite and reuse covering runtime-update/installation authorization or
 ask once; skills-only consent is insufficient. Execute that chosen runtime attempt once, then
 recheck unadorned `<qodo> --version` and require the skill minimum before rechecking planning
-support and returning to the preview. Stop on denial, failure, missing metadata or continued
-incompatibility; never make a second runtime attempt or switch sources. Runtime-only consent
-does not approve the skills operation.
+support and returning to the preview. Stop on denial, failure or continued incompatibility;
+never make a second runtime attempt or switch sources. Runtime-only consent does not approve
+the skills operation.
