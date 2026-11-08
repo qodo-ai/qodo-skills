@@ -222,6 +222,23 @@ test('installed metadata host takes precedence over a body example stamp', (t) =
   assert.deepEqual(auth.slice(-2), ['--host', 'kiro']);
 });
 
+test('Windows UTF8 restart waits and preserves exact arguments and failure status', () => {
+  const code = `import importlib.util,pathlib,sys,types
+from unittest import mock
+path=pathlib.Path(sys.argv[1]).resolve()
+spec=importlib.util.spec_from_file_location('cockpit_launcher_test',path)
+module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+args=['note','A note with spaces — שלום 👍','quotes" and backslash\\\\tail']
+with mock.patch.object(sys,'flags',types.SimpleNamespace(utf8_mode=0)), mock.patch.object(sys,'platform','win32'), mock.patch.object(sys,'argv',[str(path),*args]), mock.patch.object(module.subprocess,'call',return_value=7) as wait, mock.patch.object(module.os,'execv',side_effect=AssertionError('Windows must wait')):
+ try: module.main()
+ except SystemExit as error: assert error.code==7,error.code
+ else: raise AssertionError('child failure was swallowed')
+ assert wait.call_args.args[0]==[sys.executable,'-X','utf8','-B',str(path),*args],wait.call_args
+ assert module.os.environ['PYTHONUTF8']=='1'
+`;
+  execFileSync(python, ['-B', '-c', code, join(canonical, 'scripts/launch.py')], {encoding: 'utf8'});
+});
+
 test('version and auth failures stop before later probes; installed state home is refused', (t) => {
   const f = installedFixture(t);
   const old = f.run({ CLI_VERSION: '1.99.0' });
