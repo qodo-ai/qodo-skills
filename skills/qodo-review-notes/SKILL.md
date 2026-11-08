@@ -162,6 +162,9 @@ impact. Put repository/issue identities in structured references alongside the M
 Long-lived repository standards and general organizational knowledge belong in their existing homes.
 
 Before editing, read the latest draft and preserve useful content from other agents or humans.
+Read documents can use camelCase; map fields to the live write schema, including nested refs
+(`contentMarkdown` → `content_markdown`, `issueId` → `issue_id`). Preserve the values; do not
+forward the read envelope or its field names as the write document.
 Send the complete merged document with `expected_revision` equal to `latestRevision`.
 Creation uses revision 0 and a retained `creation_key`. `publish=false` saves a draft;
 `publish=true` saves and publishes atomically. To publish an existing saved draft, identify its

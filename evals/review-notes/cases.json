@@ -36,7 +36,7 @@
         "track_id": "11111111-1111-4111-8111-111111111111",
         "latest_revision": 8,
         "published_revision": 8,
-        "complete_latest_document": {"title": "Order retry safety", "status": "active", "content_markdown": "Use a server idempotency key: the user selected it because old clients can retry. The initial proposal used cache-only storage. Another agent recorded that old clients omit the optional key; keep that compatibility path until qualification.", "issue_refs": [], "repo_refs": [{"provider": "github", "provider_host": "github.example.test", "repo_ref": "fixture-repository-17", "full_path": "example/orders", "role": "changed"}]},
+        "complete_latest_document": {"title": "Order retry safety", "status": "active", "contentMarkdown": "Use a server idempotency key: the user selected it because old clients can retry. The initial proposal used cache-only storage. Another agent recorded that old clients omit the optional key; keep that compatibility path until qualification.", "issueRefs": [], "repoRefs": [{"provider": "github", "providerHost": "github.example.test", "repoRef": "fixture-repository-17", "fullPath": "example/orders", "role": "changed"}]},
         "new_evidence": "A cache restart loses the key before the worker commits the order.",
         "agent_choice": "Persist the key with the order transaction instead of relying only on cache.",
         "choice_reason": "The restart must not reopen the duplicate-submission window.",
@@ -52,7 +52,7 @@
         "track_id": "22222222-2222-4222-8222-222222222222",
         "latest_revision": 12,
         "published_revision": 12,
-        "complete_latest_document": {"title": "Order retry safety", "status": "active", "content_markdown": "Goal: prevent duplicate orders after retries. Use transactional keys because cache restart loses them. Day 1: API PR12 is open; worker PR13 is planned. Day 2: API PR12 still needs review. Day 3: API PR12 merged. Day 4: worker PR13 is open. Another agent's concern: old clients without a key have not been qualified. Keep API-before-worker rollout order.", "issue_refs": [], "repo_refs": [{"provider": "github", "provider_host": "github.example.test", "repo_ref": "fixture-repository-17", "full_path": "example/orders", "role": "changed"}]},
+        "complete_latest_document": {"title": "Order retry safety", "status": "active", "contentMarkdown": "Goal: prevent duplicate orders after retries. Use transactional keys because cache restart loses them. Day 1: API PR12 is open; worker PR13 is planned. Day 2: API PR12 still needs review. Day 3: API PR12 merged. Day 4: worker PR13 is open. Another agent's concern: old clients without a key have not been qualified. Keep API-before-worker rollout order.", "issueRefs": [], "repoRefs": [{"provider": "github", "providerHost": "github.example.test", "repoRef": "fixture-repository-17", "fullPath": "example/orders", "role": "changed"}]},
         "verified_current_facts": ["API PR12 and worker PR13 are merged.", "Neither component is deployed yet.", "No new old-client acceptance evidence is available."],
         "next_step": "Release API before worker, then qualify old clients.",
         "known_revision_history": "All 12 earlier revisions are retained by the platform."
@@ -80,7 +80,7 @@
         "latest_revision": 3,
         "published_revision": 3,
         "pr_number": 42,
-        "complete_latest_document": {"target_repo_path": "example/orders", "base_branch": "main", "track_id": null, "no_track_reason": "Independent regression fix", "content_markdown": "Add transactional retry-key handling to close the restart window. Earlier unit checks passed; load testing was planned.", "commit_sha_at_creation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "commit_sha_at_update": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "validation_checks": []},
+        "complete_latest_document": {"targetRepoPath": "example/orders", "baseBranch": "main", "trackId": null, "noTrackReason": "Independent regression fix", "contentMarkdown": "Add transactional retry-key handling to close the restart window. Earlier unit checks passed; load testing was planned.", "commitShaAtCreation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "commitShaAtUpdate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "validationChecks": []},
         "new_source_head": "cccccccccccccccccccccccccccccccccccccccc",
         "new_implementation": "Reject a key with mismatched order payload rather than silently reusing it.",
         "performed_checks": [

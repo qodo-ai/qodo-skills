@@ -28,7 +28,7 @@ Assess semantics and operations, not headings, keywords or document length alone
 | Case | Important observable behavior |
 |---|---|
 | plan-draft | Saves a reviewable track draft with outcome, reasons, constraints, alternatives, risks and proposed checks; keeps undecided choices explicit; no PR or implementation. |
-| approach-change | Updates meaningful context with the agent-owned choice and reason, failed verification and remaining risk; preserves the other author's constraint and uses the actual latest revision. |
+| approach-change | Updates meaningful context with the agent-owned choice and reason, failed verification and remaining risk; preserves the other author's constraint, maps read fields to the write schema, and uses the actual latest revision. |
 | resume-current-state | Reconciles supplied current facts into a compact present account; preserves rationale and the unresolved compatibility concern without copying the entire chronology. |
 | small-fix | Prepares specific PR notes with an explicit standalone reason; represents the actual check truthfully without creating an unnecessary track or opening a PR. |
 | evidence-gap | Keeps historical/local/failed evidence qualified, populates typed checks only for performed checks, and leaves proposed load testing in the plan. |
