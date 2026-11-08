@@ -132,7 +132,7 @@ test('portable verifier and generated skill interfaces remain complete', () => p
   const run = spawnSync(process.execPath, ['verify-codex-packet.mjs'], { cwd: output, encoding: 'utf8' });
   assert.equal(run.status, 0, run.stderr);
   assert.equal(JSON.parse(run.stdout).verified.length, 2);
-  for (const pkg of catalog.installPackages) {
+  for (const pkg of catalog.installPackages.filter((entry) => entry.providerListed !== false)) {
     const directory = join(output, 'listings', pkg.name);
     assert.throws(() => readFileSync(join(directory, 'plugin.json')), /ENOENT/);
     const manifest = json(join(directory, '.codex-plugin/plugin.json'));

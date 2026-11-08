@@ -86,6 +86,9 @@ function sanitizeFiles(source, commit, files, manifest) {
 export function importRuntime({ source, commit, destination = skill }) {
   assert(/^[a-f0-9]{40}$/.test(commit ?? ''), 'An explicit full lowercase 40-hex commit SHA is required');
   source = resolve(source);
+  const origin = git(source, ['config', '--get', 'remote.origin.url']).toString().trim();
+  assert(/^(?:https:\/\/github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)qodo-ai\/pr-review-cockpit(?:\.git)?\/?$/.test(origin),
+    'Source origin must be the intended qodo-ai/pr-review-cockpit repository');
   assert.equal(git(source, ['rev-parse', `${commit}^{commit}`]).toString().trim(), commit);
   const dirty = git(source, ['status', '--porcelain', '--untracked-files=all', '--',
     'cockpit', 'app', 'fixtures', 'config.json', 'LICENSE', 'NOTICE', 'release']).toString().trim();
@@ -110,6 +113,8 @@ export function importRuntime({ source, commit, destination = skill }) {
     safe(f.path);
     const data = Buffer.from(f.data, 'base64');
     assert(data.length <= 512 * 1024, `${f.path}: exceeds unchanged 512 KiB CLI limit; split upstream`);
+    if (f.path === 'LICENSE') assert.equal(hash(data), files.find((x) => x.path === 'LICENSE').sourceSha256,
+      'Preserve the original Cockpit LICENSE exactly');
     const original = files.find((x) => x.path === f.path);
     return { path: f.path, sourceSha256: original.sourceSha256, sourceBytes: original.sourceBytes,
       sha256: hash(data), bytes: data.length, strippedLines: f.strippedLines };

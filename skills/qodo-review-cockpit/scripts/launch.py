@@ -53,7 +53,7 @@ def probe(command, gate):
 def main():
     if not (RUNTIME / "cockpit" / "__main__.py").is_file():
         sys.exit("Cockpit package error: pinned runtime resources are missing; reinstall through your existing skills channel.")
-    cli = shutil.which("qodo")
+    cli = shutil.which(os.environ.get("REVIEW_COCKPIT_QODO") or "qodo")
     if not cli:
         sys.exit("Cockpit CLI prerequisite: Qodo CLI 2.0.0 or newer is required; use qodo-setup.")
     version = probe([cli, "--version"], "CLI version probe")
@@ -76,6 +76,7 @@ def main():
         sys.exit("Cockpit data-home error: choose a state directory outside installed skill resources.")
     os.environ["REVIEW_COCKPIT_HOME"] = str(home)
     os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+    os.environ["REVIEW_COCKPIT_QODO"] = cli
     sys.path.insert(0, str(RUNTIME))
     sys.argv = ["cockpit", "--product", *sys.argv[1:]]
     runpy.run_module("cockpit", run_name="__main__")

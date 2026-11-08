@@ -41,8 +41,7 @@
         "qodo-codebase-wisdom",
         "qodo-review",
         "qodo-review-notes",
-        "qodo-review-resolver",
-        "qodo-review-cockpit"
+        "qodo-review-resolver"
       ],
       "compatibilityAliases": {
         "codebase-wisdom": "qodo-codebase-wisdom",
@@ -71,6 +70,25 @@
         "get-rules": "qodo-get-rules",
         "qodo-manage-rules": "qodo-manage-standards"
       }
+    },
+    {
+      "name": "qodo-cockpit",
+      "displayName": "Qodo Review Cockpit",
+      "description": "Optional interactive PR/work-package review with local notes, refresh/resume and export.",
+      "license": "MIT AND LicenseRef-Qodo-Cockpit",
+      "managed": false,
+      "providerListed": false,
+      "antigravity": {
+        "description": "Review PR work packages in an interactive browser with Qodo findings, local notes, marks, refresh, resume and HTML export. Install Cockpit only when requested.",
+        "suggestedPrompts": [
+          "Review these pull requests together in the interactive Cockpit."
+        ]
+      },
+      "default": false,
+      "skills": [
+        "qodo-review-cockpit"
+      ],
+      "compatibilityAliases": {}
     }
   ],
   "skills": [
@@ -133,7 +151,7 @@
     {
       "name": "qodo-review-cockpit",
       "version": "1.0.0",
-      "recommended": true,
+      "recommended": false,
       "displayName": "Qodo Review Cockpit",
       "shortDescription": "Review PR work packages in an interactive browser.",
       "defaultPrompt": "Use $qodo-review-cockpit to review these PRs together in the interactive browser Cockpit."

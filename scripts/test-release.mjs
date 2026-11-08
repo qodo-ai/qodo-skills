@@ -297,7 +297,7 @@ try {
   for (const pkg of sourceCatalog.installPackages) {
     for (const packageRoot of [
       `packages/${pkg.name}`, `codex-packages/${pkg.name}`,
-      pkg.name === 'qodo' ? 'kiro-power' : 'kiro-power-standards',
+      pkg.name === 'qodo' ? 'kiro-power' : `kiro-power-${pkg.name.slice(5)}`,
     ]) {
       const names = readdirSync(join(repositoryRoot, packageRoot, 'skills')).sort();
       assert.deepEqual(names, [...pkg.skills].sort(), `${packageRoot}: skill inventory must match the catalog`);

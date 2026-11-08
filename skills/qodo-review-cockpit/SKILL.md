@@ -2,11 +2,12 @@
 name: qodo-review-cockpit
 description: Review pull requests or a cross-repository work package in an interactive browser Cockpit, with evidence-backed stories, Qodo findings, local reviewer notes and marks, refresh/resume and HTML export. Use for reviewing PRs together or opening the review cockpit. Use qodo-review for local diffs, qodo-review-resolver for stored finding dispositions, and qodo-review-notes for authoring reviewer context.
 owner: Qodo
+license: MIT for instructions and launcher; bundled runtime under Qodo terms (runtime/LICENSE).
 metadata:
   vendor: qodo
   version: "1.0.0"
-  recommended: "true"
-  package: "qodo"
+  recommended: "false"
+  package: "qodo-cockpit"
   distribution: "skills-sh"
 ---
 
@@ -82,7 +83,11 @@ Stop on authentication/permission denial and explain the failed operation. Disti
 Python, unsupported CLI version, authentication and catalog/capability errors. Preserve handles
 and partial-session evidence. Never install an agent, update a runtime, migrate a standalone
 installation, or change its alias roots as recovery without covering authorization.
+
+## Handle a skill update notice
+
 `QODO_NOTICE` is passive: mention once; updated instructions load in the next session.
+The CLI owns runtime and skill updates at the recorded origin; this launcher never updates.
 
 ## Present the review result
 

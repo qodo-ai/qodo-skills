@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { kiroRoot } from './package-projections.mjs';
 import { stampSkillProvenance } from './skill-provenance.mjs';
 import { codexListingInterface, validateCodexPortalManifest } from './codex-portal-contract.mjs';
 
@@ -112,7 +113,7 @@ function pluginManifest(value, adapterSet) {
       author,
       homepage: pkg.homepage,
       repository: pkg.repository,
-      license: pkg.license,
+      license: value.license ?? pkg.license,
     };
   }
   // Retained, unlisted adapters use canonical metadata without requiring a marketplace listing.
@@ -126,7 +127,7 @@ function pluginManifest(value, adapterSet) {
     author,
     homepage: pkg.homepage,
     repository: pkg.repository,
-    license: pkg.license,
+    license: value.license ?? pkg.license,
     keywords,
   };
 }
@@ -139,12 +140,13 @@ function codexManifest(value) {
     author,
     homepage: pkg.homepage,
     repository: pkg.repository,
-    license: pkg.license,
+    license: value.license ?? pkg.license,
     keywords,
     skills: './skills/',
     interface: {
       displayName: value.displayName,
-      ...codexListingInterface(catalog, codexSubmissions.listings.find((entry) => entry.package === value.name)),
+      ...codexListingInterface(catalog, codexSubmissions.listings.find((entry) => entry.package === value.name)
+        ?? { package: value.name, shortDescription: value.displayName, starterSkills: value.skills.slice(0, 3) }),
       longDescription: value.description,
       developerName: author.name,
       category: 'Developer Tools',
@@ -197,13 +199,13 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
     files.set('.codex-plugin/plugin.json', `${JSON.stringify(manifest, null, 2)}\n`);
   } else if (adapterSet === 'claude') {
     files.set('.claude-plugin/plugin.json', `${JSON.stringify({
-      name: listing('claude', value.name).id,
+      name: (provider('claude').listings.find((entry) => entry.package === value.name)?.id ?? value.name),
       version: pkg.version,
       description: value.description,
       author,
       homepage: pkg.homepage,
       repository: pkg.repository,
-      license: pkg.license,
+      license: value.license ?? pkg.license,
       keywords,
     }, null, 2)}\n`);
   } else if (adapterSet === 'antigravity') {
@@ -345,13 +347,13 @@ writeJson('.claude-plugin/marketplace.json', {
   owner: author,
   metadata: { description: pkg.description, version: pkg.version },
   plugins: catalog.installPackages.map((value) => ({
-    name: listing('claude', value.name).id,
+    name: (provider('claude').listings.find((entry) => entry.package === value.name)?.id ?? value.name),
     source: `./packages/${value.name}`,
     description: value.description,
     author,
     homepage: pkg.homepage,
     repository: pkg.repository,
-    license: pkg.license,
+    license: value.license ?? pkg.license,
     keywords,
   })),
 });
@@ -366,13 +368,10 @@ for (const value of catalog.installPackages) {
 }
 syncGeneratedDirectory('antigravity-plugins', antigravityFiles);
 
-// Keep the existing Kiro core source path stable. Optional capabilities are a
-// separate Power, because Kiro installs a Power atomically.
-syncGeneratedDirectory('kiro-power', generatedPackageFiles(installPackage(pkg.name), 'kiro'));
-syncGeneratedDirectory(
-  'kiro-power-standards',
-  generatedPackageFiles(installPackage('qodo-standards'), 'kiro'),
-);
+// Preserve core/Standards paths; additional optional Powers have their own atomic roots.
+for (const value of catalog.installPackages) {
+  syncGeneratedDirectory(kiroRoot(value.name), generatedPackageFiles(value, 'kiro'));
+}
 
 if (stale.length) {
   console.error(`Generated adapters are stale: ${stale.join(', ')}`);
