@@ -15,6 +15,10 @@ Give an evaluating agent only the selected skill snapshot, `cases.json`, and thi
 > appropriate. If no write is appropriate, explain why. Do not invent a tool result, identifier,
 > approval, performed check or missing fact. Retain each case ID in your output.
 
+Generating and retaining new client retry keys (`creation_key` and transport idempotency keys)
+is allowed; these are not existing record identifiers. For a new record use `expected_revision=0`.
+Do not invent a notes/track ID or claim the simulated write returned one.
+
 The skill may request discovery/read operations. Record them and use the case's supplied schema
 and record facts; do not claim a real tool invocation. Missing facts can remain explicit gaps.
 For baseline/candidate comparison, use fresh contexts with the same cases and tool facts, and
