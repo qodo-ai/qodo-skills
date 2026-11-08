@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "https://github.com/qodo-ai/pr-review-cockpit",
-  "commit": "8a8fa30f6810513835b0f1aa0ca0f46a253363b4",
+  "commit": "78418d7dbf39758c7eb5ccd6accbcd66c0de8364",
   "license": "Qodo agreement or Qodo Terms of Use; see runtime/LICENSE",
   "policy": {
     "buildSha256": "8af7ca9b20f66f8990dab7bc109f805b335685ce5a70e71507a6cf0f5c8e0c29",
