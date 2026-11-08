@@ -107,7 +107,7 @@ def to_finding(pr: dict, f: dict) -> dict:
     from ..product import enabled
     if enabled(pr):
         origin = f.get('review_source') or 'unknown'
-        out.update(review_source=origin, git_sha=f.get('git_sha'), review_run_id=f.get('review_run_id'), created_at=f.get('created_at'))
+        out.update(review_source=origin, git_sha=f.get('git_sha'), review_run_id=f.get('review_run_id'), created_at=f.get('created_at'), side=f.get('side') or loc.get('side'))
         out['commit'] = f.get('git_sha') or out.get('commit')
         if origin == 'local_skill':
             out['source'] = 'qodo-local'
