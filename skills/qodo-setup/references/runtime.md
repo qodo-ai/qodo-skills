@@ -81,26 +81,5 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 
 ## Old or unparseable runtime
 
-Before any update check or runtime change, check only whether `QODO_UPDATE_BASE_URL` is set;
-never print its value. If set, stop for the user to resolve the source override before proceeding;
-do not change it yourself or assume it matches the recorded origin.
-
-Do not run whoami or login until the minimum CLI version in SKILL.md is met. Explain the
-compatibility issue. For a parsed 1.x runtime, ordinary `qodo update` can reach approved 2.x when
-the recorded origin has enabled legacy migration. Use the CLI's supported update check to choose
-the route; if the legacy alias still advertises 1.x, the same-origin recovery is
-`qodo update --channel latest-2`. Do not assume migration is active on every origin or claim that
-updates can never cross majors. This exception covers only approved 1.x to stable 2.x; it does
-not authorize other major migrations or change future-major automatic-update policy.
-Choose one approved runtime attempt; if it fails or remains
-incompatible, stop instead of retrying through another route.
-
-For an unparseable runtime or no supported updater, use the checksum-pinned installation
-procedure above, preserving the recorded distribution origin. For a normal install, let the
-verified installer choose the distribution-approved version. Honor a requested exact version
-and update hold; never silently substitute a channel for an explicit version. For a customer
-installer, inspect the verified script and use only selectors it supports, preserving the
-customer's origin and installation settings. Proceed when the setup request covers the chosen
-installation or update; otherwise explain that route and ask once. Rerun the unadorned version
-probe afterward. On denial, failure or continued incompatibility, stop without modifying the
-skill package or diagnosing an auth failure.
+Return to the canonical [runtime compatibility recovery gate](../SKILL.md#runtime-compatibility-recovery).
+The verified installation procedure above supplies installer mechanics when that gate selects it.

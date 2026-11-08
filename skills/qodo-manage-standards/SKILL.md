@@ -79,23 +79,22 @@ This unadorned probe is intentionally compatible with older Qodo CLIs. This skil
 CLI **2.0.0 or newer**.
 On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
-Before any update check or runtime change, check only whether `QODO_UPDATE_BASE_URL` is set;
+Only when the runtime needs an update, before any update check/change, test whether `QODO_UPDATE_BASE_URL` is set;
 never print its value. If set, stop for the user to resolve the source override before proceeding;
 do not change it yourself or assume it matches the recorded origin.
 If the version is older or cannot be parsed, do not run `whoami`, `login`, a review, or a managed tool and
 do not describe the failure as an authentication problem. Choose one deployment-approved upgrade
 route, explain it, and reuse covering runtime-update authorization or ask once before changing the
-installation. For a parsed 1.x runtime, `qodo update` can reach approved 2.x when its recorded
-origin has enabled legacy migration. Use the CLI's supported update check to select the route;
-if its legacy alias still advertises 1.x, the same-origin recovery is `qodo update --channel latest-2`.
-Do not assume every origin has activated migration or claim that normal updates can never cross majors.
+installation. For parsed 1.x, normal `qodo update` can reach approved 2.x when its recorded origin enables migration.
+If legacy aliases still serve 1.x, check the supported same-origin `latest-2` recovery route first.
+Require a compatible newer 2.x target from the selected route's supported check; missing/failed checks stop.
+Propose `qodo update --channel latest-2` only for that verified recovery route; never assume activation.
 This exception covers only deployment-approved 1.x to stable 2.x; it does not authorize other
 major migrations or change the existing automatic-update policy for future majors.
+For every route, preserve origin, explicit version choices and update holds; never substitute a channel for an exact version.
 For an unparseable runtime or no supported updater, use a checksum-pinned installer supplied by
-Qodo or the organization with covering installation authorization. Preserve the recorded origin,
-explicit version choices and update holds; never switch an enterprise deployment to the public
-service or invent a digest. Make one approved runtime attempt, then rerun the unadorned version
-probe and continue only when it satisfies the minimum. On denial, failure or continued
+Qodo or the organization with covering installation authorization; never switch to public service or invent a digest.
+Make one approved runtime attempt, then rerun the unadorned version probe and continue only when it satisfies the minimum. On denial, failure or continued
 incompatibility, stop with skill and user files unchanged; do not retry through another route.
 
 ## Quick start

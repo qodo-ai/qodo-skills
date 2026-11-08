@@ -48,10 +48,29 @@ qodo --version
 ```
 
 If missing on POSIX, try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version`.
-For a missing, old or unparseable runtime, follow the reference. Setup requests cover installation subject
+For a missing runtime, follow the verified installation reference; for an old/unparseable runtime, use the gate below. Setup requests cover installation subject
 to host approvals; plugin installation alone does not. Retain the selected deployment.
 
 Keep the executable as `<qodo>`. Require Qodo CLI **2.0.0 or newer** before authentication.
+
+### Runtime compatibility recovery
+
+If the version already meets the minimum, continue to Connect without an update preflight.
+Otherwise stop authenticated calls and explain the compatibility issue. Before update checks or
+runtime changes, test only whether `QODO_UPDATE_BASE_URL` is set; never print/change it. If set,
+stop for the user to resolve the override. Preserve the recorded distribution origin, explicit
+version choices and update holds on every route; never substitute a channel for an exact version.
+For parsed1.x, ordinary `qodo update` can reach approved stable2.x when its origin enables migration.
+Use supported update checks for the selected route and require a newer compatible same-origin2.x target.
+If legacy aliases still serve1.x, check the supported `latest-2` recovery route before proposing
+`qodo update --channel latest-2`. Missing/failed checks stop; do not assume migration is active.
+This exception covers only approved1.x-to-stable2.x; it grants no unrelated future-major authority.
+For an unparseable runtime or no supported updater, use the checksum-pinned installation procedure
+in [runtime.md](references/runtime.md). Honor exact versions, holds and supported customer installer
+selectors, preserving origin/settings. Let a normal verified installer select the approved version.
+Explain the chosen route; reuse covering installation/runtime-update authority or ask once before
+changing the runtime. Make one approved attempt, then rerun the unadorned version probe. On denial,
+failure or continued incompatibility, stop without another route, skill edits or an auth diagnosis.
 
 ### 2. Connect
 
