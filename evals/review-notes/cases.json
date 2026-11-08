@@ -80,8 +80,9 @@
         "latest_revision": 3,
         "published_revision": 3,
         "pr_number": 42,
-        "complete_latest_document": {"targetRepoPath": "example/orders", "baseBranch": "main", "trackId": null, "noTrackReason": "Independent regression fix", "contentMarkdown": "Add transactional retry-key handling to close the restart window. Earlier unit checks passed; load testing was planned.", "commitShaAtCreation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "commitShaAtUpdate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "validationChecks": []},
+        "complete_latest_document": {"provider": "github", "providerHost": "github.example.test", "targetRepoRef": "fixture-repository-17", "headRepoRef": "fixture-repository-17", "headBranch": "fix/retry-payload", "headRepoPath": "example/orders", "status": "active", "targetRepoPath": "example/orders", "baseBranch": "main", "trackId": null, "noTrackReason": "Independent regression fix", "contentMarkdown": "Add transactional retry-key handling to close the restart window. Earlier unit checks passed; load testing was planned.", "commitShaAtCreation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "commitShaAtUpdate": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "validationChecks": []},
         "new_source_head": "cccccccccccccccccccccccccccccccccccccccc",
+        "source_branch": "fix/retry-payload",
         "new_implementation": "Reject a key with mismatched order payload rather than silently reusing it.",
         "performed_checks": [
           {"name": "original unit suite", "result": "passed", "tested_commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "performed_at": "2026-01-02T11:00:00Z", "evidence_ref": "/Users/fixture/artifacts/unit.txt"},
