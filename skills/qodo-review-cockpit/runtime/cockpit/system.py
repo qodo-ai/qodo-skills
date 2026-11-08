@@ -51,7 +51,8 @@ def _excerpt(repo: str, path: str, ref: str, lo: int, hi: int, budget: dict) -> 
         from .adapters.managed import Client, ReadBudget, ReadError
         cache = budget.setdefault('_managed_excerpts', {})
         identities = budget.setdefault('_managed_identities', {})
-        key = (repo, path, ref)
+        identity_key = identities.get(repo) or {}
+        key = (identity_key.get('provider'), identity_key.get('provider_host'), identity_key.get('repository_url') or repo, path, ref)
         for start, end, content, evidence in cache.get(key, []):
             if start <= lo and hi <= end:
                 lines = content.splitlines()[lo-start:hi-start+1]
@@ -67,11 +68,12 @@ def _excerpt(repo: str, path: str, ref: str, lo: int, hi: int, budget: dict) -> 
             if repo not in identities:
                 identities[repo] = client.identity(repo)
             identity = identities[repo]
+            key = (identity.get('provider'), identity.get('provider_host'), identity.get('repository_url') or repo, path, ref)
             result = client.read('codebase', 'read-file', repo=identity.get('repository_url') or identity['repo'], path=path, ref=ref, start_line=max(1, lo), limit_lines=min(MAX_EXCERPT, hi-lo+1))
         except ReadError:
             return None
         evidence = {k: result.get(k) for k in ('resolved_ref', 'last_fetched_at', 'committed_at', 'commit_date', 'qar_operation_result_truncated', 'next_read_cursor', 'truncated', 'content_truncated_upstream', 'next_start_line', 'start_line', 'total_lines')}
-        evidence.update(identity=identity, requested_ref=ref, selection_from=lo, selection_to=hi)
+        evidence.update(identity=identity, path=path, requested_ref=ref, selection_from=lo, selection_to=hi, source_url=result.get('url') or result.get('html_url'))
         immutable = bool(re.fullmatch(r'[0-9a-fA-F]{40}|[0-9a-fA-F]{64}', ref or ''))
         if immutable and str(result.get('resolved_ref') or '').lower() != ref.lower():
             return None, None, {**evidence, 'status':'unavailable', 'complete':False, 'reason':'returned commit does not match requested immutable ref'}
@@ -137,12 +139,15 @@ def _ref(raw, prs: dict, where: str, warn: list, fetch: dict | None) -> dict | N
         warn.append(f"{where}: {path} needs a pr (changed code) or a repo (unchanged code)"); return None
     from .product import enabled
     product = enabled()
-    matches = [p for p in prs.values() if p['repo'].lower() == repo.lower() and
-               (not raw.get('provider_host') or (p.get('identity') or {}).get('provider_host') == raw['provider_host'])]
-    identities = {(p.get('identity') or {}).get('provider_host') for p in matches}
+    def matches_repo(p):
+        identity = p.get('identity') or {}
+        same_repo = p['repo'].lower() == repo.lower() if not product or identity.get('provider') == 'github' else p['repo'] == repo
+        return same_repo and (not raw.get('provider_host') or identity.get('provider_host') == raw['provider_host'])
+    matches = [p for p in prs.values() if matches_repo(p)]
+    identities = {((p.get('identity') or {}).get('provider_host'), (p.get('identity') or {}).get('provider'), p['repo']) for p in matches}
     if product and len(identities) > 1:
-        out.update(repo=repo, source_evidence={'status':'unavailable', 'complete':False, 'reason':'ambiguous provider host'})
-        warn.append(f'{where}: source repository host is ambiguous; no source read')
+        out.update(repo=repo, source_evidence={'status':'unavailable', 'complete':False, 'reason':'ambiguous provider repository'})
+        warn.append(f'{where}: source repository identity is ambiguous; no source read')
         return out
     pr = matches[0] if matches else {}
     base = pr.get('base')
@@ -155,17 +160,9 @@ def _ref(raw, prs: dict, where: str, warn: list, fetch: dict | None) -> dict | N
         if fetch is not None and pr.get('identity'):
             fetch.setdefault('_managed_identities', {})[repo] = pr['identity']
     out.update(repo=repo, ref=ref)
-    if raw.get('excerpt'):
+    if raw.get('excerpt') and not product:
         out['excerpt'] = str(raw['excerpt'])[:4000]
-        if product:
-            ev = raw.get('source_evidence') or {'status':'unverified', 'complete':None, 'origin':'authored', 'requested_ref':ref}
-            out['source_evidence'] = ev
-            out['excerpt_cut'] = raw.get('excerpt_cut') if ev.get('complete') is True else None
-            if ev.get('requested_ref') != ref:
-                out.pop('excerpt', None)
-                out['source_evidence'] = {**ev, 'status':'unavailable', 'complete':False, 'reason':'saved excerpt ref differs from requested ref'}
-        else:
-            out['excerpt_cut'] = int(raw.get('excerpt_cut') or 0)
+        out['excerpt_cut'] = int(raw.get('excerpt_cut') or 0)
     elif fetch is not None and lo:
         got = _excerpt(repo, path, out['ref'], lo, hi or lo, fetch)
         if got and product:
@@ -181,6 +178,9 @@ def _ref(raw, prs: dict, where: str, warn: list, fetch: dict | None) -> dict | N
             if product:
                 out['source_evidence'] = {'status':'unavailable', 'complete':False, 'requested_ref':ref}
             warn.append(f"{where}: couldn't read {repo}:{path} at {out['ref']} (the page shows the path only)")
+    elif product and raw.get('excerpt'):
+        out.update(excerpt=str(raw['excerpt'])[:4000], excerpt_cut=None,
+                   source_evidence={'status':'unverified', 'complete':None, 'origin':'authored', 'reason':'source must be re-observed through managed reads'})
     return out
 
 

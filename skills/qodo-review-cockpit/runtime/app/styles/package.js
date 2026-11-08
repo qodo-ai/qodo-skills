@@ -2212,16 +2212,19 @@ window.addEventListener("resize", lsavePlace);
 const VDICON = { ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>', no: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
   unknown: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>' };
 const vdLink = (href, cls, title, text) => href && /^https:\/\//.test(href) ? `<a class="vd-s ${cls}" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(title)}">${text}</a>` : `<span class="vd-s ${cls}" title="${esc(title)}">${text}</span>`;
-function vdPrs(name, hit, known, tone = "high", path = "") {   // a card counting the PRs in a state; each number links to its PR (path: a tab of it, e.g. /checks)
-  return `<div class="vd-t"><span class="vd-k">${esc(name)}</span><b class="vd-n${known && !hit.length ? " none" : ""}">${known ? hit.length : "—"}</b>
-    <span class="vd-sev">${!known ? `<span class="vd-s">not checked yet</span>` : hit.length ? hit.map((p) => vdLink(p.url && p.url + path, tone, `${strip(p.title)}: open on GitHub`, `#${esc(p.number)}`)).join("") : `<span class="vd-s none">none</span>`}</span></div>`;
+function vdPrs(name, hit, known, tone = "high", path = "", showReported = false) {   // unknown coverage retains any observed negative PRs as a lower bound
+  const links = () => hit.map((p) => vdLink(p.url && p.url + path, tone, `${strip(p.title)}: open on GitHub`, `#${esc(p.number)}`)).join("");
+  return `<div class="vd-t"><span class="vd-k">${esc(name)}</span><b class="vd-n${known && !hit.length ? " none" : ""}">${known ? hit.length : showReported && hit.length ? `at least ${hit.length}` : "—"}</b>
+    <span class="vd-sev">${!known ? showReported ? `<span class="vd-s">coverage unknown</span>${links()}` : `<span class="vd-s">not checked yet</span>` : hit.length ? links() : `<span class="vd-s none">none</span>`}</span></div>`;
 }
 function vdThreads(ps) {   // unresolved review conversations across the PRs: GitHub's live count once read, else the count collected with the PR
   const live = (p) => LIVE[p.key] && LIVE[p.key].unresolved != null, n = (p) => (live(p) ? LIVE[p.key].unresolved : p.unresolved_threads), first = (p) => ((live(p) ? LIVE[p.key].unresolved_ids : p.unresolved_ids) || [])[0], known = ps.filter((p) => n(p) != null), hit = known.filter((p) => n(p) > 0), tot = hit.reduce((a, p) => a + n(p), 0);
   return `<div class="vd-t"><span class="vd-k">Unresolved comments</span><b class="vd-n${known.length && !tot ? " none" : ""}">${known.length ? tot : "—"}</b>
     <span class="vd-sev">${!known.length ? `<span class="vd-s">not checked yet</span>` : hit.length ? hit.map((p) => vdLink(p.url && (first(p) ? `${p.url}#discussion_r${first(p)}` : p.url), "medium", `${strip(p.title)}: open its first unresolved comment on GitHub`, `#${esc(p.number)} · ${n(p)}`)).join("") : `<span class="vd-s none">none</span>`}</span></div>`;
 }
-const awaitingReview = (p) => { const L = LIVE[p.key];   // open, not a draft, and no human approval yet: GitHub's live review decision once read, else the approvals collected with the PR
+const reviewCoverageKnown = (p) => !C.product || (LIVE[p.key] ? LIVE[p.key].reviews_complete === true : p.read_evidence?.sections?.reviews?.complete === true);
+const awaitingReview = (p) => { const L = LIVE[p.key];
+  if (!reviewCoverageKnown(p)) return null;
   return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length; };
 function bVerdict() {   // the bottom line: can the package merge as it is, then Merge Risk and the open findings behind that answer
   const ps = prs(), A = RK && RK.approval, ok = C.dummy || (!!A && A.result === "approve"), fs = KIT.openFindings({ ...C, prs: ps }), lv = RK ? RK.level : "", LV = ["low", "medium", "high"];
@@ -2233,9 +2236,9 @@ function bVerdict() {   // the bottom line: can the package merge as it is, then
       <span class="vd-meter" role="img" aria-label="${esc(lv || "unknown")} of low, medium, high">${LV.map((k, i) => `<i class="${lv && i <= LV.indexOf(lv) ? esc(lv) : ""}"></i>`).join("")}</span></div>
     <div class="vd-t"><span class="vd-k">Open findings</span><b class="vd-n${fs.length ? "" : " none"}">${fs.length}</b>
       <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
-    ${vdPrs("PRs failing CI", ps.filter((p) => (p.checks || []).some((c) => CI_BAD.includes(String(c.state || c.conclusion || "").toUpperCase()))), true, "high", "/checks")}
+    ${vdPrs("PRs failing CI", ps.filter((p) => (p.checks || []).some((c) => CI_BAD.includes(String(c.state || c.conclusion || "").toUpperCase()))), !C.product || !productCiUnknown(ps), "high", "/checks", !!C.product)}
     ${vdPrs("PRs with merge conflicts", ps.filter((p) => (LIVE[p.key] || {}).merge_state === "DIRTY"), Object.keys(LIVE).length > 0)}
-    ${vdPrs("PRs awaiting human review", ps.filter(awaitingReview), true, "medium")}
+    ${vdPrs("PRs awaiting human review", ps.filter(awaitingReview), ps.every(reviewCoverageKnown), "medium", "", !!C.product)}
     ${vdThreads(ps)}</div></div>`;
 }
 function crumb() {   // the header names the page, then the open section

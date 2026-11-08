@@ -113,7 +113,7 @@ def _pr_view(p: dict) -> dict:
     keep = ("id", "source", "category", "severity", "status", "verdict", "path", "line", "end_line", "side", "title", "stance", "url", "scanner", "local", "status_why", "qodo_type")
     return {
         "key": p["key"], "repo": p["repo"], "number": p["number"], "title": p["title"], "url": p.get("url"),
-        "author": p.get("author"), "base": p.get("base"), "head": p.get("head"), "head_sha": p.get("head_sha"),
+        "author": p.get("author"), "base": p.get("base"), "head": p.get("head"), "head_sha": p.get("head_sha"), "base_sha": p.get("base_sha"),
         "add": p.get("additions", 0), "del": p.get("deletions", 0),
         "approvals": p.get("approvals") or [], "changes_requested": p.get("changes_requested") or [],   # human reviews at collection time
         "unresolved_threads": p.get("unresolved_threads"), "unresolved_ids": p.get("unresolved_ids") or [],   # review conversations not resolved at collection time (None: not read)
@@ -127,7 +127,7 @@ def _pr_view(p: dict) -> dict:
         "files": [{"path": f["path"], "role": f.get("role"), "add": f.get("additions", 0), "del": f.get("deletions", 0),
                    "semantic": f.get("semantic"), "tiers": tiers.get(f["path"], {})} for f in p.get("files", [])],
         "code": code, "tests": _tests(p)[:MAX_TESTS], "test_counts": _test_counts(_tests(p)), "evidence": {**_evidence(p), "results": p.get("test_results"), "coverage": p.get("coverage")}, **_danger(p), "files_missing": p.get("files_missing", 0), "checks": p.get("checks", []), "scans": p.get("scans", []), "qodo_source": p.get("qodo_source"), "body": (p.get("body") or "")[:1500],
-        "product": p.get('product'), "product_evidence": p.get('product_evidence'), "read_evidence": _read_summary(p.get('read_evidence')), "qodo_review": p.get('qodo_review'), "qodo_read_error": p.get('qodo_read_error'),
+        "identity": p.get('identity'), "product": p.get('product'), "product_evidence": p.get('product_evidence'), "read_evidence": _read_summary(p.get('read_evidence')), "qodo_review": p.get('qodo_review'), "qodo_read_error": p.get('qodo_read_error'),
         "decisions": _decisions(p), "notes": p.get("notes"), "quality": p.get("quality"),
         # what Qodo says the PR does (the stories tab falls back to it)
         "qodo": {k: (p.get("qodo") or {}).get(k) for k in ("headline", "description", "url")} if p.get("qodo") else None,

@@ -372,6 +372,15 @@ const CM = (() => {
       c.risk ? `<span class="tg ${c.risk === "high" ? "bad" : c.risk === "medium" ? "warn" : ""}">risk ${esc(c.risk)}</span>` : "", c.unproven ? `<span class="tg bad">no evidence</span>` : ""].join("");
   }
   function ghBlob(r) {
+    if (C.product) {
+      const p = r.diff ? PRS[r.pr] : null, identity = p?.identity || r.source_evidence?.identity;
+      const native = r.source_evidence?.source_url;
+      if (!r.diff && safeUrl(native)) return native;
+      if (identity?.provider !== 'github' || !safeUrl(identity.repository_url)) return null;
+      const ref = r.diff ? (r.side === 'old' ? p.base_sha : p.head_sha) : r.ref;
+      if (!ref) return null;
+      return `${identity.repository_url.replace(/\/$/, '')}/blob/${encodeURIComponent(ref)}/${r.path.split('/').map(encodeURIComponent).join('/')}${r.from ? `#L${r.from}${r.to !== r.from ? `-L${r.to}` : ''}` : ''}`;
+    }
     if (r.diff) { const p = PRS[r.pr]; if (!p) return null; return r.side !== "old" && p.head_sha ? `https://github.com/${p.repo}/blob/${p.head_sha}/${r.path}${r.from ? `#L${r.from}-L${r.to}` : ""}` : safeUrl(p.url) ? `${p.url}/files` : null; }
     return r.repo ? `https://github.com/${r.repo}/blob/${r.ref || "HEAD"}/${r.path}${r.from ? `#L${r.from}${r.to !== r.from ? `-L${r.to}` : ""}` : ""}` : null;
   }
@@ -380,7 +389,7 @@ const CM = (() => {
     const url = ghBlob(r), ln = r.from ? `<span class="ln">:${r.from}${r.to !== r.from ? "–" + r.to : ""}</span>${r.side === "old" ? " (before)" : ""}` : "";
     const where = r.diff ? `<span class="pc${r.changed ? "" : " meet"}" title="${esc(r.changed ? "changed in this PR" : "a file this PR changes, on unchanged lines")}">${esc(short(r.pr))}${r.changed ? "" : " · unchanged lines"}</span>` : `<span class="tg" title="${esc(`${r.repo || ""} at ${r.ref || "HEAD"}`)}">unchanged code${r.repo ? " · " + esc(r.repo.split("/").pop()) : ""}</span>`;
     const has = r.diff ? (r.lines || []).length : !!r.excerpt, canNote = r.diff && r.changed && r.side !== "old" && r.at;
-    return `<li class="ref"><div class="rh">${url ? `<a class="rp" href="${esc(url)}" target="_blank" rel="noopener">${esc(r.path)}${ln}</a>` : `<span class="rp">${esc(r.path)}${ln}</span>`}${where}
+    return `<li class="ref"><div class="rh">${url ? `<a class="rp" href="${esc(url)}" target="_blank" rel="noopener">${esc(r.path)}${ln}</a>` : `<span class="rp">${esc(r.path)}${ln}</span>`}${where}${C.product && !url ? `<span class="tg">source link unavailable</span>` : ""}
       ${has ? `<button class="tb" type="button" data-cmcode="${esc(key)}" aria-expanded="${open}">${open ? "hide code" : "code"}</button>` : ""}${canNote ? `<button class="tb" type="button" data-cmhere="${esc(JSON.stringify({ pr: r.pr, path: r.path, line: r.at }))}" title="A comment on this line of ${esc(short(r.pr))}">💬 comment here</button>` : ""}</div>
       ${r.note ? `<div class="rn">${md(r.note)}</div>` : ""}
       ${r.source_evidence && r.source_evidence.complete !== true ? `<p class="muted">Source excerpt: ${esc(r.source_evidence.status || 'unverified')}. ${esc(r.source_evidence.reason || 'Freshness and requested range completeness are not proven.')}${r.source_evidence.next_start_line ? ` Continue at line ${esc(r.source_evidence.next_start_line)}.` : ''}</p>` : ''}

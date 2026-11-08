@@ -73,17 +73,34 @@ def refresh(sdir, old, cfg):
     meta = {'complete': True, 'requested_refs': requested, 'collected_refs': requested,
             'omitted_refs': [], 'default_repo': previous_collection.get('default_repo'), 'reason': None}
     known = {e.get('github_id') for e in _events(sdir) if e.get('github_id')}
-    build(prs, cfg, session=sdir.name, reviewer_login=old.get('reviewer_login'), skip_github_ids=known, dest=sdir, collection_meta=meta, require_complete_budget=True)
-    data = json.loads((sdir / 'review-data.json').read_text())
-    if old.get('reviewers'):
-        from .reviewers import basis
-        data['reviewers'] = {**old['reviewers'], 'stale': old['reviewers'].get('basis') != basis(data)}
-    write_json(sdir / 'review-data.json', data)
-    warnings = []
-    if (sdir / 'enrich.json').is_file():
-        from .enrich import enrich
-        warnings = enrich(sdir, json.loads((sdir / 'enrich.json').read_text()))['warnings']
-    return {'session': sdir.name, 'warnings': warnings}
+    snapshot_path = sdir / 'review-data.json'
+    snapshot = snapshot_path.read_bytes()
+    try:
+        build(prs, cfg, session=sdir.name, reviewer_login=old.get('reviewer_login'), skip_github_ids=known, dest=sdir, collection_meta=meta, require_complete_budget=True)
+        data = json.loads((sdir / 'review-data.json').read_text())
+        if old.get('reviewers'):
+            from .reviewers import basis
+            data['reviewers'] = {**old['reviewers'], 'stale': old['reviewers'].get('basis') != basis(data)}
+        write_json(sdir / 'review-data.json', data)
+        warnings = []
+        if (sdir / 'enrich.json').is_file():
+            from .enrich import enrich
+            warnings = enrich(sdir, json.loads((sdir / 'enrich.json').read_text()))['warnings']
+        return {'session': sdir.name, 'warnings': warnings}
+    except BaseException:
+        # Rebuild and re-enrichment are one saved-snapshot operation. Local events are
+        # append-only and may include concurrent reader work: never roll their log back.
+        import os
+        import tempfile
+        fd, temporary = tempfile.mkstemp(dir=sdir, prefix='.refresh-rollback-', suffix='.tmp')
+        try:
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(snapshot)
+            os.replace(temporary, snapshot_path)
+        finally:
+            Path(temporary).unlink(missing_ok=True)
+        raise
+
 
 
 @bounded_operation
@@ -109,7 +126,7 @@ def live_state(prs, since_default=''):
             newly_observed = [name for name in human['approvals'] if name not in baseline] if human else None
             decision = ('CHANGES_REQUESTED' if human['changes_requested'] else 'APPROVED' if human['approvals'] else None) if human else None
             out[pr['key']] = {'head': head, 'snapshot_head': old, 'moved': bool(head and old and head != old),
-                             'new_commits': -1 if head != old else 0, 'state': r.get('state'), 'merge_state': r.get('native_state'),
+                             'new_commits': -1 if head != old else 0, 'state': str(r.get('state') or '').upper() or None, 'merge_state': r.get('native_state'),
                              'draft': r.get('draft'), 'review_decision': decision, 'approved_by': newly_observed, 'current_approved_by': human['approvals'] if human else None,
                              'reviews_complete': known_reviews, 'review_decision_source': 'observed_human_reviews' if human else 'unknown',
                              'new_comments': sum(c.get('created_at', '') > since for c in comments['items']),
@@ -205,10 +222,10 @@ def reviewers(data, cfg, max_calls):
                 if not ctx.get('revision'):
                     raise ReadError('Change context omitted its revision')
                 reviews = client.pages(identity, 'reviews', number, ctx['revision'])
-                for rv in reviews['items']:
-                    actor = rv.get('actor') or rv.get('user') or {}
+                for rv in normalize_reviews(reviews['items']):
+                    actor = rv['user']
                     login = actor.get('login')
-                    if login and login not in excluded and not actor.get('is_bot') and not login.endswith('[bot]'):
+                    if login and login not in excluded and actor.get('type') != 'Bot' and not login.endswith('[bot]'):
                         evidence[login].append({'pr': pr['key'], 'why': f'Reviewed {pr["repo"]}#{number}; recent history, path ownership unverified', 'source': reviews})
         except ReadError as e:
             failed += 1
