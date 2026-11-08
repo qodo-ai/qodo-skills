@@ -5,7 +5,7 @@
   "package": {
     "name": "qodo",
     "displayName": "Qodo for coding agents",
-    "version": "2.1.8",
+    "version": "2.1.9",
     "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
     "repository": "https://github.com/qodo-ai/qodo-skills",
     "homepage": "https://www.qodo.ai",
@@ -126,7 +126,7 @@
     },
     {
       "name": "qodo-review",
-      "version": "1.10.13",
+      "version": "1.10.14",
       "recommended": true,
       "displayName": "Qodo Local Review",
       "shortDescription": "Review coding milestones and local changes before handoff.",
@@ -142,11 +142,11 @@
     },
     {
       "name": "qodo-review-notes",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "recommended": true,
       "displayName": "Qodo Review Notes",
-      "shortDescription": "Maintain development tracks and PR reviewer context.",
-      "defaultPrompt": "Use $qodo-review-notes to find the development track and publish PR Review Notes."
+      "shortDescription": "Keep reasoning for plan and pull-request review.",
+      "defaultPrompt": "Use $qodo-review-notes to maintain context for plan and PR review as development decisions and evidence change."
     },
     {
       "name": "qodo-review-cockpit",
