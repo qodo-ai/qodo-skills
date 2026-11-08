@@ -82,6 +82,9 @@ This unadorned probe is intentionally compatible with older Qodo CLIs. This skil
 CLI **2.0.0 or newer**.
 On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
+Before any update check or runtime change, check only whether `QODO_UPDATE_BASE_URL` is set;
+never print its value. If set, stop for the user to resolve the source override before proceeding;
+do not change it yourself or assume it matches the recorded origin.
 If the version is older or cannot be parsed, do not run `whoami`, `login`, a review, or a managed tool and
 do not describe the failure as an authentication problem. Choose one deployment-approved upgrade
 route, explain it, and reuse covering runtime-update authorization or ask once before changing the

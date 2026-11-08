@@ -387,11 +387,14 @@ Never widen approval, change owners or add optional packages. Report persistent 
 
 ### Runtime recovery
 
-Stop if a runtime upgrade was already attempted. If reaching the skill minimum needs a major
-upgrade or the version is unparseable, use the explicit installation gate above; an in-major
-`qodo update` cannot satisfy it. Recheck the minimum after installation, then return to the
-preview without another upgrade. Stop if installation is not authorized or compatible.
-Otherwise inspect `<qodo> update --help`, then use the supported `<qodo> update --check --json`;
-require a newer release and the recorded source in its result.
-Explain the CLI prerequisite and reuse runtime-update authorization or ask once; skills-only consent is insufficient. Run `<qodo> update --json` once without source/channel overrides. Recheck unadorned `<qodo> --version` and require the skill minimum before rechecking planning support and returning to the preview.
-Stop on denial, failure, missing metadata or continued incompatibility; never reinstall or switch sources. Runtime-only consent does not approve the skills operation.
+Stop if a runtime upgrade was already attempted. Reuse the version and source preflight above,
+including the presence-only `QODO_UPDATE_BASE_URL` check. Inspect the supported CLI update check
+and require a newer compatible release at the recorded source. Choose the single upgrade route
+from the compatibility gate: ordinary update, approved legacy 1.x `latest-2` recovery, or the
+checksum-pinned installer when the runtime is unparseable or has no usable update route.
+Explain the CLI prerequisite and reuse covering runtime-update/installation authorization or
+ask once; skills-only consent is insufficient. Execute that chosen runtime attempt once, then
+recheck unadorned `<qodo> --version` and require the skill minimum before rechecking planning
+support and returning to the preview. Stop on denial, failure, missing metadata or continued
+incompatibility; never make a second runtime attempt or switch sources. Runtime-only consent
+does not approve the skills operation.

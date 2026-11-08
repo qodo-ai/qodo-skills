@@ -103,9 +103,22 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 ## Runtime compatibility gate
 Resolve the executable using this skill's command-not-found fallback, then run `<qodo> --version`
 with no provenance flags. This skill requires Qodo CLI **2.0.0 or newer** and a runtime with review API v2.
-If older or unparseable, do not run `whoami`, `login`, a review or managed tools; this is a compatibility issue.
-Follow [runtime upgrade guidance](references/runtime-upgrade.md) to choose one authorized update or verified installer while preserving the origin.
-Continue only after an unadorned version probe meets the minimum; otherwise stop with skill and user files unchanged.
+Before any update check or runtime change, check only whether `QODO_UPDATE_BASE_URL` is set;
+never print its value. If set, stop for the user to resolve the source override before proceeding;
+do not change it yourself or assume it matches the recorded origin.
+If the version is older or cannot be parsed, do not run `whoami`, `login`, a review, or a managed tool and
+do not describe the failure as an authentication problem. Choose one deployment-approved upgrade
+route, explain it, and reuse covering runtime-update authorization or ask once before changing the
+installation. For a parsed 1.x runtime, `qodo update` can reach approved 2.x when its recorded
+origin has enabled legacy migration. Use the CLI's supported update check to select the route;
+if its legacy alias still advertises 1.x, the same-origin recovery is `qodo update --channel latest-2`.
+Do not assume every origin has activated migration or claim that normal updates can never cross majors.
+For an unparseable runtime or no usable update route, use a checksum-pinned installer supplied by
+Qodo or the organization with covering installation authorization. Preserve the recorded origin,
+explicit version choices and update holds; never switch an enterprise deployment to the public
+service or invent a digest. Make one approved runtime attempt, then rerun the unadorned version
+probe and continue only when it satisfies the minimum. On denial, failure or continued
+incompatibility, stop with skill and user files unchanged; do not retry through another route.
 
 ## Quick start
 You just wrote the code, so you hold the one input the reviewer can't get anywhere else: **why**.
@@ -114,28 +127,12 @@ Before each new submission, read [Session context](references/review-turn-contex
 Examples use `notes`; check `qodo review --help`. If it advertises only `summary`, use that field
 for the same narrative, keeping `decisions` and `recent_work` unchanged.
 
-```
-qodo --version                                  # compatibility probe — run this FIRST
+```sh
+qodo --version
 qodo read whoami --json --skill qodo-review --skill-version 1.10.13 --distribution skills-sh
-review_base=$(git merge-base HEAD origin/main) || { printf '%s\n' 'Cannot resolve merge base for origin/main; fetch missing history or choose the correct target.' >&2; exit 1; } # use the intended target branch
-qodo review --base "$review_base" --context-file - <<'EOF' # branch changes, WITH context
-{ "notes": "<expected behavior, constraints, supporting evidence and uncertainty>",
-  "decisions": ["<actual choice, its user/agent owner, and known rationale>"],
-  "recent_work": ["<what changed since the previous review; fixes only or added behavior>"] }
-EOF
-qodo review --base "$review_base" --context-file ctx.json # context from a file
-qodo review --base "$review_base" --ticket <TICKET_URL> ... # ticket URL (repeatable)
-qodo review --base "$review_base" --json ...              # machine-readable findings
-qodo review --base "$review_base" src/ test/ ...          # limit to paths (git pathspecs)
-develop_review_base=$(git merge-base HEAD origin/develop) || { printf '%s\n' 'Cannot resolve merge base for origin/develop; fetch missing history or choose the correct target.' >&2; exit 1; } # another target branch
-qodo review --base "$develop_review_base" --json --context-file ctx.json # another target branch
-qodo review --base "$review_base" --fast --async --json --context-file ctx.json # checkpoint
-qodo review --base "$review_base" --json --context-file ctx.json      # final: auto
-qodo review --base "$review_base" --deep --json --context-file ctx.json # justified deep review
-qodo review --base "$review_base" # no context only when there is truly nothing to say
-qodo review status <operation-id>            # collect an --async result (exit 2 = still running)
-qodo review --help                           # exact flags (renders offline)
 ```
+See [illustrative CLI examples](references/review-turn-context.md#cli-examples) for context, base and depth choices.
+
 
 You can also keep `.qodo/session-context.json` (same JSON shape) updated at the repo root — it is auto-attached to every run, so even a bare `qodo review` carries your context. An explicit
 `--context-file` overrides it; the file itself is never part of the reviewed diff. Don't commit it

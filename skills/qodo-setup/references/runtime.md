@@ -81,6 +81,10 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 
 ## Old or unparseable runtime
 
+Before any update check or runtime change, check only whether `QODO_UPDATE_BASE_URL` is set;
+never print its value. If set, stop for the user to resolve the source override before proceeding;
+do not change it yourself or assume it matches the recorded origin.
+
 Do not run whoami or login until the minimum CLI version in SKILL.md is met. Explain the
 compatibility issue. For a parsed 1.x runtime, ordinary `qodo update` can reach approved 2.x when
 the recorded origin has enabled legacy migration. Use the CLI's supported update check to choose
