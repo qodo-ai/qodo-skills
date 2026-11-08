@@ -208,6 +208,8 @@ review ID as `evidence_ref` when available. If evidence is local, identify it as
 other reviewers; never imply that a local path proves accessible evidence. If no check was run
 or a check is inapplicable, explain why in prose without manufacturing a passing entry. A planned
 test belongs in the plan, not among completed validation. Refresh applicability after source changes.
+Before saving shared notes, remove secrets, credentials, tokens and sensitive log output. Omit
+unnecessary personal path details; retain a safe artifact label or shared reference and its access limits.
 
 Wait for a durable publication receipt and `ready_to_open_pr=true` before opening a new PR.
 If publication fails or HEAD changes, refresh and publish again before opening. A receipt reporting
