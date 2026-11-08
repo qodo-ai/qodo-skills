@@ -103,10 +103,9 @@ For user-requested updates, follow the [manual-update procedure](references/skil
 ## Runtime compatibility gate
 Resolve the executable using this skill's command-not-found fallback, then run `<qodo> --version`
 with no provenance flags. This skill requires Qodo CLI **2.0.0 or newer** and a runtime with review API v2.
-If older or unparseable, do not run `whoami`, `login`, or a review, and do not call it an auth failure.
-Automatic updates stay within a major version; ask once before explicit 2.x installation with a
-checksum-pinned installer supplied by Qodo or the organization. Preserve the recorded origin and
-never invent a digest. Recheck the version after installation; otherwise stop without changing files.
+If older or unparseable, do not run `whoami`, `login`, a review or managed tools; this is a compatibility issue.
+Follow [runtime upgrade guidance](references/runtime-upgrade.md) to choose one authorized update or verified installer while preserving the origin.
+Continue only after an unadorned version probe meets the minimum; otherwise stop with skill and user files unchanged.
 
 ## Quick start
 You just wrote the code, so you hold the one input the reviewer can't get anywhere else: **why**.
