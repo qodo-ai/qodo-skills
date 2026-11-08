@@ -37,7 +37,7 @@ qodo --version
 Then try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version` if missing. Use that verified installer if missing. Setup covers installation subject to host approvals; plugin installation alone does not.
 Keep the executable as `<qodo>`. Require Qodo CLI **2.0.0 or newer** before auth; compatible versions skip update preflight.
 
-### Compatibility recovery
+### Runtime compatibility recovery
 
 For old/unparseable versions, stop authenticated calls and explain. Before update checks/changes, test only whether QODO_UPDATE_BASE_URL is set; never print/change it. If set, stop for user resolution. All routes preserve origin, exact versions and update holds; never replace an exact version with a channel.
 For parsed1.x, normal `qodo update` reaches approved stable2.x only if that origin enables migration. Require a newer compatible same-origin2.x target from the selected route's supported check. If legacy aliases serve1.x, check latest-2 before proposing `qodo update --channel latest-2`. Missing/failed checks stop; never assume activation or unrelated future-major authority.
