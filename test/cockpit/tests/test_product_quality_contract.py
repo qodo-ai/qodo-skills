@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from cockpit import collect, export, managed_work, util, view
+from cockpit import attention, collect, export, managed_work, util, view
 from cockpit.adapters import qodo_cli, qodo_comments, qodo_local, scanners
 from tests import test_product_finding_scope as scope_tests
 from tests import test_product_enrich_refresh as refresh_tests
@@ -168,6 +168,20 @@ class ProductQualityContractTests(unittest.TestCase):
                     self.assertEqual(public['line'], 2)
                     self.assertEqual(public['end_line'], end or 2)
                     self.assertEqual(public['path'], 'a.py')
+
+    def test_current_open_critical_findings_keep_generated_code_on_the_reading_list(self):
+        for sha, status, guarded in ((HEAD, 'open', True), (HEAD, 'resolved', False), ('a' * 40, 'open', False)):
+            with self.subTest(sha=sha, status=status):
+                pr = self.scope.pr()
+                pr['files'][0]['role'] = 'generated'
+                pr['findings'] = [qodo_cli.to_finding(pr, {'id': 'critical', 'severity': 'critical',
+                                  'review_source': 'git_pr', 'git_sha': sha,
+                                  'attribution_status': 'full_implementation' if status == 'resolved' else None,
+                                  'file_path': 'a.py', 'start_line': 1, 'side': 'RIGHT'})]
+                pr['attention'], _ = attention.compute(pr)
+                public = view._pr_view(pr)
+                self.assertEqual(public['findings'][0]['severity'], 'critical')
+                self.assertEqual(any(r['tier'] != 'skip' for r in pr['attention']['ranges']), guarded)
 
     def test_full_app_export_embeds_only_referenced_contained_media_and_supports_nested_video(self):
         with tempfile.TemporaryDirectory() as tmp:

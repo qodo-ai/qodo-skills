@@ -176,10 +176,10 @@ def compute(pr: dict, *, overrides: list[dict] | None = None, concepts: list[dic
         if not o.get("reason"):
             warn.append(f"{pr['key']} attention: every override needs a reason ({o.get('path') or o.get('glob')})")
     invariants = [c for c in (concepts or []) if c.get("status") == "stable" and c.get("type", "").lower() in ("invariant", "riskarea", "risk area")]
-    # open high findings guard their whole span (line..end_line) on their side, padded by GAP
+    # Open high and critical findings guard their span on their side, padded by GAP.
     high: dict[tuple[str, str], list[tuple[int, int]]] = {}
     for f in pr.get("findings", []):
-        if f.get("severity") == "high" and f.get("status", "open") == "open" and f.get("path") and f.get("line"):
+        if f.get("severity") in ("high", "critical") and f.get("status", "open") == "open" and f.get("path") and f.get("line"):
             side = "old" if str(f.get("side", "")).upper() == "LEFT" else "new"
             end = f.get("end_line") or f["line"]
             high.setdefault((f["path"], side), []).append((min(f["line"], end) - GAP, max(f["line"], end) + GAP))
