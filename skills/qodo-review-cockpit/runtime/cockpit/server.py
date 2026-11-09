@@ -292,10 +292,6 @@ class Handler(SimpleHTTPRequestHandler):
         from .session_activity import session_activity
         from .session_writer import SessionBusy
         try:
-            # Refresh owns its guard in the worker; do not copy a request's guard into that thread.
-            if self.path == '/api/refresh' and self.command == 'POST':
-                with scope({'product': True}):
-                    return operation()
             with session_activity(self.sdir), scope({'product': True}):
                 if not (self.sdir / 'review-data.json').is_file():
                     return self._json({'error': 'This work package was moved; reload the page.'}, 404)
@@ -432,17 +428,28 @@ class Handler(SimpleHTTPRequestHandler):
                 return {"ok": True, "state": "running"}
             Handler._refreshing[key] = {"state": "running", "started": now_iso()}
 
+        admitted = threading.Event()
         def run():
             from .collect import refresh
+            from .session_activity import session_activity
             try:
-                res = refresh(sdir, cfg)
+                # The request retains its lease until this thread owns a separate one.
+                with session_activity(sdir):
+                    admitted.set()
+                    res = refresh(sdir, cfg)
                 Handler._refreshing[key] = {"state": "done", "at": now_iso(), "session": key, "warnings": (res or {}).get("warnings", [])[:20]}
             except Exception as e:   # shown on the button's tooltip
                 Handler._refreshing[key] = {"state": "error", "error": str(e)[:300]}
+            finally:
+                admitted.set()
             Handler._live_cache.pop(key, None)
         from contextvars import copy_context
         context = copy_context()
         threading.Thread(target=lambda: context.run(run), daemon=True).start()
+        if not admitted.wait(5):
+            return {"error": "Refresh worker has not started; check its status before retrying."}
+        if (Handler._refreshing.get(key) or {}).get('state') == 'error':
+            return Handler._refreshing[key]
         return {"ok": True, "state": "running"}
 
     def _media(self, name: str):

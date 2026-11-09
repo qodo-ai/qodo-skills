@@ -8,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parent
 SOCKET_CASES = (
+    'tests.test_product_handoffs.ProductHandoffTests.test_refresh_request_retains_activity_until_worker_has_its_own_lease',
     'tests.test_cockpit.StoryTests.test_media_route_serves_only_session_media',
     'tests.test_cockpit.StyleTests.test_refresh_from_the_page_runs_in_the_background',
     'tests.test_cockpit.StyleTests.test_reveal_opens_only_the_session_folder',

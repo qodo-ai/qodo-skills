@@ -97,7 +97,8 @@ def distill(sdir: Path, cfg: dict | None = None) -> dict:
     root = mem_path(cfg, "amr")
     root.mkdir(parents=True, exist_ok=True)
     from .file_lock import file_lock
-    with file_lock(_lock_path(root)), _RUN:
+    from .memory_write import memory_transaction
+    with file_lock(_lock_path(root)), _RUN, memory_transaction(mem_path(cfg, 'okf')):
         return _distill(sdir, cfg)
 
 
