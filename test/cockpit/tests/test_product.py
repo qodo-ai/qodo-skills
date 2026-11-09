@@ -156,6 +156,18 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(pr['_raw_comments'][0]['author'],'bot')
 
 
+def read_tool(argv):
+    """Fixture protocol after either the native CLI or its official Node entrypoint."""
+    prefix = 1
+    if Path(argv[0]).name.lower() in ('node', 'node.exe'):
+        assert Path(argv[1]).name == 'qodo.mjs', argv
+        prefix = 2
+    else:
+        assert Path(argv[0]).name.lower() in ('qodo', 'qodo.exe'), argv
+    assert argv[prefix] == 'read', argv
+    return argv[prefix + 1:prefix + 3]
+
+
 class ProductTests(unittest.TestCase):
     def test_product_server_marks_legacy_session_ui_and_empty_package_cannot_approve(self):
         from cockpit.server import Handler
@@ -191,8 +203,7 @@ class ProductTests(unittest.TestCase):
         calls=[]
         def run(argv,**kw):
             self.assertNotEqual(Path(argv[0]).name,'gh')
-            self.assertEqual(argv[1],'read')
-            group,tool=argv[2:4];args={}
+            group,tool=read_tool(argv);args={}
             args=json.loads(Path(argv[argv.index('--args-file')+1]).read_text())
             calls.append(tool)
             return subprocess.CompletedProcess(argv,0,json.dumps(fixture(group,tool,**args)),'')
@@ -264,8 +275,7 @@ class CheckpointFixTests(unittest.TestCase):
         real_fetch=getattr(qodo_cli,'_real_fetch',qodo_cli.fetch)
         calls=[]
         def run(argv,**kwargs):
-            self.assertEqual(Path(argv[0]).name,'qodo')
-            group, tool=argv[2:4]
+            group, tool=read_tool(argv)
             params=json.loads(Path(argv[argv.index('--args-file')+1]).read_text())
             calls.append(tool)
             if tool=='resolve-repository': out={'repo_ref':'opaque'}

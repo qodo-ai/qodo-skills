@@ -13,7 +13,7 @@ from unittest import mock
 from cockpit import ask, collect, product, system, util
 from cockpit.adapters import qodo_cli
 from cockpit.adapters.managed import BudgetExceeded, Client, PermissionDenied
-from tests.test_product import fixture, HEAD, ID, REV
+from tests.test_product import fixture, HEAD, ID, REV, read_tool
 
 
 class ResidualProductTests(unittest.TestCase):
@@ -67,8 +67,9 @@ vm.createContext(c);vm.runInContext(x.code+'; result={cells:pkCells('+JSON.strin
 
     def test_legacy_refresh_total_budget_and_completed_summary_preserve_saved_memory(self):
         def run(argv,**kwargs):
-            args=json.loads(Path(argv[argv.index('--args-file')+1]).read_text());calls.append(argv[3])
-            return subprocess.CompletedProcess(argv,0,json.dumps(fixture(argv[2],argv[3],**args)),'')
+            group,tool=read_tool(argv)
+            args=json.loads(Path(argv[argv.index('--args-file')+1]).read_text());calls.append(tool)
+            return subprocess.CompletedProcess(argv,0,json.dumps(fixture(group,tool,**args)),'')
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ,{'REVIEW_COCKPIT_PRODUCT':'1','REVIEW_COCKPIT_QODO':'qodo'}):
             sd=Path(tmp)/'s';sd.mkdir();old={'session':'s','prs':[{'repo':'org/repo','number':n} for n in (1,2,3)],'memory':{'enabled':'False','auto_commit':'False','amr':'memory/amr','okf':'memory/okf'}}
             path=sd/'review-data.json';path.write_text(json.dumps(old));original=path.read_bytes()

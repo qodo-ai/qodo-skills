@@ -12,7 +12,7 @@ from cockpit import collect, managed_work, product
 from cockpit.adapters import qodo_local
 from cockpit.adapters.managed import BudgetExceeded, Client, ReadError
 from cockpit.risk import approval
-from tests.test_product import fixture, HEAD, ID, page
+from tests.test_product import fixture, HEAD, ID, page, read_tool
 
 
 class PendingAcceptanceTests(unittest.TestCase):
@@ -70,8 +70,9 @@ class PendingAcceptanceTests(unittest.TestCase):
 
     def test_new_partial_collection_saves_evidence_and_can_retry_omitted_refs_without_losing_notes(self):
         def run(argv,**kwargs):
-            args=json.loads(Path(argv[argv.index('--args-file')+1]).read_text());calls.append((argv[3],args))
-            return subprocess.CompletedProcess(argv,0,json.dumps(fixture(argv[2],argv[3],**args)),'')
+            group,tool=read_tool(argv)
+            args=json.loads(Path(argv[argv.index('--args-file')+1]).read_text());calls.append((tool,args))
+            return subprocess.CompletedProcess(argv,0,json.dumps(fixture(group,tool,**args)),'')
         with tempfile.TemporaryDirectory() as tmp,mock.patch.dict(os.environ,{'REVIEW_COCKPIT_PRODUCT':'1','REVIEW_COCKPIT_QODO':'qodo'}),mock.patch.object(collect,'SESSIONS',Path(tmp)):
             cfg=collect.load_config();cfg['memory']['enabled']=False;cfg['notes']['enabled']=False;cfg['overlaps']['enabled']=False;cfg['adapters']=['qodo_comments']
             requested=['org/repo#1','org/repo#2','org/repo#3'];calls=[]
