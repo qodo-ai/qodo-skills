@@ -240,6 +240,17 @@ def _fid(pr: dict, suffix) -> str:
     return f"q-{pr['key'].replace('/', '-').replace('#', '-')}-{suffix}"
 
 
+def _original_position(f: dict, c: dict) -> dict:
+    """Keep an old native anchor as evidence without changing finding lifecycle."""
+    if c.get('provider_position_current') is False:
+        f.update(provider_position_current=False, current_anchor=False,
+                 source_location={'path': c['path'], 'line': c.get('original_line'),
+                                  'end_line': c.get('original_line'), 'side': c.get('side'),
+                                  'git_sha': c.get('original_commit_id') or c.get('commit_id')},
+                 path=None, line=None, end_line=None)
+    return f
+
+
 def reviewed(pr: dict, cfg: dict) -> bool:
     """Whether Qodo posted a review on the PR (its findings, or that it found nothing), not only a summary."""
     bots = {b.lower() for b in cfg.get("qodo_bot_logins", [])}
@@ -300,6 +311,8 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
                 closed.update(path=c["path"], line=c.get("line"), url=closed.get("url") or c.get("url"))
             if closed is not None and closed.get('severity_guessed') and not f.get('severity_guessed') and f.get('severity') in SEVERITY.values():
                 closed.update(severity=f['severity'], severity_guessed=False)
+            if closed is not None:
+                _original_position(closed, c)
             continue
         key = f["qodo_id"] or tkey
         if key not in by_uuid and tkey in by_uuid:   # summary items without finding ids are keyed by title
@@ -313,6 +326,7 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
                             "path": c["path"], "line": None, "status": "outdated",
                             "status_why": "The inline comment no longer maps to the current diff."}
             _thread(by_uuid[key], replies.get(c["id"], []))
+            _original_position(by_uuid[key], c)
             continue
         # The inline comment's badge is per finding; a summary group badge may be a guess.
         keep_inline = ("path", "line", "url") + (("severity", "severity_guessed") if prev.get("severity_guessed") and not f.get('severity_guessed') else ())
@@ -322,14 +336,7 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
                       end_line=c.get("line") or prev.get("end_line") or f["end_line"],
                       qodo_aspect=f["qodo_aspect"] or prev.get("qodo_aspect"),
                       category=_category(f["qodo_type"] or prev.get("qodo_type"), f["qodo_aspect"] or prev.get("qodo_aspect")))
-        if c.get('provider_position_current') is False:
-            # A native old coordinate is evidence, not a position in today's diff.
-            # Leave finding lifecycle to the structured review; do not infer resolution.
-            merged.update(provider_position_current=False, current_anchor=False,
-                          source_location={'path': c['path'], 'line': c.get('original_line'),
-                                           'end_line': c.get('original_line'), 'side': c.get('side'),
-                                           'git_sha': c.get('original_commit_id') or c.get('commit_id')},
-                          path=None, line=None, end_line=None)
+        _original_position(merged, c)
         by_uuid[key] = merged
         _thread(merged, replies.get(c["id"], []))
 
@@ -337,9 +344,9 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
     for c in legacy:
         body = c.get("body") or ""
         cat, sev = classify(body)
-        out.append({**base, "id": _fid(pr, c["id"]), "category": cat, "severity": sev,
+        out.append(_original_position({**base, "id": _fid(pr, c["id"]), "category": cat, "severity": sev,
                     "path": c.get("path"), "line": c.get("line"), "title": _title(body), "body": body,
-                    "url": c.get("url")})
+                    "url": c.get("url")}, c))
     return out
 
 

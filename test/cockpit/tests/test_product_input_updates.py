@@ -112,6 +112,18 @@ class ProductInputUpdateTests(unittest.TestCase):
             with mock.patch.object(qodo_comments, 'parse_review', return_value=([summary_finding], set(), None)):
                 projected = view._pr_view({**with_summary, 'findings': qodo_comments.collect(with_summary, cfg)})['findings'][0]
             self.assertFalse(projected['current_anchor']);self.assertIsNone(projected['line'])
+            legacy = copy.deepcopy(pr)
+            legacy['_raw_comments'][0]['body'] = 'Legacy warning without a numbered finding'
+            legacy_finding = view._pr_view({**legacy, 'findings': qodo_comments.collect(legacy, cfg)})['findings'][0]
+            self.assertEqual(legacy_finding['source_location']['line'], 1)
+            self.assertFalse(legacy_finding['current_anchor']);self.assertIsNone(legacy_finding['line'])
+            closed = {**summary_finding, 'qodo_id': None, 'status': 'resolved'}
+            with mock.patch.object(qodo_comments, 'parse_review', return_value=([closed], {'concern'}, None)):
+                closed_findings = qodo_comments.collect(with_summary, cfg)
+            closed_view = view._pr_view({**pr, 'findings': closed_findings})
+            closed_public = (closed_view['findings'] + closed_view.get('outdated', []))[0]
+            self.assertEqual(closed_public['source_location']['line'], 1)
+            self.assertFalse(closed_public['current_anchor']);self.assertEqual(closed_public['status'], 'resolved')
             authoritative = qodo_cli.to_finding(pr, {'id': uid, 'title': 'Concern', 'git_sha': HEAD,
                                                     'location': {'file_path': 'a.py', 'start_line': 1, 'side': 'RIGHT'}})
             with mock.patch.object(qodo_cli, 'collect', return_value=[authoritative]):
