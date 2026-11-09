@@ -72,6 +72,17 @@ test('resource limits and component terms apply to maintained source', (t) => {
   assert.throws(() => verifyRuntime(f.destination), /component LICENSE changed/);
 });
 
+test('only named existing component files have the inherited line-count exception', (t) => {
+  const f = componentFixture(t);
+  for (const name of ['cockpit/new_helper.py', 'app/new_widget.js', 'fixtures/demo-new.json']) {
+    const path = join(f.runtime, name);
+    put(path, Array.from({length: 501}, () => ' ').join('\n') + '\n');
+    assert.throws(() => verifyRuntime(f.destination), /500-line limit/);
+    rmSync(path);
+  }
+  assert(verifyRuntime(f.destination).files.some((entry) => entry.path === 'cockpit/server.py'));
+});
+
 test('hygiene exceptions remain scoped to the exact allowed path and matched span', (t) => {
   const f = componentFixture(t), file = join(f.runtime, 'fixtures/demo-policy.json');
   put(file, '{"repo":"qodo-ai/shop-demo"}'); verifyRuntime(f.destination);

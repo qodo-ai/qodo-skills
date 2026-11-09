@@ -463,7 +463,7 @@ for (const change of Array.isArray(release.skills) ? release.skills : []) {
 
 for (const file of walk(root)) {
   const path = relative(root, file);
-  // The maintained Cockpit component preserves its existing files under its scoped exception.
+  // The component validator below enforces its explicit existing-file exception and new-file limit.
   if (/\.(md|mjs|json|ya?ml)$/.test(path) && !path.split('\\').join('/').includes('skills/qodo-review-cockpit/runtime/')) {
     const text = readFileSync(file, 'utf8');
     const lines = text.endsWith('\n') ? text.slice(0, -1).split('\n').length : text.split('\n').length;

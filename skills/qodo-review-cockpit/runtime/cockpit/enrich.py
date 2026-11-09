@@ -109,7 +109,8 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
                 "id": f"a-{key.replace('/', '-').replace('#', '-')}-{i}", "pr": key, "source": "agent",
                 "category": f.get("category", "general"), "severity": f.get("severity", "medium"),
                 "path": f.get("path"), "line": f.get("line"), "title": f.get("title", ""), "body": f.get("body", ""),
-                "url": None})
+                "url": None, "stance": f.get("stance") if f.get("stance") in ("agree", "partial", "disagree") else None,
+                "stance_why": str(f.get("why") or "")})
         changed.append(key)
     warnings = []
     for key, extra in (payload.get("prs") or {}).items():   # the guided walk through each PR's code

@@ -20,7 +20,7 @@ class ProductWebTests(unittest.TestCase):
     def test_product_get_rejects_foreign_requests_before_payload_routes(self):
         with tempfile.TemporaryDirectory() as tmp,mock.patch.dict(os.environ,{'REVIEW_COCKPIT_PRODUCT':'0'}):
             sd=Path(tmp);path=sd/'review-data.json';path.write_text('{"product":true}')
-            handler=object.__new__(Handler);handler.sdir=sd;handler.server=SimpleNamespace(product=True)
+            handler=object.__new__(Handler);handler.sdir=sd;handler.server=SimpleNamespace(product=True,access_key='fixture-access')
             handler._json=lambda obj,code=200:(obj,code)
             for explicit in (True,False):
                 handler.server.product=explicit
@@ -33,7 +33,7 @@ class ProductWebTests(unittest.TestCase):
                             if explicit:pick.assert_not_called()
             handler.server.product=False
             for host in ('127.0.0.1','localhost','[::1]'):
-                handler.headers={'Host':host+':8765','Origin':'http://'+host+':8765'};handler.path='/api/data'
+                handler.headers={'Host':host+':8765','Origin':'http://'+host+':8765','Authorization':'Bearer fixture-access'};handler.path='/api/data'
                 with mock.patch.object(handler,'_pick_session',return_value=True),mock.patch.object(handler,'_data',return_value={'product':True}),mock.patch.object(handler,'_get_selected',return_value='allowed'):
                     self.assertEqual(handler.do_GET(),'allowed')
             path.write_text('{"product":false}')

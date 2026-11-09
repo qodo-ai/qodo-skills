@@ -31,21 +31,10 @@ def load() -> dict:
 
 @contextlib.contextmanager
 def _locked():
-    """One writer at a time, across threads and across server processes (other ports): a lock file beside the
-    settings where the platform has flock; the thread lock alone where it doesn't."""
-    with _lock:
-        try:
-            import fcntl
-        except ImportError:   # Windows: one server process is the usual case
-            yield
-            return
-        path().parent.mkdir(parents=True, exist_ok=True)
-        with open(path().with_name(".app-state.lock"), "w") as fh:
-            fcntl.flock(fh, fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(fh, fcntl.LOCK_UN)
+    """Serialize the complete merge across threads and server processes, including Windows."""
+    from .file_lock import file_lock
+    with _lock, file_lock(path().with_name('.app-state.lock')):
+        yield
 
 
 def update(changes) -> dict:

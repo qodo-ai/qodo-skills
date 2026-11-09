@@ -18,6 +18,14 @@ class SessionBusy(RuntimeError):
 @contextmanager
 def session_writer(sdir):
     """One writer per session across processes; only this owner's nested calls reenter."""
+    from .session_activity import session_activity
+    with session_activity(sdir):
+        with _writer(sdir):
+            yield
+
+
+@contextmanager
+def _writer(sdir):
     owner = (str(sdir.resolve()), os.getpid(), threading.get_ident())
     held = _HELD.get()
     if owner in held:

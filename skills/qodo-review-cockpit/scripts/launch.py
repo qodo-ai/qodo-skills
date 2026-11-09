@@ -51,6 +51,24 @@ def probe(command, gate):
     return result.stdout
 
 
+def state_home():
+    """Preserve explicit aliases and an older external home pointer; never migrate stored reviews."""
+    selected = os.environ.get('REVIEW_COCKPIT_HOME') or os.environ.get('PR_COCKPIT_HOME')
+    legacy = RUNTIME / 'config.local.json'
+    if not selected and legacy.is_file():
+        try:
+            config = json.loads(legacy.read_text(encoding='utf-8'))
+            selected = config.get('home') if isinstance(config, dict) else None
+            if selected is not None and (not isinstance(selected, str) or not selected.strip()):
+                raise ValueError()
+        except (OSError, ValueError):
+            sys.exit('Cockpit data-home error: inspect the existing config.local.json home pointer.')
+    if not selected and (RUNTIME / 'sessions').is_dir():
+        sys.exit('Cockpit found reviews in its old runtime directory. Select an external data home and '
+                 'migrate them explicitly; no reviews were moved.')
+    return Path(selected or Path.home() / '.qodo' / 'review-cockpit').expanduser().resolve()
+
+
 def main():
     # The pinned runtime reads/writes UTF-8 review content. Windows otherwise uses
     # a legacy code page; enable Python's process-wide mode before any probes or IO.
@@ -81,8 +99,7 @@ def main():
                 raise ValueError()
         except ValueError:
             sys.exit("Cockpit " + gate + " failed: invalid or error payload. Inspect that CLI operation.")
-    home = Path(os.environ.get("REVIEW_COCKPIT_HOME") or os.environ.get("PR_COCKPIT_HOME")
-                or Path.home() / ".qodo" / "review-cockpit").expanduser().resolve()
+    home = state_home()
     if home == SKILL or SKILL in home.parents:
         sys.exit("Cockpit data-home error: choose a state directory outside installed skill resources.")
     os.environ["REVIEW_COCKPIT_HOME"] = str(home)

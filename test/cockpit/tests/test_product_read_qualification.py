@@ -15,7 +15,7 @@ from tests.test_product import fixture, page, ID, HEAD, REV
 class ReadQualificationTests(unittest.TestCase):
     def test_cli_pages_reject_truncation_before_items_on_first_and_terminal_pages(self):
         for bad_index in (0,1):
-            records=[page([{'id':'accepted'}],complete=False,next_cursor='opaque.next'),page([{'id':'rejected'}],complete=True)]
+            records=[page([{'id':'accepted','filename':'a.py'}],complete=False,next_cursor='opaque.next'),page([{'id':'rejected','filename':'b.py'}],complete=True)]
             records[bad_index]['qar_operation_result_truncated']=True
             calls=[]
             def run(argv,**kwargs):
@@ -24,9 +24,9 @@ class ReadQualificationTests(unittest.TestCase):
                 return subprocess.CompletedProcess(argv,0,json.dumps(records[len(calls)-1]),'')
             with mock.patch('subprocess.run',side_effect=run):result=Client('fixture-qodo').pages(ID,'files',1,REV)
             self.assertFalse(result['complete']);self.assertEqual(result['status'],'bounded');self.assertIn('truncated',result['error'])
-            self.assertEqual(result['items'],[] if bad_index==0 else [{'id':'accepted'}]);self.assertEqual(result['rejected_page'],records[bad_index])
+            self.assertEqual(result['items'],[] if bad_index==0 else [{'id':'accepted','filename':'a.py'}]);self.assertEqual(result['rejected_page'],records[bad_index])
             self.assertEqual(len(result['pages']),bad_index);self.assertEqual(result['next_cursor'],None if bad_index==0 else 'opaque.next')
-        with mock.patch.object(Client,'read',side_effect=[page([{'id':'one'}],complete=False,next_cursor='opaque.next'),page([{'id':'two'}],qar_operation_result_truncated=False)]):
+        with mock.patch.object(Client,'read',side_effect=[page([{'id':'one','filename':'a.py'}],complete=False,next_cursor='opaque.next'),page([{'id':'two','filename':'b.py'}],qar_operation_result_truncated=False)]):
             result=Client().pages(ID,'files',1,REV)
         self.assertTrue(result['complete']);self.assertEqual([x['id'] for x in result['items']],['one','two'])
 

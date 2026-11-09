@@ -1,4 +1,19 @@
 {
+  "existingLargeFiles": [
+    "app/app.js",
+    "app/styles/package.js",
+    "app/styles/guided.html",
+    "app/styles/package.html",
+    "app/styles/contract-map.js",
+    "app/styles/console.html",
+    "app/styles/behavior.html",
+    "app/styles/focus.html",
+    "cockpit/collect.py",
+    "cockpit/server.py",
+    "cockpit/adapters/scanners.py",
+    "fixtures/demo-enrich.json",
+    "fixtures/demo-prs.json"
+  ],
   "never": [
     "memory/**",
     "sessions/**",

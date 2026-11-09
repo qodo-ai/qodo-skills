@@ -24,11 +24,11 @@ class ProductSessionHTTPTests(unittest.TestCase):
             with mock.patch.object(server,'SESSIONS',root), mock.patch.object(server.Handler,'sdir',root/'legacy',create=True), mock.patch.object(server.Handler,'cfg',cfg,create=True):
                 for explicit in (False,True):
                     with self.subTest(explicit_product_server=explicit):
-                        httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);httpd.product=explicit
+                        httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);httpd.product=explicit;httpd.access_key='fixture-access'
                         thread=threading.Thread(target=httpd.serve_forever,daemon=True);thread.start()
                         url='http://127.0.0.1:'+str(httpd.server_address[1])
                         def request(path,name,body=None):
-                            headers={'X-Cockpit-Session':name}
+                            headers={'X-Cockpit-Session':name,'Authorization':'Bearer '+httpd.access_key}
                             if body is not None:headers['Content-Type']='application/json'
                             req=urllib.request.Request(url+path,data=json.dumps(body).encode() if body is not None else None,headers=headers)
                             with urllib.request.urlopen(req) as response:return json.loads(response.read())
@@ -61,12 +61,12 @@ class ProductSessionHTTPTests(unittest.TestCase):
                 sd=root/name;sd.mkdir();(sd/'review-data.json').write_text(json.dumps({'session':name,'product':name=='managed','prs':[]}));(sd/'events.jsonl').write_text('')
             with mock.patch.object(server,'SESSIONS',root),mock.patch.object(server.Handler,'sdir',root/'legacy',create=True),mock.patch.object(server.Handler,'cfg',cfg,create=True):
                 for explicit in (True,False):
-                    httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);httpd.product=explicit
+                    httpd=ThreadingHTTPServer(('127.0.0.1',0),server.Handler);httpd.product=explicit;httpd.access_key='fixture-access'
                     thread=threading.Thread(target=httpd.serve_forever,daemon=True);thread.start();port=httpd.server_address[1]
                     def request(route,name,host,origin=None):
                         import http.client
                         connection=http.client.HTTPConnection('127.0.0.1',port)
-                        headers={'Host':host,'X-Cockpit-Session':name}
+                        headers={'Host':host,'X-Cockpit-Session':name,'Authorization':'Bearer '+httpd.access_key}
                         if origin:headers['Origin']=origin
                         try:
                             connection.request('GET',route,headers=headers);response=connection.getresponse();body=response.read();return response.status,body

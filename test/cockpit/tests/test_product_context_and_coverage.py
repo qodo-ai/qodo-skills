@@ -44,8 +44,8 @@ class ContextAndCoverageTests(unittest.TestCase):
         from cockpit.server import Handler
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'REVIEW_COCKPIT_PRODUCT':'0'}):
             sd=Path(tmp); (sd/'review-data.json').write_text('{"product":true,"prs":[]}')
-            handler=object.__new__(Handler); handler.sdir=sd; handler.server=SimpleNamespace(product=False)
-            handler.headers={'Host':'127.0.0.1:8765'}; handler.path='/api/data'; handler._pick_session=lambda:True
+            handler=object.__new__(Handler); handler.sdir=sd; handler.server=SimpleNamespace(product=False,access_key='fixture-access')
+            handler.headers={'Host':'127.0.0.1:8765','Authorization':'Bearer fixture-access'}; handler.path='/api/data'; handler._pick_session=lambda:True
             def selected(route):
                 self.assertTrue(product.enabled()); raise RuntimeError('request error')
             handler._get_selected=selected

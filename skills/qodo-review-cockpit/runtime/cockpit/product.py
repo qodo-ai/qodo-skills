@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import json
 from contextlib import contextmanager
+from contextlib import nullcontext
 from contextvars import ContextVar
 from functools import wraps
 from inspect import signature
@@ -41,7 +42,9 @@ def session_operation(fn):
         saved = json.loads(path.read_text()) if path.is_file() else {}
         data = bound.get('data') or {}
         with scope({'product': bool(saved.get('product') or data.get('product'))}):
-            return fn(*args, **kwargs)
+            from .session_activity import session_activity
+            with session_activity(sdir) if enabled() else nullcontext():
+                return fn(*args, **kwargs)
     return run
 
 

@@ -249,7 +249,9 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
             raw[fid] = (rec, _merge(raw.get(fid, (None, None))[1], f))
         for k in ("still_open", "introduced"):
             for f in fs.get(k) or []:
-                status.pop(_fid(f) if isinstance(f, dict) else str(f), None)
+                fid = _fid(f) if isinstance(f, dict) else str(f)
+                if fid:
+                    status[fid] = "open"   # a latest explicit reopen overrides retained attribution metadata
         for k in ("dismissed", "resolved"):   # resolved last: it wins over dismissed, as in the engine
             for f in fs.get(k) or []:
                 fid = _fid(f) if isinstance(f, dict) else str(f)

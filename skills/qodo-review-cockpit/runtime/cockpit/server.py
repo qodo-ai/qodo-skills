@@ -5,6 +5,7 @@ import json
 import re
 import secrets
 import threading
+from contextlib import nullcontext
 from http.cookies import CookieError, SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
@@ -75,7 +76,8 @@ def append_events(sdir: Path, events: list[dict], session: str, source: str = "a
     product = enabled(json.loads(data_file.read_text()) if data_file.is_file() else {})
     if product:
         events = [{**e, 'post': False} if e.get('type') == 'note' else e for e in events]
-    with _lock, (sdir / "events.jsonl").open("a") as fh:
+    from .session_activity import session_activity
+    with session_activity(sdir) if product else nullcontext(), _lock, (sdir / "events.jsonl").open("a") as fh:
         for e in events:
             e.setdefault("ts", now_iso()); e.setdefault("session", session); e.setdefault("source", source)
             fh.write(json.dumps(e, ensure_ascii=False) + "\n")
@@ -189,6 +191,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header("Set-Cookie", cookie)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(b)))
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(b)
 
@@ -215,6 +218,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(b)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
         self.wfile.write(b)
 
@@ -235,7 +239,7 @@ class Handler(SimpleHTTPRequestHandler):
         host = self.headers.get('Host', '')
         if host.rpartition(':')[0] not in ('127.0.0.1', 'localhost', '[::1]'):
             return 'unknown host'
-        if origin and not origin.endswith('//' + host):
+        if origin and origin != 'http://' + host:
             return 'cross-origin request refused'
         return None
 
@@ -247,14 +251,41 @@ class Handler(SimpleHTTPRequestHandler):
         route = self.path.split("?")[0]
         if route == "/api/health":   # the page's server check: answers before any package is picked, so a gone package can't hide a live server
             return self._json({"ok": True, "time": now_iso()})
+        if route == '/_access':
+            from .local_access import BOOTSTRAP
+            return self._html(BOOTSTRAP)
         if not self._pick_session():
             return self._json({"error": "this work package is no longer on this machine; reload the page"}, 404)
         if error and json.loads((self.sdir / 'review-data.json').read_text()).get('product'):
             # Only inspect the selected session's mode before rejecting; no data projection or route runs.
             return self._json({'error': error}, 403)
-        from .product import scope
-        with scope(self._data()):
-            return self._get_selected(route)
+        return self._session_request(lambda: self._get_selected(route))
+
+    def _session_request(self, operation):
+        from .product import enabled, scope
+        try:
+            saved = json.loads((self.sdir / 'review-data.json').read_text())
+        except FileNotFoundError:
+            return self._json({'error': 'This work package was moved; reload the page.'}, 404)
+        is_product = enabled(saved) or getattr(self.server, 'product', False)
+        if not is_product:
+            return operation()
+        from .local_access import authorized
+        if not authorized(self):
+            return self._json({'error': 'Reopen Cockpit from its launcher to authorize this browser.'}, 403)
+        from .session_activity import session_activity
+        from .session_writer import SessionBusy
+        try:
+            # Refresh owns its guard in the worker; do not copy a request's guard into that thread.
+            if self.path == '/api/refresh' and self.command == 'POST':
+                with scope({'product': True}):
+                    return operation()
+            with session_activity(self.sdir), scope({'product': True}):
+                if not (self.sdir / 'review-data.json').is_file():
+                    return self._json({'error': 'This work package was moved; reload the page.'}, 404)
+                return operation()
+        except SessionBusy as e:
+            return self._json({'error': str(e)}, 409)
 
     def _get_selected(self, route):
         if route == "/api/sessions":
@@ -353,14 +384,21 @@ class Handler(SimpleHTTPRequestHandler):
         if d in (self.sdir, Handler.sdir):
             return {"error": "this package is open here; switch to another before deleting it"}, 409
         bin_ = Path.home() / ".Trash" if sys.platform == "darwin" else util.HOME / "trash"
-        with Handler._refresh_lock:   # the lock a refresh starts under: none can begin between this check and the move
-            if (Handler._refreshing.get(d.name) or {}).get("state") == "running":
-                return {"error": "this package is refreshing; delete it once that finishes"}, 409
-            bin_.mkdir(parents=True, exist_ok=True)
-            dest, n = bin_ / d.name, 2
-            while dest.exists():
-                dest, n = bin_ / f"{d.name} {n}", n + 1
-            shutil.move(str(d), str(dest))
+        from .session_activity import session_activity
+        from .session_writer import SessionBusy, LOCK_NAME
+        try:
+            with session_activity(d, exclusive=True), Handler._refresh_lock:
+                if (Handler._refreshing.get(d.name) or {}).get("state") == "running":
+                    return {"error": "this package is refreshing; delete it once that finishes"}, 409
+                if (d / LOCK_NAME).exists():
+                    return {'error': 'This package is busy; retry after its writer finishes.'}, 409
+                bin_.mkdir(parents=True, exist_ok=True)
+                dest, n = bin_ / d.name, 2
+                while dest.exists():
+                    dest, n = bin_ / f"{d.name} {n}", n + 1
+                shutil.move(str(d), str(dest))
+        except SessionBusy as e:
+            return {'error': str(e)}, 409
         return {"ok": True, "trash": str(dest).replace(str(Path.home()), "~", 1), "sessions": list_sessions()}, 200
 
     def _refresh(self, data):
@@ -407,13 +445,17 @@ class Handler(SimpleHTTPRequestHandler):
         error = self._origin_error()
         if error:
             return self._json({'error': error}, 403)
+        if self.path == '/api/access':
+            from .local_access import authorized, cookie_name
+            if not authorized(self):
+                return self._json({'error': 'Access expired; reopen Cockpit from its launcher.'}, 403)
+            return self._json({'ok': True}, cookie=cookie_name(self) + '=' + self.server.access_key
+                              + '; Path=/; SameSite=Strict; HttpOnly')
         if "application/json" not in (self.headers.get("Content-Type") or ""):
             return self._json({"error": "JSON body required"}, 415)
         if not self._pick_session():
             return self._json({"error": "this work package is no longer on this machine; reload the page"}, 404)
-        from .product import scope
-        with scope(self._data()):
-            return self._post_selected()
+        return self._session_request(self._post_selected)
 
     def _post_selected(self):
         try:
@@ -670,15 +712,20 @@ def serve(sdir: Path, port: int | None = None, open_browser: bool = True, style:
     Handler.style = require(style or cfg.get("style"))
     port = port or cfg.get("port", 8765)
     httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    port = httpd.server_address[1]
     from .product import enabled
     httpd.product = enabled()  # explicit launch profile, independent of the selected saved session
+    httpd.access_key = secrets.token_urlsafe(32)
     url = f"http://127.0.0.1:{port}/"
     print(f"Review cockpit: {url}  (session {sdir.name}, style {Handler.style}; Ctrl+C to stop)")
     if Handler.style != "cockpit":
         print(f"  local notes and review: {url}index.html")
     if open_browser:
         import webbrowser
-        threading.Timer(0.5, lambda: webbrowser.open(url)).start()
+        access_url = url + '_access#key=' + httpd.access_key
+        threading.Timer(0.5, lambda: webbrowser.open(access_url)).start()
+    elif httpd.product:
+        print('  Browser access is closed with --no-open; restart without it to authorize a browser.')
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

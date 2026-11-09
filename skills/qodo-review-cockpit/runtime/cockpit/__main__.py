@@ -120,7 +120,8 @@ def main(argv=None):
     mg = sub.add_parser("migrate", help="copy this checkout's sessions, memory and config to a data home")
     mg.add_argument("--to", help="the data home (default ~/.qodo/review-cockpit)")
     a = ap.parse_args(argv)
-    if a.product:
+    # This maintained distribution is the local-only product, including direct module invocations.
+    if a.product or (Path(__file__).resolve().parents[2] / 'SKILL.md').is_file():
         from .product import activate
         activate()
 

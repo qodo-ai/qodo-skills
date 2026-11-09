@@ -3,6 +3,8 @@ decision tables, never averaged, with Unknown kept explicit. Each scenario is on
 row); the skill writes its factors with evidence, and this module only applies the rules."""
 from __future__ import annotations
 
+import re
+
 RULES_VERSION = "er-v1"   # the tables below; a change to them is a new version
 FACTORS = ("radius", "damage", "complexity")
 NAMES = {"radius": "Blast radius", "damage": "Potential damage", "complexity": "Complexity"}
@@ -74,8 +76,22 @@ def normalize_factors(raw, changed: set[str], repos: set[str] = frozenset()) -> 
         stray = [e["path"] for e in ev if e["path"] not in changed]
         if stray:
             warn.append(f"factors.{f}: evidence outside the changed files dropped ({', '.join(stray[:3])})")
-        out[f] = {"level": level, "why": why[:400], "ev": [{"path": e["path"], **({"lines": str(e["lines"])} if e.get("lines") else {})}
-                                                            for e in ev if e["path"] in changed][:6]}
+        checked = []
+        for e in ev:
+            if e['path'] not in changed:
+                continue
+            entry = {'path': e['path']}
+            if e.get('lines'):
+                lines = str(e['lines']).strip()
+                match = re.fullmatch(r'([1-9][0-9]*)(?:-([1-9][0-9]*))?', lines)
+                if match and (not match[2] or int(match[2]) >= int(match[1])):
+                    entry['lines'] = lines
+                    entry['lines_verified'] = False  # file discovery does not certify source-line existence
+                    warn.append(f'factors.{f}: line reference {e["path"]}:{lines} is authored, not source-verified')
+                else:
+                    warn.append(f'factors.{f}: invalid line reference dropped for {e["path"]}')
+            checked.append(entry)
+        out[f] = {"level": level, "why": why[:400], "ev": checked[:6]}
     crit = str(raw.get("criticality") or "undeclared").lower()
     out["criticality"] = crit if crit in CRITICALITY else "undeclared"   # missing is not Low
     for k in ("contained", "flag", "recoverability"):

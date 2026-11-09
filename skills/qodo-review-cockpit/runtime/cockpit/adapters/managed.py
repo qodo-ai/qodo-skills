@@ -86,6 +86,21 @@ class PermissionDenied(PermissionError):
     """Stop this path. Callers must surface it rather than try alternate credentials/transports."""
 
 
+def page_error(page, kind):
+    """Reject malformed evidence before normalization; retain the rejected envelope as a visible gap."""
+    if (not isinstance(page.get('items'), list) or 'complete' not in page
+            or (page['complete'] is not None and type(page['complete']) is not bool)
+            or 'next_cursor' not in page or not isinstance(page['next_cursor'], (str, type(None)))):
+        raise ReadError('Malformed provider-evidence page for ' + kind)
+    for row in page['items']:
+        if not isinstance(row, dict):
+            return 'Malformed provider-evidence row for ' + kind
+        if kind == 'files' and not any(isinstance(row.get(k), str) and row[k].strip()
+                                       for k in ('filename', 'path', 'filepath')):
+            return 'Changed-file evidence omitted its path'
+    return None
+
+
 def decode_result(result, group, tool):
     try:
         out = json.loads(result.stdout)
@@ -154,14 +169,16 @@ class Client:
                 page = self.read('codebase', 'read-review-data', **args, cursor=cursor)
             except ReadError as e:
                 return {'items': items, 'pages': pages, 'complete': False, 'status': 'bounded' if isinstance(e, BudgetExceeded) else 'permission_limited' if isinstance(e, ScopedPermissionDenied) else 'unavailable', 'error': str(e), 'next_cursor': cursor}
-            if not isinstance(page.get('items'), list) or 'complete' not in page or 'next_cursor' not in page:
-                raise ReadError('Malformed provider-evidence page for ' + kind)
             # Mixing revisions would associate patches/evidence with the wrong head. Abort collection.
             if revision and page.get('revision') != revision:
                 raise ReadError('Change revision changed or missing while reading ' + kind + '; restart collection')
             if page.get('qar_operation_result_truncated'):
                 return {'items': items, 'pages': pages, 'rejected_page': page, 'complete': False,
                         'status': 'bounded', 'error': 'QAR truncated the review-data page', 'next_cursor': cursor}
+            malformed = page_error(page, kind)
+            if malformed:
+                return {'items': items, 'pages': pages, 'rejected_page': page, 'complete': False,
+                        'status': 'malformed', 'error': malformed, 'next_cursor': cursor}
             next_cursor = page.get('next_cursor')
             if next_cursor and next_cursor in seen:
                 return {'items': items, 'pages': pages, 'rejected_page': page, 'complete': False,
@@ -192,9 +209,7 @@ class Client:
                 evidence[kind] = self.pages(identity, kind, number, revision)
         files = []
         for index, f in enumerate(evidence['files']['items']):
-            path = f.get('filename') or f.get('path') or f.get('filepath')
-            if not path:
-                continue
+            path = next(f[k] for k in ('filename', 'path', 'filepath') if isinstance(f.get(k), str) and f[k].strip())
             patch = {'items': [], 'complete': None, 'status': 'unavailable'}
             if index < MAX_PATCHES and (caps.get('review_reads') or {}).get('patch') is True and f.get('patch_available') is not False:
                 patch = self.pages(identity, 'patch', number, revision, path=path)
