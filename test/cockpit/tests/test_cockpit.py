@@ -84,14 +84,15 @@ class FormatTests(unittest.TestCase):
         import os, subprocess, tempfile
         from unittest import mock
         from cockpit import memory as M
-        tmp = Path(tempfile.mkdtemp())
+        fixture = tempfile.TemporaryDirectory()
+        self.addCleanup(fixture.cleanup)
+        tmp = Path(fixture.name)
         amr = tmp / "home" / "memory" / "amr"; amr.mkdir(parents=True); (amr / "MEMORY.md").write_text("x")
         who = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
         with mock.patch.dict(os.environ, who):
             out = M.git_commit([amr, tmp / "home" / "memory" / "okf"], "memory: s1")
         log = subprocess.run(["git", "-C", str(tmp / "home" / "memory"), "log", "--format=%s"], capture_output=True, text=True).stdout
         self.assertEqual(log.strip(), "memory: s1", out)   # committed in a repo of its own, not the code's
-        shutil.rmtree(tmp)
 
     def test_data_home(self):
         import os, tempfile
@@ -168,7 +169,9 @@ class FormatTests(unittest.TestCase):
         import os, subprocess, tempfile
         from unittest import mock
         from cockpit import memory as M
-        tmp = Path(tempfile.mkdtemp())
+        fixture = tempfile.TemporaryDirectory()
+        self.addCleanup(fixture.cleanup)
+        tmp = Path(fixture.name)
         who = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
         a, b = tmp / "ra", tmp / "rb"
         for r in (a, b):
@@ -197,7 +200,6 @@ class FormatTests(unittest.TestCase):
         with mock.patch.dict(os.environ, who):
             M.git_commit([g / "amr", g / "okf"], "memory: s5")
         self.assertTrue((g / ".git").is_dir())
-        shutil.rmtree(tmp)
 
     def test_qodo_findings_source(self):
         from unittest import mock

@@ -96,7 +96,7 @@ class AMR:
     def bullets(self) -> list[Bullet]:
         out = []
         for p in sorted(self.root.rglob("*.md")):
-            rel = str(p.relative_to(self.root))
+            rel = p.relative_to(self.root).as_posix()
             for line in p.read_text().splitlines():
                 if line.startswith("- "):
                     b = parse_bullet(line, rel)
@@ -196,7 +196,7 @@ class OKF:
             if p.name in RESERVED:
                 continue
             meta, body = parse_frontmatter(p.read_text())
-            out.append(Concept(str(p.relative_to(self.root)), meta or {}, body))
+            out.append(Concept(p.relative_to(self.root).as_posix(), meta or {}, body))
         return out
 
     def get(self, rel: str) -> Concept | None:
@@ -314,7 +314,7 @@ class OKF:
     def validate(self) -> list[str]:
         problems = []
         for p in sorted(self.root.rglob("*.md")):
-            rel = str(p.relative_to(self.root))
+            rel = p.relative_to(self.root).as_posix()
             if p.name in RESERVED:
                 continue
             meta, _ = parse_frontmatter(p.read_text())

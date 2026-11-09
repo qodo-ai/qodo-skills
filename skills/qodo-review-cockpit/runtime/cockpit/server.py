@@ -393,7 +393,7 @@ class Handler(SimpleHTTPRequestHandler):
         from urllib.parse import unquote
         root = (self.sdir / "media").resolve()
         p = (root / unquote(name)).resolve()
-        if not str(p).startswith(str(root) + "/") or not p.is_file():
+        if not p.is_relative_to(root) or not p.is_file():
             return self._json({"error": "not found"}, 404)
         b = p.read_bytes()
         self.send_response(200)
