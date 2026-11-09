@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "instructionMode": "embedded",
-  "packageVersion": "2.1.10",
+  "packageVersion": "2.1.11",
   "minimumCliVersion": "2.0.0",
   "repository": "https://github.com/qodo-ai/qodo-skills",
   "skills": {
     "qodo-setup": {
-      "version": "1.0.13",
+      "version": "1.0.14",
       "package": "qodo"
     },
     "qodo-codebase-wisdom": {
