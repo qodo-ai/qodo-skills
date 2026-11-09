@@ -17,10 +17,13 @@ from tests.test_product import HEAD
 
 
 class ProductHostedReviewTests(unittest.TestCase):
+    def node(self, script):
+        return subprocess.run(['node'], input=script, capture_output=True, text=True)
+
     def test_local_current_anchor_requires_known_side_collected_path_and_valid_line(self):
         pr=scope_tests.ProductFindingScopeTests().pr();pr['product']=True
         cases=[(None,'a.py',1,False),('LEFT','a.py',1,False),('RIGHT','a.py',1,True),
-               ('RIGHT','absent.py',1,False),('RIGHT','a.py',-1,False),('RIGHT','a.py',True,False)]
+               ('RIGHT','absent.py',1,False),('RIGHT','a.py',-1,False),('RIGHT','a.py',True,False),('RIGHT',['a.py'],1,False)]
         for side,path,line,current in cases:
             with self.subTest(side=side,path=path,line=line):
                 raw={'id':'f','title':'Concern','location':{'file_path':path,'start_line':line,'side':side}}
@@ -56,14 +59,14 @@ class ProductHostedReviewTests(unittest.TestCase):
         kit=(util.ROOT/'app/styles/kit.js').read_text()
         code=kit[kit.index('  const localDone ='):kit.index('  /* render code lines')]
         script='const esc=String,md=String;'+code+';console.log(localDone('+json.dumps([local])+'));'
-        result=subprocess.run(['node','-e',script],capture_output=True,text=True)
+        result=self.node(script)
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertIn('detected after merge; no fix verified',result.stdout)
         self.assertNotIn('<b>fixed</b>',result.stdout)
         app=(util.ROOT/'app/app.js').read_text()
         start=app.index('function panelFindings(');panel=app[start:app.index('\n}',start)+2]
         setup='const esc=String,verdicts=()=>({}),sortedFindings=p=>p.findings||[],collapseRule=()=>false,findingView=f=>f.status_why,S={showCollapsed:{}};'
-        result=subprocess.run(['node','-e',setup+panel+';console.log(panelFindings('+json.dumps({'key':pr['key'],'findings':[],'outdated':[local]})+'));'],capture_output=True,text=True)
+        result=self.node(setup+panel+';console.log(panelFindings('+json.dumps({'key':pr['key'],'findings':[],'outdated':[local]})+'))');
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertIn('post-merge detections with no fix verified',result.stdout)
         self.assertNotIn('No findings from Qodo',result.stdout)
@@ -91,10 +94,11 @@ class ProductHostedReviewTests(unittest.TestCase):
             def noncooperating(*args):
                 data=json.loads((sd/'review-data.json').read_text());data['external_legacy_update']='retained'
                 util.write_json(sd/'review-data.json',data)
-                return {'suggested':[],'calls':0,'excluded':[]}
+                return {'suggested':[],'calls':0,'excluded':[],'basis':reviewers.basis(args[0])}
             with mock.patch.object(reviewers,'suggest',side_effect=noncooperating):
                 helper.run_cli(['reviewers','--session','s','--json'])
             self.assertEqual(json.loads((sd/'review-data.json').read_text())['external_legacy_update'],'retained')
+            self.assertTrue(json.loads((sd/'review-data.json').read_text())['reviewers']['stale'])
 
     def test_idless_bucket_objects_use_same_display_identity_as_their_details(self):
         pr=scope_tests.ProductFindingScopeTests().pr();pr['product']=True
@@ -143,9 +147,9 @@ class ProductHostedReviewTests(unittest.TestCase):
                     return source[start:source.index('\n}',start)+2]
                 setup='const S='+json.dumps({'data':saved,'mem':{'enabled':True,'concepts':concepts}})+';'
                 setup+='const esc=String,conceptByPath=p=>S.mem.concepts.find(c=>c.path===p),conceptView=c=>"<article>"+c.title+"</article>";'
-                script=setup+function('draftsFor')+function('panelKnowledge')
+                script=setup+function('knownFor')+function('draftsFor')+function('panelKnowledge')
                 script+=';console.log(JSON.stringify(S.data.prs.map(p=>({html:panelKnowledge(p),drafts:draftsFor(p).length}))));'
-                result=subprocess.run(['node','-e',script],capture_output=True,text=True)
+                result=self.node(script)
                 self.assertEqual(result.returncode,0,result.stderr)
                 for rendered in json.loads(result.stdout):
                     self.assertIn('<article>Decision</article>',rendered['html'])
@@ -154,14 +158,31 @@ class ProductHostedReviewTests(unittest.TestCase):
                 concepts=[c.as_dict() for c in memory.OKF(root/'okf').concepts()]
                 setup='const S='+json.dumps({'data':saved,'mem':{'enabled':True,'concepts':concepts}})+';'
                 setup+='const esc=String,conceptByPath=p=>S.mem.concepts.find(c=>c.path===p),conceptView=c=>"<article>"+c.title+"</article>";'
-                script=setup+function('draftsFor')+function('panelKnowledge')+';console.log(panelKnowledge(S.data.prs[0]));'
-                result=subprocess.run(['node','-e',script],capture_output=True,text=True)
+                script=setup+function('knownFor')+function('draftsFor')+function('panelKnowledge')+';console.log(panelKnowledge(S.data.prs[0]));'
+                result=self.node(script)
                 self.assertEqual(result.returncode,0,result.stderr)
                 self.assertNotIn('<article>Decision</article>',result.stdout)
                 enrich.enrich(sd,{'knowledge':[{'title':'Decision','pr':'org/repo#2','body':'New proposal'}]})
                 concepts=memory.OKF(root/'okf').concepts()
                 self.assertEqual(sum(c.meta.get('status')=='deprecated' for c in concepts),1)
                 self.assertEqual(sum(c.meta.get('status')=='draft' for c in concepts),1)
+                saved=json.loads((sd/'review-data.json').read_text());saved['overlaps']={'files':[]}
+                def render_stats(live):
+                    setup='const S='+json.dumps({'data':saved,'mem':{'concepts':live},'panel':{}})+';'
+                    setup+='const esc=String,conceptByPath=p=>S.mem.concepts.find(c=>c.path===p),checksSummary=()=>"",markbar=()=>"",liveNotes=()=>"",sessionBudget=()=>"",sessionStory=()=>"",contextBox=()=>"",renderPrefsBox=()=>"",panelOrder=()=>[["knowledge","Knowledge"]],renderPanel=()=>"";'
+                    code=setup+function('knownFor')+function('draftsFor')+function('renderOverview')+function('crossMap')+function('renderPR')
+                    code+=';console.log(JSON.stringify({overview:renderOverview(),pr:renderPR(S.data.prs[0]),map:crossMap()}));'
+                    result=self.node(code);self.assertEqual(result.returncode,0,result.stderr)
+                    return json.loads(result.stdout)
+                retired=[c.as_dict() for c in memory.OKF(root/'okf').concepts() if c.meta.get('status')=='deprecated']
+                stats=render_stats(retired)
+                self.assertNotIn('1 known facts</span>',stats['overview'])
+                self.assertNotIn('class="count"',stats['pr'])
+                self.assertNotIn('data-node="c:',stats['map'])
+                stable=[{**retired[0],'status':'stable'}]
+                stats=render_stats(stable)
+                self.assertIn('1 known facts</span>',stats['overview'])
+                self.assertIn('data-node="c:',stats['map'])
 
     def test_closed_comment_severity_is_explicit_or_unknown_and_inline_restores_it(self):
         summary='Code Review by Qodo\n<h3>Resolved findings</h3>\n<details><summary>1. <s>Concern</s> <code>Resolved</code></summary></details>'
@@ -206,10 +227,22 @@ class ProductHostedReviewTests(unittest.TestCase):
                         return source[start:source.index('\n}',start)+2]
                     constants='\n'.join(line for line in source.splitlines() if line.startswith(('const RISKS_ORDER =','const IMPACT =')))
                     row=source[source.index('const impactRow ='):source.index('function impactBody(')]
-                    setup='const C='+json.dumps(public)+';const S={bpin:null,open:{}},EXPAND=false;const esc=String,md=String,silent=()=>false;'
-                    code=setup+constants+row+function('impactBody')+function('planBlast')+function('blastDetail')
-                    code+=';console.log(JSON.stringify({parts:impactBody("parts"),workflows:impactBody("workflows"),blast:planBlast(false)}));'
-                    result=subprocess.run(['node','-e',code],capture_output=True,text=True)
+                    note_start=source.index('const impactNote =');note_end=min(i for token in ('\nconst ','\nfunction ','\nlet ') for i in [source.find(token,note_start+1)] if i>=0)
+                    note=source[note_start:note_end]
+                    render_data=copy.deepcopy(public);render_data['impact'][0]['gaps']=[];render_data['impact'][0]['evidence']=['Observed'];render_data['impact'][0]['workflows']=['flow']
+                    setup='const C='+json.dumps(render_data)+';const S={bpin:null,open:{imp:true},iview:"parts"},EXPAND=false;const esc=String,md=String,silent=()=>false;'
+                    setup+='const DEPLOY=[],setDoor=()=>({verdict:"two-way"}),doorChip=()=>"",checksLine=()=>"",toolsRow=()=>"",approvalLine=()=>"",contractsLine=()=>"",decisionsLine=()=>"";'
+                    code=setup+constants+note+row+function('impactBody')+function('planBlast')+function('blastDetail')+function('bImpact')
+                    code+=';const indicators=["unknown","high","medium","low"].map(risk=>{IMPACT[0].risk=risk;return {risk,html:bImpact()}});IMPACT[0].risk="unknown";console.log(JSON.stringify({parts:impactBody("parts"),workflows:impactBody("workflows"),blast:planBlast(false),indicators}));'
+                    result=self.node(code)
                     self.assertEqual(result.returncode,0,result.stderr)
                     rendered=json.loads(result.stdout);self.assertIn('Unknown',rendered['parts'])
                     self.assertNotIn('undefined',rendered['blast'])
+                    import re
+                    for item in rendered['indicators']:
+                        button=re.search(r'<button[^>]+data-iview="blast"[^>]*>(.*?)</button>',item['html'],re.S).group(1)
+                        expected={'unknown':'unknown','high':'bad','medium':'warn','low':'ok'}[item['risk']]
+                        self.assertIn('vdot '+expected,button)
+                        if item['risk']=='unknown':
+                            self.assertNotIn('low risk only',item['html'])
+                            self.assertIn('risk unassessed',item['html'])

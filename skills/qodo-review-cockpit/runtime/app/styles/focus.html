@@ -1235,15 +1235,15 @@ function bImpact() {   // merge danger: the findings and tests rows are its evid
   const body = impactBody(v, id);
   const help = { door: "Can a revert undo it, and in what order to ship", blast: "What each changed part reaches", domains: "What changed where", parts: "Each part: what breaks, how we'd notice, how to undo", workflows: "The parts by the workflow they sit on" }[v];
   // a dot per view: where the header's reds and yellows are (red: one-way or high risk; yellow: medium risk, gaps, DB or contract changes; green: nothing found)
-  const worst = (rows) => rows.some((r) => r.risk === "high") ? "bad" : rows.some((r) => r.risk === "medium") ? "warn" : "ok";
+  const worst = (rows) => rows.some((r) => r.risk === "high") ? "bad" : (!rows.length || rows.some((r) => !["high", "medium", "low"].includes(r.risk))) ? "unknown" : rows.some((r) => r.risk === "medium") ? "warn" : "ok";
   const hot = C.prs.some((p) => (p.domains || {}).db || (p.domains || {}).contract);
   const dot = { door: d.verdict === "one-way" ? ["bad", "a one-way door"] : ["ok", "every part reverts"],
-    blast: [worst(IMPACT), { bad: "a high-risk part", warn: "medium-risk parts", ok: "low risk only" }[worst(IMPACT)]],
+    blast: [worst(IMPACT), { bad: "a high-risk part", warn: "medium-risk parts", ok: "low risk only", unknown: "risk unassessed" }[worst(IMPACT)]],
     domains: hot ? ["warn", "DB or contract changes"] : ["ok", "no DB or contract changes"],
-    parts: worst(IMPACT) === "bad" ? ["bad", `a high-risk part${gaps ? `, ${gaps} gap${gaps === 1 ? "" : "s"}` : ""}`] : gaps ? ["warn", `${gaps} gap${gaps === 1 ? "" : "s"}`] : [worst(IMPACT), "no gaps"],
-    workflows: [worst(IMPACT.filter((r) => r.workflows.length)), "the riskiest part on a workflow"] };
+    parts: worst(IMPACT) === "unknown" ? ["unknown", "risk unassessed"] : worst(IMPACT) === "bad" ? ["bad", `a high-risk part${gaps ? `, ${gaps} gap${gaps === 1 ? "" : "s"}` : ""}`] : gaps ? ["warn", `${gaps} gap${gaps === 1 ? "" : "s"}`] : [worst(IMPACT), "no gaps"],
+    workflows: [worst(IMPACT.filter((r) => r.workflows.length)), worst(IMPACT.filter((r) => r.workflows.length)) === "unknown" ? "workflow risk unassessed" : "the riskiest part on a workflow"] };
   const sw = `<div class="bviews" role="group" aria-label="Merge danger as">${views.map(([k, t]) => { const [c, why] = dot[k] || [];
-    return `<button class="bv" data-iview="${k}" aria-selected="${v === k}"${c ? ` title="${esc(why)}"` : ""}>${c ? `<i class="vdot ${c}" aria-hidden="true"></i>` : ""}${t}${c && c !== "ok" ? `<span class="sr"> (${esc(why)})</span>` : ""}</button>`; }).join("")}</div>`;
+    return `<button class="bv" data-iview="${k}" aria-selected="${v === k}"${c ? ` title="${esc(why)}"` : ""}>${c ? `<i class="vdot ${c}"${c === "unknown" ? ' style="background:var(--muted)"' : ""} aria-hidden="true"></i>` : ""}${t}${c && c !== "ok" ? `<span class="sr"> (${esc(why)})</span>` : ""}</button>`; }).join("")}</div>`;
   return `<section class="card impact">${head}<div class="isw">${sw}<span class="muted">${help}</span></div>${body}${v === "blast" || v === "parts" || v === "workflows" ? `<p class="inote">${esc(impactNote())}</p>` : ""}${decs || evid ? `<div class="ievid">${decs}${evid}</div>` : ""}</section>`;
 }
 /* the route: one row per walkthrough unit, in reading order; one column per file, in order of first use */

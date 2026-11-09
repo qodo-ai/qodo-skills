@@ -22,7 +22,7 @@ class ProductShipBoundaryTests(unittest.TestCase):
             start = source.index('function '+name+'(')
             return source[start:source.index('\nfunction ', start+1)]
         rank = next(line for line in source.splitlines() if line.startswith('const SEV_ORDER'))
-        code = rank+function('collapseRule')+function('sortedFindings')+function('renderOverview')
+        code = rank+function('conceptByPath')+function('knownFor')+function('collapseRule')+function('sortedFindings')+function('renderOverview')
         setup = '''const S={data:{prs:[{key:'o/r#1',number:1,title:'Change',files:[],findings:[
  {id:'low',severity:'low',category:'bug'}, {id:'critical',severity:'critical',category:'bug'},
  {id:'high',severity:'high',category:'bug'}]}]},mem:{concepts:[]}};

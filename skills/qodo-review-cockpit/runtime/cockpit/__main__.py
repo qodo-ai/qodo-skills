@@ -178,13 +178,16 @@ def main(argv=None):
             f = HOME / f
         print(json.dumps(enrich(_session_dir(a.session), json.load(open(f))), indent=2))
     elif a.cmd == "reviewers":
-        from .reviewers import suggest
+        from .reviewers import suggest, basis
         from .session_writer import session_writer
         sd = _session_dir(a.session); p = sd / "review-data.json"
         with session_writer(sd):
-            data = json.loads(p.read_text())
+            before = p.read_text()
+            data = json.loads(before)
             res = suggest(data, load_config())
-            data = json.loads(p.read_text())   # retain the legacy late-read mitigation for non-cooperating writers
+            after = p.read_text()   # retain the legacy late-read mitigation for non-cooperating writers
+            data = json.loads(after)
+            res = {**res, 'stale': before != after or res.get('basis') != basis(data)}
             data["reviewers"] = res
             write_json(p, data)
         if a.json:

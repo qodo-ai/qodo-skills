@@ -49,6 +49,8 @@ class ProductWebTests(unittest.TestCase):
         code+=package[package.index('function pkTable('):package.index('document.addEventListener("click"',package.index('function pkTable('))]
         code+=package[package.index('function bPrs('):package.index('/* ---------- header actions:')]
         code+=package[package.index('function vFindings('):package.index('/* ---------- notes:')]
+        for name in ('conceptByPath','knownFor'):
+            start=app.index('function '+name+'(');code+=app[start:app.index('\nfunction ',start+1)]
         code+=app[app.index('function renderPR('):app.index('function renderPanel(')]
         code+=app[app.index('function findingView('):app.index('\nfunction ',app.index('function findingView(')+1)]
         setup="""const strip=String,pl=(n,s)=>n+' '+s,prs=()=>C.prs,prState=()=>'',STATE_NAME={},PRICON={},GHICON='',linesChip=()=>'',prChips=()=>'',pkgLines=()=>[0,0],shortPr=String;
@@ -56,7 +58,7 @@ const pkCells=()=>({merge:['',''],ci:['',''],open:0,bad:0,wait:0,passed:0,checks
 const isOpen=f=>!f.status||f.status==='open',sevRank={},scansHtml=()=>'',productEvidenceUnknown=()=>false,noteHtml=()=>'';
 const panelOrder=()=>[['findings','Findings']],draftsFor=()=>[],checksSummary=()=>'',liveNotes=()=>'',markbar=()=>'',renderPanel=()=>'',collapseRule=()=>null,sevPill=()=>'',localPill=()=>'',notes=()=>[],noteView=()=>'',mdi=md;
 """
-        script="const vm=require('node:vm'),x=JSON.parse(require('node:fs').readFileSync(0,'utf8')),c={C:{prs:[x.pr]},S:{open:{'pkt:org/repo':true},panel:{},showCollapsed:{}},EXPAND:true};vm.createContext(c);vm.runInContext(x.code,c);process.stdout.write(JSON.stringify(c.result));"
+        script="const vm=require('node:vm'),x=JSON.parse(require('node:fs').readFileSync(0,'utf8')),c={C:{prs:[x.pr]},S:{open:{'pkt:org/repo':true},panel:{},showCollapsed:{},mem:{concepts:[]}},EXPAND:true};vm.createContext(c);vm.runInContext(x.code,c);process.stdout.write(JSON.stringify(c.result));"
         result=subprocess.run(['node','-e',script],input=json.dumps({'pr':pr,'code':code+setup+';result={cards:bPrs(),table:bPrs(true),findings:vFindings(),app:renderPR(C.prs[0])+C.prs[0].findings.map(f=>findingView(f,C.prs[0])).join("")};'}),capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr);return json.loads(result.stdout)
 

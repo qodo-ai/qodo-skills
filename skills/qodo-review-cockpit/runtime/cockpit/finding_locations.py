@@ -18,6 +18,7 @@ def qualify(pr: dict, finding: dict) -> dict:
     sha, head = original.get('git_sha'), pr.get('head_sha')
     current = bool(isinstance(sha, str) and isinstance(head, str) and sha and sha.lower() == head.lower()
                    and side in (('LEFT', 'RIGHT') if hosted else ('RIGHT',))
+                   and isinstance(original.get('path'), str)
                    and original.get('path') in {f.get('path') for f in pr.get('files', [])}
                    and type(original.get('line')) is int and original['line'] > 0)
     out = {**finding, 'source_location': original, 'current_anchor': current,

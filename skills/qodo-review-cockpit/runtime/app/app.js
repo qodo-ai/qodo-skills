@@ -159,6 +159,9 @@ function prSeverity(pr) {
   return f.some((x) => ["critical", "high"].includes(x.severity)) ? "high" : f.some((x) => x.severity === "medium") ? "medium" : "low";
 }
 function conceptByPath(p) { return (S.mem.concepts || []).find((c) => c.path === p); }
+function knownFor(pr) {
+  return (pr.concepts || []).map(conceptByPath).filter((c) => c && c.status !== 'draft' && c.status !== 'deprecated');
+}
 
 /* ---------------- top bar ---------------- */
 function renderTabs() {
@@ -190,7 +193,7 @@ function renderOverview() {
     return `<div class="card markable"><div class="hd"><button class="btn ghost" data-act="view" data-v="${esc(pr.key)}" style="text-align:left;padding:0;border:0"><h2>#${pr.number} ${esc(pr.title)}</h2></button></div>
       <div class="bd"><div class="row muted">${esc(pr.author)} · <span class="mono">${esc(pr.head)}</span> → <span class="mono">${esc(pr.base)}</span></div>
       <div class="row"><span class="stat add">+${pr.additions}</span><span class="stat del">−${pr.deletions}</span><span class="muted">${pr.files.length} files</span></div>
-      <div class="row">${c("high") ? `<span class="pill high">${c("high")} high/critical</span>` : ""}${c("medium") ? `<span class="pill medium">${c("medium")} medium</span>` : ""}${c("low") ? `<span class="pill low">${c("low")} low</span>` : ""}${(pr.concepts || []).length ? `<span class="pill okf">${pr.concepts.length} known facts</span>` : ""}</div>
+      <div class="row">${c("high") ? `<span class="pill high">${c("high")} high/critical</span>` : ""}${c("medium") ? `<span class="pill medium">${c("medium")} medium</span>` : ""}${c("low") ? `<span class="pill low">${c("low")} low</span>` : ""}${knownFor(pr).length ? `<span class="pill okf">${knownFor(pr).length} known facts</span>` : ""}</div>
       <div class="row">${checks}</div>${markbar({ kind: "pr", id: pr.key }, pr.key, { compact: true, label: `PR #${pr.number}` })}</div></div>`;
   }).join("");
   const drafts = (S.mem.concepts || []).filter((c) => c.status === "draft").length;
@@ -206,7 +209,7 @@ function crossMap() {
   const prs = S.data.prs;
   const shared = S.data.overlaps.files || [];
   const cset = new Map();
-  prs.forEach((p) => (p.concepts || []).forEach((c) => { if (!cset.has(c)) cset.set(c, []); cset.get(c).push(p.key); }));
+  prs.forEach((p) => knownFor(p).forEach(({path:c}) => { if (!cset.has(c)) cset.set(c, []); cset.get(c).push(p.key); }));
   const concepts = [...cset.entries()];
   if (!shared.length && !concepts.length) return `<p class="empty">No shared files or known facts between these PRs.</p>`;
   const rowH = 46, W = 900;
@@ -233,7 +236,7 @@ function renderPR(pr) {
   const order = panelOrder();
   const active = S.panel[pr.key] || order[0][0];
   S.panel[pr.key] = active;
-  const nFind = (pr.findings || []).length, nKnow = (pr.concepts || []).length + draftsFor(pr).length;
+  const nFind = (pr.findings || []).length, nKnow = knownFor(pr).length + draftsFor(pr).length;
   const tabs = order.map(([id, label]) => `<button class="ptab" role="tab" data-act="panel" data-v="${id}" aria-selected="${active === id}">${label}${id === "findings" ? `<span class="count">${nFind}</span>` : id === "knowledge" && nKnow ? `<span class="count">${nKnow}</span>` : ""}</button>`).join("");
   const checks = checksSummary(pr);
   return `${liveNotes([pr.key])}<div class="card"><div class="hd"><div style="display:grid;gap:4px;min-width:0">
@@ -576,7 +579,7 @@ function conceptView(c, pr) {
       ${markbar({ kind: "concept", id: c.path }, pr.key, { compact: true, label: c.title })}</div></div>`;
 }
 function panelKnowledge(pr) {
-  const known = (pr.concepts || []).map(conceptByPath).filter((c) => c && c.status !== "draft" && c.status !== "deprecated");
+  const known = knownFor(pr);
   const drafts = draftsFor(pr);
   const dirs = [...new Set(pr.files.map((f) => (f.path.includes("/") ? f.path.slice(0, f.path.lastIndexOf("/")) + "/**" : f.path)))];
   if (S.mem && S.mem.enabled === false)
