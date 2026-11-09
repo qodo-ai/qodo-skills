@@ -576,7 +576,7 @@ function conceptView(c, pr) {
       ${markbar({ kind: "concept", id: c.path }, pr.key, { compact: true, label: c.title })}</div></div>`;
 }
 function panelKnowledge(pr) {
-  const known = (pr.concepts || []).map(conceptByPath).filter((c) => c && c.status !== "draft");
+  const known = (pr.concepts || []).map(conceptByPath).filter((c) => c && c.status !== "draft" && c.status !== "deprecated");
   const drafts = draftsFor(pr);
   const dirs = [...new Set(pr.files.map((f) => (f.path.includes("/") ? f.path.slice(0, f.path.lastIndexOf("/")) + "/**" : f.path)))];
   if (S.mem && S.mem.enabled === false)

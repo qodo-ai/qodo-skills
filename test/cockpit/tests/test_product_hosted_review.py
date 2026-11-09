@@ -88,6 +88,13 @@ class ProductHostedReviewTests(unittest.TestCase):
                 finally:release.set();worker.join(timeout=5)
             self.assertFalse(worker.is_alive());self.assertFalse(errors,errors)
             self.assertEqual(json.loads((sd/'review-data.json').read_text())['reviewers']['suggested'],[])
+            def noncooperating(*args):
+                data=json.loads((sd/'review-data.json').read_text());data['external_legacy_update']='retained'
+                util.write_json(sd/'review-data.json',data)
+                return {'suggested':[],'calls':0,'excluded':[]}
+            with mock.patch.object(reviewers,'suggest',side_effect=noncooperating):
+                helper.run_cli(['reviewers','--session','s','--json'])
+            self.assertEqual(json.loads((sd/'review-data.json').read_text())['external_legacy_update'],'retained')
 
     def test_idless_bucket_objects_use_same_display_identity_as_their_details(self):
         pr=scope_tests.ProductFindingScopeTests().pr();pr['product']=True
@@ -143,6 +150,18 @@ class ProductHostedReviewTests(unittest.TestCase):
                 for rendered in json.loads(result.stdout):
                     self.assertIn('<article>Decision</article>',rendered['html'])
                     self.assertEqual(rendered['drafts'],0)
+                memory.OKF(root/'okf').reject(concept_path,'fixture reviewer')
+                concepts=[c.as_dict() for c in memory.OKF(root/'okf').concepts()]
+                setup='const S='+json.dumps({'data':saved,'mem':{'enabled':True,'concepts':concepts}})+';'
+                setup+='const esc=String,conceptByPath=p=>S.mem.concepts.find(c=>c.path===p),conceptView=c=>"<article>"+c.title+"</article>";'
+                script=setup+function('draftsFor')+function('panelKnowledge')+';console.log(panelKnowledge(S.data.prs[0]));'
+                result=subprocess.run(['node','-e',script],capture_output=True,text=True)
+                self.assertEqual(result.returncode,0,result.stderr)
+                self.assertNotIn('<article>Decision</article>',result.stdout)
+                enrich.enrich(sd,{'knowledge':[{'title':'Decision','pr':'org/repo#2','body':'New proposal'}]})
+                concepts=memory.OKF(root/'okf').concepts()
+                self.assertEqual(sum(c.meta.get('status')=='deprecated' for c in concepts),1)
+                self.assertEqual(sum(c.meta.get('status')=='draft' for c in concepts),1)
 
     def test_closed_comment_severity_is_explicit_or_unknown_and_inline_restores_it(self):
         summary='Code Review by Qodo\n<h3>Resolved findings</h3>\n<details><summary>1. <s>Concern</s> <code>Resolved</code></summary></details>'
@@ -180,16 +199,17 @@ class ProductHostedReviewTests(unittest.TestCase):
                 public=view.view_data(sd)
                 self.assertEqual(public['impact'][0]['risk'],'unknown')
                 self.assertEqual(public['risk']['level'],'unknown')
-                source=(util.ROOT/'app/styles/package.js').read_text()
-                def function(name):
-                    start=source.index('function '+name+'(')
-                    return source[start:source.index('\n}',start)+2]
-                constants='\n'.join(line for line in source.splitlines() if line.startswith(('const RISKS_ORDER =','const IMPACT =')))
-                row=source[source.index('const impactRow ='):source.index('function impactBody(')]
-                setup='const C='+json.dumps(public)+';const S={bpin:null,open:{}},EXPAND=false;const esc=String,md=String,silent=()=>false;'
-                code=setup+constants+row+function('impactBody')+function('planBlast')+function('blastDetail')
-                code+=';console.log(JSON.stringify({parts:impactBody("parts"),workflows:impactBody("workflows"),blast:planBlast(false)}));'
-                result=subprocess.run(['node','-e',code],capture_output=True,text=True)
-                self.assertEqual(result.returncode,0,result.stderr)
-                rendered=json.loads(result.stdout);self.assertIn('Unknown',rendered['parts'])
-                self.assertNotIn('undefined',rendered['blast'])
+                for relative in ('app/styles/package.js','app/styles/focus.html'):
+                    source=(util.ROOT/relative).read_text()
+                    def function(name):
+                        start=source.index('function '+name+'(')
+                        return source[start:source.index('\n}',start)+2]
+                    constants='\n'.join(line for line in source.splitlines() if line.startswith(('const RISKS_ORDER =','const IMPACT =')))
+                    row=source[source.index('const impactRow ='):source.index('function impactBody(')]
+                    setup='const C='+json.dumps(public)+';const S={bpin:null,open:{}},EXPAND=false;const esc=String,md=String,silent=()=>false;'
+                    code=setup+constants+row+function('impactBody')+function('planBlast')+function('blastDetail')
+                    code+=';console.log(JSON.stringify({parts:impactBody("parts"),workflows:impactBody("workflows"),blast:planBlast(false)}));'
+                    result=subprocess.run(['node','-e',code],capture_output=True,text=True)
+                    self.assertEqual(result.returncode,0,result.stderr)
+                    rendered=json.loads(result.stdout);self.assertIn('Unknown',rendered['parts'])
+                    self.assertNotIn('undefined',rendered['blast'])

@@ -218,7 +218,7 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
         payload = {**payload, "knowledge": []}
     if memory_on(cfg):
         okf.ensure()
-    by_title = {c.meta.get("title", "").strip().lower(): c for c in okf.concepts()}
+    by_title = {c.meta.get("title", "").strip().lower(): c for c in okf.concepts() if c.meta.get('status') != 'deprecated'}
     have = {(c["path"], c.get('pr')) for c in data["okf"].get("candidates", [])}
     def associate(path, key):
         for pr in data.get('prs', []):

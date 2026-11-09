@@ -184,6 +184,7 @@ def main(argv=None):
         with session_writer(sd):
             data = json.loads(p.read_text())
             res = suggest(data, load_config())
+            data = json.loads(p.read_text())   # retain the legacy late-read mitigation for non-cooperating writers
             data["reviewers"] = res
             write_json(p, data)
         if a.json:
