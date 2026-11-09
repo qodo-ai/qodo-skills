@@ -173,7 +173,14 @@ def _merge(old: dict | None, new: dict) -> dict:
     return out
 
 
-def to_finding(pr: dict, rec: dict, f: dict, state: str | None) -> dict:
+def _review_reference(rec: dict, f: dict):
+    meta = rec.get('result', {}).get('meta') or {}
+    references = meta.get('local_review_ids') if isinstance(meta, dict) else {}
+    reference = references.get(_fid(f)) if isinstance(references, dict) else None
+    return reference if isinstance(reference, str) and reference else _first(f, 'local_review_id') or rec.get('local_review_id')
+
+
+def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, source_record: dict | None = None) -> dict:
     loc = next((f[k] for k in ("diff_reference", "location") if isinstance(f.get(k), dict)), {})
     fid = _fid(f)
     path = _first(f, "path", "file_path", "file") or _first(loc, "file_path", "path", "file")
@@ -183,14 +190,12 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None) -> dict:
         what = [path, line, _first(f, "title", "summary", "name"), _first(f, "description", "body")]
         fid = "noid-" + hashlib.sha1(json.dumps(what, default=str).encode()).hexdigest()[:12]
     status = state or CLOSED.get(str(f.get("attribution_status") or "").lower()) or "open"
-    seen = _first(f, "git_sha") or rec.get("commit")   # the commit this finding's review saw
+    reference = _review_reference(rec, f)
+    origin = source_record if source_record is not None else rec if reference == rec.get('local_review_id') else {}
+    seen = _first(f, "git_sha") or origin.get("commit")   # never borrow a later run's commit for a carried finding
     pre = str(loc.get("side") or "").lower() == "left"   # a line the diff removed: not in the new file
     here = bool(seen) and seen == pr.get("head_sha") and not pre   # its lines are this PR's lines
     ev = f.get("evidence") if isinstance(f.get("evidence"), dict) else {}
-    meta = rec.get('result', {}).get('meta') or {}
-    references = meta.get('local_review_ids') if isinstance(meta, dict) else {}
-    reference = references.get(fid) if isinstance(references, dict) else None
-    reference = reference if isinstance(reference, str) and reference else _first(f, 'local_review_id') or rec.get('local_review_id')
     out = {"id": f"l-{pr['key'].replace('/', '-').replace('#', '-')}-{fid}", "pr": pr["key"], "source": "qodo-local",
            "qodo_id": None if fid.startswith("noid-") else fid,
            "category": str(_first(f, "category") or "general").lower(), "severity": _severity(_first(f, "action_level", "severity")),
@@ -199,7 +204,7 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None) -> dict:
            "body": str(_first(f, "description", "body", "rationale") or _first(ev, "explanation") or ""),
            "qodo_type": _first(f, "type", "finding_type") or kind_of(f.get("finding_source")),
            "local": {"review_id": reference,
-                     "at": _first(f, "created_at") or rec.get("ran_at") or rec.get("added_at"), "commit": seen,
+                     "at": _first(f, "created_at") or origin.get("ran_at") or origin.get("added_at"), "commit": seen,
                      "line": None if here else line}}
     if status != "open":
         out["status"] = status
@@ -218,7 +223,12 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
     into what earlier reviews said, so a later entry that only carries a disposition keeps the details."""
     raw: dict[str, tuple[dict, dict]] = {}   # finding id -> (the review that last mentioned it, its merged copy)
     status: dict[str, str] = {}
-    for rec in fetch(pr, cfg):
+    reviews = fetch(pr, cfg)
+    origins = {}
+    for rec in reviews:
+        if rec.get('local_review_id'):
+            origins.setdefault(rec['local_review_id'], rec)
+    for rec in reviews:
         res = rec["result"]
         fs = res.get("finding_state") if isinstance(res.get("finding_state"), dict) else {}
         listed = [f for k in ("still_open", "introduced", "resolved", "dismissed") for f in fs.get(k) or [] if isinstance(f, dict)]
@@ -234,4 +244,4 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
                 fid = _fid(f) if isinstance(f, dict) else str(f)
                 if fid:
                     status[fid] = k
-    return [to_finding(pr, rec, f, status.get(fid)) for fid, (rec, f) in raw.items()]
+    return [to_finding(pr, rec, f, status.get(fid), source_record=origins.get(_review_reference(rec, f))) for fid, (rec, f) in raw.items()]

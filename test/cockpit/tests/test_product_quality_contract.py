@@ -84,18 +84,23 @@ class ProductQualityContractTests(unittest.TestCase):
 
     def test_saved_local_import_preserves_each_original_review_reference(self):
         pr = self.scope.pr()
-        first = {'findings': [{'id': 'old', 'title': 'Earlier concern'}],
-                 'meta': {'local_review_id': 'review-one', 'local_review_ids': {'old': 'review-one'}}}
+        first = {'findings': [{'id': 'old', 'title': 'Earlier concern', 'file_path': 'a.py', 'start_line': 1}],
+                 'meta': {'local_review_id': 'review-one', 'local_review_ids': {'old': 'review-one'},
+                          'checkpoint': {'created_at': '2026-01-01T00:00:00Z'}}}
         second = {'findings': [{'id': 'old', 'title': 'Earlier concern', 'local_review_id': 'review-two'}, {'id': 'new', 'title': 'New concern'}],
                   'finding_state': {'complete': True, 'introduced': ['new'], 'still_open': ['old']},
                   'meta': {'local_review_id': 'review-two',
                            'local_review_ids': {'old': 'review-one', 'new': 'review-two'}}}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(qodo_local, 'STORE', Path(tmp)):
-            qodo_local.add(first, pr=pr['key'], commit=HEAD)
+            qodo_local.add(first, pr=pr['key'], commit='a' * 40)
             qodo_local.add(second, pr=pr['key'], commit=HEAD)
             findings = {f['qodo_id']: f for f in qodo_local.collect(pr, {})}
         self.assertEqual(findings['old']['local']['review_id'], 'review-one')
         self.assertEqual(findings['new']['local']['review_id'], 'review-two')
+        self.assertEqual(findings['old']['local']['commit'], 'a' * 40)
+        self.assertEqual(findings['old']['local']['at'], '2026-01-01T00:00:00Z')
+        self.assertIsNone(findings['old'].get('line'))
+        self.assertEqual(findings['old']['local']['line'], 1)
         self.assertNotIn('status', findings['old'])
         self.assertEqual(findings['old']['title'], 'Earlier concern')
 
@@ -105,6 +110,15 @@ class ProductQualityContractTests(unittest.TestCase):
         for own, expected in [(None, 'record-review'), ('finding-review', 'finding-review')]:
             finding = qodo_local.to_finding(pr, rec, {'id': 'f', 'local_review_id': own}, None)
             self.assertEqual(finding['local']['review_id'], expected)
+
+        carried = qodo_local.to_finding(pr, {'local_review_id': 'new-run', 'commit': HEAD, 'ran_at': '2026-01-02',
+                    'result': {'meta': {'local_review_ids': {'f': 'old-run'}}}},
+                    {'id': 'f', 'file_path': 'a.py', 'start_line': 1}, None)
+        self.assertEqual(carried['local']['review_id'], 'old-run')
+        self.assertIsNone(carried['local']['commit'])
+        self.assertIsNone(carried['local']['at'])
+        self.assertIsNone(carried.get('line'))
+        self.assertEqual(carried['local']['line'], 1)
 
     def test_optional_badge_uses_the_existing_informational_severity(self):
         for badge in ('Optional', 'Informational', 'info'):
@@ -127,6 +141,7 @@ class ProductQualityContractTests(unittest.TestCase):
             (sd / 'media' / 'shots').mkdir(parents=True)
             (sd / 'media' / 'shots' / 'after.png').write_bytes(b'image-content')
             (sd / 'media' / 'clip.mp4').write_bytes(b'video-content')
+            (sd / 'media' / 'shots' / 'before.png').write_bytes(b'before-content')
             (sd / 'media' / 'unreferenced.txt').write_bytes(b'PRIVATE-UNREFERENCED')
             outside = root / 'outside.txt'
             outside.write_bytes(b'PRIVATE-OUTSIDE')
@@ -136,6 +151,8 @@ class ProductQualityContractTests(unittest.TestCase):
                 (sd / 'media' / 'external.png').symlink_to(outside)
                 sources.append('external.png')
             data['story'] = [{'kind': 'media', 'title': 'Evidence', 'src': src} for src in sources]
+            data['prs'][0]['story'] = [{'kind': 'before_after', 'title': 'Change',
+                                       'before': {'media': 'shots/before.png'}, 'after': {'media': 'shots/after.png'}}]
             (sd / 'review-data.json').write_text(json.dumps(data))
             with mock.patch.object(export, 'session_config', return_value=cfg):
                 out = export.export(sd, root / 'shared.html', style='cockpit')
@@ -144,11 +161,12 @@ class ProductQualityContractTests(unittest.TestCase):
             app_copy = next(path for path in written if path.name.endswith('-cockpit.html'))
             html = out.read_text()
             copied = json.loads(re.search(r'window\.__COCKPIT__ = (.*?);</script>', app_copy.read_text(), re.S).group(1))
-            self.assertEqual(set(copied['media']), {'shots/after.png', 'clip.mp4'})
+            self.assertEqual(set(copied['media']), {'shots/after.png', 'shots/before.png', 'clip.mp4'})
             payload = json.loads(re.search(r'window\.__COCKPIT__ = (.*?);</script>', html, re.S).group(1))
-            self.assertEqual(set(payload['media']), {'shots/after.png', 'clip.mp4'})
+            self.assertEqual(set(payload['media']), {'shots/after.png', 'shots/before.png', 'clip.mp4'})
             self.assertEqual(base64.b64decode(payload['media']['shots/after.png'].split(',', 1)[1]), b'image-content')
             self.assertEqual(base64.b64decode(payload['media']['clip.mp4'].split(',', 1)[1]), b'video-content')
+            self.assertEqual(base64.b64decode(payload['media']['shots/before.png'].split(',', 1)[1]), b'before-content')
             for secret in (b'PRIVATE-UNREFERENCED', b'PRIVATE-OUTSIDE'):
                 self.assertNotIn(base64.b64encode(secret).decode(), html)
                 self.assertNotIn(secret.decode(), html)
