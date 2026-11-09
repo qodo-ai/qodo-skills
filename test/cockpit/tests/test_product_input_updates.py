@@ -105,6 +105,15 @@ class ProductInputUpdateTests(unittest.TestCase):
             self.assertFalse(public['current_anchor']);self.assertIsNone(public['line']);self.assertIsNone(public['path'])
             self.assertEqual(public['source_location']['line'], 1)
             self.assertNotIn(public.get('status'), ('outdated', 'resolved'))
+            reanchored = copy.deepcopy(pr)
+            current_comment = {**reanchored['_raw_comments'][0], 'id': 79, 'line': 1,
+                               'url': 'https://github.com/org/repo/pull/1#discussion_r79'}
+            current_comment.pop('provider_position_current', None)
+            reanchored['_raw_comments'].append(current_comment)
+            current_view = view._pr_view({**reanchored, 'findings': qodo_comments.collect(reanchored, cfg)})['findings'][0]
+            self.assertIsNot(current_view.get('current_anchor'), False)
+            self.assertEqual((current_view['path'], current_view['line']), ('a.py', 1))
+            self.assertIsNone(current_view['source_location'])
             summary_finding = {**qodo_comments.parse_inline(comment['body']), 'path': 'a.py', 'line': 1}
             with_summary = copy.deepcopy(pr)
             with_summary['_raw_comments'].insert(0, {'id': 78, 'author': 'qodo-code-review[bot]',

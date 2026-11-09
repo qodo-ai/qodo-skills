@@ -329,7 +329,7 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
             _original_position(by_uuid[key], c)
             continue
         # The inline comment's badge is per finding; a summary group badge may be a guess.
-        keep_inline = ("path", "line", "url") + (("severity", "severity_guessed") if prev.get("severity_guessed") and not f.get('severity_guessed') else ())
+        keep_inline = ("path", "line", "url", "provider_position_current", "current_anchor", "source_location") + (("severity", "severity_guessed") if prev.get("severity_guessed") and not f.get('severity_guessed') else ())
         merged = {**base, **f, **{k: v for k, v in prev.items() if v and k not in keep_inline}}
         merged.update(id=prev.get("id") or _fid(pr, f["qodo_id"] or c["id"]), url=c.get("url"),
                       path=c["path"], line=c.get("start_line") or prev.get("line") or c.get("line") or f["line"],
