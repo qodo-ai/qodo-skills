@@ -322,7 +322,7 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
                       end_line=c.get("line") or prev.get("end_line") or f["end_line"],
                       qodo_aspect=f["qodo_aspect"] or prev.get("qodo_aspect"),
                       category=_category(f["qodo_type"] or prev.get("qodo_type"), f["qodo_aspect"] or prev.get("qodo_aspect")))
-        if c.get('provider_position_current') is False and not prev:
+        if c.get('provider_position_current') is False:
             # A native old coordinate is evidence, not a position in today's diff.
             # Leave finding lifecycle to the structured review; do not infer resolution.
             merged.update(provider_position_current=False, current_anchor=False,

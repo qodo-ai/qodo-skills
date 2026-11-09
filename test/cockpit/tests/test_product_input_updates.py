@@ -8,7 +8,7 @@ import unittest
 from unittest import mock
 
 from cockpit import enrich, util, view
-from cockpit.adapters import qodo_cli, qodo_findings
+from cockpit.adapters import qodo_cli, qodo_comments, qodo_findings
 from cockpit.adapters.managed import Client
 from tests import test_product_enrich_refresh as helpers
 from tests.test_product import HEAD, fixture, page
@@ -105,6 +105,13 @@ class ProductInputUpdateTests(unittest.TestCase):
             self.assertFalse(public['current_anchor']);self.assertIsNone(public['line']);self.assertIsNone(public['path'])
             self.assertEqual(public['source_location']['line'], 1)
             self.assertNotIn(public.get('status'), ('outdated', 'resolved'))
+            summary_finding = {**qodo_comments.parse_inline(comment['body']), 'path': 'a.py', 'line': 1}
+            with_summary = copy.deepcopy(pr)
+            with_summary['_raw_comments'].insert(0, {'id': 78, 'author': 'qodo-code-review[bot]',
+                                                       'body': 'Code Review by Qodo', 'url': 'https://github.com/org/repo/pull/1#issuecomment-78'})
+            with mock.patch.object(qodo_comments, 'parse_review', return_value=([summary_finding], set(), None)):
+                projected = view._pr_view({**with_summary, 'findings': qodo_comments.collect(with_summary, cfg)})['findings'][0]
+            self.assertFalse(projected['current_anchor']);self.assertIsNone(projected['line'])
             authoritative = qodo_cli.to_finding(pr, {'id': uid, 'title': 'Concern', 'git_sha': HEAD,
                                                     'location': {'file_path': 'a.py', 'start_line': 1, 'side': 'RIGHT'}})
             with mock.patch.object(qodo_cli, 'collect', return_value=[authoritative]):
