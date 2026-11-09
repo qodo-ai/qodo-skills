@@ -31,10 +31,10 @@ def _strip(s: str) -> str:
     return unescape(re.sub(r"<[^>]+>", "", s)).replace("`", "").strip()
 
 
-def _finding(pr, source, name, kind, *, key, severity, title, body, path=None, line=None, rule=None, url=None, status=None):
+def _finding(pr, source, name, kind, *, key, severity, title, body, path=None, line=None, end_line=None, rule=None, url=None, status=None):
     sev = (severity or "medium").lower()
     f = {"id": _fid(pr, source, *key), "pr": pr["key"], "source": source, "category": "security",
-         "severity": SEV.get(sev, "medium"), "path": path, "line": line, "end_line": line, "side": "RIGHT",
+         "severity": SEV.get(sev, "medium"), "path": path, "line": line, "end_line": end_line if end_line is not None else line, "side": "RIGHT",
          "title": title, "body": body, "url": url, "scanner": {"name": name, "kind": kind, "rule": rule, "severity": sev}}
     if status:
         f["status"] = status
@@ -319,7 +319,7 @@ def sonar(pr: dict, comments: list[dict], conf: dict) -> list[dict]:
         key = re.search(r"issues=([\w-]+)", a.get("message") or "")
         out.append(_finding(pr, "sonar", name, "sast", key=("issue", key.group(1)) if key else (a["path"], a.get("line"), a["title"]),
                             severity={"failure": "high", "warning": "medium"}.get(a.get("level"), "low"), title=a["title"],
-                            body=f"[Open in SonarQube]({link.group(1)})" if link else "", path=a["path"], line=a.get("line"),
+                            body=f"[Open in SonarQube]({link.group(1)})" if link else "", path=a["path"], line=a.get("line"), end_line=a.get("end_line"),
                             url=link.group(1) if link else a.get("url")))
         out[-1]["category"] = "general"   # an annotation doesn't say bug, smell or vulnerability
     return out
@@ -461,7 +461,7 @@ def check_annotations(pr: dict, comments: list[dict], conf: dict) -> list[dict]:
         # a linter job's config says `"kind": "lint"` (its findings group with conventions); the default stays sast
         out.append(_finding(pr, src, conf.get("name", a.get("check") or "Checks"), conf.get("kind", "sast"), key=(a["path"], a.get("line"), title),
                             severity=ANN_SEV[a["level"]], title=title[:140] or a.get("check") or "Check annotation",
-                            body=msg, path=a["path"], line=a.get("line"), url=a.get("url")))
+                            body=msg, path=a["path"], line=a.get("line"), end_line=a.get("end_line"), url=a.get("url")))
         out[-1]["category"] = "general"
     return out
 

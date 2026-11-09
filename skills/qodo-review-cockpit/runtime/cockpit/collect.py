@@ -436,7 +436,8 @@ def import_own_comments(pr: dict, reviewer_login: str | None, session: str) -> l
 def build(prs: list[dict], cfg: dict, *, demo: bool = False, session: str | None = None,
           reviewer_login: str | None = None, open_prs: dict | None = None,
           skip_github_ids: set | None = None, dest: Path | None = None,
-          collection_meta: dict | None = None, require_complete_budget: bool = False) -> tuple[str, Path]:
+          collection_meta: dict | None = None, require_complete_budget: bool = False,
+          select_latest: bool = True) -> tuple[str, Path]:
     """`dest` pins the session folder (a refresh), so a work package folder change mid-run can't redirect the writes."""
     session = session or _dt.datetime.now().strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
     sdir = dest or SESSIONS / session
@@ -515,7 +516,8 @@ def build(prs: list[dict], cfg: dict, *, demo: bool = False, session: str | None
     with ev_path.open("a") as fh:
         for e in events:
             fh.write(json.dumps(e, ensure_ascii=False) + "\n")
-    (sdir.parent / "latest").write_text(session)
+    if select_latest:
+        (sdir.parent / "latest").write_text(session)
     return session, sdir
 
 

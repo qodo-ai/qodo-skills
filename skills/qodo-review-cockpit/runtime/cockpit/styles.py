@@ -117,7 +117,7 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
     if style == APP:
         raise ValueError("the cockpit style is the app itself; use export.build")
     data = data or json.loads((sdir / "review-data.json").read_text())
-    view = view_data(sdir, inline_media=(mode != "serve"), data=data)
+    view = view_data(sdir, inline_media=(mode != "serve"), data=data, story_media=(style == "onepage"))
     if mode != "serve":   # a shared page never carries or applies the exporter's personal preferences to its readers
         view["prefs"] = {"enabled": False, "rules": []}
     meta = STYLES[style]

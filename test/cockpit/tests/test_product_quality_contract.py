@@ -9,9 +9,10 @@ import tempfile
 import unittest
 from unittest import mock
 
-from cockpit import collect, export, util, view
-from cockpit.adapters import qodo_cli, qodo_comments, qodo_local
+from cockpit import collect, export, managed_work, util, view
+from cockpit.adapters import qodo_cli, qodo_comments, qodo_local, scanners
 from tests import test_product_finding_scope as scope_tests
+from tests import test_product_enrich_refresh as refresh_tests
 from tests.test_product import HEAD
 
 
@@ -129,6 +130,45 @@ class ProductQualityContractTests(unittest.TestCase):
             self.assertEqual(parsed['body'], 'Helpful context')
         self.assertEqual(qodo_comments._parse_item('1. Required concern', '', 'High')['severity'], 'high')
 
+    def test_refresh_preserves_latest_selection_on_success_and_late_failure(self):
+        from cockpit import enrich
+        from cockpit.server import append_events
+        helper = refresh_tests.ProductEnrichRefreshTests()
+        with helper.session() as (root, sd, cfg, read):
+            latest = sd.parent / 'latest'
+            self.assertEqual(latest.read_text(), 's')
+            (sd.parent / 'other').mkdir()
+            latest.write_text('other')
+            enrich.enrich(sd, helper.authored())
+            before = (sd / 'review-data.json').read_bytes()
+            append_events(sd, [{'type': 'note', 'note_id': 'keep', 'text': 'Reader note'}], 's')
+            events = (sd / 'events.jsonl').read_bytes()
+            with mock.patch.object(enrich, 'enrich', side_effect=RuntimeError('controlled enrichment failure')):
+                with self.assertRaisesRegex(RuntimeError, 'controlled enrichment failure'):
+                    managed_work.refresh(sd, json.loads(before), cfg)
+            self.assertEqual((sd / 'review-data.json').read_bytes(), before)
+            self.assertEqual((sd / 'events.jsonl').read_bytes(), events)
+            self.assertEqual(latest.read_text(), 'other')
+            managed_work.refresh(sd, json.loads(before), cfg)
+            self.assertEqual(latest.read_text(), 'other')
+            self.assertEqual((sd / 'events.jsonl').read_bytes(), events)
+            collect.build([self.scope.pr()], cfg, demo=True, session='new', dest=sd.parent / 'new')
+            self.assertEqual(latest.read_text(), 'new')
+
+    def test_scanner_annotations_retain_multiline_ranges_in_the_public_view(self):
+        annotation = {'check': 'Scan', 'path': 'a.py', 'line': 2, 'end_line': 5,
+                      'level': 'failure', 'title': 'Multiline concern', 'message': 'Inspect the whole range'}
+        for parser in (scanners.sonar, scanners.check_annotations):
+            for end in (5, None):
+                with self.subTest(parser=parser.__name__, end=end):
+                    pr = self.scope.pr()
+                    pr['_annotations'] = [{**annotation, 'end_line': end}]
+                    pr['findings'] = parser(pr, [], {'checks': ['Scan'], '_key': parser.__name__})
+                    public = view._pr_view(pr)['findings'][0]
+                    self.assertEqual(public['line'], 2)
+                    self.assertEqual(public['end_line'], end or 2)
+                    self.assertEqual(public['path'], 'a.py')
+
     def test_full_app_export_embeds_only_referenced_contained_media_and_supports_nested_video(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -151,7 +191,8 @@ class ProductQualityContractTests(unittest.TestCase):
             if os.name != 'nt':
                 (sd / 'media' / 'external.png').symlink_to(outside)
                 sources.append('external.png')
-            data['story'] = [{'kind': 'media', 'title': 'Evidence', 'src': src} for src in sources]
+            data['story'] = [{'kind': 'media', 'title': 'Evidence', 'src': src,
+                              'type': 'video' if src.endswith('.mp4') else 'image'} for src in sources]
             data['prs'][0]['story'] = [{'kind': 'before_after', 'title': 'Change',
                                        'before': {'media': 'shots/before.png'}, 'after': {'media': 'shots/after.png'}}]
             (sd / 'review-data.json').write_text(json.dumps(data))
@@ -168,6 +209,14 @@ class ProductQualityContractTests(unittest.TestCase):
             self.assertEqual(base64.b64decode(payload['media']['shots/after.png'].split(',', 1)[1]), b'image-content')
             self.assertEqual(base64.b64decode(payload['media']['clip.mp4'].split(',', 1)[1]), b'video-content')
             self.assertEqual(base64.b64decode(payload['media']['shots/before.png'].split(',', 1)[1]), b'before-content')
+            onepage = next(path for path in written if path.name.endswith('-onepage.html')).read_text()
+            story = json.loads(re.search(r'<script[^>]*class="case-data"[^>]*>(.*?)</script>', onepage, re.S).group(1))
+            self.assertEqual({m['file'] for m in story['media']}, {'shots/after.png', 'shots/before.png', 'clip.mp4',
+                                                                  'https://example.test/remote.png'})
+            for name in ('shots/after.png', 'shots/before.png', 'clip.mp4'):
+                media = next(m for m in story['media'] if m['file'] == name)
+                self.assertEqual(media['src'], payload['media'][name])
             for secret in (b'PRIVATE-UNREFERENCED', b'PRIVATE-OUTSIDE'):
                 self.assertNotIn(base64.b64encode(secret).decode(), html)
                 self.assertNotIn(secret.decode(), html)
+                self.assertNotIn(base64.b64encode(secret).decode(), onepage)

@@ -134,13 +134,13 @@ def _pr_view(p: dict) -> dict:
     }
 
 
-def _media(data: dict, sdir: Path, inline: bool) -> list[dict]:
+def _media(data: dict, sdir: Path, inline: bool, *, story_media: bool = False) -> list[dict]:
     """Screenshots and videos from media beats, in story order, with the paths they show."""
     out, seen = [], set()
 
     def add(b: dict, pr: dict | None):
         src = b.get("src") or ""
-        if not src or src in seen or b.get("type") == "video":
+        if not src or src in seen or (b.get("type") == "video" and not story_media):
             return
         seen.add(src)
         paths = [r.get("path") for r in (b.get("refs") or []) if isinstance(r, dict) and r.get("path")]
@@ -159,13 +159,9 @@ def _media(data: dict, sdir: Path, inline: bool) -> list[dict]:
         out.append({"file": src, "title": b.get("title") or src, "caption": b.get("caption") or b.get("lede") or "",
                     "paths": paths, "src": url, "pr": (pr or {}).get("key")})
 
-    for b in data.get("story") or []:
-        if b.get("kind") == "media":
-            add(b, None)
-    for p in data.get("prs", []):
-        for b in p.get("story") or []:
-            if b.get("kind") == "media":
-                add(b, p)
+    from .story_media import references
+    for beat, pr in references(data, pairs=story_media):
+        add(beat, pr)
     return out
 
 
@@ -208,7 +204,7 @@ def _prefs(sdir: Path) -> dict:
         return {"enabled": False, "rules": [], "error": f"{type(e).__name__}: {e}"}
 
 
-def view_data(sdir: Path, *, inline_media: bool = False, data: dict | None = None) -> dict:
+def view_data(sdir: Path, *, inline_media: bool = False, data: dict | None = None, story_media: bool = False) -> dict:
     data = data or json.loads((sdir / "review-data.json").read_text())
     from .product import enabled, project_data
     if enabled(data):
@@ -220,7 +216,7 @@ def view_data(sdir: Path, *, inline_media: bool = False, data: dict | None = Non
            "impact": effective_impact, "impact_source": "review" if data.get("impact") else "diff",
            "deploy": data.get("deploy") or [], "door": data.get("door"), "notices": data.get("notices") or [],
            "reviewed_at": data.get("created"),   # when the PRs were collected: the freshness line in every style
-           "stacks": ctx.get("stacks", []), "media": _media(data, sdir, inline_media),
+           "stacks": ctx.get("stacks", []), "media": _media(data, sdir, inline_media, story_media=story_media),
            "prs": [_pr_view(p) for p in data.get("prs", [])], "behavior": None,
            # other work on the same code; the closest first (lines, function, then file)
            "other_work": [{k: h.get(k) for k in ("for", "source", "key", "number", "title", "url", "author", "state", "merged_at",

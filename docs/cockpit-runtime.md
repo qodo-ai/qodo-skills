@@ -40,3 +40,5 @@ Ownership: this component and its behavior tests are maintained in qodo-skills. 
 HTML exports embed referenced story media only, including nested images and video. Resolved local paths must remain inside that session’s media directory; unreferenced files and external symlinks are excluded. Existing CDN/font and remote-media behavior remains unchanged.
 
 Optional-memory failure limit (Sagi accepted for V1 in KB-2047): memory is off by default. When explicitly enabled, a failed refresh restores the review snapshot but may leave an unconfirmed memory draft or auxiliary index change. Snapshot rollback does not promise a shared-memory transaction. Local notes/events remain independent and preserved.
+
+Refreshing an existing product session preserves the latest-session selection on success and failure; a new collection still selects its new session. Scanner check annotations retain their reported end line. One-Page story media uses the same reference selector as the full-app export, including video links and before/after images; other layouts retain their existing gallery behavior.

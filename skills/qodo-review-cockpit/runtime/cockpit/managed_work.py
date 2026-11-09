@@ -91,7 +91,7 @@ def _refresh(sdir, old, cfg):
     snapshot_path = sdir / 'review-data.json'
     snapshot = snapshot_path.read_bytes()
     try:
-        build(prs, cfg, session=sdir.name, reviewer_login=old.get('reviewer_login'), skip_github_ids=known, dest=sdir, collection_meta=meta, require_complete_budget=True)
+        build(prs, cfg, session=sdir.name, reviewer_login=old.get('reviewer_login'), skip_github_ids=known, dest=sdir, collection_meta=meta, require_complete_budget=True, select_latest=False)
         data = json.loads((sdir / 'review-data.json').read_text())
         if old.get('reviewers'):
             from .reviewers import basis

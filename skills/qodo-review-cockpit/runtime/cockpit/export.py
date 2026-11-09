@@ -46,19 +46,9 @@ def build(sdir: Path, styles: list[dict] | None = None) -> str:
     memory = {"enabled": memory_on(cfg), "rules": [], "bullets": [], "concepts": concepts}   # on, so the Knowledge tab shows this review's facts; the personal parts stay empty
     media = {}
     root = (sdir / 'media').resolve()
-    beats = list(data.get('story') or []) + [b for pr in data.get('prs', []) for b in pr.get('story') or []]
-    sources = []
-    for beat in beats:
-        if not isinstance(beat, dict):
-            continue
-        if beat.get('kind') == 'media':
-            sources.append(beat.get('src'))
-        elif beat.get('kind') == 'before_after':
-            for key in ('before', 'after'):
-                side = beat.get(key) or {}
-                if isinstance(side, dict) and not side.get('mermaid'):
-                    sources.append(side.get('media'))
-    for src in sources:
+    from .story_media import references
+    for beat, _ in references(data):
+        src = beat.get('src')
         if not isinstance(src, str) or not src or src in media or src.startswith(('http://', 'https://')):
             continue
         p = (root / src).resolve()
