@@ -111,18 +111,10 @@ def to_finding(pr: dict, f: dict) -> dict:
         out['commit'] = f.get('git_sha') or out.get('commit')
         if origin == 'local_skill':
             out['source'] = 'qodo-local'
-            original = {'path':out.get('path'), 'line':out.get('line'), 'end_line':out.get('end_line'),
-                        'side':f.get('side') or loc.get('side'), 'git_sha':out.get('commit'),
-                        'review_run_id':f.get('review_run_id')}
-            current = bool(original['git_sha'] and original['git_sha'] == pr.get('head_sha') and
-                           str(original['side'] or '').lower() in ('right', 'new') and
-                           original['path'] in {file.get('path') for file in pr.get('files', [])} and
-                           isinstance(original['line'], int) and original['line'] > 0)
-            out['side'] = original['side']
-            out['local'] = {'origin':'managed', 'review_id':f.get('review_run_id'), 'at':f.get('created_at'),
-                            'commit':out.get('commit'), 'source_location':original, 'current_anchor':current}
-            if not current:
-                out.update(path=None, line=None, end_line=None)
+            out['local'] = {'origin': 'managed', 'review_id': f.get('review_run_id'),
+                            'at': f.get('created_at'), 'commit': out.get('commit')}
+        from ..finding_locations import qualify
+        out = qualify(pr, out)
     if status:
         out["status"] = status
         out["closed_as"] = str(f.get("attribution_status") or "").lower()   # detected_after_merge is closed, not fixed

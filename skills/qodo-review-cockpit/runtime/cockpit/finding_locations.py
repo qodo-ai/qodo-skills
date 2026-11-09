@@ -1,0 +1,28 @@
+"""Qualify managed finding coordinates independently of finding origin."""
+from __future__ import annotations
+
+
+def qualify(pr: dict, finding: dict) -> dict:
+    local = finding.get('local') if isinstance(finding.get('local'), dict) else {}
+    if 'review_source' not in finding and local.get('origin') != 'managed' and 'source_location' not in finding:
+        return finding
+    recorded = finding.get('source_location') or local.get('source_location')
+    original = dict(recorded) if isinstance(recorded, dict) else {
+        'path': finding.get('path'), 'line': finding.get('line'), 'end_line': finding.get('end_line'),
+        'side': finding.get('side'), 'git_sha': finding.get('git_sha') or finding.get('commit') or local.get('commit'),
+        'review_run_id': finding.get('review_run_id') or local.get('review_id'),
+    }
+    side = {'left': 'LEFT', 'old': 'LEFT', 'right': 'RIGHT', 'new': 'RIGHT'}.get(str(original.get('side') or '').lower())
+    before_pr = finding.get('review_source') == 'local_skill' or local.get('origin') == 'managed'
+    sha, head = original.get('git_sha'), pr.get('head_sha')
+    current = bool(isinstance(sha, str) and isinstance(head, str) and sha and sha.lower() == head.lower()
+                   and side in (('RIGHT',) if before_pr else ('LEFT', 'RIGHT'))
+                   and original.get('path') in {f.get('path') for f in pr.get('files', [])}
+                   and type(original.get('line')) is int and original['line'] > 0)
+    out = {**finding, 'source_location': original, 'current_anchor': current,
+           'side': side if side else original.get('side')}
+    if local.get('origin') == 'managed':
+        out['local'] = {**local, 'source_location': original, 'current_anchor': current}
+    for name in ('path', 'line', 'end_line'):
+        out[name] = original.get(name) if current else None
+    return out

@@ -45,9 +45,19 @@ def build(sdir: Path, styles: list[dict] | None = None) -> str:
     data = {**data, "prefs": {"rules": [], "bullets": []}, "okf": {**(data.get("okf") or {}), "concepts": [c for c in (data.get("okf") or {}).get("concepts") or [] if c.get("path") in mine]}}
     memory = {"enabled": memory_on(cfg), "rules": [], "bullets": [], "concepts": concepts}   # on, so the Knowledge tab shows this review's facts; the personal parts stay empty
     media = {}
-    for p in sorted((sdir / "media").glob("*")) if (sdir / "media").is_dir() else []:
-        mime = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
-        media[p.name] = f"data:{mime};base64," + base64.b64encode(p.read_bytes()).decode()
+    root = (sdir / 'media').resolve()
+    beats = list(data.get('story') or []) + [b for pr in data.get('prs', []) for b in pr.get('story') or []]
+    for beat in beats:
+        if not isinstance(beat, dict):
+            continue
+        src = beat.get('src') if beat.get('kind') == 'media' else None
+        if not isinstance(src, str) or not src or src in media or src.startswith(('http://', 'https://')):
+            continue
+        p = (root / src).resolve()
+        if not p.is_file() or not p.is_relative_to(root):
+            continue
+        mime = mimetypes.guess_type(p.name)[0] or 'application/octet-stream'
+        media[src] = f'data:{mime};base64,' + base64.b64encode(p.read_bytes()).decode()
     private = {"ask", "fold", "view", "dwell", "lens", "beat_seen", "pref_toggle", "attention_opened", "verdict",
                "finding_verdict", "read_check", "okf_verdict"}   # how you read, what you asked and decided: yours; readers get the notes and marks
     payload = {"data": data, "memory": memory, "events": [e for e in load_events(sdir) if e.get("type") not in private], "media": media, "exported_at": now_iso(),

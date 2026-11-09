@@ -119,7 +119,8 @@ def project_pr(pr):
     patch_proof = local_patch_evidence(pr)
     patches = patch_proof['complete']
     complete = not pr.get('collection_incomplete') and patches and review and ci and known(('comments', 'inline_comments', 'annotations')) and all(s['authoritative'] for s in scans)
-    return presentation_links({**pr, 'product': True, 'scans': scans,
+    from .finding_locations import qualify
+    return presentation_links({**pr, 'product': True, 'scans': scans, 'findings': [qualify(pr, f) for f in pr.get('findings', [])],
             'product_evidence': {'qodo_complete': review, 'ci_complete': ci, 'patches_complete': patches, 'patches_reason': patch_proof['reason'], 'quality_complete': complete}})
 
 

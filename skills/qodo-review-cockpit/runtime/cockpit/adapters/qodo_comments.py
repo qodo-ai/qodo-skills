@@ -36,7 +36,8 @@ ASPECTS = {"correctness": "bug", "reliability": "bug", "security": "security", "
            "documentation": "docs"}
 TYPES = {"bug": "bug", "rule violation": "rule", "requirement gap": "requirement",
          "cross-repo conflict": "cross-repo", "skill insight": "general", "memory": "general"}
-SEVERITY = {"high": "high", "critical": "high", "action_required": "high", "medium": "medium", "low": "low"}
+SEVERITY = {"high": "high", "critical": "high", "action_required": "high", "medium": "medium", "low": "low",
+            "optional": "low", "informational": "low", "info": "low"}
 
 BADGE = re.compile(r'img\.shields\.io/badge/(?P<sev>[A-Za-z_]+)-[0-9A-Fa-f]+[^>]*>')
 FINDING_LINK = re.compile(r"\((?P<url>https://[^)\s]+/findings/(?P<uuid>[0-9a-f-]{36}))\)")

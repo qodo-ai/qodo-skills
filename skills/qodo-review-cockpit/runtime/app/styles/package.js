@@ -20,7 +20,7 @@ const strip = (t) => String(t || "").replace(/^(feat|fix|chore|refactor)(\([^)]*
 const multiRepo = new Set(C.prs.map((p) => p.repo)).size > 1;
 const shortPr = (k) => { const m = /^[^/]+\/([^#]+)#(\d+)$/.exec(String(k || "")); return m ? (multiRepo ? `${m[1]} #${m[2]}` : "#" + m[2]) : String(k || ""); };   // a malformed key shows as written
 const isOpen = (f) => !f.status || f.status === "open";
-const findingOnCurrentCode = (f, b = null) => !C.product || ((f.local?.origin !== "managed" || f.local.current_anchor === true) && (!b || (String(f.side || "").toUpperCase() === "LEFT" ? "old" : "new") === (b.side || "new")));
+const findingOnCurrentCode = (f, b = null) => !C.product || ((typeof f.current_anchor === "boolean" ? f.current_anchor : (f.local?.origin !== "managed" || f.local.current_anchor === true)) && (!b || (String(f.side || "").toUpperCase() === "LEFT" ? "old" : "new") === (b.side || "new")));
 if (S.pr !== "all") S.pr = [].concat(S.pr).filter((k) => C.prs.some((p) => p.key === k));   // "all", or the PR keys the filter keeps (none is allowed)
 const prOn = (k) => S.pr === "all" || S.pr.includes(k);
 const prs = () => (S.pr === "all" ? C.prs : C.prs.filter((p) => prOn(p.key)));
@@ -1860,7 +1860,7 @@ function vFindings() {
   let h = sc + only;
   const conv = open.filter(KIT.isConvention), bugs = open.filter((f) => !KIT.isConvention(f));
   const fnd = (f, withSev) => { const id = "f:" + f.id;
-      const original = C.product && f.local?.origin === "managed" && !f.local.current_anchor ? f.local.source_location || {path:f.path,line:f.line,side:f.side,git_sha:f.git_sha || f.local.commit} : null;
+      const original = C.product && (f.current_anchor === false || (f.local?.origin === "managed" && !f.local.current_anchor)) ? f.source_location || f.local?.source_location || {path:f.path,line:f.line,side:f.side,git_sha:f.git_sha || f.local?.commit} : null;
       const location = original ? `Original source: ${original.path || "path unknown"}${original.line ? ":" + original.line : ""} · ${original.side || "side unknown"} · ${original.git_sha ? original.git_sha.slice(0, 7) : "revision unknown"}` : `${f.path || ""}${f.line ? ":" + f.line : ""}`;
       const anchor = original ? {pr:f.prk,label:f.title} : {pr:f.prk,path:f.path,line:f.line,side:C.product && String(f.side || "").toUpperCase() === "LEFT" ? "old" : "new",label:f.title};
       return `<details class="fnd" data-open="${esc(id)}"${(S.open[id] ?? EXPAND) ? " open" : ""}><summary><span class="muted" style="font:12px var(--f-mono);padding-top:3px">${esc(f.scanner ? f.scanner.name : f.source === "agent" ? "agent" : "qodo")}${KIT.localTag(f)}</span><b style="font-weight:600">${withSev ? `<span class="sev ${esc(f.severity)}">${esc(f.severity)}</span> ` : ""}${md(f.title)}</b>${f.stance ? `<span class="stance ${esc(f.stance)}">agent: ${esc(f.stance)}</span>` : "<span></span>"}<span class="p">${C.prs.length > 1 ? esc(shortPr(f.prk)) + " · " : ""}${esc(location)}</span></summary>

@@ -94,7 +94,7 @@ const collapseRule=()=>null,sevPill=()=>'',localPill=()=>'',markbar=()=>'',notes
 
     def test_general_hosted_and_standalone_locations_retain_existing_semantics(self):
         with mock.patch.dict(os.environ,{'REVIEW_COCKPIT_PRODUCT':'0'}):
-            p=self.pr();hosted={'id':'f','review_source':'git_pr','git_sha':'a'*40,'file_path':'a.py','start_line':1,'side':'LEFT'}
+            p=self.pr();hosted={'id':'f','review_source':'git_pr','git_sha':HEAD,'file_path':'a.py','start_line':1,'side':'LEFT'}
             finding=qodo_cli.to_finding(p,hosted);self.assertEqual(finding['path'],'a.py');self.assertEqual(finding['line'],1);self.assertNotIn('local',finding)
             p.pop('product',None);legacy={**hosted,'review_source':'local_skill'}
             finding=qodo_cli.to_finding(p,legacy);self.assertEqual(finding['path'],'a.py');self.assertEqual(finding['line'],1);self.assertNotIn('local',finding)

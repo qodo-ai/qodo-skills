@@ -13,7 +13,7 @@ node scripts/test-cockpit-runtime.mjs --list
 node scripts/test-cockpit-runtime.mjs --offline --report /tmp/cockpit-results.json
 ```
 
-The default command discovers and runs all 290 behavior tests. The runner uses
+The default command discovers and runs all 297 behavior tests. The runner uses
 `python -X utf8 -B`, an explicit runtime/test PYTHONPATH, the maintained runtime as
 cwd, and temporary HOME, TMPDIR and REVIEW_COCKPIT_HOME. Product mode defaults to
 zero; tests select product mode explicitly. No installed application is changed.
@@ -21,7 +21,7 @@ Provider subprocesses resolve to unavailable test fixtures; test-process auditin
 rejects real provider clients and external network addresses. Full execution allows
 loopback HTTP servers and temporary Git repositories used by behavior tests.
 
-`--offline` is an explicitly accounted restricted-worker subset: 279 tests. It
+`--offline` is an explicitly accounted restricted-worker subset: 286 tests. It
 excludes nine socket cases and two real Git fixture cases, listed individually in
 `run_suite.py` and in every offline report. These are not unittest skips or passes.
 The parent must run the default command to qualify all behavior. `--list` performs
@@ -29,7 +29,8 @@ full discovery without executing tests. `--python PATH` selects the interpreter.
 
 ## Fixtures and migration
 
-All 16 behavior modules and the tests package marker are retained. The six source
+All 16 original behavior modules and the tests package marker are retained; the maintained
+quality-contract module adds seven regression tests. The six source
 fixture assets are copied unchanged. Paths to Qodo comment/product test fixtures
 are relative to this suite; runtime demo fixtures remain under the runtime tree.
 Module imports such as `tests.test_product` retain one consistent identity.
@@ -52,7 +53,7 @@ The test suite and runtime are now maintained together in this repository.
 
 The old `ReleaseTests` class contained 14 tests exclusively for the retired
 `release/build.py` pipeline. It is not copied, silently skipped, or counted in the
-290 behavior tests. Distribution checks belong to the qodo-skills Node component
+original 290 behavior tests. Distribution checks belong to the qodo-skills Node component
 validator and packaging tests. Migration responsibilities are:
 
 | Retired test methods | Replacement responsibility |

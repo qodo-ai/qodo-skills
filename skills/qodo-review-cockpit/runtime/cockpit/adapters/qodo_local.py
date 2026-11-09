@@ -187,6 +187,10 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None) -> dict:
     pre = str(loc.get("side") or "").lower() == "left"   # a line the diff removed: not in the new file
     here = bool(seen) and seen == pr.get("head_sha") and not pre   # its lines are this PR's lines
     ev = f.get("evidence") if isinstance(f.get("evidence"), dict) else {}
+    meta = rec.get('result', {}).get('meta') or {}
+    references = meta.get('local_review_ids') if isinstance(meta, dict) else {}
+    reference = references.get(fid) if isinstance(references, dict) else None
+    reference = reference if isinstance(reference, str) and reference else _first(f, 'local_review_id') or rec.get('local_review_id')
     out = {"id": f"l-{pr['key'].replace('/', '-').replace('#', '-')}-{fid}", "pr": pr["key"], "source": "qodo-local",
            "qodo_id": None if fid.startswith("noid-") else fid,
            "category": str(_first(f, "category") or "general").lower(), "severity": _severity(_first(f, "action_level", "severity")),
@@ -194,7 +198,7 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None) -> dict:
            "title": str(_first(f, "title", "summary", "name") or "Local finding"),
            "body": str(_first(f, "description", "body", "rationale") or _first(ev, "explanation") or ""),
            "qodo_type": _first(f, "type", "finding_type") or kind_of(f.get("finding_source")),
-           "local": {"review_id": _first(f, "local_review_id") or rec.get("local_review_id"),
+           "local": {"review_id": reference,
                      "at": _first(f, "created_at") or rec.get("ran_at") or rec.get("added_at"), "commit": seen,
                      "line": None if here else line}}
     if status != "open":

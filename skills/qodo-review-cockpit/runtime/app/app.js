@@ -289,7 +289,7 @@ function findingView(f, pr, v) {
   const rule = collapseRule(f);
   const show = S.showCollapsed[pr.key];
   const collapsed = rule && !show;
-  const original = pr.product && f.local?.origin === "managed" && !f.local.current_anchor ? f.local.source_location || {path:f.path,line:f.line,side:f.side,git_sha:f.git_sha || f.local.commit} : null;
+  const original = pr.product && (f.current_anchor === false || (f.local?.origin === "managed" && !f.local.current_anchor)) ? f.source_location || f.local?.source_location || {path:f.path,line:f.line,side:f.side,git_sha:f.git_sha || f.local?.commit} : null;
   const where = original ? `<span class="pill">Original source: ${esc(original.path || "path unknown")}${original.line ? ":" + esc(original.line) : ""} · ${esc(original.side || "side unknown")} · ${esc(original.git_sha ? original.git_sha.slice(0, 7) : "revision unknown")}</span>` : f.path ? `<button class="btn ghost small mono" data-act="gofile" data-v="${esc(f.path)}" data-line="${f.line || ""}" data-pr="${esc(pr.key)}">${esc(f.path)}${f.line ? ":" + f.line : ""}</button>` : "";
   return `<div class="finding sev-${esc(f.severity)} markable ${collapsed ? "collapsed" : ""} ${v === "dismiss" ? "dismissed" : ""}">
     <div class="row" style="justify-content:space-between"><div class="row">${sevPill(f.severity, f.severity_guessed)}<span class="pill">${esc(f.category)}</span><span class="pill">${esc(f.source)}</span>${f.qodo_type ? `<span class="pill">${esc(f.qodo_type)}</span>` : ""}${f.thread?.resolved ? `<span class="pill" title="This finding's thread is resolved on GitHub">resolved on GitHub</span>` : ""}${localPill(f)}${where}</div>
