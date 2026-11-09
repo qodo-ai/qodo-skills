@@ -305,3 +305,13 @@ class ProductHostedReviewTests(unittest.TestCase):
             with mock.patch('os.fdopen',side_effect=legacy_default):
                 util.write_json(locale_file,{'text':'café €'})
             self.assertEqual(json.loads(locale_file.read_bytes().decode('cp1252')),{'text':'café €'})
+
+            import stat
+            if os.name != 'nt':
+                shared.chmod(0o640)
+            before_mode=stat.S_IMODE(shared.stat().st_mode)
+            amr.upsert(memory.Bullet('Another preference',file='preferences/general.md'))
+            self.assertEqual(stat.S_IMODE(shared.stat().st_mode),before_mode)
+            control=root/'normal.txt';control.write_text('ordinary creation')
+            new=root/'memory-new.txt';memory.write_text(new,'atomic creation')
+            self.assertEqual(stat.S_IMODE(new.stat().st_mode),stat.S_IMODE(control.stat().st_mode))

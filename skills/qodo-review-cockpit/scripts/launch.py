@@ -116,9 +116,8 @@ def main():
             if not isinstance(value, dict) or value.get("error"):
                 raise ValueError()
             if gate == "authentication probe":
-                if not (isinstance(value.get('workspace_id'), str) and value['workspace_id'].strip()
-                        and any(isinstance(value.get(k), str) and value[k].strip()
-                                for k in ('user_id', 'account_id', 'tenant_id'))):
+                # QAR's authenticated principal always has email; workspace/user IDs are optional.
+                if not isinstance(value.get('email'), str) or not value['email'].strip():
                     raise ValueError()
             else:
                 tools = value.get('tools')

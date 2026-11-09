@@ -207,6 +207,10 @@ test('error envelopes and malformed identity fail before catalog without leaking
     assert(!result.stderr.includes('PRIVATE_IDENTITY'));
     assert.equal(readFileSync(f.log, 'utf8').trim().split('\n').length, 2);
   }
+  for (const identity of [{email:'fixture@example.test'}, {email:'service@example.test',tenant_id:'fixture-tenant',workspace_id:null,user_id:null}]) {
+    const f=installedFixture(t), result=f.run({AUTH_PAYLOAD:JSON.stringify(identity)});
+    assert.equal(result.status,0,result.stderr);
+  }
   for (const payload of ['{}','[]','{"tools":[]}','{"tools":[{"group":"codebase","leaf":"write","access":"write","mutating":true}]}','{"error":{"code":"not_supported"}}']) {
     const f = installedFixture(t);
     const result = f.run({ CATALOG_PAYLOAD: payload });

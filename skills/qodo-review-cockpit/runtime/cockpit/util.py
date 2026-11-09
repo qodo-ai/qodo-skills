@@ -95,14 +95,22 @@ def today() -> str:
     return _dt.date.today().isoformat()
 
 
-def write_text(path, text) -> None:
+def write_text(path, text, *, preserve_mode=False) -> None:
     """Replace one text file atomically, preserving the caller’s default text encoding."""
-    import os, tempfile
+    import os, secrets, stat, tempfile
     path = Path(path)
-    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    mode = stat.S_IMODE(path.stat().st_mode) if preserve_mode and path.exists() else None
+    if preserve_mode:
+        tmp = path.parent / f".{path.name}.{secrets.token_hex(16)}.tmp"
+        # Match ordinary text-file creation under the caller's umask without changing it.
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666)
+    else:
+        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w") as fh:
             fh.write(text)
+        if mode is not None:
+            os.chmod(tmp, mode)
         os.replace(tmp, path)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
