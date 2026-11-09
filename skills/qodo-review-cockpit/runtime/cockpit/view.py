@@ -207,6 +207,8 @@ def _prefs(sdir: Path) -> dict:
 def view_data(sdir: Path, *, inline_media: bool = False, data: dict | None = None, story_media: bool = False) -> dict:
     data = data or json.loads((sdir / "review-data.json").read_text())
     from .product import enabled, project_data
+    from .secret_values import session_events
+    events = session_events(sdir, data=data) if enabled(data) else []
     if enabled(data):
         data = project_data(data)
     ctx = data.get("context") or {}
@@ -223,8 +225,7 @@ def view_data(sdir: Path, *, inline_media: bool = False, data: dict | None = Non
                                                   "path", "closeness", "ours", "ours_new", "theirs", "function", "session", "agent_source", "at")}
                           for h in ((data.get("overlaps") or {}).get("external") or [])]}
     if data.get('product'):
-        from .distill import load_events
-        out['events'] = [e for e in load_events(sdir) if e.get('type') in ('note', 'mark', 'finding_verdict', 'package_state') and e.get('session') in (None, data['session'])]
+        out['events'] = [e for e in events if e.get('type') in ('note', 'mark', 'finding_verdict', 'package_state') and e.get('session') in (None, data['session'])]
     crit = None
     try:   # the criticality map: the team's declared map, CODEOWNERS when opted in, and the review's suggestions
         from .criticality import gate, resolve

@@ -45,3 +45,13 @@ def redact(value, values=None):
     if isinstance(result, dict):
         result['source_redactions'] = {'scanner_secret_values': True}
     return result
+
+
+def session_events(sdir, events=None, data=None):
+    """Project older/local events using scanner values from the unprojected snapshot."""
+    import json
+    from .distill import load_events
+    saved = json.loads((sdir / 'review-data.json').read_text())
+    if events is None:
+        events = load_events(sdir)
+    return redact(events, known_values([saved, data, events]))

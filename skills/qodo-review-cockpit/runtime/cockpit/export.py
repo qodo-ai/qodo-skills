@@ -12,7 +12,6 @@ import mimetypes
 import re
 from pathlib import Path
 
-from .distill import load_events
 from .memory import OKF
 from .styles import _recipes
 from .util import ROOT, mem_path, memory_on, now_iso, session_config, slug
@@ -33,7 +32,8 @@ def build(sdir: Path, styles: list[dict] | None = None) -> str:
     """The full app as one file. styles: the other styles exported next to it, for its style links."""
     cfg = session_config(sdir)
     data = json.loads((sdir / "review-data.json").read_text())
-    from .secret_values import redact
+    from .secret_values import redact, session_events
+    events = session_events(sdir, data=data)
     data = redact(data)
     from .product import enabled, project_data
     if enabled(data):
@@ -60,7 +60,7 @@ def build(sdir: Path, styles: list[dict] | None = None) -> str:
         media[src] = f'data:{mime};base64,' + base64.b64encode(p.read_bytes()).decode()
     private = {"ask", "fold", "view", "dwell", "lens", "beat_seen", "pref_toggle", "attention_opened", "verdict",
                "finding_verdict", "read_check", "okf_verdict"}   # how you read, what you asked and decided: yours; readers get the notes and marks
-    payload = {"data": data, "memory": memory, "events": [e for e in load_events(sdir) if e.get("type") not in private], "media": media, "exported_at": now_iso(),
+    payload = {"data": data, "memory": memory, "events": [e for e in events if e.get("type") not in private], "media": media, "exported_at": now_iso(),
                "styles": [s for s in styles or [] if s.get("url") and s["id"] != "cockpit"],
                "recipes": [{"id": r["id"], "name": r["name"], "about": r.get("about", "")} for r in _recipes()]}
     title = next((b.get("title") for b in data.get("story") or []

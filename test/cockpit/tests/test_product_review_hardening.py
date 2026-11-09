@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from cockpit import collect, distill, export, memory, product, server, util
+from cockpit import collect, distill, export, memory, product, server, util, view
 from cockpit.adapters import scanners
 from cockpit.adapters.managed import Client
 from tests import test_product_enrich_refresh as enrichment_tests
@@ -45,6 +45,19 @@ class ProductReviewHardeningTests(unittest.TestCase):
             legacy = copy.deepcopy(saved)
             legacy['prs'][0]['findings'][0]['body'] = 'Upwind flags a value of type Token ('+marker+'). A pushed secret stays in git history.'
             self.assertNotIn(marker, json.dumps(product.project_data(legacy)))
+            (sd/'review-data.json').write_text(json.dumps(legacy))
+            events=[{'type':'note','pr':'org/repo#1','text':'Observed '+marker},
+                    {'type':'mark','pr':'org/repo#1','text':marker}]
+            (sd/'events.jsonl').write_text(''.join(json.dumps(e)+'\n' for e in events))
+            before=(sd/'events.jsonl').read_bytes()
+            with mock.patch.object(export, 'session_config', return_value=cfg):
+                self.assertNotIn(marker, export.build(sd))
+            # Styles may receive an already-redacted projection; consult the original snapshot too.
+            self.assertNotIn(marker,json.dumps(view.view_data(sd,data=product.project_data(legacy))))
+            self.assertEqual((sd/'events.jsonl').read_bytes(),before)
+            server.append_events(sd,[{'type':'note','text':marker}],'s')
+            self.assertNotIn(marker,(sd/'events.jsonl').read_text().splitlines()[-1])
+            self.assertIn('[redacted]',(sd/'events.jsonl').read_text().splitlines()[-1])
 
     def test_body_limit_precedes_read_and_event_offsets_have_typed_errors(self):
         helper = http_tests.ProductAccessActivityTests()
@@ -55,6 +68,14 @@ class ProductReviewHardeningTests(unittest.TestCase):
             handler._body()
         self.assertEqual(raised.exception.code, 413); handler.rfile.read.assert_not_called()
         with helper.local_server() as (root, httpd, cfg):
+            sd=root/'sessions/a';data=json.loads((sd/'review-data.json').read_text())
+            data['prs']=[{'findings':[{'source':'upwind','scanner':{'kind':'secret'},
+                         'body':'Upwind flags a value of type Token (TEST-OLD-EVENT). A pushed secret stays.'}]}]
+            (sd/'review-data.json').write_text(json.dumps(data))
+            (sd/'events.jsonl').write_text(json.dumps({'type':'note','text':'TEST-OLD-EVENT'})+'\n')
+            status,body,_=helper.request(httpd,'/api/events')
+            self.assertEqual(status,200);self.assertNotIn(b'TEST-OLD-EVENT',body)
+            self.assertEqual(json.loads(body)['events'][0]['text'],'[redacted]')
             for route, expected in [('/api/events?since=0&x=1', 200), ('/api/events?since=bad', 400),
                                     ('/api/events?since=-1', 400), ('/api/events?since=1&since=2', 400)]:
                 self.assertEqual(helper.request(httpd, route)[0], expected)

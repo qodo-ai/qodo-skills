@@ -83,6 +83,8 @@ def append_events(sdir: Path, events: list[dict], session: str, source: str = "a
     product = enabled(json.loads(data_file.read_text()) if data_file.is_file() else {})
     if product:
         events = [{**e, 'post': False} if e.get('type') == 'note' else e for e in events]
+        from .secret_values import session_events
+        events = session_events(sdir, events=events)
     from .session_activity import session_activity
     with session_activity(sdir) if product else nullcontext(), _lock, (sdir / "events.jsonl").open("a") as fh:
         for e in events:
@@ -325,7 +327,8 @@ class Handler(SimpleHTTPRequestHandler):
             if len(values) != 1 or not re.fullmatch(r'[0-9]{1,16}', values[0]):
                 return self._json({'error': 'since must be one nonnegative event offset'}, 400)
             since = int(values[0])
-            ev = load_events(self.sdir)
+            from .secret_values import session_events
+            ev = session_events(self.sdir) if getattr(self.server, 'product', False) else load_events(self.sdir)
             return self._json({"events": ev[since:], "n": len(ev)})
         if self.path == "/api/recipes":   # your own styles, and the Describe requests still open
             from . import recipes as R
