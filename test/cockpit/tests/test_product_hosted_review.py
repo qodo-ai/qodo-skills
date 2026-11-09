@@ -353,6 +353,22 @@ class ProductHostedReviewTests(unittest.TestCase):
         self.assertIn('(deleted)',collect.parse_diff(full))  # preserve the raw legacy parser default
 
     def test_contract_map_requests_are_local_in_product_copy_and_saved_events(self):
+        from cockpit import styles
+        import re
+        # A legacy saved snapshot is projected through the actual product renderer.
+        with helpers.ProductEnrichRefreshTests().session() as (root,sd,cfg,read):
+            legacy=json.loads((sd/'review-data.json').read_text())
+            legacy.pop('product',None)
+            for pr in legacy['prs']:
+                pr.pop('product',None)
+            util.write_json(sd/'review-data.json',legacy)
+            html=styles.render('package',sd,mode='serve')
+            tags=re.findall(r'<script([^>]*)>(.*?)</script>',html,re.S)
+            host=next(json.loads(body) for attrs,body in tags if 'cockpit-host' in attrs)
+            case=next(json.loads(body) for attrs,body in tags if 'case-data' in attrs)
+            self.assertTrue(host['product']);self.assertTrue(case['product'])
+            self.assertTrue(all(pr['product'] for pr in case['prs']))
+            self.assertNotIn('product',json.loads((sd/'review-data.json').read_text()))
         source=(util.ROOT/'app/styles/contract-map.js').read_text()
         def function(name):
             start=source.index('  function '+name+'(')
