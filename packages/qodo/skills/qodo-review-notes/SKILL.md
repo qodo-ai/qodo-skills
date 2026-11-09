@@ -4,7 +4,7 @@ description: Preserve reasoning for independent review of plans and PRs through 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.3"
+  version: "1.0.4"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -91,7 +91,7 @@ When using the CLI, check `qodo --version` before discovering its live notes com
 
 ```sh
 qodo --version
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.3 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.4 --distribution marketplace --host claude-code
 qodo read tools review-notes --json
 qodo tools help review-notes --json
 ```
@@ -99,13 +99,22 @@ qodo tools help review-notes --json
 If the version is below the minimum or cannot be parsed, stop authenticated CLI calls and explain
 the update needed. Before offering an update, check only whether `QODO_UPDATE_BASE_URL` is set;
 never print its value. If set, it overrides the recorded source: ask the user to resolve that
-override before proceeding, without changing it yourself. Automatic updates stay within a major.
-For a runtime below 2.x or an unparseable version, explain the prerequisite and ask once before
-explicit 2.x installation with a checksum-pinned installer supplied by Qodo or the organization.
-Reuse covering installation authorization, preserve the recorded origin and never invent a digest.
-For an eligible in-major update, offer `qodo update` at that origin and honor existing update
-authorization, otherwise ask once. After installation or update, rerun the unadorned version
-probe before `whoami` or tool discovery.
+override before proceeding, without changing it yourself.
+For an eligible in-major update, choose `qodo update` at that recorded origin.
+If the version is older or cannot be parsed, do not run `whoami`, `login`, a review, or a managed tool and
+do not describe the failure as an authentication problem. Choose one deployment-approved upgrade
+route, explain it, and reuse covering runtime-update authorization or ask once before changing the
+installation. For parsed 1.x, normal `qodo update` can reach approved 2.x when its recorded origin enables migration.
+If legacy aliases still serve 1.x, check the supported same-origin `latest-2` recovery route first.
+Require a compatible newer 2.x target from the selected route's supported check; missing/failed checks stop.
+Propose `qodo update --channel latest-2` only for that verified recovery route; never assume activation.
+This exception covers only deployment-approved 1.x to stable 2.x; it does not authorize other
+major migrations or change the existing automatic-update policy for future majors.
+For every route, preserve origin, explicit version choices and update holds; never substitute a channel for an exact version.
+For an unparseable runtime or no supported updater, use a checksum-pinned installer supplied by
+Qodo or the organization with covering installation authorization; never switch to public service or invent a digest.
+Make one approved runtime attempt, then rerun the unadorned version probe and continue only when it satisfies the minimum. On denial, failure or continued
+incompatibility, stop with skill and user files unchanged; do not retry through another route.
 If no update is authorized, stop this CLI path; trusted MCP remains available when configured.
 Follow the Tool access recovery rules for other failures.
 
@@ -299,8 +308,8 @@ tools may add a server prefix. Do not construct provider URLs, handle API keys o
 Run `qodo --version` without provenance flags, then use:
 
 ```sh
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.3 --distribution marketplace --host claude-code
-qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.3 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.4 --distribution marketplace --host claude-code
+qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.4 --distribution marketplace --host claude-code
 qodo tools help review-notes --json
 ```
 
@@ -437,11 +446,16 @@ Never widen approval, change owners or add optional packages. Report persistent 
 
 ### Runtime recovery
 
-Stop if a runtime upgrade was already attempted. If reaching the skill minimum needs a major
-upgrade or the version is unparseable, use the explicit installation gate above; an in-major
-`qodo update` cannot satisfy it. Recheck the minimum after installation, then return to the
-preview without another upgrade. Stop if installation is not authorized or compatible.
-Otherwise inspect `<qodo> update --help`, then use the supported `<qodo> update --check --json`;
-require a newer release and the recorded source in its result.
-Explain the CLI prerequisite and reuse runtime-update authorization or ask once; skills-only consent is insufficient. Run `<qodo> update --json` once without source/channel overrides. Recheck unadorned `<qodo> --version` and require the skill minimum before rechecking planning support and returning to the preview.
-Stop on denial, failure, missing metadata or continued incompatibility; never reinstall or switch sources. Runtime-only consent does not approve the skills operation.
+Stop if a runtime upgrade was already attempted. Reuse the version and source preflight above,
+including the presence-only `QODO_UPDATE_BASE_URL` check. If the version is unparseable or the
+CLI has no supported updater, choose the checksum-pinned installation gate before requiring an
+update-check result. Otherwise use the supported CLI update check to require a newer compatible
+target at the recorded source, then choose ordinary update or approved legacy 1.x `latest-2`
+recovery as described above. A failed check, missing metadata or unavailable compatible target
+is a stop; do not switch to an installer to bypass it.
+Explain the CLI prerequisite and reuse covering runtime-update/installation authorization or
+ask once; skills-only consent is insufficient. Execute that chosen runtime attempt once, then
+recheck unadorned `<qodo> --version` and require the skill minimum before rechecking planning
+support and returning to the preview. Stop on denial, failure or continued incompatibility;
+never make a second runtime attempt or switch sources. Runtime-only consent does not approve
+the skills operation.
