@@ -200,16 +200,19 @@ test('version and auth failures stop before later probes; installed state home i
 });
 
 test('error envelopes and malformed identity fail before catalog without leaking payloads', (t) => {
-  for (const payload of ['{"error":{"code":"not_logged_in","message":"PRIVATE_IDENTITY"}}', 'not-json']) {
+  for (const payload of ['{}','[]','{"workspace_id":"fixture"}','{"error":{"code":"not_logged_in","message":"PRIVATE_IDENTITY"}}', 'not-json']) {
     const f = installedFixture(t);
     const result = f.run({ AUTH_PAYLOAD: payload });
     assert.equal(result.status, 1); assert.match(result.stderr, /authentication probe failed/);
     assert(!result.stderr.includes('PRIVATE_IDENTITY'));
     assert.equal(readFileSync(f.log, 'utf8').trim().split('\n').length, 2);
   }
-  const f = installedFixture(t);
-  const result = f.run({ CATALOG_PAYLOAD: '{"error":{"code":"not_supported"}}' });
-  assert.equal(result.status, 1); assert.match(result.stderr, /read catalog probe failed/);
+  for (const payload of ['{}','[]','{"tools":[]}','{"tools":[{"group":"codebase","leaf":"write","access":"write","mutating":true}]}','{"error":{"code":"not_supported"}}']) {
+    const f = installedFixture(t);
+    const result = f.run({ CATALOG_PAYLOAD: payload });
+    assert.equal(result.status, 1); assert.match(result.stderr, /read catalog probe failed/);
+    assert(!existsSync(f.home));
+  }
 });
 
 test('data-home aliases and the configured CLI command retain one consistent launch identity', (t) => {

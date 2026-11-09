@@ -95,18 +95,23 @@ def today() -> str:
     return _dt.date.today().isoformat()
 
 
-def write_json(path, data) -> None:
-    """Write to a temp file beside it, then swap it in: a reader never sees a half-written file."""
-    import json, os, tempfile
+def write_text(path, text) -> None:
+    """Replace one UTF-8 file atomically; interrupted writes keep its prior bytes."""
+    import os, tempfile
     path = Path(path)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
-        with os.fdopen(fd, "w") as fh:
-            fh.write(json.dumps(data, indent=2, ensure_ascii=False))
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
         os.replace(tmp, path)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
+
+
+def write_json(path, data) -> None:
+    import json
+    write_text(path, json.dumps(data, indent=2, ensure_ascii=False))
 
 
 def now_iso() -> str:

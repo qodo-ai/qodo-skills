@@ -81,8 +81,11 @@ class AdapterTests(unittest.TestCase):
             with self.assertRaises(PermissionDenied): Client('qodo').read('codebase','search-repos')
 
     def test_changed_revision_aborts_and_bound_retains_cursor(self):
-        with mock.patch.object(Client,'read',return_value={'revision':REV,'complete':True}):
-            with self.assertRaises(ReadError): Client().pages(ID,'files',1,REV)
+        malformed={'revision':REV,'complete':True}
+        with mock.patch.object(Client,'read',return_value=malformed):
+            result=Client().pages(ID,'files',1,REV)
+            self.assertEqual(result['status'],'malformed');self.assertFalse(result['complete'])
+            self.assertEqual(result['rejected_page'],malformed)
         with mock.patch.object(Client,'read',return_value=page(revision='z'*64)):
             with self.assertRaises(ReadError): Client().pages(ID,'files',1,REV)
         with mock.patch('cockpit.adapters.managed.MAX_PAGES',1), mock.patch.object(Client,'read',return_value=page(next_cursor='next')):

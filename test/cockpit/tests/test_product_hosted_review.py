@@ -253,3 +253,41 @@ class ProductHostedReviewTests(unittest.TestCase):
                     button=re.search(r'<button[^>]+data-iview="parts"[^>]*>(.*?)</button>',rendered['gap'],re.S).group(1)
                     self.assertIn('vdot warn',button)
                     self.assertIn('1 gap; risk unassessed',button)
+
+
+    def test_invalid_authored_coordinates_fail_before_snapshot_or_memory_changes(self):
+        helper=helpers.ProductEnrichRefreshTests()
+        with helper.session() as (root,sd,cfg,read):
+            enrich.enrich(sd, {'prs':{'org/repo#1':{'summary':'Prior'}}})
+            before={p.name:p.read_bytes() for p in (sd/'review-data.json',sd/'enrich.json')}
+            invalid=[{'line':x,'path':'a.py'} for x in ('3',True,-1,0,{},[])]
+            invalid += [{'line':1,'path':x} for x in ([],{},'',False)]
+            for finding in invalid:
+                payload={'prs':{'org/repo#1':{'findings':[dict(finding,title='Concern',severity='high')]}},
+                         'knowledge':[{'title':'Never written','type':'Invariant','body':'No side effect'}]}
+                with self.subTest(finding=finding), self.assertRaisesRegex(ValueError,'Agent finding'):
+                    enrich.enrich(sd,payload)
+                self.assertEqual({p.name:p.read_bytes() for p in (sd/'review-data.json',sd/'enrich.json')},before)
+            enrich.enrich(sd,{'prs':{'org/repo#1':{'findings':[{'line':1,'path':'a.py','title':'Valid','severity':'high'}]}}})
+            self.assertEqual(json.loads((sd/'review-data.json').read_text())['prs'][0]['findings'][-1]['line'],1)
+
+    def test_interrupted_memory_file_replacements_preserve_prior_bytes(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);okf=memory.OKF(root/'okf');okf.ensure()
+            c=okf.propose(type_='Invariant',title='Atomic fact',body='Original',paths=['a.py'],by='test',sources=[])
+            original=copy.deepcopy(c);c.body='Replacement'
+            operations=[(okf.root/c.path,lambda:okf.write(c)),
+                        (okf.root/'log.md',lambda:okf.log('Update',c.path,c.meta['title'],'new evidence')),
+                        (okf.root/'index.md',okf.write_index)]
+            amr=memory.AMR(root/'amr');amr.ensure('fixture')
+            pref=amr.root/'preferences/general.md'
+            operations.append((pref,lambda:amr.upsert(memory.Bullet('New preference',file='preferences/general.md'))))
+            for target,write in operations:
+                before=target.read_bytes()
+                with self.subTest(target=target.name),mock.patch('os.replace',side_effect=OSError('interrupted')):
+                    with self.assertRaisesRegex(OSError,'interrupted'):write()
+                self.assertEqual(target.read_bytes(),before)
+                self.assertEqual(list(target.parent.glob('.'+target.name+'.*.tmp')),[])
+            self.assertEqual(okf.get(c.path).body.strip(),original.body)
+            okf.write(c);self.assertEqual(okf.get(c.path).body.strip(),'Replacement')

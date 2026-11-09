@@ -3,6 +3,22 @@ import hashlib
 import json
 
 
+def validate(findings):
+    """Reject invalid authored coordinates before snapshot or memory changes."""
+    if findings is None:
+        return
+    if not isinstance(findings, list):
+        raise ValueError('Agent findings must be an array.')
+    for index, finding in enumerate(findings):
+        if not isinstance(finding, dict):
+            raise ValueError(f'Agent finding {index} must be an object.')
+        line, path = finding.get('line'), finding.get('path')
+        if line is not None and (type(line) is not int or line <= 0):
+            raise ValueError(f'Agent finding {index} line must be a positive integer or null.')
+        if path is not None and (not isinstance(path, str) or not path.strip()):
+            raise ValueError(f'Agent finding {index} path must be a nonempty string or null.')
+
+
 def fingerprint(finding):
     fields = {key: finding.get(key, default) for key, default in (
         ('category', 'general'), ('severity', 'medium'), ('path', None), ('line', None), ('title', ''), ('body', ''))}

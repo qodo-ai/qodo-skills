@@ -28,6 +28,23 @@ class ProductFindingFixTests(unittest.TestCase):
                     self.assertEqual(result['rejected_page'], pages[1])
                     self.assertEqual(result['next_cursor'], 'signed-next')
 
+        for field, invalid in [('items', None), ('complete', 'yes'), ('next_cursor', 3)]:
+            for missing in (False, True):
+                rejected = page([])
+                if missing:
+                    rejected.pop(field)
+                else:
+                    rejected[field] = invalid
+                accepted = page([{'id':'accepted'}], complete=False, next_cursor='signed-next')
+                with self.subTest(field=field, missing=missing), mock.patch.object(Client, 'read', side_effect=[accepted, rejected]):
+                    result = Client().pages(ID, 'comments', 1, REV)
+                self.assertEqual(result['items'], [{'id':'accepted'}])
+                self.assertEqual(result['pages'], [accepted])
+                self.assertEqual(result['status'], 'malformed')
+                self.assertFalse(result['complete'])
+                self.assertEqual(result['rejected_page'], rejected)
+                self.assertEqual(result['next_cursor'], 'signed-next')
+
     def test_missing_file_path_cannot_be_presented_as_complete(self):
         for row in ({'additions': 1}, {'path': ''}, {'filename': 3}, None):
             with self.subTest(row=row):

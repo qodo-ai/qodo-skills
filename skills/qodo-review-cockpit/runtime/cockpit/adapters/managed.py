@@ -91,7 +91,7 @@ def page_error(page, kind):
     if (not isinstance(page.get('items'), list) or 'complete' not in page
             or (page['complete'] is not None and type(page['complete']) is not bool)
             or 'next_cursor' not in page or not isinstance(page['next_cursor'], (str, type(None)))):
-        raise ReadError('Malformed provider-evidence page for ' + kind)
+        return 'Malformed provider-evidence page for ' + kind
     for row in page['items']:
         if not isinstance(row, dict):
             return 'Malformed provider-evidence row for ' + kind

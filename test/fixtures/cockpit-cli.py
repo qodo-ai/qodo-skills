@@ -11,10 +11,10 @@ if '--version' in argv:
     print(os.environ.get('CLI_VERSION', '2.1.1'))
     sys.exit(0)
 if 'whoami' in argv:
-    print(os.environ.get('AUTH_PAYLOAD', '{}'))
+    print(os.environ.get('AUTH_PAYLOAD', json.dumps({'schema_version':1,'workspace_id':'fixture-workspace','user_id':'fixture-user'})))
     sys.exit(int(os.environ.get('AUTH_EXIT', '0')))
 if argv[:2] == ['read', 'tools']:
-    print(os.environ.get('CATALOG_PAYLOAD', '{}'))
+    print(os.environ.get('CATALOG_PAYLOAD', json.dumps({'tools':[{'name':'fixture','group':'codebase','leaf':'read-review-data','access':'read','mutating':False}]})))
     sys.exit(0)
 if not os.environ.get('STUB_MANAGED'):
     print('{}')

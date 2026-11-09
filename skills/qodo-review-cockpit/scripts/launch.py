@@ -113,8 +113,20 @@ def main():
         payload = probe(command, gate)
         try:
             value = json.loads(payload)
-            if not isinstance(value, (dict, list)) or (isinstance(value, dict) and value.get("error")):
+            if not isinstance(value, dict) or value.get("error"):
                 raise ValueError()
+            if gate == "authentication probe":
+                if not (isinstance(value.get('workspace_id'), str) and value['workspace_id'].strip()
+                        and any(isinstance(value.get(k), str) and value[k].strip()
+                                for k in ('user_id', 'account_id', 'tenant_id'))):
+                    raise ValueError()
+            else:
+                tools = value.get('tools')
+                if not isinstance(tools, list) or not any(
+                        isinstance(t, dict) and t.get('access') == 'read' and not t.get('mutating')
+                        and isinstance(t.get('group'), str) and t['group'].strip()
+                        and isinstance(t.get('leaf'), str) and t['leaf'].strip() for t in tools):
+                    raise ValueError()
         except ValueError:
             sys.exit("Cockpit " + gate + " failed: invalid or error payload. Inspect that CLI operation.")
     home = state_home()

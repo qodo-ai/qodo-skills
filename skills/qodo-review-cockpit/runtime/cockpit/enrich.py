@@ -76,6 +76,9 @@ def enrich(sdir: Path, payload: dict, agent: str = "claude/review-prs") -> dict:
         authored_file = sdir / 'enrich.json'
         previous = json.loads(authored_file.read_text()) if authored_file.is_file() else {}
         authored = _merge(previous, deepcopy(payload))
+        from .agent_findings import validate
+        for extra in (authored.get('prs') or {}).values():
+            validate(extra.get('findings'))
         # Normalizers can enrich their input; persist only the original authored values.
         result = _enrich(sdir, deepcopy(authored), agent)
         write_json(authored_file, authored)
