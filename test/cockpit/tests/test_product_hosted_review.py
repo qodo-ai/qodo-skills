@@ -315,3 +315,11 @@ class ProductHostedReviewTests(unittest.TestCase):
             control=root/'normal.txt';control.write_text('ordinary creation')
             new=root/'memory-new.txt';memory.write_text(new,'atomic creation')
             self.assertEqual(stat.S_IMODE(new.stat().st_mode),stat.S_IMODE(control.stat().st_mode))
+
+            if os.name != 'nt':
+                private=root/'private.txt';private.write_text('prior');private.chmod(0o600)
+                def private_temp(fd,mode,**kwargs):
+                    self.assertEqual(stat.S_IMODE(os.fstat(fd).st_mode),0o600)
+                    return original(fd,mode,**kwargs)
+                with mock.patch('os.fdopen',side_effect=private_temp):
+                    memory.write_text(private,'replacement')

@@ -103,7 +103,7 @@ def write_text(path, text, *, preserve_mode=False) -> None:
     if preserve_mode:
         tmp = path.parent / f".{path.name}.{secrets.token_hex(16)}.tmp"
         # Match ordinary text-file creation under the caller's umask without changing it.
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o666)
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode if mode is not None else 0o666)
     else:
         fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
