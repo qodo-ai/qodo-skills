@@ -81,12 +81,5 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 
 ## Old or unparseable runtime
 
-Do not run whoami or login until the minimum CLI version in SKILL.md is met. Explain the
-compatibility issue. Automatic updates stay within a major version: moving to a newer major uses
-the checksum-pinned installation procedure above, preserving the recorded distribution origin.
-For a normal install, let the verified installer choose the distribution-approved version.
-Honor a requested exact version and keep it separate from channel selection; never silently
-substitute a channel for it. For a customer installer, inspect the verified script and use
-only selectors it supports, preserving the customer's origin and installation settings.
-Proceed if the setup request covers installation; otherwise ask once. Keep customer origins unchanged. Rerun the unadorned version probe after updating. If declined, failed or
-still incompatible, stop without modifying the skill package or diagnosing an auth failure.
+Return to the canonical [runtime compatibility recovery gate](../SKILL.md#runtime-compatibility-recovery).
+The verified installation procedure above supplies installer mechanics when that gate selects it.
