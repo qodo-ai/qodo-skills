@@ -63,3 +63,8 @@ excluded from those legacy bundle/index projections (`managed: false`) to preser
 There is no supported `qodo agents install --cockpit` command yet. Optional managed delivery needs
 a separately qualified CLI/QAR capability extension. All optional native/portable resources remain
 complete; native installation and public directory visibility are separate acceptance gates.
+
+CLI lifecycle inventory can report an unknown owner for optional skills.sh Cockpit installs;
+it currently tracks the public core/Standards skill set. Use the original explicit installation
+channel for authorized updates and preserve its agent/location scope. Marketplace installs remain
+host-owned. A passive CLI notice does not establish Cockpit update support or authorize a reinstall.

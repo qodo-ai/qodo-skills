@@ -1,0 +1,77 @@
+{
+  "product": true,
+  "qodo_source": "comments",
+  "qodo_review": null,
+  "qodo_read_error": "pr-review-session/findings: unreadable response (exit 1)",
+  "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "checks": [],
+  "findings": [],
+  "key": "example/repo#77",
+  "repo": "example/repo",
+  "number": 77,
+  "title": "Managed evidence regression",
+  "url": "https://example.test/repo/pull/77",
+  "files": [],
+  "scans": [
+    {
+      "name": "Upwind",
+      "status": "passed",
+      "open": 0,
+      "text": "Secrets passed"
+    }
+  ],
+  "read_evidence": {
+    "sections": {
+      "files": {
+        "complete": true,
+        "status": "observed",
+        "error": null
+      },
+      "comments": {
+        "complete": true,
+        "status": "observed",
+        "error": null
+      },
+      "inline_comments": {
+        "complete": true,
+        "status": "observed",
+        "error": null
+      },
+      "reviews": {
+        "complete": true,
+        "status": "observed",
+        "error": null
+      },
+      "threads": {
+        "complete": true,
+        "status": "observed",
+        "error": null
+      },
+      "checks": {
+        "complete": true,
+        "status": "observed",
+        "error": null
+      },
+      "statuses": {
+        "complete": false,
+        "status": "unavailable",
+        "error": "codebase/read-review-data: MT-UPSTREAM-DOWN (exit 1)"
+      },
+      "annotations": {
+        "complete": false,
+        "status": "unavailable",
+        "error": "codebase/read-review-data: MT-VALIDATION (exit 1)"
+      },
+      "readiness": {
+        "complete": true,
+        "status": "observed",
+        "error": null
+      },
+      "history": {
+        "complete": true,
+        "status": "observed",
+        "error": null
+      }
+    }
+  }
+}

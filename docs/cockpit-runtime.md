@@ -1,0 +1,36 @@
+# Managed review product profile
+
+Maintainer contract for the component in `skills/qodo-review-cockpit/runtime/`.
+User-facing workflow instructions live in that skill's SKILL.md. Use its skill-relative launcher:
+
+```sh
+python3 -B skills/qodo-review-cockpit/scripts/launch.py review org/repo#123 --collect-only
+python3 -B skills/qodo-review-cockpit/scripts/launch.py serve --session latest --no-open
+python3 -B skills/qodo-review-cockpit/scripts/launch.py refresh --session latest
+python3 -B skills/qodo-review-cockpit/scripts/launch.py export --session latest --out /tmp/review.html
+```
+
+The launcher selects product mode, CLI/version/authentication gates and UTF-8 automatically.
+The engine can also be invoked with `-m cockpit` for tests after setting PYTHONPATH to the runtime.
+
+The global `--product` flag precedes the command. A collected product session records `product: true`; refresh and serving retain that boundary. The server that starts in product mode rejects publishing even when its session picker opens an older standalone session. The ordinary standalone commands remain available.
+
+`REVIEW_COCKPIT_HOME` (alias `PR_COCKPIT_HOME`) selects mutable data outside the package. Existing config, session directories, custom styles and optional memory remain compatible. Fresh product defaults disable memory and automatic memory commits; explicit existing user configuration wins. Use `-B` or `PYTHONDONTWRITEBYTECODE=1` so installed resources remain read-only. `REVIEW_COCKPIT_QODO` selects an explicit CLI executable when it is absent from PATH. It does not select credentials or deployment.
+
+Product collection discovers the exact registered repository and provider host, reads capabilities, observes the change revision, then reads bounded provider-evidence pages through the Qodo CLI. Each normalized PR retains canonical identity, context, capabilities, every page envelope, continuation cursor and completeness. Files retain patch evidence; provider threads remain visible as evidence. An unavailable section is distinct from an exhausted empty section. Revision mismatch stops the collection; rerun after observing the new change. There is no provider-client fallback. Registered GitHub paths accept case variants with ambiguity checks; other providers retain exact registered case. The same repository full path on different provider/hosts must be reviewed in separate sessions, even for different PR numbers; product collection rejects this combination before associations and does not migrate keys. One product operation shares a maximum of 96 managed calls and 180 seconds across all changes, findings, notes and secondary reads; each subprocess timeout is capped by the remaining time. A new collection that reaches the limit retains already collected changes, requested/omitted refs and an explicit incomplete-session marker; previews and badges cannot treat that subset as the whole package. Refresh can retry the original requested refs. Thrown required-read/auth/revision/budget/enrichment errors reject a saved refresh and preserve its previous snapshot. Successful optional partial reads keep new observed evidence with explicit gaps/cursors and independent local notes, as Sagi selected in KB-2043.
+
+The Work Package source-evidence disclosure shows incomplete and unknown sections. It also explains the bounded related-work search. Qodo review evidence retains the stored run, status, reviewed commit, completeness and truncation. Comments can contribute findings but cannot establish an authoritative complete review. Local quality remains unknown when patch evidence is unavailable or incomplete, independently of the authoritative Qodo run. Contract source excerpts retain identity, resolved commit, freshness, truncation and continuation metadata; wrong immutable commits are refused and partial/mutable reads never prove completeness or absence. Merge Risk is Cockpit's estimate; its approval output is a preview, and this profile cannot submit it.
+
+Provider publishing, replies and thread resolution are disabled before live preflight or dry-run execution. Local notes always have `post: false`. Accept/dismiss marks are local annotations; they do not change Qodo stored finding dispositions. Export writes a local file; sharing that file is a separate user action. A new snapshot reader is seeded from exported local feedback; their saved browser edits/removals and read/verdict state survive reload. Served sessions continue to use canonical local server events.
+
+`app/styles/package.html` includes `{{PACKAGE_SCRIPT}}`; `cockpit.styles.render` reassembles it from `package.js` before normal substitutions. Both served and standalone exports use this renderer. Maintain and test all three resources together; the renderer prepends the local-state helper. Neither file exceeds the 524,288-byte bundle limit.
+
+Optional content is self-contained: `cockpit walkthrough --builder FILE --triage-dir DIR` imports an existing builder/triage artifact after validation. Without those artifacts, those pages say that no content was generated. The schema and validation live in `cockpit/walkthrough.py`; no personal skill installation is required. Ask Qodo remains optional and uses the existing constrained local-agent tool loop; startup does not install or launch a coding agent.
+
+Current qualification limits: provider identity fixtures cover six provider families; live evidence is currently GitHub only. Related-work lookup reads at most ten open and ten merged changes per repository and reports that bound. Reviewer suggestions use bounded recent review history and label path ownership/similarity unqualified. Provider thread evidence is retained but no thread actions are available. Existing optional scanner parsers consume managed comments/checks/annotations; unknown upstream data does not establish clean scans. Full air-gapped rendering is not claimed: Mermaid and fonts still use the existing public CDNs.
+
+Product `enrich` accepts an authored JSON file from any location. After a successful application, it atomically saves the merged authored input as the session's `enrich.json` so refresh can reapply it. Successive object fields merge, omitted fields remain, and supplied lists replace earlier lists (including valid empty-list clears). Derived excerpts and normalized source revisions are not saved as new authored intent.
+
+Product enrichment and refresh share a per-session `.cockpit-writer.lock` directory. A competing writer gets a busy error before changing the snapshot or authored file; retry after the active operation finishes. Refresh reuses its own guard when reapplying enrichment. Local note/mark events remain append-only and independent of this guard and snapshot rollback. The guard is released on errors. If a process crashes and leaves it behind, inspect its `owner.json` PID and confirm that no enrichment or refresh for that session is still running before manually removing the guard directory. Cockpit never automatically deletes a possibly live writer's guard.
+
+Ownership: this component and its behavior tests are maintained in qodo-skills. See [component maintenance](../skills/qodo-review-cockpit/references/packaging.md) and `test/cockpit/README.md`. This contract was adapted from the original Cockpit component and retains its component terms in runtime/LICENSE.

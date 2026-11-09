@@ -89,7 +89,11 @@ installation, or change its alias roots as recovery without covering authorizati
 ## Handle a skill update notice
 
 `QODO_NOTICE` is passive: mention once; updated instructions load in the next session.
-The CLI owns runtime and skill updates at the recorded origin; this launcher never updates.
+The CLI owns its runtime updates. Update this optional skill through its existing host or
+installation channel, preserving scope. Current managed CLI installers support core/Standards
+only. If the CLI reports an unknown owner for a skills.sh Cockpit install, explain that limit
+and use the original explicit channel only with covering authorization; do not invent a CLI
+Cockpit update selector. This launcher never installs or updates anything.
 
 ## Present the review result
 
