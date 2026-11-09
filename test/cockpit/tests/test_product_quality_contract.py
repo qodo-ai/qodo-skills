@@ -24,7 +24,7 @@ class ProductQualityContractTests(unittest.TestCase):
 
     def test_managed_locations_require_current_revision_and_side_without_guessing_origin(self):
         cases = [(None, 'a' * 40, 'RIGHT', False), ('git_pr', 'a' * 40, 'LEFT', False),
-                 (None, HEAD, None, False), (None, None, 'RIGHT', False),
+                 (None, HEAD, None, False), (None, HEAD, 'LEFT', False), (None, None, 'RIGHT', False),
                  (None, HEAD, 'RIGHT', True), ('git_pr', HEAD, 'LEFT', True)]
         for origin, sha, side, current in cases:
             with self.subTest(origin=origin, sha=sha, side=side):

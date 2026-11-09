@@ -13,10 +13,11 @@ def qualify(pr: dict, finding: dict) -> dict:
         'review_run_id': finding.get('review_run_id') or local.get('review_id'),
     }
     side = {'left': 'LEFT', 'old': 'LEFT', 'right': 'RIGHT', 'new': 'RIGHT'}.get(str(original.get('side') or '').lower())
-    before_pr = finding.get('review_source') == 'local_skill' or local.get('origin') == 'managed'
+    # Head SHA identifies the new tree; only a known PR-origin finding binds its old diff side.
+    hosted = finding.get('review_source') == 'git_pr' and local.get('origin') != 'managed'
     sha, head = original.get('git_sha'), pr.get('head_sha')
     current = bool(isinstance(sha, str) and isinstance(head, str) and sha and sha.lower() == head.lower()
-                   and side in (('RIGHT',) if before_pr else ('LEFT', 'RIGHT'))
+                   and side in (('LEFT', 'RIGHT') if hosted else ('RIGHT',))
                    and original.get('path') in {f.get('path') for f in pr.get('files', [])}
                    and type(original.get('line')) is int and original['line'] > 0)
     out = {**finding, 'source_location': original, 'current_anchor': current,
