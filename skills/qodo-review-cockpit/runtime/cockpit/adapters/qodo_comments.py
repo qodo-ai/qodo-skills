@@ -196,8 +196,10 @@ def parse_review(body: str) -> tuple[list[dict], set[str], str | None]:
         end = rs[i + 1].start() if i + 1 < len(rs) else len(resolved_part)
         f = _parse_item(m.group("title") + " " + m.group("labels"), resolved_part[m.end():end], None)
         verdict = next((v for v in ("Dismissed", "Outdated", "Resolved") if v in m.group("labels")), "Resolved")
-        f.update(title=plain(m.group("title")), severity="low", status=verdict.lower(),
+        label = re.search(r'<code>\s*(high|critical|medium|low|optional|informational|action_required)\s*</code>', m.group('labels'), re.I)
+        f.update(title=plain(m.group("title")), severity=SEVERITY[label.group(1).lower()] if label else 'unknown', status=verdict.lower(),
                  status_why=f"{verdict} in Qodo's review.")
+        f['severity_guessed'] = f['severity'] == 'unknown'
         out.append(f)
     om = re.search(r"⚠️\s*_?(.+?omitted[^_\n]*)_?", body)
     return out, resolved, (plain(om.group(1)) if om else None)
@@ -295,6 +297,8 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
             closed = by_uuid.get(tkey)
             if closed is not None and not closed.get("path"):   # give the closed item its place in the code
                 closed.update(path=c["path"], line=c.get("line"), url=closed.get("url") or c.get("url"))
+            if closed is not None and closed.get('severity_guessed') and f.get('severity') in SEVERITY.values():
+                closed.update(severity=f['severity'], severity_guessed=False)
             continue
         key = f["qodo_id"] or tkey
         if key not in by_uuid and tkey in by_uuid:   # summary items without finding ids are keyed by title

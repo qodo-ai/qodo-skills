@@ -4,11 +4,11 @@ from __future__ import annotations
 
 def qualify(pr: dict, finding: dict) -> dict:
     local = finding.get('local') if isinstance(finding.get('local'), dict) else {}
-    if 'review_source' not in finding and local.get('origin') != 'managed' and 'source_location' not in finding:
+    if 'review_source' not in finding and finding.get('source') != 'qodo-local' and local.get('origin') != 'managed' and 'source_location' not in finding:
         return finding
     recorded = finding.get('source_location') or local.get('source_location')
     original = dict(recorded) if isinstance(recorded, dict) else {
-        'path': finding.get('path'), 'line': finding.get('line'), 'end_line': finding.get('end_line'),
+        'path': finding.get('path'), 'line': finding.get('line') if finding.get('line') is not None else local.get('line'), 'end_line': finding.get('end_line'),
         'side': finding.get('side'), 'git_sha': finding.get('git_sha') or finding.get('commit') or local.get('commit'),
         'review_run_id': finding.get('review_run_id') or local.get('review_id'),
     }
@@ -22,8 +22,10 @@ def qualify(pr: dict, finding: dict) -> dict:
                    and type(original.get('line')) is int and original['line'] > 0)
     out = {**finding, 'source_location': original, 'current_anchor': current,
            'side': side if side else original.get('side')}
-    if local.get('origin') == 'managed':
+    if finding.get('source') == 'qodo-local':
         out['local'] = {**local, 'source_location': original, 'current_anchor': current}
+        if local.get('origin') != 'managed':
+            out['local']['line'] = None if current else original.get('line')
     for name in ('path', 'line', 'end_line'):
         out[name] = original.get(name) if current else None
     return out

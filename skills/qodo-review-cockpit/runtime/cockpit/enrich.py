@@ -225,12 +225,15 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
         if same:   # re-running enrich must not duplicate drafts
             if same.path not in have:
                 cands.append({**same.as_dict(), "pr": k.get("pr")})
+                have.add(same.path)
             continue
         c = okf.propose(type_=k.get("type", "Fact"), title=k["title"], body=k.get("body") or k["title"],
                         paths=k.get("paths") or [], by=agent,
                         sources=[{"resource": k.get("source") or f"session:{data['session']}"}],
                         description=k.get("description", ""), tags=k.get("tags"))
         cands.append({**c.as_dict(), "pr": k.get("pr")})
+        by_title[k['title'].strip().lower()] = c
+        have.add(c.path)
     if memory_on(cfg):
         okf.write_index()
     data["okf"]["candidates"] = data["okf"].get("candidates", []) + cands

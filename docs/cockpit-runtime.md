@@ -70,3 +70,12 @@ HTML exports embed referenced story media only, including nested images and vide
 Optional-memory failure limit (Sagi accepted for V1 in KB-2047): memory is off by default. When explicitly enabled, a failed refresh restores the review snapshot but may leave an unconfirmed memory draft or auxiliary index change. Snapshot rollback does not promise a shared-memory transaction. Local notes/events remain independent and preserved.
 
 Refreshing an existing product session preserves the latest-session selection on success and failure; a new collection still selects its new session. Scanner check annotations retain their reported end line. One-Page story media uses the same reference selector as the full-app export, including video links and before/after images; other layouts retain their existing gallery behavior.
+
+Saved-local findings use the same current-coordinate proof as managed findings: the observed
+commit, collected path, known diff side and positive line must agree. Older snapshots are
+qualified for presentation without rewriting them. Detected-after-merge is a terminal source
+reason, not evidence of a verified fix; its reason survives the public view. ID-less dictionary
+entries in local disposition buckets use the same synthetic display identity as their details.
+Unknown impact risk and unavailable closed-comment severity remain Unknown. Explicit inline
+severity can qualify a closed summary item. Repeated knowledge titles in one enrichment reuse
+one draft/candidate. Reviewer lookup takes the session writer guard before snapshot work.

@@ -11,7 +11,7 @@ from .qodo_comments import _fid
 
 # attribution_status, as the tool documents it: open ones carry no status; closed ones map to the cockpit's.
 # `implemented` isn't in the tool's documented list, but the review producer has serialized it; closed either way.
-CLOSED = {"full_implementation": "resolved", "implemented": "resolved", "detected_after_merge": "resolved",
+CLOSED = {"full_implementation": "resolved", "implemented": "resolved", "detected_after_merge": "detected_after_merge",
           "dismissed": "dismissed", "outdated": "outdated"}
 
 
@@ -118,6 +118,8 @@ def to_finding(pr: dict, f: dict) -> dict:
     if status:
         out["status"] = status
         out["closed_as"] = str(f.get("attribution_status") or "").lower()   # detected_after_merge is closed, not fixed
+        if status == 'detected_after_merge':
+            out['status_why'] = 'Detected after the PR merged; no fix was verified.'
         if status == "dismissed":   # the producer sends flat dismiss_reason / dismiss_explanation; older shapes nest it
             d = f.get("dismissal") if isinstance(f.get("dismissal"), dict) else {}
             why = [x for x in (_first(f, "dismiss_reason") or _first(d, "reason"), _first(f, "dismiss_explanation") or _first(d, "explanation", "comment")) if x]

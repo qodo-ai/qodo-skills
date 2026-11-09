@@ -210,7 +210,7 @@ def normalize(rows, prs: dict) -> tuple[list[dict], list[str]]:
         row = {"component": str(r["component"]).strip()[:80], "change": str(r.get("change") or "").strip()[:200],
                "door": r.get("door") if r.get("door") in DOORS else "", "undo": str(r.get("undo") or "").strip()[:200],
                "fails": str(r.get("fails") or "").strip()[:200], "notice": str(r.get("notice") or "").strip()[:200],
-               "risk": r.get("risk") if r.get("risk") in RISKS else "medium", "why": str(r.get("why") or "").strip()[:240],
+               "risk": r.get("risk") if r.get("risk") in RISKS else "unknown", "why": str(r.get("why") or "").strip()[:240],
                "source": str(r.get("source") or "").strip()[:80]}
         if r.get("risk") not in RISKS:
             warn.append(f"impact row {i + 1} ({row['component']}): risk must be high, medium or low")
@@ -245,7 +245,7 @@ def normalize(rows, prs: dict) -> tuple[list[dict], list[str]]:
             warn += [f"impact row {i + 1} ({row['component']}): {x}" for x in w]
         out.append(row)
     order = {k: i for i, k in enumerate(RISKS)}
-    return sorted(out, key=lambda r: order[r["risk"]]), warn
+    return sorted(out, key=lambda r: order.get(r["risk"], len(RISKS))), warn
 
 
 def _area(path: str) -> str:

@@ -224,6 +224,16 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, source_record
         out["status_why"] = "dismissed by the author before the PR" + (": " + why if why else "")
         if why:
             out["local"]["reason"] = why   # the author's own words, for the styles' "before the PR" list
+    elif status == 'detected_after_merge':
+        out['status_why'] = 'Detected after the PR merged; no fix was verified.'
+    from ..product import enabled
+    if enabled(pr):
+        from ..finding_locations import qualify
+        out['source_location'] = {'path': path, 'line': line, 'end_line': end,
+                                  'side': f.get('side') or loc.get('side'), 'git_sha': seen,
+                                  'review_run_id': reference}
+        out['closed_as'] = state or str(f.get('attribution_status') or '').lower() or None
+        out = qualify(pr, out)
     return {k: v for k, v in out.items() if v is not None}
 
 
@@ -244,19 +254,21 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
     for rec in reviews:
         res = rec["result"]
         fs = res.get("finding_state") if isinstance(res.get("finding_state"), dict) else {}
+        def key(f):
+            return (_fid(f) or to_finding(pr, rec, f, None)['id']) if isinstance(f, dict) else str(f)
         listed = [f for k in ("still_open", "introduced", "resolved", "dismissed") for f in fs.get(k) or [] if isinstance(f, dict)]
         listed += [f for f in res.get("findings") or [] if isinstance(f, dict)]   # last: this call's own copy
         for f in listed:
-            fid = _fid(f) or to_finding(pr, rec, f, None)["id"]
+            fid = key(f)
             raw[fid] = (rec, _merge(raw.get(fid, (None, None))[1], f))
         for k in ("still_open", "introduced"):
             for f in fs.get(k) or []:
-                fid = _fid(f) if isinstance(f, dict) else str(f)
+                fid = key(f)
                 if fid:
                     status[fid] = "open"   # a latest explicit reopen overrides retained attribution metadata
         for k in ("dismissed", "resolved"):   # resolved last: it wins over dismissed, as in the engine
             for f in fs.get(k) or []:
-                fid = _fid(f) if isinstance(f, dict) else str(f)
+                fid = key(f)
                 if fid:
                     status[fid] = k
     return [to_finding(pr, rec, f, status.get(fid), source_record=origins.get(_review_reference(rec, f))) for fid, (rec, f) in raw.items()]

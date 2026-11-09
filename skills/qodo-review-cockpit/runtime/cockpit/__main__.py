@@ -179,9 +179,13 @@ def main(argv=None):
         print(json.dumps(enrich(_session_dir(a.session), json.load(open(f))), indent=2))
     elif a.cmd == "reviewers":
         from .reviewers import suggest
+        from .session_writer import session_writer
         sd = _session_dir(a.session); p = sd / "review-data.json"
-        res = suggest(json.loads(p.read_text()), load_config())   # slow: many lookups
-        data = json.loads(p.read_text()); data["reviewers"] = res; write_json(p, data)   # re-read, so a save made meanwhile isn't undone
+        with session_writer(sd):
+            data = json.loads(p.read_text())
+            res = suggest(data, load_config())
+            data["reviewers"] = res
+            write_json(p, data)
         if a.json:
             print(json.dumps(res, indent=2))
         else:

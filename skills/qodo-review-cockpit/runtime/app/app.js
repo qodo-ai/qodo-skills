@@ -142,6 +142,7 @@ function checksSummary(pr) {
 }
 // A local finding: what the author's own `qodo review` found before the PR. Its status is as that review left it.
 function localPill(f) {
+  if (f.status === 'detected_after_merge') return `<span class="pill" title="No fix was verified">detected after merge</span>`;
   const l = f.local;
   if (l?.origin === 'managed') return `<span class="pill" title="Qodo records this finding from local_skill before the PR. This origin does not establish a completed PR review.">before the PR</span>`;
   if (!l && f.review_source && f.review_source !== 'git_pr') return `<span class="pill">${esc(f.review_source === 'unknown' ? 'review origin unknown' : 'review source: '+f.review_source)}</span>`;
@@ -1249,7 +1250,7 @@ window.addEventListener("beforeunload", leavePanel);
     // Outdated findings (no longer in the current diff) live apart and never count toward severity.
     for (const pr of S.data.prs) {
       const all = pr.findings || [];
-      const closed = (f) => ["outdated", "dismissed", "resolved"].includes(f.status);
+      const closed = (f) => ["outdated", "dismissed", "resolved", "detected_after_merge"].includes(f.status);
       pr.outdated = all.filter(closed);
       pr.findings = all.filter((f) => !closed(f));
     }

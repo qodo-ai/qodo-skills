@@ -3110,7 +3110,7 @@ class ImpactTests(unittest.TestCase):
         from cockpit.impact import derived, normalize
         rows, warn = normalize([{"component": "Cart", "prs": ["o/r#1", "o/r#9"], "risk": "severe", "affects": ["checkout"]},
                                 {"component": "Tax", "risk": "high", "affects": "invoices", "evidence": ["test_tax"]}, {"risk": "low"}], {"o/r#1": {}})
-        self.assertEqual([(r["component"], r["risk"]) for r in rows], [("Tax", "high"), ("Cart", "medium")])   # riskiest first
+        self.assertEqual([(r["component"], r["risk"]) for r in rows], [("Tax", "high"), ("Cart", "unknown")])   # unknown is not an invented assessment
         self.assertEqual(rows[1]["prs"], ["o/r#1"]); self.assertEqual(rows[0]["affects"], ["invoices"])
         text = " ".join(warn)
         for frag in ("risk must be high, medium or low", "unknown prs", "give the evidence, or the gap", "needs a component"):
