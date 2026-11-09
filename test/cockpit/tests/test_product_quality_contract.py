@@ -124,7 +124,8 @@ class ProductQualityContractTests(unittest.TestCase):
         for badge in ('Optional', 'Informational', 'info'):
             parsed = qodo_comments._parse_item('1. Useful optional advice',
                      '<details><summary>Description</summary><pre>Helpful context</pre></details>', badge)
-            self.assertEqual(parsed['severity'], qodo_cli._severity('informational'))
+            self.assertEqual(parsed['severity'], 'low')
+            self.assertEqual(qodo_cli._severity('informational'), 'low')
             self.assertEqual(parsed['body'], 'Helpful context')
         self.assertEqual(qodo_comments._parse_item('1. Required concern', '', 'High')['severity'], 'high')
 
