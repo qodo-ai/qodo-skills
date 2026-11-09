@@ -13,7 +13,7 @@ node scripts/test-cockpit-runtime.mjs --list
 node scripts/test-cockpit-runtime.mjs --offline --report /tmp/cockpit-results.json
 ```
 
-The default command discovers and runs all 340 behavior tests. The runner uses
+The default command discovers and runs all 341 behavior tests. The runner uses
 `python -X utf8 -B`, an explicit runtime/test PYTHONPATH, the maintained runtime as
 cwd, and temporary HOME, TMPDIR and REVIEW_COCKPIT_HOME. Product mode defaults to
 zero for raw-library comparison cases; packaged CLI commands always select product mode.
@@ -22,7 +22,7 @@ Provider subprocesses resolve to unavailable test fixtures; test-process auditin
 rejects real provider clients and external network addresses. Full execution allows
 loopback HTTP servers and temporary Git repositories used by behavior tests.
 
-`--offline` is an explicitly accounted restricted-worker subset: 321 tests. It
+`--offline` is an explicitly accounted restricted-worker subset: 322 tests. It
 excludes seventeen socket cases and two real Git fixture cases, listed individually in
 `run_suite.py` and in every offline report. These are not unittest skips or passes.
 The parent must run the default command to qualify all behavior. `--list` performs
@@ -80,3 +80,5 @@ execution, and final review. This migration alone does not establish those gates
 Hosted79191 regressions also reject malformed authored coordinates before mutation, retain malformed page envelopes as visible gaps, and prove atomic memory replacement preserves prior bytes on interruption. Launcher fixtures now use realistic identity/catalog envelopes and reject empty replies.
 
 A managed deleted-file regression covers full and hunk-only patches through the public reading plan, retaining both removed old-side lines.
+
+Contract Map product requests explicitly stay local in the composer, success message and saved event flag; legacy publication wording is preserved.

@@ -351,3 +351,27 @@ class ProductHostedReviewTests(unittest.TestCase):
                 self.assertEqual(sum(x['lines'] for x in ranges),2,repr(public['attention']))
                 self.assertTrue(all(x['tier']!='skip' for x in ranges))
         self.assertIn('(deleted)',collect.parse_diff(full))  # preserve the raw legacy parser default
+
+    def test_contract_map_requests_are_local_in_product_copy_and_saved_events(self):
+        source=(util.ROOT/'app/styles/contract-map.js').read_text()
+        def function(name):
+            start=source.index('  function '+name+'(')
+            return source[start:source.index('\n  }',start)+4]
+        code="""
+const C={product:true},CON={c:{id:"c",name:"Contract",prs:["p"],touched_by:[]}};
+const st={compose:"request",anchor:{pr:"p",path:"a.py",line:1},sel:{id:"c"}},S={notes:[]};
+let sent=[],toasts=[];const KIT={served:true,host:{style:"package"},send:async e=>{sent.push(...e);return true}};
+const esc=String,plain=String,short=String,anchorFor=()=>({path:"a.py",line:1}),agentPrompt=()=>"manual prompt",save=()=>{},renderAll=()=>{},toast=x=>toasts.push(x);
+const $=selector=>({value:selector==="#cm-text"?"Fix the contract":"Expected result"}),$$=()=>[{dataset:{cmto:"p"},checked:true}];
+"""
+        code+=''.join(function(name) for name in ('composeHtml','draft','events','saveNote'))
+        code+=''';(async()=>{const result=[];for(const product of [true,false]){C.product=product;st.compose="request";st.anchor={pr:"p",path:"a.py",line:1};sent=[];toasts=[];S.notes=[];const html=composeHtml(CON.c);saveNote();await Promise.resolve();result.push({product,html,sent,toasts})}console.log(JSON.stringify(result))})()'''
+        result=self.node(code);self.assertEqual(result.returncode,0,result.stderr)
+        local,legacy=json.loads(result.stdout)
+        self.assertIn('Save change request',local['html']);self.assertIn('saved only in Cockpit',local['html'])
+        self.assertNotIn('GitHub',local['html']);self.assertNotIn('Send back',local['html']);self.assertNotIn('Posts on',local['html'])
+        self.assertEqual(local['toasts'],['Saved locally in Cockpit'])
+        self.assertEqual(len(local['sent']),1);self.assertFalse(local['sent'][0]['post'])
+        self.assertEqual(local['sent'][0]['pr'],'p');self.assertIn('Fix the contract',local['sent'][0]['text'])
+        self.assertIn('queued for the GitHub review',legacy['html']);self.assertIn('Send back',legacy['html'])
+        self.assertTrue(legacy['sent'][0]['post']);self.assertIn('queued for the GitHub review',legacy['toasts'][0])

@@ -491,14 +491,14 @@ const CM = (() => {
   }
   function composeHtml(c) {
     const req = st.compose === "request", a = st.anchor, owners = c.prs, meets = c.touched_by.filter((k) => !owners.includes(k));
-    const where = a ? `Posts on ${short(a.pr)} at ${a.path}:${a.line}` : owners.length ? `Posts on ${owners.map((k) => { const x = anchorFor(c, k); return `${short(k)} at ${x ? `${x.path}:${x.line}` : "the review body"}`; }).join(", ")}` : "No PR owns it: kept with your notes";
+    const where = a ? `${C.product ? "Kept locally for" : "Posts on"} ${short(a.pr)} at ${a.path}:${a.line}` : owners.length ? `${C.product ? "Kept locally for" : "Posts on"} ${owners.map((k) => { const x = anchorFor(c, k); return `${short(k)} at ${x ? `${x.path}:${x.line}` : "the review body"}`; }).join(", ")}` : "No PR owns it: kept with your notes";
     return `<div class="cm-compose"><b style="font-size:14px">${req ? "Request a change to this contract" : a ? "Comment on this line" : "Comment on this contract"}</b>
       <textarea id="cm-text" placeholder="${req ? "What is wrong with this contract?" : "Your comment"}"></textarea>
       ${req ? `<input id="cm-done" type="text" placeholder="Done when… (what the fixed contract does)">
-        <div class="wh">Send to: ${[...owners, ...meets].map((k) => `<label><input type="checkbox" data-cmto="${esc(k)}"${owners.includes(k) ? " checked" : ""}> ${esc(short(k))} ${owners.includes(k) ? "(owns it)" : "(meets it)"}</label>`).join("") || "no PR owns it yet"}</div>` : ""}
-      <span class="wh">${esc(where)}${KIT.served ? ", queued for the GitHub review." : ", kept in this browser."}</span>
+        <div class="wh">${C.product ? "Applies to" : "Send to"}: ${[...owners, ...meets].map((k) => `<label><input type="checkbox" data-cmto="${esc(k)}"${owners.includes(k) ? " checked" : ""}> ${esc(short(k))} ${owners.includes(k) ? "(owns it)" : "(meets it)"}</label>`).join("") || "no PR owns it yet"}</div>` : ""}
+      <span class="wh">${esc(where)}${C.product ? (KIT.served ? ", saved only in Cockpit." : ", kept in this browser.") : KIT.served ? ", queued for the GitHub review." : ", kept in this browser."}</span>
       ${req ? `<div class="sec"><h4>Prompt for the coding agent<button class="cm-btn sm" type="button" data-cmcopyp>Copy</button></h4><div class="prompt" id="cm-prompt"></div></div>` : ""}
-      <div class="row"><button class="cm-btn" type="button" data-cmcompose="">Cancel</button><button class="cm-btn pri" type="button" data-cmsave>${req ? "Send back" : "Add comment"}</button></div></div>`;
+      <div class="row"><button class="cm-btn" type="button" data-cmcompose="">Cancel</button><button class="cm-btn pri" type="button" data-cmsave>${req ? (C.product ? "Save change request" : "Send back") : "Add comment"}</button></div></div>`;
   }
   function draft() {
     const c = CON[st.sel.id];
@@ -511,7 +511,7 @@ const CM = (() => {
     const targets = n.anchor ? [n.anchor.pr] : (n.to || c.prs);
     return targets.map((pr) => {
       const a = n.type === "decision" ? null : n.anchor || anchorFor(c, pr);
-      return { type: "note", note_id: `${n.id}:${pr}`, pr, text: `${pre}: ${n.text}${n.done ? ` (done when: ${n.done})` : ""}`, emoji: n.type === "request" ? "🚫" : null, post: true, style: KIT.host.style,
+      return { type: "note", note_id: `${n.id}:${pr}`, pr, text: `${pre}: ${n.text}${n.done ? ` (done when: ${n.done})` : ""}`, emoji: n.type === "request" ? "🚫" : null, post: !C.product, style: KIT.host.style,
         path: a ? a.path : null, line: a ? a.line : null, target: { kind: "contract", id: c.id, label: `contract ${plain(c.name)}` },
         ...(n.type === "request" ? { request: { id: n.id, contract: c.id, done: n.done || null, prompt: agentPrompt(pr, [n]) } } : {}) };
     });
@@ -523,7 +523,7 @@ const CM = (() => {
     if (st.anchor) n.anchor = st.anchor;
     if (n.type === "request") { const d = draft(); n.to = d.to; n.done = d.done; if (!n.to.length && c.prs.length) return toast("Pick at least one PR to send it to"); }
     S.notes.push(n); save(); st.compose = null; st.anchor = null;
-    KIT.send(events(n)).then((ok) => toast(ok ? "Added to your Cockpit notes, queued for the GitHub review" : "Saved: it's in Your review"));
+    KIT.send(events(n)).then((ok) => toast(ok ? (C.product ? "Saved locally in Cockpit" : "Added to your Cockpit notes, queued for the GitHub review") : "Saved: it's in Your review"));
     renderAll(false);
   }
   function delNote(id) {
