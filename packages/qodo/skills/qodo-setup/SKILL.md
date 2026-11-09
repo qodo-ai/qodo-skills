@@ -4,7 +4,7 @@ description: Set up Qodo in a coding agent — install the CLI, sign in, and ver
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.12"
+  version: "1.0.13"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -15,87 +15,47 @@ metadata:
 
 ## Description
 
-Verify the available Qodo path. Skill installation does not prove account or tool access.
+Skill installation is not readiness. References are relative to this SKILL.md.
 
 ## Prerequisites
 
-A shell for CLI setup or a host-connected QAR MCP server. Never handle credentials.
+Shell or host-connected QAR MCP; never handle credentials.
 
 ## Instructions
 
-### Connected MCP path
+### Connected MCP
 
-Inspect connected QAR tool schemas and annotations. With harmless input, call one
-read-only tool; catalog visibility does not prove read access. Check `isError` before
-`structuredContent`; an execution error is not readiness. A read cannot prove write
-authorization: report writes as unverified until a user-authorized action. Never make
-a test write. The host and QAR own MCP auth. Report missing tools, `MT-AUTH-FORBIDDEN`,
-and connection errors as MCP access issues; never ask for an API key. For MCP-only setup,
-report the verified scope and hand off here. Skip every CLI step below. Continue only if CLI access was
-requested or is needed for local collection, using the same deployment.
+Inspect QAR schemas; call a harmless read and check isError before structuredContent. A catalog proves neither read nor write access; never test-write. Host/QAR own auth. Report missing tools, MT-AUTH-FORBIDDEN or connection errors; never request API keys. For MCP-only setup, hand back. CLI collection uses the same deployment.
 
-Resolve `references/...` links relative to this installed `SKILL.md` directory.
-Runtime/login setup does not authorize enterprise installation or maintenance.
-For requested enterprise installs, disclose packages and maintenance before approval;
-preserve opt-outs, edits, owners and optional-package choices.
+### Runtime
 
-### 1. Find or install the runtime
-
-In PowerShell, resolve the verified native/Node invocation in [runtime.md](references/runtime.md)
-first; `qodo` below represents that invocation. On POSIX, probe PATH directly:
+PowerShell: resolve the verified native/Node invocation in [runtime.md](references/runtime.md). POSIX: probe:
 
 ```sh
 qodo --version
 ```
 
-If missing on POSIX, try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version`.
-For a missing, old or unparseable runtime, follow the reference. Setup requests cover installation subject
-to host approvals; plugin installation alone does not. Retain the selected deployment.
+Then try `"${QODO_HOME:-$HOME/.qodo}/bin/qodo" --version` if missing. Use that verified installer if missing. Setup covers installation subject to host approvals; plugin installation alone does not.
+Keep the executable as `<qodo>`. Require Qodo CLI **2.0.0 or newer** before auth; compatible versions skip update preflight.
 
-Keep the executable as `<qodo>`. Require Qodo CLI **2.0.0 or newer** before authentication.
+### Runtime compatibility recovery
 
-### 2. Connect
+For old/unparseable versions, stop authenticated calls and explain. Before update checks/changes, test only whether QODO_UPDATE_BASE_URL is set; never print/change it. If set, stop for user resolution. All routes preserve origin, exact versions and update holds; never replace an exact version with a channel.
+For parsed1.x, normal `qodo update` reaches approved stable2.x only if that origin enables migration. Require a newer compatible same-origin2.x target from the selected route's supported check. If legacy aliases serve1.x, check latest-2 before proposing `qodo update --channel latest-2`. Missing/failed checks stop; never assume activation or unrelated future-major authority.
+For unparseable version/no supported updater, use the checksum-pinned installer reference. Preserve supported customer selectors/settings; normal verified installation selects the approved version. Explain the route; reuse covering runtime/installation authority or ask once before changing it. Make one approved attempt, reprobe unadorned version, and stop on denial/failure/incompatibility without another route, skill edits or an auth diagnosis.
 
-Run:
+### Connect and verify
 
-```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.12 --distribution marketplace --host claude-code
-```
-
-Reuse a successful identity check. On failure, read
-[authentication.md](references/authentication.md) before choosing login.
-
-For Cloud, run `<qodo> login` when signed out. For customer deployments, preserve the
-documented login endpoint; never fall back to Cloud. Wait for login, then recheck identity.
-
-Reuse the successful execution context, requesting each required host approval. A diagnostic
-approval is not blanket permission. Stop on cancellation or denied permission.
-
-### 3. Verify tools
-
-Only after identity succeeds, run:
-
-```sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.12 --distribution marketplace --host claude-code
-```
-
-Require a usable catalog and the task's capability; unrelated tools do not establish access.
-If refresh fails, report that sign-in succeeded but tools are unavailable, with the exact error
-and `<qodo> tools --refresh` as the retry. Do not log in again for a catalog failure.
+Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.13 --distribution marketplace --host claude-code`. Reuse success. Read [authentication.md](references/authentication.md) before login on failure; preserve deployment, never fall back to Cloud. Wait/recheck identity; stop on denial/cancellation. Diagnostic approval is not blanket authority.
+Only after identity succeeds run `<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.13 --distribution marketplace --host claude-code`. Require task capability. On failure report signed in but tools unavailable, exact error and that retry; do not log in again. Reuse verified context with host approvals.
 
 ## Configuration
 
-The CLI owns credentials, transport and runtime updates; the package's
-lifecycle owner updates skills. For `QODO_NOTICE` updates or repeated Kiro read approvals,
-read [host-recovery.md](references/host-recovery.md) only when encountered.
-
+Setup does not authorize enterprise installation/maintenance. Disclose packages/maintenance; preserve opt-outs, edits, owners and choices. Never install optional Standards. For QODO_NOTICE/repeated Kiro read approvals read [host-recovery.md](references/host-recovery.md). CLI owns credentials/transport/updates; lifecycle owners update skills.
 ## Error Handling
 
-Give the actual error and one next action. Never report readiness after a failed
-identity, canceled login or unavailable catalog. Never disable the keychain, copy credentials,
-change host permission files, or offer unrestricted command approvals to make setup pass.
+Report the error and one next action. Never claim readiness after failure, disable Keychain, copy credentials, change permissions or offer unrestricted approvals.
 
 ## 4. Hand off
 
-Confirm Qodo connection and relevant tool readiness, then return to the authorized task.
-Readiness does not prove a later tool call succeeds. Do not install optional Standards.
+Confirm Qodo connection/tools and return to the task. Readiness does not guarantee later access.

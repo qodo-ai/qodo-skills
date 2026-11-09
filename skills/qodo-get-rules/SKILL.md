@@ -4,7 +4,7 @@ description: Retrieve and apply Qodo coding rules relevant to implementation, pl
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.7"
+  version: "1.1.8"
   recommended: "false"
   package: "qodo-standards"
   distribution: "skills-sh"
@@ -88,7 +88,7 @@ incompatibility, stop with skill and user files unchanged; do not retry through 
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.7 --distribution skills-sh
+qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.8 --distribution skills-sh
 qodo read rules search --query "Name: JWT Authentication Endpoint Validation
 Category: Security
 Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json
