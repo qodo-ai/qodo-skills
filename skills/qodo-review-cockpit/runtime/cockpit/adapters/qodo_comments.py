@@ -37,7 +37,7 @@ ASPECTS = {"correctness": "bug", "reliability": "bug", "security": "security", "
            "documentation": "docs"}
 TYPES = {"bug": "bug", "rule violation": "rule", "requirement gap": "requirement",
          "cross-repo conflict": "cross-repo", "skill insight": "general", "memory": "general"}
-SEVERITY = {"high": "high", "critical": "high", "action_required": "high", "medium": "medium", "low": "low",
+SEVERITY = {"high": "high", "critical": "high", "action_required": "high", "required": "high", "medium": "medium", "recommended": "medium", "remediation_recommended": "medium", "low": "low",
             "optional": "low", "informational": "low", "info": "low"}
 
 BADGE = re.compile(r'img\.shields\.io/badge/(?P<sev>[A-Za-z_]+)-[0-9A-Fa-f]+[^>]*>')
@@ -159,6 +159,7 @@ def _parse_item(head: str, block: str, sev: str | None) -> dict:
     a = int(code.group("a")) if code else None
     return {
         "title": title or "Qodo finding", "severity": SEVERITY.get((sev or "").lower(), "medium"),
+        "severity_guessed": (sev or '').lower() not in SEVERITY,
         "category": _category(kind, aspect), "qodo_type": kind, "qodo_aspect": aspect, "labels": other,
         "path": code.group("path") if code else None, "line": a,
         "end_line": int(code.group("b")) if code and code.group("b") else a,
@@ -196,8 +197,8 @@ def parse_review(body: str) -> tuple[list[dict], set[str], str | None]:
         end = rs[i + 1].start() if i + 1 < len(rs) else len(resolved_part)
         f = _parse_item(m.group("title") + " " + m.group("labels"), resolved_part[m.end():end], None)
         verdict = next((v for v in ("Dismissed", "Outdated", "Resolved") if v in m.group("labels")), "Resolved")
-        label = re.search(r'<code>\s*(high|critical|medium|low|optional|informational|action_required)\s*</code>', m.group('labels'), re.I)
-        f.update(title=plain(m.group("title")), severity=SEVERITY[label.group(1).lower()] if label else 'unknown', status=verdict.lower(),
+        label = next((x.lower() for x in _labels(m.group('labels'))[2] if x.lower() in SEVERITY), None)
+        f.update(title=plain(m.group("title")), severity=SEVERITY.get(label, 'unknown'), status=verdict.lower(),
                  status_why=f"{verdict} in Qodo's review.")
         f['severity_guessed'] = f['severity'] == 'unknown'
         out.append(f)
@@ -297,7 +298,7 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
             closed = by_uuid.get(tkey)
             if closed is not None and not closed.get("path"):   # give the closed item its place in the code
                 closed.update(path=c["path"], line=c.get("line"), url=closed.get("url") or c.get("url"))
-            if closed is not None and closed.get('severity_guessed') and f.get('severity') in SEVERITY.values():
+            if closed is not None and closed.get('severity_guessed') and not f.get('severity_guessed') and f.get('severity') in SEVERITY.values():
                 closed.update(severity=f['severity'], severity_guessed=False)
             continue
         key = f["qodo_id"] or tkey
@@ -314,7 +315,7 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
             _thread(by_uuid[key], replies.get(c["id"], []))
             continue
         # The inline comment's badge is per finding; a summary group badge may be a guess.
-        keep_inline = ("path", "line", "url") + (("severity", "severity_guessed") if prev.get("severity_guessed") else ())
+        keep_inline = ("path", "line", "url") + (("severity", "severity_guessed") if prev.get("severity_guessed") and not f.get('severity_guessed') else ())
         merged = {**base, **f, **{k: v for k, v in prev.items() if v and k not in keep_inline}}
         merged.update(id=prev.get("id") or _fid(pr, f["qodo_id"] or c["id"]), url=c.get("url"),
                       path=c["path"], line=c.get("start_line") or prev.get("line") or c.get("line") or f["line"],

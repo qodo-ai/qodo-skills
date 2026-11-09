@@ -60,6 +60,13 @@ class ProductHostedReviewTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertIn('detected after merge; no fix verified',result.stdout)
         self.assertNotIn('<b>fixed</b>',result.stdout)
+        app=(util.ROOT/'app/app.js').read_text()
+        start=app.index('function panelFindings(');panel=app[start:app.index('\n}',start)+2]
+        setup='const esc=String,verdicts=()=>({}),sortedFindings=p=>p.findings||[],collapseRule=()=>false,findingView=f=>f.status_why,S={showCollapsed:{}};'
+        result=subprocess.run(['node','-e',setup+panel+';console.log(panelFindings('+json.dumps({'key':pr['key'],'findings':[],'outdated':[local]})+'));'],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('post-merge detections with no fix verified',result.stdout)
+        self.assertNotIn('No findings from Qodo',result.stdout)
 
     def test_reviewers_command_cannot_overwrite_a_concurrent_enrichment(self):
         helper=helpers.ProductEnrichRefreshTests();entered=threading.Event();release=threading.Event();errors=[]
@@ -107,6 +114,17 @@ class ProductHostedReviewTests(unittest.TestCase):
                 self.assertEqual(len(memory.OKF(root/'okf').concepts()),1)
                 enrich.enrich(sd,payload)
                 self.assertEqual(len(json.loads((sd/'review-data.json').read_text())['okf']['candidates']),1)
+                data=json.loads((sd/'review-data.json').read_text());data['okf']['candidates']=[]
+                second=copy.deepcopy(data['prs'][0]);second.update(key='org/repo#2',number=2);data['prs'].append(second)
+                (sd/'review-data.json').write_text(json.dumps(data))
+                multi={'knowledge':[{'title':'Decision','pr':'org/repo#1'},
+                                    {'title':'Decision','pr':'org/repo#2'},
+                                    {'title':' decision ','pr':'org/repo#2'}]}
+                enrich.enrich(sd,multi);enrich.enrich(sd,multi)
+                candidates=json.loads((sd/'review-data.json').read_text())['okf']['candidates']
+                self.assertEqual(len(candidates),2)
+                self.assertEqual({c['pr'] for c in candidates},{'org/repo#1','org/repo#2'})
+                self.assertEqual(len({c['path'] for c in candidates}),1)
 
     def test_closed_comment_severity_is_explicit_or_unknown_and_inline_restores_it(self):
         summary='Code Review by Qodo\n<h3>Resolved findings</h3>\n<details><summary>1. <s>Concern</s> <code>Resolved</code></summary></details>'
@@ -114,6 +132,9 @@ class ProductHostedReviewTests(unittest.TestCase):
         self.assertEqual(rows[0]['severity'],'unknown')
         explicit=summary.replace('<code>Resolved</code>','<code>High</code> <code>Resolved</code>')
         self.assertEqual(qodo_comments.parse_review(explicit)[0][0]['severity'],'high')
+        for label in ('🔴 High','⭐ Required'):
+            decorated=summary.replace('<code>Resolved</code>','<code>'+label+'</code> <code>Resolved</code>')
+            self.assertEqual(qodo_comments.parse_review(decorated)[0][0]['severity'],'high')
         pr={'key':'o/r#1','repo':'o/r','number':1,'_raw_comments':[
             {'id':'summary','author':'qodo-code-review[bot]','body':summary},
             {'id':'inline','author':'qodo-code-review[bot]','path':'a.py','line':1,
@@ -122,6 +143,14 @@ class ProductHostedReviewTests(unittest.TestCase):
         self.assertEqual(len(findings),1)
         self.assertEqual(findings[0]['status'],'resolved')
         self.assertEqual(findings[0]['severity'],'high')
+        link='[View finding](https://portal.test/findings/finding-one)'
+        for linked_summary in (False,True):
+            pr['_raw_comments'][0]['body']=summary+(link if linked_summary else '')
+            for badge,expected in ((None,'unknown'),('UnknownLabel','unknown'),('Required','high')):
+                pr['_raw_comments'][1]['body']='1. Concern\n'+link+('\n<img src="https://img.shields.io/badge/'+badge+'-ff0000">' if badge else '')
+                findings=qodo_comments.collect(pr,{})
+                self.assertEqual(len(findings),1)
+                self.assertEqual(findings[0]['severity'],expected,(linked_summary,badge))
 
     def test_unassessed_impact_stays_unknown_through_enrichment_and_public_view(self):
         helper=helpers.ProductEnrichRefreshTests()
@@ -133,3 +162,16 @@ class ProductHostedReviewTests(unittest.TestCase):
                 public=view.view_data(sd)
                 self.assertEqual(public['impact'][0]['risk'],'unknown')
                 self.assertEqual(public['risk']['level'],'unknown')
+                source=(util.ROOT/'app/styles/package.js').read_text()
+                def function(name):
+                    start=source.index('function '+name+'(')
+                    return source[start:source.index('\n}',start)+2]
+                constants='\n'.join(line for line in source.splitlines() if line.startswith(('const RISKS_ORDER =','const IMPACT =')))
+                row=source[source.index('const impactRow ='):source.index('function impactBody(')]
+                setup='const C='+json.dumps(public)+';const S={bpin:null,open:{}},EXPAND=false;const esc=String,md=String,silent=()=>false;'
+                code=setup+constants+row+function('impactBody')+function('planBlast')+function('blastDetail')
+                code+=';console.log(JSON.stringify({parts:impactBody("parts"),workflows:impactBody("workflows"),blast:planBlast(false)}));'
+                result=subprocess.run(['node','-e',code],capture_output=True,text=True)
+                self.assertEqual(result.returncode,0,result.stderr)
+                rendered=json.loads(result.stdout);self.assertIn('Unknown',rendered['parts'])
+                self.assertNotIn('undefined',rendered['blast'])

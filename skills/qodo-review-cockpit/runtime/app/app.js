@@ -311,13 +311,13 @@ function sortedFindings(pr) {
 function panelFindings(pr) {
   const v = verdicts(pr.key);
   const list = sortedFindings(pr);
-  if (!list.length) return `<p class="empty">No findings from Qodo or the agent for this PR.</p>`;
+  if (!list.length && !(pr.outdated || []).length) return `<p class="empty">No findings from Qodo or the agent for this PR.</p>`;
   const nColl = list.filter((f) => collapseRule(f)).length;
   const done = list.filter((f) => v[f.id]).length;
   return `${pr.qodo?.omitted ? `<div class="pref-why">Qodo: ${esc(pr.qodo.omitted)}</div>` : ""}<div class="row" style="justify-content:space-between"><span class="muted">${done}/${list.length} triaged · sorted by your priorities, then severity</span>
     ${nColl ? `<button class="btn small amr" data-act="showcoll" data-pr="${esc(pr.key)}">${S.showCollapsed[pr.key] ? "Collapse" : "Expand"} ${nColl} collapsed by preference</button>` : ""}</div>
     ${list.map((f) => findingView(f, pr, v[f.id])).join("")}
-    ${(pr.outdated || []).length ? `<details class="outdated"><summary class="muted">${pr.outdated.length} closed: dismissed or resolved in Qodo, or no longer in the diff</summary>${pr.outdated.map((f) => findingView(f, pr, v[f.id])).join("")}</details>` : ""}`;
+    ${(pr.outdated || []).length ? `<details class="outdated"><summary class="muted">${pr.outdated.length} not open in this review${pr.outdated.some((f) => f.status === 'detected_after_merge') ? '; includes post-merge detections with no fix verified' : ''}</summary>${pr.outdated.map((f) => findingView(f, pr, v[f.id])).join("")}</details>` : ""}`;
 }
 // ---- diff rendering, semantic by default: moves fold into one row, formatting-only edits read as
 // context, and the tokens that really changed inside an edited line are highlighted.

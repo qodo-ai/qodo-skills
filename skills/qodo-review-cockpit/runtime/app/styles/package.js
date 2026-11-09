@@ -122,8 +122,8 @@ function squarify(items, x, y, w, h) {   // Bruls et al.: rows of near-square ce
 }
 /* two ways to unfold the bar: where the lines sit (Map) and in what order they're read (Route) */
 /* ---------- impact: what the change reaches (blast radius) and how it was checked; two layouts to compare ---------- */
-const RISKS_ORDER = ["high", "medium", "low"];
-const IMPACT = C.impact || [], RISK = { high: ["▲", "High"], medium: ["●", "Medium"], low: ["○", "Low"] };
+const RISKS_ORDER = ["high", "medium", "low", "unknown"];
+const IMPACT = C.impact || [], RISK = { high: ["▲", "High"], medium: ["●", "Medium"], low: ["○", "Low"], unknown: ["?", "Unknown"] };
 const impactNote = () => C.impact_source === "review"
   ? "From the review's research: who depends on each part was found by search at the base and from the journey. A static estimate, not a runtime trace."
   : "From the diff: the changed files a human reads. The review didn't map who depends on them yet.";
