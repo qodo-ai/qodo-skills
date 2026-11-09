@@ -225,7 +225,10 @@ class Client:
                 author = (user.get('login') or user.get('name')) if isinstance(user, dict) else user
                 comments.append({**c, 'author': author, 'body': c.get('body') or '', 'url': c.get('url') or c.get('html_url'),
                                  'created': c.get('created_at') or c.get('submitted_at'), 'updated': c.get('updated_at'),
-                                 'line': c.get('line') or c.get('original_line'), 'reply_to': c.get('parent_id') or c.get('in_reply_to_id')})
+                                 'line': c.get('line') if identity['provider'] == 'github' else c.get('line') or c.get('original_line'),
+                                 'reply_to': c.get('parent_id') or c.get('in_reply_to_id'),
+                                 **({'provider_position_current': False} if identity['provider'] == 'github'
+                                    and 'line' in c and c['line'] is None and c.get('original_line') is not None else {})})
         checks = []
         for c in evidence['checks']['items'] + evidence['statuses']['items']:
             checks.append({**c, 'name': c.get('name') or c.get('context') or 'check',

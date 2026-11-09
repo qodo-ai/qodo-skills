@@ -138,6 +138,12 @@ def normalize(beats: list[dict], *, where: str, prs: dict[str, dict], sdir: Path
                 warn.append(f"{tag}: code path {b.get('path')} is not in the changed files")
             if not (isinstance(b.get("from"), int) and isinstance(b.get("to"), int) and b["to"] >= b["from"]):
                 warn.append(f"{tag}: code needs integer from <= to (new-file lines)")
+            else:
+                from .behavior import window
+                candidates = [f for p in pr_keys if b.get('pr') in (None, p)
+                              for f in prs[p].get('files', []) if f.get('path') == b.get('path')]
+                if candidates and not any(window(f, b.get('side', 'new'), b['from'], b['to']) for f in candidates):
+                    warn.append(f"{tag}: no observed code in this range; the excerpt is unavailable")
         if k == "shape":
             lines = (b.get("text") or "").rstrip("\n").split("\n")
             if not b.get("text"):

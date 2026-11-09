@@ -322,6 +322,14 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
                       end_line=c.get("line") or prev.get("end_line") or f["end_line"],
                       qodo_aspect=f["qodo_aspect"] or prev.get("qodo_aspect"),
                       category=_category(f["qodo_type"] or prev.get("qodo_type"), f["qodo_aspect"] or prev.get("qodo_aspect")))
+        if c.get('provider_position_current') is False and not prev:
+            # A native old coordinate is evidence, not a position in today's diff.
+            # Leave finding lifecycle to the structured review; do not infer resolution.
+            merged.update(provider_position_current=False, current_anchor=False,
+                          source_location={'path': c['path'], 'line': c.get('original_line'),
+                                           'end_line': c.get('original_line'), 'side': c.get('side'),
+                                           'git_sha': c.get('original_commit_id') or c.get('commit_id')},
+                          path=None, line=None, end_line=None)
         by_uuid[key] = merged
         _thread(merged, replies.get(c["id"], []))
 

@@ -84,6 +84,7 @@ const KIT = (() => {
   }
   const codeHtml = (block, opts = {}) => {
     if (!block) return "";
+    if (!block.lines.length) return '<div class="muted">No observed code in this range.</div>';
     const lang = langOf(opts.path || block.path);
     const rows = block.lines.map(([k, o, n, t]) => `<div class="cl ${k === "+" ? "add" : k === "-" ? "del" : "ctx"}${opts.hl && opts.hl.includes(n) ? " hl" : ""}"><span class="ln">${n ?? o ?? ""}</span><span class="sg">${k === " " ? "" : esc(k)}</span><span class="tx">${hlText(String(t ?? ""), lang)}</span></div>`).join("");
     return `<div class="code">${rows}${block.cut ? `<div class="cl cut"><span class="ln"></span><span class="sg"></span><span class="tx">… ${block.cut} more lines</span></div>` : ""}</div>`;

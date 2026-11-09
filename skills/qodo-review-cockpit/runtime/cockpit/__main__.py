@@ -55,7 +55,9 @@ def _warn_missing(sdir, style):
 
 
 def _target(spec: str, path: str | None, line: int | None) -> dict:
-    if path and line:
+    if line is not None:
+        if type(line) is not int or line < 1 or not path:
+            raise ValueError("A line target needs --path and a positive --line.")
         return {"kind": "line", "id": f"{path}:{line}", "label": f"{path}:{line}"}
     kind, _, ident = spec.partition(":")
     return {"kind": kind or "pr", "id": ident or spec}
@@ -258,7 +260,11 @@ def main(argv=None):
         from .server import append_events
         sdir = _session_dir(a.session)
         data = json.loads((sdir / "review-data.json").read_text())
-        ev = {"type": a.cmd, "pr": a.pr, "target": _target(a.target, a.path, a.line), "path": a.path, "line": a.line}
+        try:
+            target = _target(a.target, a.path, a.line)
+        except ValueError as error:
+            ap.error(str(error))
+        ev = {"type": a.cmd, "pr": a.pr, "target": target, "path": a.path, "line": a.line}
         if a.cmd == "note":
             ev.update({"text": a.text, "emoji": a.emoji, "post": a.post, "note_id": "n-" + secrets.token_hex(4)})
         else:

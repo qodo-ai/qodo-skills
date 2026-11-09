@@ -128,7 +128,11 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
     for key, extra in (payload.get("prs") or {}).items():   # decisions against the plan; after findings, so their ids resolve
         if key in by_key and extra.get("decisions") is not None:
             from .decisions import normalize as normalize_decisions
-            by_key[key]["decisions"], w = normalize_decisions(extra["decisions"], by_key[key])
+            decisions, w = normalize_decisions(extra["decisions"], by_key[key])
+            from .product import enabled
+            if enabled() and w:
+                raise ValueError("Invalid decisions; saved review unchanged: " + "; ".join(w))
+            by_key[key]["decisions"] = decisions
             warnings += w
     quality_for = {}   # read after attention below, which decides what counts as weakened or untested
     for key, extra in (payload.get("prs") or {}).items():
@@ -192,7 +196,11 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
         data["criticality"], w = normalize_map(payload["criticality"], "discovered"); warnings += w
     if payload.get("rollback") is not None:   # how to undo the package; checked against the rollback-sensitive files below
         from .rollback import normalize as normalize_rollback
-        data["rollback"], w = normalize_rollback(payload["rollback"], set(by_key)); warnings += w
+        rollback, w = normalize_rollback(payload["rollback"], set(by_key))
+        from .product import enabled
+        if enabled() and w:
+            raise ValueError("Invalid rollback; saved review unchanged: " + "; ".join(w))
+        data["rollback"] = rollback; warnings += w
     if payload.get("door") is not None:
         from .impact import normalize_door
         data["door"], w = normalize_door(payload["door"]); warnings += w
