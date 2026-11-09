@@ -76,7 +76,7 @@ class AMR:
         mem = self.root / "MEMORY.md"
         if not mem.exists():
             idx = "\n".join(f"- [[{p[:-3]}]]" for p in PREF_FILES.values())
-            write_text(mem,
+            write_text(mem.resolve(),
                 f"# Memory: {reviewer} (PR review)\n"
                 f"- Preferences are learned from review sessions in the cockpit [added: {today()}]\n"
                 f"- Bullets with a `rule:` key are applied by the app once `evidence` reaches the threshold\n\n"
@@ -86,12 +86,12 @@ class AMR:
             text = mem.read_text()
             missing = [f"- [[{p[:-3]}]]" for p in PREF_FILES.values() if f"[[{p[:-3]}]]" not in text]
             if missing and "## Index" in text:
-                write_text(mem, text.replace("## Index\n", "## Index\n" + "\n".join(missing) + "\n", 1))
+                write_text(mem.resolve(), text.replace("## Index\n", "## Index\n" + "\n".join(missing) + "\n", 1))
         for name, rel in PREF_FILES.items():
             p = self.root / rel
             if not p.exists():
                 p.parent.mkdir(parents=True, exist_ok=True)
-                write_text(p, f"# {name.title()} preferences\n")
+                write_text(p.resolve(), f"# {name.title()} preferences\n")
         (self.root / "reviews").mkdir(exist_ok=True)
 
     def bullets(self) -> list[Bullet]:
@@ -130,10 +130,10 @@ class AMR:
                 if bullet.meta.get("source"):
                     b.meta["source"] = bullet.meta["source"]
                 lines[i] = b.render()
-                write_text(path, "\n".join(lines) + "\n")
+                write_text(path.resolve(), "\n".join(lines) + "\n")
                 return "updated"
         lines.append(bullet.render())
-        write_text(path, "\n".join(lines) + "\n")
+        write_text(path.resolve(), "\n".join(lines) + "\n")
         return "added"
 
 
@@ -190,7 +190,7 @@ class OKF:
         if not (self.root / "index.md").exists():
             self.write_index()
         if not (self.root / "log.md").exists():
-            write_text(self.root / "log.md", "# Log\n")
+            write_text((self.root / "log.md").resolve(), "# Log\n")
 
     def concepts(self) -> list[Concept]:
         out = []
@@ -218,7 +218,7 @@ class OKF:
     def write(self, c: Concept):
         p = self._safe(c.path)
         p.parent.mkdir(parents=True, exist_ok=True)
-        write_text(p, dump_frontmatter(c.meta) + "\n" + c.body.strip() + "\n")
+        write_text(p.resolve(), dump_frontmatter(c.meta) + "\n" + c.body.strip() + "\n")
 
     @memory_write
     def propose(self, *, type_: str, title: str, body: str, paths: list[str], by: str,
@@ -301,7 +301,7 @@ class OKF:
         else:
             # newest first: insert right after the title line
             lines[1:1] = ["", head, entry]
-        write_text(p, "\n".join(lines).rstrip() + "\n")
+        write_text(p.resolve(), "\n".join(lines).rstrip() + "\n")
 
     @memory_write
     def write_index(self):
@@ -317,7 +317,7 @@ class OKF:
                 flag = "" if st == "stable" else f" _({st})_"
                 out.append(f"- [{c.meta.get('title', c.path)}]({c.path}){flag}: {c.meta.get('description', '')}")
             out.append("")
-        write_text(self.root / "index.md", "\n".join(out).rstrip() + "\n")
+        write_text((self.root / "index.md").resolve(), "\n".join(out).rstrip() + "\n")
 
     def validate(self) -> list[str]:
         problems = []

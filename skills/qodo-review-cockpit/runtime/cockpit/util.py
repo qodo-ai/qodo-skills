@@ -96,12 +96,12 @@ def today() -> str:
 
 
 def write_text(path, text) -> None:
-    """Replace one UTF-8 file atomically; interrupted writes keep its prior bytes."""
+    """Replace one text file atomically, preserving the caller’s default text encoding."""
     import os, tempfile
     path = Path(path)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        with os.fdopen(fd, "w") as fh:
             fh.write(text)
         os.replace(tmp, path)
     except BaseException:

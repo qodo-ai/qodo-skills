@@ -291,3 +291,17 @@ class ProductHostedReviewTests(unittest.TestCase):
                 self.assertEqual(list(target.parent.glob('.'+target.name+'.*.tmp')),[])
             self.assertEqual(okf.get(c.path).body.strip(),original.body)
             okf.write(c);self.assertEqual(okf.get(c.path).body.strip(),'Replacement')
+
+            # Atomic replacement must retain existing file-symlink semantics.
+            shared=root/'shared.md';shared.write_bytes(pref.read_bytes());pref.unlink();pref.symlink_to(shared)
+            amr.upsert(memory.Bullet('Shared preference',file='preferences/general.md'))
+            self.assertTrue(pref.is_symlink());self.assertIn('Shared preference',shared.read_text())
+            # Direct callers keep their existing locale; the supported launcher enables UTF-8.
+            original=os.fdopen
+            def legacy_default(fd,mode,**kwargs):
+                self.assertIsNone(kwargs.get('encoding'))
+                return original(fd,mode,encoding='cp1252')
+            locale_file=root/'locale.json'
+            with mock.patch('os.fdopen',side_effect=legacy_default):
+                util.write_json(locale_file,{'text':'café €'})
+            self.assertEqual(json.loads(locale_file.read_bytes().decode('cp1252')),{'text':'café €'})
