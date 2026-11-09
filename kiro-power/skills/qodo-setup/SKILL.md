@@ -4,7 +4,7 @@ description: Set up Qodo in a coding agent — install the CLI, sign in, and ver
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.13"
+  version: "1.0.14"
   recommended: "true"
   package: "qodo"
   distribution: "kiro-power"
@@ -46,8 +46,20 @@ For unparseable version/no supported updater, use the checksum-pinned installer 
 
 ### Connect and verify
 
-Run `<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.13 --distribution kiro-power --host kiro`. Reuse success. Read [authentication.md](references/authentication.md) before login on failure; preserve deployment, never fall back to Cloud. Wait/recheck identity; stop on denial/cancellation. Diagnostic approval is not blanket authority.
-Only after identity succeeds run `<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.13 --distribution kiro-power --host kiro`. Require task capability. On failure report signed in but tools unavailable, exact error and that retry; do not log in again. Reuse verified context with host approvals.
+Run:
+
+```sh
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.14 --distribution kiro-power --host kiro
+```
+
+Reuse success. Read [authentication.md](references/authentication.md) before login on failure; preserve deployment, never fall back to Cloud. Wait/recheck identity; stop on denial/cancellation. Diagnostic approval is not blanket authority.
+Only after identity succeeds run:
+
+```sh
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.14 --distribution kiro-power --host kiro
+```
+
+Require task capability. On failure report signed in but tools unavailable, exact error and that retry; do not log in again. Reuse verified context with host approvals.
 
 ## Configuration
 
