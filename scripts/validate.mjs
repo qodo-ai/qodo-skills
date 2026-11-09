@@ -1,11 +1,6 @@
 /** Validate canonical skills, generated adapters, and release invariants. */
 import { execFileSync } from 'node:child_process';
-import {
-  existsSync,
-  lstatSync,
-  readFileSync,
-  readdirSync,
-} from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
@@ -468,7 +463,7 @@ for (const change of Array.isArray(release.skills) ? release.skills : []) {
 
 for (const file of walk(root)) {
   const path = relative(root, file);
-  // Imported upstream resources are hash-verified separately; the line limit applies to authored source.
+  // The maintained Cockpit component preserves its existing files under its scoped exception.
   if (/\.(md|mjs|json|ya?ml)$/.test(path) && !path.split('\\').join('/').includes('skills/qodo-review-cockpit/runtime/')) {
     const text = readFileSync(file, 'utf8');
     const lines = text.endsWith('\n') ? text.slice(0, -1).split('\n').length : text.split('\n').length;
@@ -480,6 +475,10 @@ for (const file of walk(root)) {
       fail(`${path}: bypasses the qodo runtime credential boundary`);
     }
   }
+}
+
+if (existsSync(join(skillsRoot, 'qodo-review-cockpit'))) {
+  try { const {verifyRuntime} = await import('./cockpit-runtime.mjs'); verifyRuntime(); } catch (error) { fail(`Cockpit component: ${error.message}`); }
 }
 
 try {

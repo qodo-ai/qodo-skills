@@ -77,7 +77,7 @@ Packaged code is immutable. Sessions/config/styles live in `~/.qodo/review-cockp
 `REVIEW_COCKPIT_HOME` / `PR_COCKPIT_HOME` overrides and configured session directories.
 `<cockpit> home` reports effective paths. Fresh optional memory stays off; preserve existing
 choices. Never initialize or commit a memory repo without the user's explicit choice.
-[Packaging and component terms](references/packaging.md) describe the pinned engine/UI payload.
+[Packaging and component terms](references/packaging.md) describe the maintained engine/UI component.
 
 ## Error Handling
 

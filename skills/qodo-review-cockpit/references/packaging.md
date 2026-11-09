@@ -1,36 +1,40 @@
-# Package provenance and maintenance
+# Component ownership and delivery
 
-The separate optional `qodo-cockpit` package includes this skill without activation hooks or installation-time startup.
-`runtime-manifest.json` pins the Qodo Cockpit repository commit and every imported file's original
-and sanitized SHA-256/size. `runtime/` holds the engine, app assets, shipped config and LICENSE.
-The launcher locates it relative to its own installed file. No clone or network fetch occurs at
-runtime. Manifest hashes are verified during import/build/tests for provenance and reproducibility;
-they are not a runtime attestation or a new signed-updater trust anchor. Updates come through the existing Qodo skills distribution, never a Cockpit updater.
+Cockpit's canonical engine/UI lives in this repository at `skills/qodo-review-cockpit/runtime/`.
+Edit it directly and include its tests in the same PR. The standalone Cockpit repository is historical
+origin, not a build, installation or maintenance dependency. No source checkout, importer, runtime
+commit pin or second-repository PR is required. Installed resources remain immutable; updates use
+the existing skills distribution and preserve external reviewer sessions/config.
 
-Canonical skill/launcher/import automation follows the qodo-skills repository MIT license.
-The imported Cockpit payload remains Copyright Qodo, governed by the user's Qodo agreement or
-Qodo Terms of Use, as its own `runtime/LICENSE` states. Optional Cockpit plugin manifests declare `MIT AND LicenseRef-Qodo-Cockpit`; the repository MIT
-license does not relicense that payload. The skill-local NOTICE explains both components. See https://www.qodo.ai/terms/ for the Cockpit component terms.
+The separate optional `qodo-cockpit` package includes the skill, launcher, runtime, demo fixtures and
+component LICENSE. It has no activation hook or installation-time startup. The stdlib launcher locates
+resources relative to itself and does not clone, fetch or update them at runtime.
 
-Maintainers import only an explicit reviewed full commit SHA:
+## Maintaining and testing
 
-```sh
-node scripts/import-cockpit-runtime.mjs --source /path/to/upstream --commit <40-hex-sha>
-node scripts/import-cockpit-runtime.mjs --verify
-```
+Run `node scripts/cockpit-runtime.mjs` to validate current maintained source. The source-local policy
+in `scripts/cockpit-runtime-policy.json` rejects private/state files, internal markers, unsafe paths,
+unreviewed assets and resources over 512 KiB. It verifies component terms and the reviewed favicon.
+Edited source is validated as written, never silently sanitized. Inventory hashes are computed from
+current source and compared across generated packages; existing release manifests provide package
+provenance. There is no manually refreshed upstream hash receipt.
 
-The importer verifies the intended source remote, reads Git objects, rejects dirty relevant source
-files, preserves LICENSE exactly, applies the pinned upstream
-release manifest sanitization/scan policy and records exact hashes. It excludes real memory, sessions,
-local config, caches, internal design, screenshots and install/update scripts. A committed public
-demo fixture is allowed explicitly; no customer data is copied. Binary resources are rejected.
-The existing 512 KiB per-file CLI limit remains in force. Imported upstream files retain their
-upstream structure; newly authored packaging files remain below 500 lines.
+Runtime behavior tests and fixtures live in `test/cockpit/`. Run `node scripts/test-cockpit-runtime.mjs`
+for the isolated Python 3.9+ suite, or `npm test -- --base <base-sha>` for the full source preview,
+runtime, packaging and release checks. The runner keeps HOME, temporary files and reviewer data
+separate from personal state. Tests require no standalone checkout or historical Cockpit Git objects.
+CI owns preview generation; the release process owns versions and generated host packages.
 
-Run source-preview `npm test -- --base <base-sha>` without editing generated packages, release
-records or existing versions. CI owns preview generation; release preparation owns generated
-host resources and final version/provenance stamping. Package qualification is separate from
-live browser/provider acceptance and from merge/release/marketplace visibility.
+Existing runtime files and the migrated legacy `test/cockpit/tests/test_cockpit.py` retain their structure
+under the maintained-component line-count exception. New tooling and instructions keep the repository's
+500-line guideline. The 512 KiB per-resource bound remains unchanged.
+
+## Component terms
+
+Canonical skill/launcher/packaging automation follows this repository's MIT license. Cockpit runtime
+and its migrated original tests preserve their component LICENSE and Copyright Qodo terms. Optional
+manifests declare `MIT AND LicenseRef-Qodo-Cockpit`; root MIT does not relicense the component.
+See skill-local NOTICE, runtime/LICENSE and test/cockpit/LICENSE. Core/Standards terms remain unchanged.
 
 ## Install scope and current managed compatibility
 
@@ -51,7 +55,7 @@ npx skills add https://github.com/qodo-ai/qodo-skills --skill qodo-review-cockpi
 ```
 
 Run installation only with covering user authorization and use an approved release/source version.
-No private Cockpit clone is needed. Start a new host session, invoke qodo-review-cockpit explicitly,
+No separate Cockpit checkout is needed. Start a new host session, invoke qodo-review-cockpit explicitly,
 then use the skill-relative launcher. Do not overwrite a standalone review-prs alias or data home.
 
 The current CLI/enterprise managed protocol supports only qodo and qodo-standards. Cockpit is

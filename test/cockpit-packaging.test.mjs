@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { importRuntime, selected, verifyRuntime } from '../scripts/import-cockpit-runtime.mjs';
+import { selected, verifyRuntime } from '../scripts/cockpit-runtime.mjs';
 import { gunzipSync } from 'node:zlib';
 import { buildEnterpriseBundle } from '../scripts/build-enterprise-bundle.mjs';
 import { kiroRoot } from '../scripts/package-projections.mjs';
@@ -34,135 +34,64 @@ function chmodTree(path, dirMode, fileMode) {
     else chmodSync(child, fileMode);
   }
 }
-function git(path, ...args) {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^GIT_/i.test(name)));
-  return execFileSync('git', ['-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', '-C', path, ...args],
-    { encoding: 'utf8', env, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-}
-// A committed policy hash is retained alongside the manifest-driven sanitizer.
-const policy = '# fixture release policy\n';
-function sourceFixture(t) {
-  const path = temp(t);
-  git(path, 'init', '-q');
-  git(path, 'config', 'core.autocrlf', 'false');
-  git(path, 'config', 'core.safecrlf', 'false');
-  git(path, 'remote', 'add', 'origin', 'https://github.com/qodo-ai/pr-review-cockpit.git');
-  git(path, 'config', 'user.name', 'ZzAuthor'); git(path, 'config', 'user.email', 'zzauthor@example.invalid');
-  const files = { 'cockpit/__init__.py': '', 'cockpit/__main__.py': 'print("fixture")\n',
-    'app/index.html': '<html>Fixture</html>\n', 'config.json': '{}\n', LICENSE: 'Fixture terms\n',
-    'release/build.py': policy, 'release/manifest.json': JSON.stringify({never: [], rules: [{name:'secret',pattern:'SECRET_TEST'}]}),
-    'cockpit/helper.py': '# release:internal\nprivate detail\n# /release:internal\npublic = True\n',
-    'memory/amr/MEMORY.md': 'never import\n', 'sessions/private.json': 'never import\n',
-    'config.local.json': 'never import\n', 'app/design.png': 'never import\n' };
-  for (const [name, text] of Object.entries(files)) put(join(path, name), text);
-  git(path, 'add', '.'); git(path, 'commit', '-qm', 'Fixture snapshot');
-  return { source: path, commit: git(path, 'rev-parse', 'HEAD'), destination: join(temp(t), 'skill') };
+function componentFixture(t) {
+  const destination = join(temp(t), 'skill');
+  cpSync(canonical, destination, {recursive: true});
+  return {destination, runtime: join(destination, 'runtime')};
 }
 
-test('committed import is deterministic, sanitizes internal blocks, excludes state and pins hashes', (t) => {
-  const options = sourceFixture(t);
-  const first = importRuntime(options);
-  assert.equal(first.commit, options.commit);
-  assert.equal(first.files.length, 6);
-  assert.equal(readFileSync(join(options.destination, 'runtime/cockpit/helper.py'), 'utf8'), 'public = True\n');
-  const helper = first.files.find((f) => f.path === 'cockpit/helper.py');
-  assert.equal(helper.strippedLines, 3); assert.notEqual(helper.sourceSha256, helper.sha256);
-  const receipt = readFileSync(join(options.destination, 'runtime-manifest.json'), 'utf8');
-  importRuntime(options);
-  assert.equal(readFileSync(join(options.destination, 'runtime-manifest.json'), 'utf8'), receipt);
-  verifyRuntime(options.destination);
-  put(join(options.destination, 'runtime/app/index.html'), 'tampered');
-  assert.throws(() => verifyRuntime(options.destination));
+test('maintained source edits validate directly without an upstream checkout or pin update', (t) => {
+  const f = componentFixture(t), before = verifyRuntime(f.destination);
+  assert(!existsSync(join(f.destination, 'runtime-manifest.json')));
+  const path = join(f.runtime, 'cockpit/__init__.py');
+  put(path, readFileSync(path, 'utf8') + '\n# A maintained local change.\n');
+  const after = verifyRuntime(f.destination);
+  assert.notEqual(after.files.find((file) => file.path === 'cockpit/__init__.py').sha256,
+    before.files.find((file) => file.path === 'cockpit/__init__.py').sha256);
+  assert.equal(after.files.length, before.files.length);
 });
 
-test('import rejects mutable refs, dirty source and bad policy output before replacing payload', (t) => {
-  const options = sourceFixture(t);
-  importRuntime(options);
-  const before = readFileSync(join(options.destination, 'runtime-manifest.json'), 'utf8');
-  assert.throws(() => importRuntime({ ...options, commit: 'HEAD' }), /full lowercase/);
-  git(options.source, 'remote', 'set-url', 'origin', 'https://github.com/example/unrelated');
-  assert.throws(() => importRuntime(options), /Source origin/);
-  git(options.source, 'remote', 'set-url', 'origin', 'git@github.com:qodo-ai/pr-review-cockpit.git');
-  put(join(options.source, 'cockpit/helper.py'), 'dirty\n');
-  assert.throws(() => importRuntime(options), /dirty/);
-  git(options.source, 'checkout', '--', 'cockpit/helper.py');
-  put(join(options.source, 'cockpit/helper.py'), 'SECRET_TEST\n');
-  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Unsafe fixture');
-  assert.throws(() => importRuntime({ ...options, commit: git(options.source, 'rev-parse', 'HEAD') }));
-  assert.equal(readFileSync(join(options.destination, 'runtime-manifest.json'), 'utf8'), before);
-});
-
-test('policy exceptions are path-scoped and never weaken private-data or per-file limits', (t) => {
-  const options = sourceFixture(t);
-  const manifest = { never: ['app/internal/**'], rules: [{name: 'private', pattern: 'INTERNAL_TEST'}],
-    allow: [{path:'app/index.html',rule:'private',match:'INTERNAL_TEST',why:'invented fixture'}] };
-  put(join(options.source, 'release/manifest.json'), JSON.stringify(manifest));
-  put(join(options.source, 'app/index.html'), '<html>INTERNAL_TEST</html>');
-  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Document fixture exception');
-  importRuntime({ ...options, commit: git(options.source, 'rev-parse', 'HEAD') });
-  put(join(options.source, 'app/other.html'), 'INTERNAL_TEST');
-  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Fixture exception does not cover other paths');
-  assert.throws(() => importRuntime({ ...options, commit: git(options.source, 'rev-parse', 'HEAD') }), /sanitization blocked/);
-  git(options.source, 'rm', '-q', 'app/other.html');
-  put(join(options.source, 'app/large.js'), 'x'.repeat(512 * 1024 + 1));
-  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Oversized fixture');
-  assert.throws(() => importRuntime({ ...options, commit: git(options.source, 'rev-parse', 'HEAD') }), /512 KiB/);
-});
-
-test('only the exact reviewed favicon ships raw through all four host projections', (t) => {
-  const options = sourceFixture(t);
-  // Deliberately retain CRLF, non-ASCII text and internal/scanner markers: the upstream binary branch
-  // admits inspected hashes as raw bytes, without stripping or text replacements.
-  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg">\r\n<!-- release:internal -->\r\n<!-- SECRET_TEST π -->\r\n<!-- /release:internal -->\r\n<circle r="1"/>\r\n</svg>\r\n');
-  const sha256 = createHash('sha256').update(svg).digest('hex');
-  put(join(options.source, 'app/favicon.svg'), svg);
-  put(join(options.source, 'app/other.svg'), svg);
-  const manifestPath = join(options.source, 'release/manifest.json');
-  const upstream = JSON.parse(readFileSync(manifestPath));
-  upstream.binaries = {reviewed: {'app/favicon.svg': {sha256, note: 'Synthetic inspected SVG fixture'}}};
-  upstream.replacements = [{path:'app/favicon.svg',from:'SECRET_TEST',to:'rewritten'}];
-  put(manifestPath, JSON.stringify(upstream));
-  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Pin inspected favicon fixture');
-  const commit = git(options.source, 'rev-parse', 'HEAD');
-  const projectionRoot = temp(t);
-  for (const path of ['scripts', 'distribution', 'skills']) {
-    cpSync(join(root, path), join(projectionRoot, path), {recursive: true});
+test('component hygiene rejects state, private content and internal markers without rewriting source', (t) => {
+  const f = componentFixture(t), path = join(f.runtime, 'app/review.js');
+  for (const content of ['https://workspace.slack.com/archives/FAKE',
+    '# release:internal\nprivate\n# /release:internal\n']) {
+    put(path, content);
+    assert.throws(() => verifyRuntime(f.destination), /hygiene blocked|Internal release marker/);
+    assert.equal(readFileSync(path, 'utf8'), content);
   }
-  const destination = join(projectionRoot, 'skills', skillName);
-  const receipt = importRuntime({...options, commit, destination});
-  const favicon = receipt.files.find((file) => file.path === 'app/favicon.svg');
-  assert.equal(favicon.reviewedSha256, sha256); assert.equal(favicon.sourceSha256, sha256);
-  assert.equal(favicon.sha256, sha256); assert.equal(favicon.strippedLines, 0);
-  assert(!receipt.files.some((file) => file.path === 'app/other.svg'));
-  assert(readFileSync(join(destination, 'runtime/app/favicon.svg')).equals(svg));
-  execFileSync(process.execPath, [join(projectionRoot, 'scripts/sync-adapters.mjs')], {stdio: 'pipe'});
-  for (const host of ['packages/qodo-cockpit', 'codex-packages/qodo-cockpit',
-    'antigravity-plugins/qodo-cockpit', 'kiro-power-cockpit']) {
-    const installed = join(projectionRoot, host, 'skills', skillName);
-    assert.deepEqual(verifyRuntime(installed), receipt, host);
-    assert(readFileSync(join(installed, 'runtime/app/favicon.svg')).equals(svg), host);
-  }
+  rmSync(path);
+  put(join(f.runtime, 'sessions/private.json'), '{}');
+  assert.throws(() => verifyRuntime(f.destination), /Forbidden runtime directory/);
 });
 
-test('unreviewed or changed favicon hashes fail before replacing the existing payload', (t) => {
-  const options = sourceFixture(t);
-  importRuntime(options);
-  const receiptPath = join(options.destination, 'runtime-manifest.json');
-  const before = readFileSync(receiptPath);
-  const priorFile = readFileSync(join(options.destination, 'runtime/app/index.html'));
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>\n';
-  put(join(options.source, 'app/favicon.svg'), svg);
-  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Unreviewed favicon fixture');
-  assert.throws(() => importRuntime({...options, commit:git(options.source, 'rev-parse', 'HEAD')}), /Reviewed favicon SHA-256/);
-  const manifestPath = join(options.source, 'release/manifest.json');
-  const upstream = JSON.parse(readFileSync(manifestPath));
-  upstream.binaries = {reviewed: {'app/favicon.svg': {sha256:'0'.repeat(64)}}};
-  put(manifestPath, JSON.stringify(upstream));
-  git(options.source, 'add', '.'); git(options.source, 'commit', '-qm', 'Wrong reviewed hash fixture');
-  assert.throws(() => importRuntime({...options, commit:git(options.source, 'rev-parse', 'HEAD')}), /Reviewed favicon SHA-256/);
-  assert(readFileSync(receiptPath).equals(before));
-  assert(readFileSync(join(options.destination, 'runtime/app/index.html')).equals(priorFile));
-  assert(!existsSync(join(options.destination, 'runtime/app/favicon.svg')));
+test('resource limits and component terms apply to maintained source', (t) => {
+  const f = componentFixture(t), file = join(f.runtime, 'app/large.js');
+  put(file, 'x'.repeat(512 * 1024 + 1));
+  assert.throws(() => verifyRuntime(f.destination), /512 KiB/); rmSync(file);
+  put(join(f.runtime, 'LICENSE'), 'Changed component terms');
+  assert.throws(() => verifyRuntime(f.destination), /component LICENSE changed/);
+});
+
+test('hygiene exceptions remain scoped to the exact allowed path and matched span', (t) => {
+  const f = componentFixture(t), file = join(f.runtime, 'fixtures/demo-policy.json');
+  put(file, '{"repo":"qodo-ai/shop-demo"}'); verifyRuntime(f.destination);
+  put(file, '{"repo":"qodo-ai/shop-demo","other":"qodo-ai/private-example"}');
+  assert.throws(() => verifyRuntime(f.destination), /private-repo/); rmSync(file);
+  put(join(f.runtime, 'app/policy.js'), 'qodo-ai/shop-demo');
+  assert.throws(() => verifyRuntime(f.destination), /private-repo/);
+});
+
+test('only the reviewed favicon is admitted; disguised documents are rejected', (t) => {
+  const f = componentFixture(t), file = join(f.runtime, 'app/favicon.svg');
+  const before = readFileSync(file), inventory = verifyRuntime(f.destination);
+  assert.equal(inventory.files.find((entry) => entry.path === 'app/favicon.svg').sha256,
+    createHash('sha256').update(before).digest('hex'));
+  put(file, '<svg xmlns="http://www.w3.org/2000/svg"/>');
+  assert.throws(() => verifyRuntime(f.destination), /Reviewed favicon SHA-256/); put(file, before);
+  for (const content of ['%PDF-1.7 renamed', '<svg xmlns="http://www.w3.org/2000/svg"/>']) {
+    put(join(f.runtime, 'app/document.js'), content);
+    assert.throws(() => verifyRuntime(f.destination), /Unreviewed binary/);
+  }
 });
 
 test('resource allowlist excludes real data, local config, binaries and traversal', () => {
@@ -354,7 +283,7 @@ function archiveFiles(archive) {
   return files;
 }
 
-test('optional hosts retain pinned runtime while legacy managed packages remain unchanged', (t) => {
+test('optional hosts retain maintained runtime while legacy managed packages remain unchanged', (t) => {
   const manifest = verifyRuntime();
   const readme = readFileSync(join(root, 'kiro-power-cockpit/README.md'), 'utf8');
   assert(readme.includes('kiro-power-cockpit'));

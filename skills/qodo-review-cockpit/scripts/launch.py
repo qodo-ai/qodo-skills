@@ -63,7 +63,7 @@ def main():
             raise SystemExit(subprocess.call(command))
         os.execv(sys.executable, command)
     if not (RUNTIME / "cockpit" / "__main__.py").is_file():
-        sys.exit("Cockpit package error: pinned runtime resources are missing; reinstall through your existing skills channel.")
+        sys.exit("Cockpit package error: runtime resources are missing; reinstall through your existing skills channel.")
     cli = shutil.which(os.environ.get("REVIEW_COCKPIT_QODO") or "qodo")
     if not cli:
         sys.exit("Cockpit CLI prerequisite: Qodo CLI 2.0.0 or newer is required; use qodo-setup.")

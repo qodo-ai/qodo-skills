@@ -23,6 +23,10 @@ Cockpit requires Python 3.9+ and Qodo CLI2+, keeps state outside installed resou
 not publish provider comments or finding dispositions. Its runtime retains Qodo commercial terms;
 core and Standards retain their MIT metadata.
 
+Cockpit's engine, UI and behavior tests are maintained in this repository. Change the
+component and its tests in one PR; see [component maintenance](skills/qodo-review-cockpit/references/packaging.md#maintaining-and-testing).
+No separate Cockpit checkout or runtime-pin update is required.
+
 Cockpit host resources are generated for a release containing the optional package; external
 provider listings are deferred. Current CLI/enterprise managed installers support only core and
 Standards. For explicit native/portable Cockpit installation, see its
