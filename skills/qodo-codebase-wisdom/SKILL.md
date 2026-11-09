@@ -4,7 +4,7 @@ description: Understand how code works, how a change was done before, and which 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.1.7"
+  version: "1.1.8"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -104,7 +104,7 @@ incompatibility, stop with skill and user files unchanged; do not retry through 
 
 ```
 qodo --version                                             # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.7 --distribution skills-sh
+qodo read whoami --json --skill qodo-codebase-wisdom --skill-version 1.1.8 --distribution skills-sh
 qodo read codebase search-repos --query "payments" --json      # resolve a repo slug — do this FIRST
 qodo read codebase grep --repo owner/repo --pattern "chargeCard" --json
 qodo read codebase read-file --repo owner/repo --path src/pay.py --json

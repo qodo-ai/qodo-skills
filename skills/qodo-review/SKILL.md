@@ -4,7 +4,7 @@ description: Review local changes with Qodo during substantive coding milestones
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.14"
+  version: "1.10.15"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -130,7 +130,7 @@ for the same narrative, keeping `decisions` and `recent_work` unchanged.
 
 ```sh
 qodo --version
-qodo read whoami --json --skill qodo-review --skill-version 1.10.14 --distribution skills-sh
+qodo read whoami --json --skill qodo-review --skill-version 1.10.15 --distribution skills-sh
 ```
 See [illustrative CLI examples](references/review-turn-context.md#cli-examples) for context, base and depth choices.
 

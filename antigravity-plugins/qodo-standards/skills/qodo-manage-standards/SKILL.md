@@ -4,7 +4,7 @@ description: Discover, configure, and manage Qodo Review Standards using managed
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.8"
+  version: "1.0.9"
   recommended: "false"
   package: "qodo-standards"
   distribution: "marketplace"
@@ -80,13 +80,23 @@ This unadorned probe is intentionally compatible with older Qodo CLIs. This skil
 CLI **2.0.0 or newer**.
 On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
-If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
-do not describe the failure as an authentication problem. Explain that the skill is newer than the
-runtime. Automatic updates stay within a major version; ask once before an explicit 2.x installation
-using a checksum-pinned installer supplied by Qodo or the organization. For a customer deployment, keep its organization-provided update origin;
-never switch it to the public service. After an approved update, rerun the unadorned version probe
-and continue only when it satisfies the minimum. If the user declines or the update fails, stop with
-the current skill and user files unchanged.
+Only when the runtime needs an update, before any update check/change, test whether `QODO_UPDATE_BASE_URL` is set;
+never print its value. If set, stop for the user to resolve the source override before proceeding;
+do not change it yourself or assume it matches the recorded origin.
+If the version is older or cannot be parsed, do not run `whoami`, `login`, a review, or a managed tool and
+do not describe the failure as an authentication problem. Choose one deployment-approved upgrade
+route, explain it, and reuse covering runtime-update authorization or ask once before changing the
+installation. For parsed 1.x, normal `qodo update` can reach approved 2.x when its recorded origin enables migration.
+If legacy aliases still serve 1.x, check the supported same-origin `latest-2` recovery route first.
+Require a compatible newer 2.x target from the selected route's supported check; missing/failed checks stop.
+Propose `qodo update --channel latest-2` only for that verified recovery route; never assume activation.
+This exception covers only deployment-approved 1.x to stable 2.x; it does not authorize other
+major migrations or change the existing automatic-update policy for future majors.
+For every route, preserve origin, explicit version choices and update holds; never substitute a channel for an exact version.
+For an unparseable runtime or no supported updater, use a checksum-pinned installer supplied by
+Qodo or the organization with covering installation authorization; never switch to public service or invent a digest.
+Make one approved runtime attempt, then rerun the unadorned version probe and continue only when it satisfies the minimum. On denial, failure or continued
+incompatibility, stop with skill and user files unchanged; do not retry through another route.
 
 ## Quick start
 
@@ -94,7 +104,7 @@ PowerShell: save each `--args` JSON object below as UTF-8 without a BOM; use `--
 
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.8 --distribution marketplace --host antigravity
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.9 --distribution marketplace --host antigravity
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
