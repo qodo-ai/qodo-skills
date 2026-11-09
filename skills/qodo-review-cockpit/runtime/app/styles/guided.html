@@ -562,7 +562,7 @@ function screenProduct() {
   const m = MEDIA[Math.min(S.shot, MEDIA.length - 1)];
   return `<span class="lbl">What it looks like · real screenshots of the running app</span><h2>${md(m.title)}</h2>
     <div class="gallery"><figure class="shot"><img src="${esc(m.src)}" alt="${esc(m.title)}"><figcaption>${md(m.caption)}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${codeBehind(m).map(({ p, b }) => `<button class="ghost" data-blk="${esc(b.id)}" data-pr="${esc(p.key)}" style="font-size:12.5px">${esc(base(b.path))} ${b.from}–${b.to}</button>`).join("")}</div></figcaption></figure>
-    <div class="thumbs">${MEDIA.map((x, i) => `<button data-shot="${i}" aria-pressed="${i === S.shot}"><img src="${x.src}" alt=""><span>${esc(x.title)}</span></button>`).join("")}</div></div>`;
+    <div class="thumbs">${MEDIA.map((x, i) => `<button data-shot="${i}" aria-pressed="${i === S.shot}"><img src="${esc(x.src)}" alt=""><span>${esc(x.title)}</span></button>`).join("")}</div></div>`;
 }
 function codeBehind(m) {
   const set = new Set(m.paths || []);

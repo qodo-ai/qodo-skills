@@ -287,7 +287,7 @@ def _choose_deep(pr: dict, blocks: list[dict], ranges: list[dict], anchors: list
                     hits[key] = hits.get(key, 0) + n
         for f in fs:   # findings count directly, whatever reason the lines already carry
             if f["path"] == b["path"] and f["side"] == b["side"] and b["from"] - GAP <= f["line"] <= b["to"] + GAP:
-                k = "open high finding" if f.get("severity") == "high" else "open finding"
+                k = "open high finding" if f.get("severity") in ("high", "critical") else "open finding"
                 hits[k] = hits.get(k, 0) + 1
         for a in anchors:
             if a.get("path") == b["path"] and a.get("side", "new") == b["side"] and a.get("from", 0) <= b["to"] and b["from"] <= a.get("to", a.get("from", 0)):

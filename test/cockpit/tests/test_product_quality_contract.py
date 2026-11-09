@@ -3,6 +3,7 @@ import base64
 import copy
 import json
 import os
+from html.parser import HTMLParser
 from pathlib import Path
 import re
 import tempfile
@@ -182,6 +183,33 @@ class ProductQualityContractTests(unittest.TestCase):
                 public = view._pr_view(pr)
                 self.assertEqual(public['findings'][0]['severity'], 'critical')
                 self.assertEqual(any(r['tier'] != 'skip' for r in pr['attention']['ranges']), guarded)
+        scores = {}
+        for severity in ('high', 'critical'):
+            pr = self.scope.pr()
+            pr['findings'] = [qodo_cli.to_finding(pr, {'id': severity, 'severity': severity, 'git_sha': HEAD,
+                              'review_source': 'git_pr', 'file_path': 'a.py', 'start_line': 1, 'side': 'RIGHT'})]
+            plan, _ = attention.compute(pr)
+            scores[severity] = max(b['score'] for b in plan['blocks'])
+        self.assertGreaterEqual(scores['critical'], scores['high'])
+
+    def test_guided_screenshot_urls_cannot_create_html_attributes(self):
+        source = (util.ROOT / 'app/styles/guided.html').read_text()
+        renderer = source[source.index('function screenProduct()'):source.index('function codeBehind(')]
+        kit = (util.ROOT / 'app/styles/kit.js').read_text()
+        escape = next(line.strip() for line in kit.splitlines() if line.strip().startswith('const esc ='))
+        url = 'https://example.test/image"onerror="marker()'
+        html = self.scope.node(escape + '\nconst md=esc,codeBehind=()=>[];\n' + renderer + ';result=screenProduct();',
+                               {'MEDIA': [{'src': url, 'title': 'Evidence', 'caption': ''}], 'S': {'shot': 0}})
+        images = []
+        class ParseImages(HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                if tag == 'img':
+                    images.append(dict(attrs))
+        ParseImages().feed(html)
+        self.assertEqual(len(images), 2)
+        for image in images:
+            self.assertEqual(set(image), {'src', 'alt'})
+            self.assertEqual(image['src'], url)
 
     def test_full_app_export_embeds_only_referenced_contained_media_and_supports_nested_video(self):
         with tempfile.TemporaryDirectory() as tmp:
