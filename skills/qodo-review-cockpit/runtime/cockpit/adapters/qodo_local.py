@@ -235,6 +235,10 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
     for rec in reviews:
         if rec.get('local_review_id'):
             origins.setdefault(rec['local_review_id'], rec)
+            if rec['local_review_id'].startswith('noid-'):
+                observed_id = _review_id(rec['result'])
+                if not observed_id.startswith('noid-'):
+                    origins.setdefault(observed_id, rec)   # read older synthetic records without rewriting them
     for rec in reviews:
         res = rec["result"]
         fs = res.get("finding_state") if isinstance(res.get("finding_state"), dict) else {}

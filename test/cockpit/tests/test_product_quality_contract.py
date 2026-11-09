@@ -97,6 +97,13 @@ class ProductQualityContractTests(unittest.TestCase):
             qodo_local.add(first, pr=pr['key'], commit='a' * 40)
             qodo_local.add(second, pr=pr['key'], commit=HEAD)
             findings = {f['qodo_id']: f for f in qodo_local.collect(pr, {})}
+            original = next(p for p in Path(tmp).glob('*.json') if json.loads(p.read_text())['local_review_id'] == 'review-one')
+            stored = json.loads(original.read_text())
+            stored['local_review_id'] = 'noid-legacy'
+            original.write_text(json.dumps(stored))
+            before = original.read_bytes()
+            self.assertEqual({f['qodo_id']: f for f in qodo_local.collect(pr, {})}, findings)
+            self.assertEqual(original.read_bytes(), before)
         self.assertEqual(findings['old']['local']['review_id'], 'review-one')
         self.assertEqual(findings['new']['local']['review_id'], 'review-two')
         self.assertEqual(findings['old']['local']['commit'], 'a' * 40)
