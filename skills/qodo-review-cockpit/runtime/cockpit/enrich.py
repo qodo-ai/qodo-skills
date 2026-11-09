@@ -220,12 +220,19 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
         okf.ensure()
     by_title = {c.meta.get("title", "").strip().lower(): c for c in okf.concepts()}
     have = {(c["path"], c.get('pr')) for c in data["okf"].get("candidates", [])}
+    def associate(path, key):
+        for pr in data.get('prs', []):
+            if pr.get('key') == key:
+                refs = pr.setdefault('concepts', [])
+                if path not in refs:
+                    refs.append(path)
     for k in payload.get("knowledge") or []:
         same = by_title.get(k["title"].strip().lower())
         if same:   # re-running enrich must not duplicate drafts
             if (same.path, k.get('pr')) not in have:
                 cands.append({**same.as_dict(), "pr": k.get("pr")})
                 have.add((same.path, k.get('pr')))
+            associate(same.path, k.get('pr'))
             continue
         c = okf.propose(type_=k.get("type", "Fact"), title=k["title"], body=k.get("body") or k["title"],
                         paths=k.get("paths") or [], by=agent,
@@ -234,6 +241,7 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
         cands.append({**c.as_dict(), "pr": k.get("pr")})
         by_title[k['title'].strip().lower()] = c
         have.add((c.path, k.get('pr')))
+        associate(c.path, k.get('pr'))
     if memory_on(cfg):
         okf.write_index()
     data["okf"]["candidates"] = data["okf"].get("candidates", []) + cands

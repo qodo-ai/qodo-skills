@@ -125,6 +125,24 @@ class ProductHostedReviewTests(unittest.TestCase):
                 self.assertEqual(len(candidates),2)
                 self.assertEqual({c['pr'] for c in candidates},{'org/repo#1','org/repo#2'})
                 self.assertEqual(len({c['path'] for c in candidates}),1)
+                concept_path=candidates[0]['path']
+                memory.OKF(root/'okf').confirm(concept_path,'fixture reviewer')
+                saved=json.loads((sd/'review-data.json').read_text())
+                self.assertTrue(all(concept_path in pr.get('concepts',[]) for pr in saved['prs']))
+                concepts=[c.as_dict() for c in memory.OKF(root/'okf').concepts()]
+                source=(util.ROOT/'app/app.js').read_text()
+                def function(name):
+                    start=source.index('function '+name+'(')
+                    return source[start:source.index('\n}',start)+2]
+                setup='const S='+json.dumps({'data':saved,'mem':{'enabled':True,'concepts':concepts}})+';'
+                setup+='const esc=String,conceptByPath=p=>S.mem.concepts.find(c=>c.path===p),conceptView=c=>"<article>"+c.title+"</article>";'
+                script=setup+function('draftsFor')+function('panelKnowledge')
+                script+=';console.log(JSON.stringify(S.data.prs.map(p=>({html:panelKnowledge(p),drafts:draftsFor(p).length}))));'
+                result=subprocess.run(['node','-e',script],capture_output=True,text=True)
+                self.assertEqual(result.returncode,0,result.stderr)
+                for rendered in json.loads(result.stdout):
+                    self.assertIn('<article>Decision</article>',rendered['html'])
+                    self.assertEqual(rendered['drafts'],0)
 
     def test_closed_comment_severity_is_explicit_or_unknown_and_inline_restores_it(self):
         summary='Code Review by Qodo\n<h3>Resolved findings</h3>\n<details><summary>1. <s>Concern</s> <code>Resolved</code></summary></details>'
