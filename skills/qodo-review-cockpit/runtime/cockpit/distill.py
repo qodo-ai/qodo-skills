@@ -96,14 +96,9 @@ def distill(sdir: Path, cfg: dict | None = None) -> dict:
         raise RuntimeError("Memory is off (config memory.enabled), so there is nothing to make memories into.")
     root = mem_path(cfg, "amr")
     root.mkdir(parents=True, exist_ok=True)
-    with open(_lock_path(root), "a+") as lock:
-        try:
-            import fcntl
-            fcntl.flock(lock, fcntl.LOCK_EX)   # released when the file closes
-        except ImportError:   # no fcntl (Windows): the server's lock below still serializes its own requests
-            pass
-        with _RUN:
-            return _distill(sdir, cfg)
+    from .file_lock import file_lock
+    with file_lock(_lock_path(root)), _RUN:
+        return _distill(sdir, cfg)
 
 
 def _lock_path(root: Path) -> Path:

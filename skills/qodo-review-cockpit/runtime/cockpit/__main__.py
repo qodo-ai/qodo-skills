@@ -129,6 +129,9 @@ def main(argv=None):
     if a.product or (Path(__file__).resolve().parents[2] / 'SKILL.md').is_file():
         from .product import activate
         activate()
+    from .product import enabled
+    if a.cmd == 'migrate' and enabled():
+        sys.exit('Migration is outside this skill. Existing external data stays in place; use an owner-led standalone migration separately.')
 
     if a.cmd == "review":
         from .collect import collect, collect_demo

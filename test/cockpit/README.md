@@ -13,7 +13,7 @@ node scripts/test-cockpit-runtime.mjs --list
 node scripts/test-cockpit-runtime.mjs --offline --report /tmp/cockpit-results.json
 ```
 
-The default command discovers and runs all 322 behavior tests. The runner uses
+The default command discovers and runs all 328 behavior tests. The runner uses
 `python -X utf8 -B`, an explicit runtime/test PYTHONPATH, the maintained runtime as
 cwd, and temporary HOME, TMPDIR and REVIEW_COCKPIT_HOME. Product mode defaults to
 zero for raw-library comparison cases; packaged CLI commands always select product mode.
@@ -22,7 +22,7 @@ Provider subprocesses resolve to unavailable test fixtures; test-process auditin
 rejects real provider clients and external network addresses. Full execution allows
 loopback HTTP servers and temporary Git repositories used by behavior tests.
 
-`--offline` is an explicitly accounted restricted-worker subset: 304 tests. It
+`--offline` is an explicitly accounted restricted-worker subset: 310 tests. It
 excludes sixteen socket cases and two real Git fixture cases, listed individually in
 `run_suite.py` and in every offline report. These are not unittest skips or passes.
 The parent must run the default command to qualify all behavior. `--list` performs
@@ -35,6 +35,8 @@ quality-contract module adds eleven regression tests. The findings and access/ac
 modules add fourteen regressions, including concurrent browser requests and cross-process
 settings/Trash coordination. Seven final-review regressions cover scanner-secret redaction,
 bounded requests, PR-scoped verdicts, shared memory writes, session paths and CLI recovery.
+Six V1 boundary tests cover critical severity, stable authored findings, atomic local imports,
+provider/migration guards, opaque portal links and cross-process memory credit.
 The six source
 fixture assets are copied unchanged. Paths to Qodo comment/product test fixtures
 are relative to this suite; runtime demo fixtures remain under the runtime tree.

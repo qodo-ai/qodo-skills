@@ -83,6 +83,9 @@ def _refresh(sdir, old, cfg):
                          (not host or (p.get('identity') or {}).get('provider_host') == host)), {})
         pr = client.change(repo, number, host, identity=previous.get('identity'))
         pr['key'] = previous.get('key') or pr['key']
+        if previous.get('agent_finding_ids') or any(f.get('source') == 'agent' for f in previous.get('findings', [])):
+            from .agent_findings import remembered
+            pr['agent_finding_ids'] = remembered(previous)
         prs.append(pr)
         validate_identities(prs)
     meta = {'complete': True, 'requested_refs': requested, 'collected_refs': requested,

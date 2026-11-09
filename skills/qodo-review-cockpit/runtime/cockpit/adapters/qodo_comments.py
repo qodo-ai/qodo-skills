@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import html
 import re
+from urllib.parse import unquote, urlsplit, urlunsplit, parse_qsl, urlencode
 
 CATEGORIES = [
     ("security", r"secur|inject|xss|csrf|secret|credential|auth"),
@@ -40,7 +41,23 @@ SEVERITY = {"high": "high", "critical": "high", "action_required": "high", "medi
             "optional": "low", "informational": "low", "info": "low"}
 
 BADGE = re.compile(r'img\.shields\.io/badge/(?P<sev>[A-Za-z_]+)-[0-9A-Fa-f]+[^>]*>')
-FINDING_LINK = re.compile(r"\((?P<url>https://[^)\s]+/findings/(?P<uuid>[0-9a-f-]{36}))\)")
+FINDING_LINK = re.compile(r"\((?P<url>https://[^)\s]+/findings/(?P<uuid>[^/?#)\s]+)(?:[?#][^)\s]*)?)\)")
+
+
+def finding_view_link(block):
+    links = []
+    for match in FINDING_LINK.finditer(block):
+        try:
+            parsed = urlsplit(match['url'])
+            links.append((match, parsed, parse_qsl(parsed.query)))
+        except ValueError:
+            continue
+    if not links:
+        return None, None
+    link, parsed, pairs = next((x for x in links if not any(k.lower() == 'action' for k, _ in x[2])), links[0])
+    query = [(k, v) for k, v in pairs if k.lower() != 'action']
+    url = link['url'] if len(query) == len(pairs) else urlunsplit(parsed._replace(query=urlencode(query)))
+    return unquote(link['uuid']), url
 CODE_REF = re.compile(r"\[(?P<path>[^\[\]\s]+)\[(?P<side>[RL]?)(?P<a>\d+)(?:-(?P<b>\d+))?\]\]")
 LABEL = re.compile(r"<code>\s*(?P<text>[^<]+?)\s*</code>")
 RULE = re.compile(r"Rule (?P<id>\d+): \[(?P<title>[^\]]+)\]")
@@ -133,7 +150,7 @@ def _parse_item(head: str, block: str, sev: str | None) -> dict:
     if not code and prompt:   # inline format: "## Fix Focus Areas\n- path[a-b]"
         m = re.search(r"Fix Focus Areas\s*\n-\s*(?P<path>[^\[\s]+)\[(?P<a>\d+)(?:-(?P<b>\d+))?\]", prompt)
         code = m
-    link = FINDING_LINK.search(block)
+    finding_id, finding_url = finding_view_link(block)
     rule = RULE.search(evidence or block)
     ev_text = plain(re.sub(r"<code>.*?</code>", "", re.sub(r"<pre>|</pre>", "", evidence)))
     fix = _fix(prompt)
@@ -148,8 +165,8 @@ def _parse_item(head: str, block: str, sev: str | None) -> dict:
         "side": "LEFT" if code and code.groupdict().get("side") == "L" else "RIGHT",
         "body": body, "prompt": prompt,
         "rule": {"id": rule.group("id"), "title": rule.group("title")} if rule else None,
-        "qodo_id": link.group("uuid") if link else None,
-        "qodo_url": link.group("url") if link else None,
+        "qodo_id": finding_id,
+        "qodo_url": finding_url,
     }
 
 

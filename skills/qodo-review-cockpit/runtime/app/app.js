@@ -9,7 +9,7 @@ const S = {
 const PANELS = [
   ["story", "Story"], ["summary", "Summary"], ["diagram", "Diagram"], ["findings", "Findings"], ["files", "Code"], ["knowledge", "Knowledge"],
 ];
-const SEV_ORDER = { high: 0, medium: 1, low: 2 };
+const SEV_ORDER = { critical: -1, high: 0, medium: 1, low: 2 };
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>").split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
@@ -105,7 +105,7 @@ function globRe(g) {
 }
 const rules = () => (prefsIgnored() ? [] : S.mem.rules || []);
 function collapseRule(f) {
-  if (f.severity === "high") return null; // guardrail: never hide high severity
+  if (["critical", "high"].includes(f.severity)) return null; // guardrail: never hide critical/high severity
   return rules().find((r) => r.action === "collapse" && (!r.category || r.category === f.category) && (!r.path || (f.path && globRe(r.path).test(f.path))));
 }
 function priority(f) {
@@ -155,7 +155,7 @@ function sevPill(s, guessed) { return `<span class="pill ${esc(s)}"${guessed ? '
 function prByKey(k) { return S.data.prs.find((p) => p.key === k); }
 function prSeverity(pr) {
   const f = pr.findings || [];
-  return f.some((x) => x.severity === "high") ? "high" : f.some((x) => x.severity === "medium") ? "medium" : "low";
+  return f.some((x) => ["critical", "high"].includes(x.severity)) ? "high" : f.some((x) => x.severity === "medium") ? "medium" : "low";
 }
 function conceptByPath(p) { return (S.mem.concepts || []).find((c) => c.path === p); }
 
@@ -184,12 +184,12 @@ function renderPrefsBox() {
 function renderOverview() {
   const cards = S.data.prs.map((pr) => {
     const f = pr.findings || [];
-    const c = (s) => f.filter((x) => x.severity === s).length;
+    const c = (s) => f.filter((x) => (x.severity === s || (s === "high" && x.severity === "critical"))).length;
     const checks = checksSummary(pr);
     return `<div class="card markable"><div class="hd"><button class="btn ghost" data-act="view" data-v="${esc(pr.key)}" style="text-align:left;padding:0;border:0"><h2>#${pr.number} ${esc(pr.title)}</h2></button></div>
       <div class="bd"><div class="row muted">${esc(pr.author)} · <span class="mono">${esc(pr.head)}</span> → <span class="mono">${esc(pr.base)}</span></div>
       <div class="row"><span class="stat add">+${pr.additions}</span><span class="stat del">−${pr.deletions}</span><span class="muted">${pr.files.length} files</span></div>
-      <div class="row">${c("high") ? `<span class="pill high">${c("high")} high</span>` : ""}${c("medium") ? `<span class="pill medium">${c("medium")} medium</span>` : ""}${c("low") ? `<span class="pill low">${c("low")} low</span>` : ""}${(pr.concepts || []).length ? `<span class="pill okf">${pr.concepts.length} known facts</span>` : ""}</div>
+      <div class="row">${c("high") ? `<span class="pill high">${c("high")} high/critical</span>` : ""}${c("medium") ? `<span class="pill medium">${c("medium")} medium</span>` : ""}${c("low") ? `<span class="pill low">${c("low")} low</span>` : ""}${(pr.concepts || []).length ? `<span class="pill okf">${pr.concepts.length} known facts</span>` : ""}</div>
       <div class="row">${checks}</div>${markbar({ kind: "pr", id: pr.key }, pr.key, { compact: true, label: `PR #${pr.number}` })}</div></div>`;
   }).join("");
   const drafts = (S.mem.concepts || []).filter((c) => c.status === "draft").length;
@@ -390,7 +390,7 @@ function fileView(pr, f) {
   const ff = (pr.findings || []).filter((x) => x.path === f.path);
   const sem = f.semantic || {};
   return `<details class="file markable" id="${fid}" data-path="${esc(f.path)}" ${f.hunks.reduce((a, h) => a + h.lines.length, 0) < 120 ? "open" : ""}>
-      <summary><span class="path">${esc(f.path)}</span>${f.role && f.role !== "source" ? `<span class="pill">${esc(f.role)}</span>` : ""}<span class="stat add">+${f.additions}</span><span class="stat del">−${f.deletions}</span>${sem.moved ? `<span class="pill">${sem.moved} moved</span>` : ""}${ff.length ? `<span class="pill ${ff.some((x) => x.severity === "high") ? "high" : "medium"}">${ff.length} finding${ff.length > 1 ? "s" : ""}</span>` : ""}<span style="margin-left:auto" onclick="event.preventDefault()">${markbar({ kind: "file", id: `${pr.key}:${f.path}` }, pr.key, { compact: true, label: f.path })}</span></summary>
+      <summary><span class="path">${esc(f.path)}</span>${f.role && f.role !== "source" ? `<span class="pill">${esc(f.role)}</span>` : ""}<span class="stat add">+${f.additions}</span><span class="stat del">−${f.deletions}</span>${sem.moved ? `<span class="pill">${sem.moved} moved</span>` : ""}${ff.length ? `<span class="pill ${ff.some((x) => ["critical", "high"].includes(x.severity)) ? "high" : "medium"}">${ff.length} finding${ff.length > 1 ? "s" : ""}</span>` : ""}<span style="margin-left:auto" onclick="event.preventDefault()">${markbar({ kind: "file", id: `${pr.key}:${f.path}` }, pr.key, { compact: true, label: f.path })}</span></summary>
       <div class="diff"><table>${diffRows(pr, f, hunkLines(f), { notes: true, findings: true })}</table></div></details>`;
 }
 // The walk: the PR's layers in reading order, each showing only its own line ranges.
@@ -607,12 +607,12 @@ function avoidRule(b) {
 }
 function autoStory(pr) {
   const f = pr.findings || [];
-  const high = f.filter((x) => x.severity === "high");
+  const high = f.filter((x) => ["critical", "high"].includes(x.severity));
   const q = pr.qodo || {};
   const beats = [];
   if (q.diagram) beats.push({ id: "a1", kind: "diagram", weight: "lead", title: "How the change flows", lede: q.headline || pr.title, mermaid: q.diagram.mermaid });
   beats.push({ id: "a2", kind: "stat", weight: beats.length ? "normal" : "lead", title: "Size of the change", lede: q.headline && !q.diagram ? q.headline : `${pr.files.length} files across ${new Set(pr.files.map((x) => x.path.split("/")[0])).size} top-level directories.`,
-    items: [{ label: "lines added", value: `+${pr.additions}`, tone: "good" }, { label: "lines removed", value: `−${pr.deletions}`, tone: "bad" }, { label: "files", value: pr.files.length }, { label: "high findings", value: high.length, tone: high.length ? "bad" : "neutral" }] });
+    items: [{ label: "lines added", value: `+${pr.additions}`, tone: "good" }, { label: "lines removed", value: `−${pr.deletions}`, tone: "bad" }, { label: "files", value: pr.files.length }, { label: "high/critical findings", value: high.length, tone: high.length ? "bad" : "neutral" }] });
   if (high.length) beats.push({ id: "a3", kind: "findings", title: "Decide on these first", lede: `${high.length} high-severity finding${high.length > 1 ? "s" : ""} from ${[...new Set(high.map((x) => x.source))].join(" and ")}.`, ids: high.map((x) => x.id) });
   return beats;
 }
@@ -739,7 +739,7 @@ function beatVisual(b, pr, prKey = pr ? pr.key : "session") {
 function seenBeats() { return new Set(S.events.filter((e) => e.type === "beat_seen").map((e) => e.target?.id)); }
 function beatView(b, i, pr, prKey) {
   const t = beatTarget(prKey, b);
-  const avoid = avoidRule(b) && !(b.kind === "findings" && (b.ids || []).some((id) => S.data.prs.some((p) => (p.findings || []).some((f) => f.id === id && f.severity === "high"))));
+  const avoid = avoidRule(b) && !(b.kind === "findings" && (b.ids || []).some((id) => S.data.prs.some((p) => (p.findings || []).some((f) => f.id === id && ["critical", "high"].includes(f.severity)))));
   const open = S.openBeats.has(t.id);
   const decided = notes().filter((n) => n.target?.kind === "beat" && n.target.id === t.id);
   const marked = (marks().get(tkey(t, prKey)) || new Set()).size > 0;

@@ -15,8 +15,9 @@ for an authorized setup. A CLI below 2.x needs explicit major-install authorizat
 version parse is not permission to upgrade. Never print credentials or update-origin URLs.
 When PATH lacks the CLI, the launcher also checks the existing `QODO_HOME/bin` (default
 `~/.qodo/bin`). An explicit `REVIEW_COCKPIT_QODO` selection wins and is never replaced silently.
-Windows uses the native executable or invokes the official adjacent `qodo.mjs` with Node on
-PATH; it does not send dynamic arguments through a batch shell. No runtime is installed.
+Windows uses the native executable or invokes the official adjacent `qodo.mjs` with the
+launcher's configured Node path (then PATH); dynamic arguments never pass through a batch
+shell. No runtime is installed.
 Preserve deployment-specific login and the recorded origin. An unavailable Python interpreter
 requires user-owned installation; no nested agent, package manager or bootstrap runs on launch.
 

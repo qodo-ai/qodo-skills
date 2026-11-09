@@ -15,6 +15,8 @@ It can find an existing user-owned CLI under `QODO_HOME/bin` without installing 
 The official Windows batch fallback uses its adjacent CLI module with Node directly, preserving
 UTF-8 JSON-file paths and metacharacters without a shell; native executables stay native.
 The engine can also be invoked with `-m cockpit` for tests after setting PYTHONPATH to the runtime.
+Legacy standalone migration is disabled in this packaged profile. Keep existing external
+data roots; any owner-led migration belongs to the separate standalone workflow.
 
 The global `--product` flag precedes the command. Direct `-m cockpit` invocations inside this skill also select product mode; omitting the flag cannot enable legacy provider reads or writes. A collected product session records `product: true`; refresh and serving retain that boundary. The server that starts in product mode rejects publishing even when its session picker opens an older standalone session. Retained standalone library implementations are not supported skill entrypoints or provider fallbacks.
 
@@ -39,6 +41,12 @@ Optional content is self-contained: `cockpit walkthrough --builder FILE --triage
 Current qualification limits: provider identity fixtures cover six provider families; live evidence is currently GitHub only. Related-work lookup reads at most ten open and ten merged changes per repository and reports that bound. Reviewer suggestions use bounded recent review history and label path ownership/similarity unqualified. Provider thread evidence is retained but no thread actions are available. Existing optional scanner parsers consume managed comments/checks/annotations; unknown upstream data does not establish clean scans. Full air-gapped rendering is not claimed: Mermaid and fonts still use the existing public CDNs.
 
 Product `enrich` accepts an authored JSON file from any location. After a successful application, it atomically saves the merged authored input as the session's `enrich.json` so refresh can reapply it. Successive object fields merge, omitted fields remain, and supplied lists replace earlier lists (including valid empty-list clears). Derived excerpts and normalized source revisions are not saved as new authored intent.
+
+Unchanged authored findings retain IDs across insertion, reordering and refresh. Their identity
+map survives refresh, and IDs referenced by local events are not recycled for new findings.
+Supply an existing finding's `id` when changing its content while retaining its notes/verdict.
+Finding portal links support encoded opaque IDs and preserve view queries; dismiss-action links
+are not exposed as view actions. Local imports publish atomically before retiring old copies.
 
 Product enrichment and refresh share a per-session `.cockpit-writer.lock` directory. A competing writer gets a busy error before changing the snapshot or authored file; retry after the active operation finishes. Refresh reuses its own guard when reapplying enrichment. Local note/mark events remain append-only and independent of this guard and snapshot rollback. The guard is released on errors. If a process crashes and leaves it behind, inspect its `owner.json` PID and confirm that no enrichment or refresh for that session is still running before manually removing the guard directory. Cockpit never automatically deletes a possibly live writer's guard.
 

@@ -22,6 +22,9 @@ class Budget:
         self.left, self.failed = n, 0
 
     def api(self, path: str):
+        from .product import enabled
+        if enabled():
+            raise RuntimeError('Provider clients are disabled in product mode; use managed Qodo reads')
         if self.left <= 0:
             return None
         self.left -= 1

@@ -103,10 +103,15 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
                 if f["id"] == fid:
                     f["stance"], f["stance_why"] = st.get("stance"), st.get("why", "")
         if extra.get("findings") is not None:   # re-runs replace the agent's findings, never add twice
+            from .agent_findings import assign
+            from .distill import load_events
+            reserved = [(e['target'].get('id') if isinstance(e.get('target'), dict) else e.get('target'))
+                        for e in load_events(sdir) if isinstance(e, dict) and e.get('pr') in (None, key)]
+            finding_ids = assign(pr, extra['findings'], (x for x in reserved if isinstance(x, str)))
             pr["findings"] = [f for f in pr.get("findings", []) if f.get("source") != "agent"]
         for i, f in enumerate(extra.get("findings") or []):
             pr.setdefault("findings", []).append({
-                "id": f"a-{key.replace('/', '-').replace('#', '-')}-{i}", "pr": key, "source": "agent",
+                "id": finding_ids[i], "pr": key, "source": "agent",
                 "category": f.get("category", "general"), "severity": f.get("severity", "medium"),
                 "path": f.get("path"), "line": f.get("line"), "title": f.get("title", ""), "body": f.get("body", ""),
                 "url": None, "stance": f.get("stance") if f.get("stance") in ("agree", "partial", "disagree") else None,

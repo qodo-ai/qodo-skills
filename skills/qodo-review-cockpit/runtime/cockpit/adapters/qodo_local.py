@@ -12,7 +12,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from ..util import HOME, ROOT, now_iso
+from ..util import HOME, ROOT, now_iso, write_json
 from .qodo_cli import CLOSED, _first, _severity, kind_of
 
 STORE = HOME / "local-findings"
@@ -122,10 +122,12 @@ def add(result: dict, *, pr: str | None = None, repo: str | None = None, branch:
     STORE.mkdir(parents=True, exist_ok=True)
     # named by content too: two different results never overwrite each other, the same one handed over twice does
     name = re.sub(r"[^A-Za-z0-9._-]", "_", rec["local_review_id"]) + "-" + _digest(result)
-    for old in STORE.glob("*.json"):   # the same result kept under another name (an older, id-only one): replace it
-        if old.name != f"{name}.json" and _kept_digest(old) == _digest(result):
-            old.unlink()
-    (STORE / f"{name}.json").write_text(json.dumps(rec, indent=1))
+    from ..file_lock import file_lock
+    with file_lock(STORE / '.import.lock'):
+        write_json(STORE / f'{name}.json', rec)  # publish before retiring any older copy
+        for old in STORE.glob('*.json'):
+            if old.name != f'{name}.json' and _kept_digest(old) == _digest(result):
+                old.unlink()
     return rec
 
 
@@ -150,7 +152,7 @@ def records() -> list[dict]:
     for p in sorted(STORE.glob("*.json")) if STORE.is_dir() else []:
         try:
             r = json.loads(p.read_text())
-        except ValueError:
+        except (OSError, ValueError):
             continue
         if isinstance(r, dict) and isinstance(r.get("result"), dict):
             d = _digest(r["result"])

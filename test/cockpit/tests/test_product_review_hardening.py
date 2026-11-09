@@ -145,8 +145,11 @@ okf.write_index()
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)/'A&B'; root.mkdir(); batch = root/'qodo.cmd'; batch.write_text('must not execute')
             (root/'qodo.mjs').write_text("import fs from 'node:fs';const a=process.argv.slice(2);console.log(JSON.stringify({args:JSON.parse(fs.readFileSync(a[a.indexOf('--args-file')+1],'utf8'))}));")
-            def which(name): return node if name == 'node' else str(batch) if str(name) == str(batch) else None
-            with mock.patch.object(cli_process.sys, 'platform', 'win32'), mock.patch.object(cli_process.shutil, 'which', side_effect=which), \
-                 mock.patch.object(tempfile, 'tempdir', str(root)):
-                result = Client(str(batch)).read('codebase', 'read-file', repo='org/repo', path='a&b%file-שלום.py')
-            self.assertEqual(result['args'], {'repo': 'org/repo', 'path': 'a&b%file-שלום.py'})
+            for minimal_path in (False, True):
+                batch.write_text('set "NODE='+node+'"' if minimal_path else 'must not execute')
+                def which(name):
+                    return node if name == 'node' and not minimal_path else str(batch) if str(name) == str(batch) else None
+                with self.subTest(minimal_path=minimal_path), mock.patch.object(cli_process.sys, 'platform', 'win32'), \
+                     mock.patch.object(cli_process.shutil, 'which', side_effect=which), mock.patch.object(tempfile, 'tempdir', str(root)):
+                    result = Client(str(batch)).read('codebase', 'read-file', repo='org/repo', path='a&b%file-שלום.py')
+                self.assertEqual(result['args'], {'repo': 'org/repo', 'path': 'a&b%file-שלום.py'})
