@@ -233,7 +233,7 @@ class ProductHostedReviewTests(unittest.TestCase):
                     setup='const C='+json.dumps(render_data)+';const S={bpin:null,open:{imp:true},iview:"parts"},EXPAND=false;const esc=String,md=String,silent=()=>false;'
                     setup+='const DEPLOY=[],setDoor=()=>({verdict:"two-way"}),doorChip=()=>"",checksLine=()=>"",toolsRow=()=>"",approvalLine=()=>"",contractsLine=()=>"",decisionsLine=()=>"";'
                     code=setup+constants+note+row+function('impactBody')+function('planBlast')+function('blastDetail')+function('bImpact')
-                    code+=';const indicators=["unknown","high","medium","low"].map(risk=>{IMPACT[0].risk=risk;return {risk,html:bImpact()}});IMPACT[0].risk="unknown";console.log(JSON.stringify({parts:impactBody("parts"),workflows:impactBody("workflows"),blast:planBlast(false),indicators}));'
+                    code+=';const indicators=["unknown","high","medium","low"].map(risk=>{IMPACT[0].risk=risk;return {risk,html:bImpact()}});IMPACT[0].risk="unknown";const unknown=JSON.parse(JSON.stringify(IMPACT[0]));IMPACT.push({...unknown,risk:"medium"});const mixed=bImpact();IMPACT.pop();IMPACT[0].gaps=["Missing proof"];const gap=bImpact();console.log(JSON.stringify({parts:impactBody("parts"),workflows:impactBody("workflows"),blast:planBlast(false),indicators,mixed,gap}));'
                     result=self.node(code)
                     self.assertEqual(result.returncode,0,result.stderr)
                     rendered=json.loads(result.stdout);self.assertIn('Unknown',rendered['parts'])
@@ -246,3 +246,10 @@ class ProductHostedReviewTests(unittest.TestCase):
                         if item['risk']=='unknown':
                             self.assertNotIn('low risk only',item['html'])
                             self.assertIn('risk unassessed',item['html'])
+
+                    for name in ('blast','workflows'):
+                        button=re.search(r'<button[^>]+data-iview="'+name+r'"[^>]*>(.*?)</button>',rendered['mixed'],re.S).group(1)
+                        self.assertIn('vdot warn',button,(relative,name))
+                    button=re.search(r'<button[^>]+data-iview="parts"[^>]*>(.*?)</button>',rendered['gap'],re.S).group(1)
+                    self.assertIn('vdot warn',button)
+                    self.assertIn('1 gap; risk unassessed',button)
