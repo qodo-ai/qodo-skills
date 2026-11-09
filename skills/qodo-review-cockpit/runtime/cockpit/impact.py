@@ -3,6 +3,7 @@ diff and the PR's checks; impact rows are the skill's research (enrich.json `imp
 from __future__ import annotations
 
 import re
+from collections import Counter
 from pathlib import PurePosixPath
 
 from .attention import weakening
@@ -233,7 +234,12 @@ def normalize(rows, prs: dict) -> tuple[list[dict], list[str]]:
             from .risk import normalize_factors
             changed = {f["path"] for k in (row["prs"] or list(prs)) for f in prs[k].get("files", [])}
             repos = {k.split("#")[0] for k in prs} | {k.split("#")[0].split("/")[-1] for k in prs}
-            row["factors"], w = normalize_factors(r["factors"], changed, repos)
+            files = [f for k in (row['prs'] or list(prs)) for f in prs[k].get('files', [])]
+            counts = Counter(f['path'] for f in files)
+            spans = {f['path']: {line[2] for h in f.get('hunks', []) for line in h.get('lines', [])
+                                if len(line) > 2 and type(line[2]) is int and line[2] > 0}
+                     for f in files if counts[f['path']] == 1}
+            row["factors"], w = normalize_factors(r["factors"], changed, repos, spans)
             from .story import plain_layer   # the scenario's name heads its row on the overview
             w += plain_layer("component", row["component"], repos)
             warn += [f"impact row {i + 1} ({row['component']}): {x}" for x in w]

@@ -50,7 +50,7 @@ def scenario_risk(levels: dict) -> dict:
     return {"risk": "unknown", "impact": None, "rules": [], "range": [lo["risk"], hi["risk"]]}
 
 
-def normalize_factors(raw, changed: set[str], repos: set[str] = frozenset()) -> tuple[dict | None, list[str]]:
+def normalize_factors(raw, changed: set[str], repos: set[str] = frozenset(), line_spans=None) -> tuple[dict | None, list[str]]:
     """The skill's factors for one scenario: {radius|damage|complexity: {level, why, ev?}, criticality?, contained?,
     flag?}. A factor without a level or a reason is Unknown; evidence must name a changed file."""
     if raw is None:
@@ -83,11 +83,18 @@ def normalize_factors(raw, changed: set[str], repos: set[str] = frozenset()) -> 
             entry = {'path': e['path']}
             if e.get('lines'):
                 lines = str(e['lines']).strip()
-                match = re.fullmatch(r'([1-9][0-9]*)(?:-([1-9][0-9]*))?', lines)
+                match = re.fullmatch(r'([1-9][0-9]*)(?:-([1-9][0-9]*))?', lines) if len(lines) <= 48 else None
                 if match and (not match[2] or int(match[2]) >= int(match[1])):
-                    entry['lines'] = lines
-                    entry['lines_verified'] = False  # file discovery does not certify source-line existence
-                    warn.append(f'factors.{f}: line reference {e["path"]}:{lines} is authored, not source-verified')
+                    lo, hi = int(match[1]), int(match[2] or match[1])
+                    observed = (line_spans or {}).get(e['path'], set())
+                    verified = hi - lo + 1 <= len(observed) and all(n in observed for n in range(lo, hi + 1))
+                    entry['lines_verified'] = verified
+                    if verified:
+                        entry['lines'] = lines
+                    else:
+                        # Keep authored context without rendering it as a verified current-code citation.
+                        entry['original_lines'] = lines
+                        warn.append(f'factors.{f}: line reference {e["path"]}:{lines} is authored, not source-verified; showing file only')
                 else:
                     warn.append(f'factors.{f}: invalid line reference dropped for {e["path"]}')
             checked.append(entry)

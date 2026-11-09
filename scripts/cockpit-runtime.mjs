@@ -69,11 +69,7 @@ export function verifyRuntime(destination = skill) {
   const files = paths.map((path) => {
     safe(path);
     assert(selected(path) && !matches(path, policy.never), `Unexpected runtime resource: ${path}`);
-    if (!policy.existingLargeFiles.includes(path)) {
-      const text = readFileSync(join(directory, path), 'utf8');
-      const lines = (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').length;
-      assert(lines <= 500, `${path}: ${lines} lines exceeds the 500-line limit for new component files`);
-    }
+    assert(lstatSync(join(directory, path)).size <= MAX_RESOURCE_BYTES, `${path}: exceeds unchanged 512 KiB resource limit`);
     const bytes = readFileSync(join(directory, path));
     assert(bytes.length <= MAX_RESOURCE_BYTES, `${path}: exceeds unchanged 512 KiB resource limit`);
     const sha256 = hash(bytes);
@@ -82,6 +78,10 @@ export function verifyRuntime(destination = skill) {
       assert.equal(sha256, policy.reviewedAssets[path]?.sha256, 'Reviewed favicon SHA-256 does not match');
     } else {
       const text = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+      if (!policy.existingLargeFiles.includes(path)) {
+        const lines = (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').length;
+        assert(lines <= 500, `${path}: ${lines} lines exceeds the 500-line limit for new component files`);
+      }
       assert(!text.includes('\0') && !/^\s*(?:%PDF-|(?:<\?xml[^>]*>\s*)?<svg\b)/i.test(text), `Unreviewed binary/document: ${path}`);
       assert(!/^\s*(?:#|\/\/|<!--|\/\*)?\s*\/?release:internal\s*(?:-->|\*\/)?\s*$/m.test(text), `Internal release marker in maintained resource: ${path}`);
       scan(path, text);

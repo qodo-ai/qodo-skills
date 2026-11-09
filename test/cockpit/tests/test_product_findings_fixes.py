@@ -87,9 +87,14 @@ class ProductFindingFixTests(unittest.TestCase):
                 self.assertTrue(any('invalid line reference' in w for w in warnings))
         raw = {'radius': {'level': 'small', 'why': 'Authored evidence', 'ev': [{'path': 'a.py', 'lines': '2-5'}]}}
         factors, warnings = risk.normalize_factors(raw, {'a.py'})
-        self.assertEqual(factors['radius']['ev'][0]['lines'], '2-5')
+        self.assertNotIn('lines', factors['radius']['ev'][0])
+        self.assertEqual(factors['radius']['ev'][0]['original_lines'], '2-5')
         self.assertFalse(factors['radius']['ev'][0]['lines_verified'])
         self.assertTrue(any('not source-verified' in w for w in warnings))
+        factors, warnings = risk.normalize_factors(raw, {'a.py'}, line_spans={'a.py': {2, 3, 4, 5}})
+        self.assertEqual(factors['radius']['ev'][0]['lines'], '2-5')
+        self.assertTrue(factors['radius']['ev'][0]['lines_verified'])
+        self.assertFalse(any('not source-verified' in w for w in warnings))
 
     def test_direct_packaged_cli_cannot_omit_the_managed_local_only_profile(self):
         from contextlib import redirect_stdout

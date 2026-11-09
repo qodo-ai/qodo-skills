@@ -64,6 +64,9 @@ Each factor is `{level,why,ev:[{path,lines}]}`. Leave an unknown factor out: it 
 not Low, and cannot unlock approval. The engine combines radius × damage and then complexity;
 do not hand-author the aggregate Merge Risk. Findings, test/CI counts and fixes alone do not lower
 these factors. A fix changes risk only if its actual mechanism changes reach, damage or complexity.
+Use positive line numbers or an ordered range such as `12-18`. The engine verifies lines against
+one collected file's visible new-side source; unverified context keeps its original numbers but
+renders as a file-only reference with a warning. It does not prove that absent lines do not exist.
 
 Assess feature flags as if the path is enabled. Count unflagged startup/migration/background work.
 Only a demonstrated transaction, isolation or fallback contains the specific failure; a try/except

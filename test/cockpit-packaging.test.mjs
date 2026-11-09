@@ -66,8 +66,10 @@ test('component hygiene rejects state, private content and internal markers with
 
 test('resource limits and component terms apply to maintained source', (t) => {
   const f = componentFixture(t), file = join(f.runtime, 'app/large.js');
-  put(file, 'x'.repeat(512 * 1024 + 1));
-  assert.throws(() => verifyRuntime(f.destination), /512 KiB/); rmSync(file);
+  for (const content of ['x'.repeat(512 * 1024 + 1), 'x\n'.repeat(300_000)]) {
+    put(file, content);
+    assert.throws(() => verifyRuntime(f.destination), /512 KiB/); rmSync(file);
+  }
   put(join(f.runtime, 'LICENSE'), 'Changed component terms');
   assert.throws(() => verifyRuntime(f.destination), /component LICENSE changed/);
 });
