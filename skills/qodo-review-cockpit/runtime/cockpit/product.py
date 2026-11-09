@@ -128,5 +128,7 @@ def project_pr(pr):
 
 
 def project_data(data):
+    from .secret_values import redact
+    data = redact(data)
     return presentation_links({**data, 'product': True, 'provider_writes': False,
             'prs': [project_pr({**p, 'collection_incomplete': (data.get('collection') or {}).get('complete') is False}) for p in data.get('prs', [])]})

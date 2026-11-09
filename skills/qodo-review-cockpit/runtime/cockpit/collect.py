@@ -442,6 +442,8 @@ def build(prs: list[dict], cfg: dict, *, demo: bool = False, session: str | None
     session = session or _dt.datetime.now().strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(2)
     sdir = dest or SESSIONS / session
     sdir.mkdir(parents=True, exist_ok=True)
+    from .secret_values import known_values, redact
+    sensitive = known_values(prs)
     amr, okf = AMR(mem_path(cfg, "amr")), OKF(mem_path(cfg, "okf"))
     reviewer = cfg.get("reviewer") or reviewer_login or "reviewer"   # unset (e.g. a plugin install): your gh login
     if memory_on(cfg):
@@ -511,8 +513,10 @@ def build(prs: list[dict], cfg: dict, *, demo: bool = False, session: str | None
             data['collection'] = meta
             if not meta['complete']:
                 print(f"Collection incomplete: {len(prs)} of {len(meta['requested_refs'])} requested changes retained; missing evidence remains unknown", file=sys.stderr)
+    data = redact(data, sensitive)
     write_json(sdir / "review-data.json", data)
     ev_path = sdir / "events.jsonl"
+    events = redact(events, sensitive)
     with ev_path.open("a") as fh:
         for e in events:
             fh.write(json.dumps(e, ensure_ascii=False) + "\n")

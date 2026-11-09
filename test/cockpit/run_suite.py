@@ -17,6 +17,13 @@ SOCKET_CASES = (
     'tests.test_cockpit.RecipeTests.test_served_page_saves_recipes_and_sends_requests',
     'tests.test_product_session_http.ProductSessionHTTPTests.test_multi_session_notes_and_publish_preserve_explicit_server_boundary',
     'tests.test_product_session_http.ProductSessionHTTPTests.test_product_get_origin_guard_precedes_payload_and_resource_routes',
+    'tests.test_product_access_activity.ProductAccessActivityTests.test_originless_requests_need_browser_admission_before_data_or_ask',
+    'tests.test_product_access_activity.ProductAccessActivityTests.test_browser_bootstrap_cookie_and_restart_invalidation',
+    'tests.test_product_access_activity.ProductAccessActivityTests.test_browser_asset_requests_can_run_concurrently',
+    'tests.test_product_access_activity.ProductAccessActivityTests.test_real_serve_delivers_access_only_to_browser_not_console',
+    'tests.test_product_access_activity.ProductAccessActivityTests.test_trash_refuses_another_tab_inflight_note_then_preserves_it_in_recoverable_trash',
+    'tests.test_product_access_activity.ProductAccessActivityTests.test_trash_refuses_cross_process_refresh_writer',
+    'tests.test_product_review_hardening.ProductReviewHardeningTests.test_body_limit_precedes_read_and_event_offsets_have_typed_errors',
 )
 GIT_CASES = (
     'tests.test_cockpit.FormatTests.test_memory_gets_its_own_repo_outside_any',

@@ -7,6 +7,7 @@ OKF v0.2: one concept per .md file with YAML frontmatter (`type` required),
 reserved `index.md` / `log.md`.
 """
 from __future__ import annotations
+from .memory_write import memory_write
 
 import re
 import os
@@ -183,6 +184,7 @@ class OKF:
     def __init__(self, root: Path):
         self.root = root
 
+    @memory_write
     def ensure(self):
         self.root.mkdir(parents=True, exist_ok=True)
         if not (self.root / "index.md").exists():
@@ -212,11 +214,13 @@ class OKF:
             raise ValueError(f"path escapes bundle: {rel}")
         return p
 
+    @memory_write
     def write(self, c: Concept):
         p = self._safe(c.path)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(dump_frontmatter(c.meta) + "\n" + c.body.strip() + "\n")
 
+    @memory_write
     def propose(self, *, type_: str, title: str, body: str, paths: list[str], by: str,
                 sources: list[dict], description: str = "", folder: str | None = None,
                 tags: list[str] | None = None) -> Concept:
@@ -235,6 +239,7 @@ class OKF:
         self.log("Creation", rel, title, "draft")
         return c
 
+    @memory_write
     def confirm(self, rel: str, reviewer: str, edits: dict | None = None) -> Concept:
         c = self.get(rel)
         if not c:
@@ -257,6 +262,7 @@ class OKF:
         self.log("Update", rel, c.meta.get("title", rel), f"verified by human:{reviewer}")
         return c
 
+    @memory_write
     def reject(self, rel: str, reviewer: str) -> str:
         c = self.get(rel)
         if not c:
@@ -282,6 +288,7 @@ class OKF:
                 hits.append(c)
         return hits
 
+    @memory_write
     def log(self, verb: str, rel: str, title: str, note: str = ""):
         p = self.root / "log.md"
         text = p.read_text() if p.exists() else "# Log\n"
@@ -296,6 +303,7 @@ class OKF:
             lines[1:1] = ["", head, entry]
         p.write_text("\n".join(lines).rstrip() + "\n")
 
+    @memory_write
     def write_index(self):
         groups: dict[str, list[Concept]] = {}
         for c in self.concepts():

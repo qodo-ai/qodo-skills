@@ -18,6 +18,13 @@ if os.environ.get('COCKPIT_TEST_ISOLATED') == '1':
             return
         command = str(args[0])
         name = pathlib.Path(command).name.lower().removesuffix('.exe').removesuffix('.cmd')
+        argv = args[1]
+        if name == 'node' and isinstance(argv, (list, tuple)) and len(argv) > 1 and pathlib.Path(str(argv[1])).name == 'qodo.mjs':
+            script = pathlib.Path(str(argv[1])).resolve()
+            fixture = pathlib.Path(os.environ['COCKPIT_TEST_FIXTURE_BIN']).resolve()
+            temporary = pathlib.Path(os.environ['TMPDIR']).resolve()
+            if script.parent != fixture and temporary not in script.parents:
+                raise RuntimeError('Cockpit suite blocks the real provider CLI Node entrypoint; use a fixture')
         if name == 'git' and os.environ.get('COCKPIT_TEST_OFFLINE') == '1':
             raise RuntimeError('Cockpit suite offline mode blocks real Git operations; parent full run required')
         if name in ('gh', 'qodo'):

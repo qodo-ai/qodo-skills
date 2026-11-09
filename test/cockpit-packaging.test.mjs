@@ -127,10 +127,15 @@ function installedFixture(t, resources = canonical, stubEngine = true) {
   const shim = join(bin, process.platform === 'win32' ? 'qodo.py' : 'qodo');
   put(shim, `#!${python}\n${readFileSync(join(root, 'test/fixtures/cockpit-cli.py'), 'utf8')}`);
   chmodSync(shim, 0o755);
-  if (process.platform === 'win32') put(join(bin, 'qodo.cmd'), `@"${python}" "%~dp0qodo.py" %*\r\n`);
+  if (process.platform === 'win32') {
+    put(join(bin, 'qodo.cmd'), `@"${python}" "%~dp0qodo.py" %*\r\n`);
+    put(join(bin, 'qodo.mjs'), `import {spawnSync} from 'node:child_process';\nconst p=spawnSync(${JSON.stringify(python)},[${JSON.stringify(shim)},...process.argv.slice(2)],{stdio:'inherit'});process.exit(p.status??1);\n`);
+  }
   const home = join(path, 'state');
   const run = (extra = {}, args = ['home']) => spawnSync(python, ['-B', join(installed, 'scripts/launch.py'), ...args], {
-    cwd: path, encoding: 'utf8', env: { ...process.env, PATH: bin, HOME: path, USERPROFILE: path,
+    cwd: path, encoding: 'utf8', env: { ...process.env,
+      PATH: process.platform === 'win32' ? [bin, dirname(process.execPath)].join(';') : bin,
+      HOME: path, USERPROFILE: path, QODO_HOME: join(path, '.qodo'), REVIEW_COCKPIT_QODO: '',
       REVIEW_COCKPIT_HOME: home, PROBE_LOG: log, PYTHONUTF8: '0', ...extra },
   });
   return { path, installed, home, log, run };

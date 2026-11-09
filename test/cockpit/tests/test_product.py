@@ -94,7 +94,9 @@ class AdapterTests(unittest.TestCase):
             with mock.patch('subprocess.run',return_value=subprocess.CompletedProcess([],1,json.dumps({'error':{'code':code}}),'')) as run:
                 with self.assertRaises(error): Client('qodo').read('codebase','get-change-context',repo='org/repo')
                 self.assertEqual(run.call_count,1)
-                self.assertEqual(run.call_args.args[0][0],'qodo')
+                argv = run.call_args.args[0]
+                self.assertIn(Path(argv[0]).name.lower(), ('qodo', 'qodo.exe', 'node', 'node.exe'))
+                self.assertIn('get-change-context', argv)
 
     def test_adapter_through_approval_requires_authoritative_completion(self):
         raw = fixture('pr-review-session','findings')

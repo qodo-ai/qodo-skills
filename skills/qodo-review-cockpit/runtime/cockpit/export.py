@@ -33,6 +33,8 @@ def build(sdir: Path, styles: list[dict] | None = None) -> str:
     """The full app as one file. styles: the other styles exported next to it, for its style links."""
     cfg = session_config(sdir)
     data = json.loads((sdir / "review-data.json").read_text())
+    from .secret_values import redact
+    data = redact(data)
     from .product import enabled, project_data
     if enabled(data):
         data = project_data(data)

@@ -67,7 +67,7 @@ def latest_state(events: list[dict]) -> list[dict]:
     seq = []
     for e in events:
         t = e.get("type")
-        tgt = json.dumps(e.get("target"), sort_keys=True)
+        tgt = json.dumps([e.get('pr'), e.get("target")], sort_keys=True)
         if t == "mark":
             k = ("mark", tgt, e.get("emoji"))
             if e.get("undo"):
@@ -129,7 +129,15 @@ def _distill(sdir: Path, cfg: dict) -> dict:
     amr, okf = AMR(mem_path(cfg, "amr")), OKF(mem_path(cfg, "okf"))
     amr.ensure(cfg.get("reviewer") or data.get("reviewer") or "reviewer"); okf.ensure()
     emoji = cfg["emoji"]
-    findings = {f["id"]: f for pr in data["prs"] for f in pr.get("findings", [])}
+    entries = [(pr['key'], f) for pr in data['prs'] for f in pr.get('findings', [])]
+    counts = Counter(f['id'] for _, f in entries)
+    findings = {(key, f['id']): f for key, f in entries}
+    unambiguous = {f['id']: f for _, f in entries if counts[f['id']] == 1}
+    def event_finding(event, fid=None):
+        if not fid and event.get('type') != 'finding_verdict' and (event.get('target') or {}).get('kind') != 'finding':
+            return None
+        fid = fid or (event.get('target') or {}).get('id')
+        return findings.get((event.get('pr'), fid)) if event.get('pr') else unambiguous.get(fid)
     results = {"amr": [], "okf": [], "review_log": None}
     ledger_path = amr.root / ".credited.json"   # what each session already counted, so Make memories can run again safely
     try:
@@ -163,7 +171,7 @@ def _distill(sdir: Path, cfg: dict) -> dict:
     for e in events:
         if e.get("type") != "finding_verdict":
             continue
-        f = findings.get(e["target"]["id"])
+        f = event_finding(e)
         if not f or e.get("verdict") not in ("accept", "dismiss"):
             continue
         key = (f["category"], path_glob(f.get("path")))
@@ -179,8 +187,8 @@ def _distill(sdir: Path, cfg: dict) -> dict:
             continue
         meaning = (emoji.get(e.get("emoji")) or {}).get("meaning")
         tgt = e.get("target") or {}
-        if tgt.get("kind") == "finding" and tgt.get("id") in findings:
-            cat = findings[tgt["id"]]["category"]
+        if tgt.get("kind") == "finding" and event_finding(e):
+            cat = event_finding(e)["category"]
             if meaning in BLOCKING:
                 add(f"Treats {cat} findings as blocking", "findings", f"prioritize category={cat}")
             elif meaning == "nit":
@@ -204,7 +212,7 @@ def _distill(sdir: Path, cfg: dict) -> dict:
     # 2a) A typed note on a finding (the style pages mark that way): 🧹 is a nit, 🐛 🚫 🔒 treat it as blocking
     nits, blockers = Counter(), Counter()
     for e in events:
-        f = findings.get(e.get("finding_id")) if e.get("type") == "note" else None
+        f = event_finding(e, e.get('finding_id')) if e.get("type") == "note" else None
         meaning = (emoji.get(e.get("emoji")) or {}).get("meaning") if f else None
         if meaning == "nit":
             nits[f["category"]] += 1
@@ -310,11 +318,11 @@ def _distill(sdir: Path, cfg: dict) -> dict:
         elif e.get("type") == "mark":
             m = (emoji.get(e.get("emoji")) or {}).get("label", e.get("emoji"))
             tgt = e.get("target") or {}
-            what = findings[tgt["id"]]["title"] if tgt.get("kind") == "finding" and tgt.get("id") in findings else f"`{tgt.get('id')}`"
+            what = event_finding(e)["title"] if tgt.get("kind") == "finding" and event_finding(e) else f"`{tgt.get('id')}`"
             log_lines[e.get("pr", "general")].append(
                 f"- {e.get('emoji')} {m} on {tgt.get('kind')}: {what} [source: {src}; via: {e.get('source', 'app')}]")
         elif e.get("type") == "finding_verdict":
-            f = findings.get(e["target"]["id"], {})
+            f = event_finding(e) or {}
             log_lines[e.get("pr", "general")].append(
                 f"- {e.get('verdict')} Qodo {f.get('category', '?')} finding: {f.get('title', e['target']['id'])} [source: {src}]")
         elif e.get("type") == "ask":

@@ -69,6 +69,18 @@ def state_home():
     return Path(selected or Path.home() / '.qodo' / 'review-cockpit').expanduser().resolve()
 
 
+def resolve_cli():
+    explicit = os.environ.get('REVIEW_COCKPIT_QODO')
+    if explicit:
+        return shutil.which(explicit) or (explicit if Path(explicit).is_file() else None)
+    found = shutil.which('qodo')
+    if found:
+        return found
+    root = Path(os.environ.get('QODO_HOME') or Path.home() / '.qodo') / 'bin'
+    names = ('qodo.exe', 'qodo.cmd', 'qodo') if sys.platform == 'win32' else ('qodo',)
+    return next((str(root / name) for name in names if (root / name).is_file()), None)
+
+
 def main():
     # The pinned runtime reads/writes UTF-8 review content. Windows otherwise uses
     # a legacy code page; enable Python's process-wide mode before any probes or IO.
@@ -82,16 +94,22 @@ def main():
         os.execv(sys.executable, command)
     if not (RUNTIME / "cockpit" / "__main__.py").is_file():
         sys.exit("Cockpit package error: runtime resources are missing; reinstall through your existing skills channel.")
-    cli = shutil.which(os.environ.get("REVIEW_COCKPIT_QODO") or "qodo")
+    cli = resolve_cli()
     if not cli:
         sys.exit("Cockpit CLI prerequisite: Qodo CLI 2.0.0 or newer is required; use qodo-setup.")
-    version = probe([cli, "--version"], "CLI version probe")
+    sys.path.insert(0, str(RUNTIME))
+    from cockpit.cli_process import argv
+    try:
+        invocation = argv(cli)
+    except OSError as error:
+        sys.exit('Cockpit CLI prerequisite: ' + str(error))
+    version = probe(invocation + ["--version"], "CLI version probe")
     match = re.fullmatch(r"(?:qodo(?: version)?\s+)?v?(\d+)\.(\d+)\.(\d+)(?:[-+][\w.-]+)?\s*", version, re.I)
     if not match or int(match.group(1)) < 2:
         sys.exit("Cockpit CLI prerequisite: Qodo CLI 2.0.0 or newer is required; preserve your update origin.")
     stamp = provenance()
-    for command, gate in (([cli, "read", "whoami", "--json", *stamp], "authentication probe"),
-                          ([cli, "read", "tools", "--json"], "read catalog probe")):
+    for command, gate in ((invocation + ["read", "whoami", "--json", *stamp], "authentication probe"),
+                          (invocation + ["read", "tools", "--json"], "read catalog probe")):
         payload = probe(command, gate)
         try:
             value = json.loads(payload)
@@ -105,7 +123,6 @@ def main():
     os.environ["REVIEW_COCKPIT_HOME"] = str(home)
     os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
     os.environ["REVIEW_COCKPIT_QODO"] = cli
-    sys.path.insert(0, str(RUNTIME))
     sys.argv = ["cockpit", "--product", *sys.argv[1:]]
     runpy.run_module("cockpit", run_name="__main__")
 

@@ -137,8 +137,9 @@ class Client:
             with tempfile.TemporaryDirectory(prefix='cockpit-qodo-') as temporary:
                 params = Path(temporary) / 'args.json'
                 params.write_text(json.dumps({key: value for key, value in args.items() if value is not None}), encoding='utf-8')
-                argv = [self.command, 'read', group, tool, '--args-file', str(params), '--json']
-                result = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+                from ..cli_process import argv
+                command = argv(self.command) + ['read', group, tool, '--args-file', str(params), '--json']
+                result = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
         except PermissionError as e:
             raise PermissionDenied(f'{group}/{tool}: process permission denied; owner action required') from e
         except (OSError, subprocess.TimeoutExpired) as e:

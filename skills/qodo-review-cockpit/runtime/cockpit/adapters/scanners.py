@@ -208,7 +208,7 @@ def upwind(pr: dict, comments: list[dict], conf: dict) -> list[dict]:
                     typ = _strip(r.get("Type", "")) or "Secret"
                     out.append(_finding(pr, "upwind", name, "secret", key=(file, ln, typ), severity=sev,
                                         title=f"{typ} committed in {file.rsplit('/', 1)[-1]}",
-                                        body=f"Upwind flags a value of type {typ} ({_strip(r.get('Value', '')) or 'masked'}). "
+                                        body=f"Upwind flags a value of type {typ} ([redacted]). "
                                              "A pushed secret stays in git history even after the line is removed.",
                                         path=file, line=ln, rule=typ, url=m.group(2) if m else c.get("url"),
                                         status="resolved" if resolved else None))

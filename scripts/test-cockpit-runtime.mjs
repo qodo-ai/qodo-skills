@@ -35,6 +35,8 @@ for (const name of ['gh', 'qodo']) {
   const log = JSON.stringify({ command: name, fixture: true });
   if (process.platform === 'win32') {
     writeFileSync(join(fixtureBin, `${name}.cmd`), `@echo off\r\necho ${log}>>"${fixtureLog}"\r\necho ${payload}\r\nexit /b 1\r\n`);
+    if (name === 'qodo') writeFileSync(join(fixtureBin, 'qodo.mjs'),
+      `import fs from 'node:fs';fs.appendFileSync(${JSON.stringify(fixtureLog)},${JSON.stringify(log+'\n')});console.log(${JSON.stringify(payload)});process.exit(1);\n`);
   } else {
     writeFileSync(join(fixtureBin, name), `#!/bin/sh\nprintf '%s\\n' ${quote(log)} >> ${quote(fixtureLog)}\nprintf '%s\\n' ${quote(payload)}\nexit 1\n`, { mode: 0o755 });
   }

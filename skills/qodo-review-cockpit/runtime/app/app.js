@@ -69,9 +69,9 @@ function marks() {
   }
   return m;
 }
-function verdicts() {
+function verdicts(pr) {
   const v = {};
-  for (const e of S.events) if (e.type === "finding_verdict") v[e.target.id] = e.verdict;
+  for (const e of S.events) if (e.type === "finding_verdict" && e.pr === pr) v[e.target.id] = e.verdict;
   return v;
 }
 function notes() {
@@ -302,13 +302,13 @@ function findingView(f, pr, v) {
     ${f.status && f.status !== "open" ? `<div class="muted" style="font-size:12px">${esc(f.status)}${f.status_why ? ": " + esc(f.status_why) : ""}</div>` : ""}
     ${(f.replies || []).length ? `<div class="replies">${f.replies.map((r) => `<div class="reply ${r.bot ? "bot" : ""}"><b>${esc(r.author || "")}</b> ${mdi(r.body.replace(/_🤖[^_]*_/g, "").trim().slice(0, 400))}</div>`).join("")}</div>` : ""}
     <div class="row">${markbar({ kind: "finding", id: f.id }, pr.key, { compact: true, label: f.title.slice(0, 60) })}${f.url ? `<a href="${esc(f.url)}" target="_blank" rel="noopener" style="font-size:12px">on GitHub ↗</a>` : ""}${f.qodo_url ? `<a href="${esc(f.qodo_url)}" target="_blank" rel="noopener" style="font-size:12px">in Qodo ↗</a>` : ""}</div>
-    ${notes().filter((n) => n.target?.kind === "finding" && n.target.id === f.id).map(noteView).join("")}</div>`;
+    ${notes().filter((n) => n.pr === pr.key && n.target?.kind === "finding" && n.target.id === f.id).map(noteView).join("")}</div>`;
 }
 function sortedFindings(pr) {
   return [...(pr.findings || [])].sort((a, b) => priority(a) - priority(b) || SEV_ORDER[a.severity] - SEV_ORDER[b.severity]);
 }
 function panelFindings(pr) {
-  const v = verdicts();
+  const v = verdicts(pr.key);
   const list = sortedFindings(pr);
   if (!list.length) return `<p class="empty">No findings from Qodo or the agent for this PR.</p>`;
   const nColl = list.filter((f) => collapseRule(f)).length;
@@ -709,7 +709,7 @@ function sideView(s, pr) {
   return `<p>${storyText(s.text || "", pr)}</p>`;
 }
 function findingMini(f, pr) {
-  const v = verdicts()[f.id];
+  const v = verdicts(pr?.key || f.pr)[f.id];
   return `<div class="fmini sev-${esc(f.severity)}">${sevPill(f.severity)}<span class="t">${mdi(f.title)}</span>${f.stance ? `<span class="stance ${esc(f.stance)}" title="${esc(f.stance_why || "")}">agent: ${esc(f.stance)}</span>` : ""}${v ? `<span class="pill">${esc(v)}</span>` : ""}<button class="btn ghost small" data-act="panel-of" data-pr="${esc(f.pr)}" data-v="findings">open</button></div>`;
 }
 function beatVisual(b, pr, prKey = pr ? pr.key : "session") {
@@ -1074,7 +1074,7 @@ document.addEventListener("click", async (e) => {
     return record({ type: "mark", pr, target: t, emoji: em, undo: on });
   }
   if (a === "verdict") {
-    const cur = verdicts()[el.dataset.id];
+    const cur = verdicts(pr)[el.dataset.id];
     const v = cur === el.dataset.v ? "none" : el.dataset.v;
     return record({ type: "finding_verdict", pr, target: { kind: "finding", id: el.dataset.id }, verdict: v });
   }

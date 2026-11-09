@@ -5,12 +5,18 @@ or CLAUDE_PLUGIN_ROOT (which may hold several skills). POSIX: `python3 -B "<skil
 PowerShell: `python -B '<skill>/scripts/launch.py'`; confirm that interpreter is Python 3.9+.
 Arguments are passed directly, without shell evaluation. Keep the server process alive in the
 host's supported background session; do not use a process timeout that kills an active review.
-If the browser cannot be opened automatically, show the printed loopback URL.
+Use a local desktop host that can open the browser. If automatic opening fails, restart from
+that host after fixing its browser association; the printed URL alone cannot authorize a browser.
+Do not expose the ephemeral browser access key. Headless browser handoff is not qualified in V1.
 
 The launcher probes the installed `qodo` command, then `qodo read whoami`, then `qodo read tools`.
 It never logs in, installs dependencies, or updates. Read its gate-specific error. Use qodo-setup
 for an authorized setup. A CLI below 2.x needs explicit major-install authorization; a failed
 version parse is not permission to upgrade. Never print credentials or update-origin URLs.
+When PATH lacks the CLI, the launcher also checks the existing `QODO_HOME/bin` (default
+`~/.qodo/bin`). An explicit `REVIEW_COCKPIT_QODO` selection wins and is never replaced silently.
+Windows uses the native executable or invokes the official adjacent `qodo.mjs` with Node on
+PATH; it does not send dynamic arguments through a batch shell. No runtime is installed.
 Preserve deployment-specific login and the recorded origin. An unavailable Python interpreter
 requires user-owned installation; no nested agent, package manager or bootstrap runs on launch.
 

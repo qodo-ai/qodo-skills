@@ -99,7 +99,8 @@ def catalog() -> dict:
         return {}
     if qodo:
         try:
-            r = subprocess.run([qodo, "read", "tools", "--json"], capture_output=True, text=True, timeout=CALL_TIMEOUT)
+            from .cli_process import argv
+            r = subprocess.run(argv(qodo) + ["read", "tools", "--json"], capture_output=True, text=True, timeout=CALL_TIMEOUT)
             if product:
                 doc = decode_result(r, 'read', 'tools')
             else:

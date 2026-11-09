@@ -19,6 +19,13 @@ from .util import EMOJI, ROOT, SESSIONS, gh, mem_path, memory_on, now_iso, sessi
 APP = ROOT / "app"
 _lock = threading.Lock()
 _SID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,80}")
+MAX_BODY = 2_000_000
+
+
+class BodyError(ValueError):
+    def __init__(self, message, code=400):
+        super().__init__(message)
+        self.code = code
 
 
 def session_named(name) -> Path | None:
@@ -196,7 +203,14 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(b)
 
     def _body(self):
-        n = int(self.headers.get("Content-Length") or 0)
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            raise BodyError('Invalid Content-Length') from None
+        if n < 0:
+            raise BodyError('Invalid Content-Length')
+        if n > MAX_BODY:
+            raise BodyError('JSON request body is too large', 413)
         return json.loads(self.rfile.read(n) or b"{}")
 
     def _data(self):
@@ -307,7 +321,10 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path == "/api/data":
             return self._json({**self._data(), "_dir": self.sdir.name})   # the folder the page's later calls must name
         if self.path.startswith("/api/events"):
-            since = int(self.path.split("since=")[-1]) if "since=" in self.path else 0
+            values = parse_qs(urlsplit(self.path).query).get('since', ['0'])
+            if len(values) != 1 or not re.fullmatch(r'[0-9]{1,16}', values[0]):
+                return self._json({'error': 'since must be one nonnegative event offset'}, 400)
+            since = int(values[0])
             ev = load_events(self.sdir)
             return self._json({"events": ev[since:], "n": len(ev)})
         if self.path == "/api/recipes":   # your own styles, and the Describe requests still open
@@ -553,6 +570,10 @@ class Handler(SimpleHTTPRequestHandler):
                                         f"memory: review session {data['session']}",
                                         tuple(self.cfg["memory"].get("commit_branches", ["main", "master"])))
                 return self._json({"ok": True, "result": res, "commit": commit, "memory": self._memory()})
+        except BodyError as e:
+            return self._json({'error': str(e)}, e.code)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return self._json({'error': 'Invalid JSON request body'}, 400)
         except Exception as e:  # surface errors to the UI
             return self._json({"error": str(e)}, 500)
         return self._json({"error": "unknown endpoint"}, 404)

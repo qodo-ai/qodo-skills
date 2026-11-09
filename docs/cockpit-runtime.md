@@ -11,6 +11,9 @@ python3 -B skills/qodo-review-cockpit/scripts/launch.py export --session latest 
 ```
 
 The launcher selects product mode, CLI/version/authentication gates and UTF-8 automatically.
+It can find an existing user-owned CLI under `QODO_HOME/bin` without installing anything.
+The official Windows batch fallback uses its adjacent CLI module with Node directly, preserving
+UTF-8 JSON-file paths and metacharacters without a shell; native executables stay native.
 The engine can also be invoked with `-m cockpit` for tests after setting PYTHONPATH to the runtime.
 
 The global `--product` flag precedes the command. Direct `-m cockpit` invocations inside this skill also select product mode; omitting the flag cannot enable legacy provider reads or writes. A collected product session records `product: true`; refresh and serving retain that boundary. The server that starts in product mode rejects publishing even when its session picker opens an older standalone session. Retained standalone library implementations are not supported skill entrypoints or provider fallbacks.
@@ -42,6 +45,17 @@ Product enrichment and refresh share a per-session `.cockpit-writer.lock` direct
 Product HTTP operations and snapshot writers also share activity leases under the sessions directory's `.cockpit-active/`; parallel browser requests remain concurrent. Trash takes exclusive access and refuses an active operation from another tab or server. Its guard remains outside the moved package, so deletion cannot invalidate cleanup. A crashed process can leave a stale lease; verify that no operation still owns that session before manually removing it. App settings use an OS-released cross-process lock on both POSIX and Windows. Authored risk line references are syntax-checked and verified against one collected file's visible new-side source; unverified context retains its original numbers but renders as a file-only reference with a warning.
 
 Ownership: this component and its behavior tests are maintained in qodo-skills. See [component maintenance](../skills/qodo-review-cockpit/references/packaging.md) and `test/cockpit/README.md`. This contract was adapted from the original Cockpit component and retains its component terms in runtime/LICENSE.
+
+JSON requests are limited to 2,000,000 bytes before reading or parsing. Event offsets and CLI
+session names are validated; CLI sessions cannot escape their configured directory. Finding
+verdicts and memory attribution use PR plus finding ID, with unscoped legacy events matched
+only when unambiguous. Optional OKF mutations serialize across threads and server processes;
+this does not change the separately accepted failed-refresh memory-draft limit.
+
+Known Upwind Secrets Scan Value cells are redacted before saving source text, raw evidence and
+imported events, and before presenting/exporting older snapshots. Coordinates and source identity
+remain intact; `source_redactions` discloses the change. This is targeted protection for detected
+scanner values, not a general secret detector or permission to share a review without checking it.
 
 HTML exports embed referenced story media only, including nested images and video. Resolved local paths must remain inside that session’s media directory; unreferenced files and external symlinks are excluded. Existing CDN/font and remote-media behavior remains unchanged.
 

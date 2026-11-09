@@ -35,7 +35,12 @@ def _session_dir(name: str | None):
         if not p.exists():
             sys.exit("No session yet. Run `python3 -m cockpit review ...` first.")
         name = p.read_text().strip()
+    from .server import _SID
+    if not isinstance(name, str) or not _SID.fullmatch(name) or '..' in name:
+        sys.exit('Session must be a work-package name, not a path.')
     d = SESSIONS / name
+    if d.resolve().parent != SESSIONS.resolve():
+        sys.exit('Session must stay inside the configured work-package directory.')
     if not (d / "review-data.json").exists():
         sys.exit(f"Session {name} not found.")
     return d
