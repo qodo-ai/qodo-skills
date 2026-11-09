@@ -323,3 +323,31 @@ class ProductHostedReviewTests(unittest.TestCase):
                     return original(fd,mode,**kwargs)
                 with mock.patch('os.fdopen',side_effect=private_temp):
                     memory.write_text(private,'replacement')
+
+
+    def test_deleted_file_full_patch_retains_old_lines_in_public_reading_plan(self):
+        from cockpit import collect
+        from cockpit.adapters.managed import Client
+        from tests.test_product import fixture, page
+        helper=helpers.ProductEnrichRefreshTests()
+        hunk='@@ -1,2 +0,0 @@\n-def old():\n-    return 1\n'
+        full='diff --git a/obsolete.py b/obsolete.py\n--- a/obsolete.py\n+++ /dev/null\n'+hunk
+        for text in (hunk,full,'--- a/obsolete.py\n+++ /dev/null\n'+hunk):
+            with self.subTest(full_header=text!=hunk),helper.session() as (root,sd,cfg,read):
+                def deleted(group,tool,**args):
+                    if tool=='read-review-data' and args['kind']=='files':
+                        return page([{'filename':'obsolete.py','status':'removed','additions':0,'deletions':2,'patch_available':True}])
+                    if tool=='read-review-data' and args['kind']=='patch':
+                        self.assertEqual(args['path'],'obsolete.py')
+                        return page([{'path':'obsolete.py','patch':text,'patch_complete':True}])
+                    return fixture(group,tool,**args)
+                with mock.patch.object(Client,'read',side_effect=deleted):
+                    pr=Client().change('org/repo',1)
+                self.assertEqual([line[:3] for line in pr['files'][0]['hunks'][0]['lines']],[['-',1,None],['-',2,None]])
+                collect.build([pr],cfg,demo=True,session='s',dest=sd)
+                public=view.view_data(sd)['prs'][0]
+                self.assertTrue(public['product_evidence']['patches_complete'])
+                ranges=[x for x in public['attention']['blocks'] if x['path']=='obsolete.py' and x['side']=='old']
+                self.assertEqual(sum(x['lines'] for x in ranges),2,repr(public['attention']))
+                self.assertTrue(all(x['tier']!='skip' for x in ranges))
+        self.assertIn('(deleted)',collect.parse_diff(full))  # preserve the raw legacy parser default

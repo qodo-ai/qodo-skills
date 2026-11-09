@@ -217,7 +217,7 @@ class Client:
             text = ''.join(x.get('patch') or x.get('content') or '' for x in patch['items'] if isinstance(x, dict))
             files.append({'path': path, 'previous': f.get('previous_filepath') or f.get('previous_filename'),
                           'additions': f.get('additions', 0), 'deletions': f.get('deletions', 0),
-                          'hunks': parse_diff('+++ b/' + path + '\n' + text).get(path, []), 'patch_evidence': patch, 'provider_file': f})
+                          'hunks': parse_diff('+++ b/' + path + '\n' + text, deleted_path=path).get(path, []), 'patch_evidence': patch, 'provider_file': f})
         comments = []
         for kind in ('comments', 'inline_comments', 'reviews'):
             for c in evidence[kind]['items']:

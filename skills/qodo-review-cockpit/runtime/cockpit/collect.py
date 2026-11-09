@@ -29,7 +29,7 @@ def parse_ref(ref: str, default_repo: str | None) -> tuple[str, int]:
     raise ValueError(f"Can't parse PR reference '{ref}'. Use 1234 with --repo, owner/repo#1234, or a PR URL.")
 
 
-def parse_diff(diff: str) -> dict[str, list[dict]]:
+def parse_diff(diff: str, *, deleted_path: str | None = None) -> dict[str, list[dict]]:
     """Unified diff -> {path: [hunk]} where hunk = {id, header, lines:[[kind, old, new, text]]}."""
     files: dict[str, list[dict]] = {}
     path = None
@@ -43,7 +43,7 @@ def parse_diff(diff: str) -> dict[str, list[dict]]:
             p = line[4:].strip()
             path = p[2:] if p.startswith("b/") else p
             if path == "/dev/null":
-                path = None
+                path = deleted_path
             files.setdefault(path or "(deleted)", [])
             continue
         if line.startswith("--- ") and hunk is None:
