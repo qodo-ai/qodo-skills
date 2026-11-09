@@ -1,0 +1,46 @@
+{
+  "version": "2.1.10",
+  "summary": "Update Qodo skills and marketplace packages.\n- Merge pull request #154 from qodo-ai/fix/at-1263-skills-guidance",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.13",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-codebase-wisdom",
+      "version": "1.1.8",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-get-rules",
+      "version": "1.1.8",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-manage-standards",
+      "version": "1.0.9",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review",
+      "version": "1.10.15",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.10",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.4",
+      "change": "patch"
+    }
+  ]
+}

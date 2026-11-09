@@ -9,7 +9,7 @@ owner: Qodo
 when_to_use: When you need to read or act on a pull request's Qodo review — check where it stands, see what it flagged, gate a merge on it being clean at head, or fix the open findings — for any PR, not just your own. It reads the review through qodo's managed tool (structured, git-provider-agnostic), so use it instead of scraping the rendered PR review comments with `gh`/`curl` (lossy, provider-specific, and easy to read stale against the head commit). It resolves findings in local code and then records the outcome on each finding through qodo's own tools (dismiss / mark-implemented, which clear the merge-policy block); it never posts to the git forge itself. Skip it for reviewing code you're writing locally before any PR exists (that's the pre-PR review), and for non-review PR chores (merging, labels, descriptions).
 metadata:
   vendor: qodo
-  version: "1.4.9"
+  version: "1.4.10"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -99,19 +99,29 @@ This unadorned probe is intentionally compatible with older Qodo CLIs. This skil
 CLI **2.0.0 or newer** and a runtime with review API v2.
 On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
 
-If the version is older or cannot be parsed, do not run `whoami`, `login`, or a managed tool and
-do not describe the failure as an authentication problem. Automatic CLI updates stay within their
-major version, so `qodo update` cannot migrate 1.x to 2.x. Explain the required explicit 2.x
-installation and ask once before running the checksum-pinned installer supplied by Qodo or the
-organization. Preserve the recorded distribution origin; never switch an enterprise deployment
-to the public service or invent an installer digest. After installation, rerun the unadorned
-version probe. If declined or unsuccessful, stop with skill and user files unchanged.
+Only when the runtime needs an update, before any update check/change, test whether `QODO_UPDATE_BASE_URL` is set;
+never print its value. If set, stop for the user to resolve the source override before proceeding;
+do not change it yourself or assume it matches the recorded origin.
+If the version is older or cannot be parsed, do not run `whoami`, `login`, a review, or a managed tool and
+do not describe the failure as an authentication problem. Choose one deployment-approved upgrade
+route, explain it, and reuse covering runtime-update authorization or ask once before changing the
+installation. For parsed 1.x, normal `qodo update` can reach approved 2.x when its recorded origin enables migration.
+If legacy aliases still serve 1.x, check the supported same-origin `latest-2` recovery route first.
+Require a compatible newer 2.x target from the selected route's supported check; missing/failed checks stop.
+Propose `qodo update --channel latest-2` only for that verified recovery route; never assume activation.
+This exception covers only deployment-approved 1.x to stable 2.x; it does not authorize other
+major migrations or change the existing automatic-update policy for future majors.
+For every route, preserve origin, explicit version choices and update holds; never substitute a channel for an exact version.
+For an unparseable runtime or no supported updater, use a checksum-pinned installer supplied by
+Qodo or the organization with covering installation authorization; never switch to public service or invent a digest.
+Make one approved runtime attempt, then rerun the unadorned version probe and continue only when it satisfies the minimum. On denial, failure or continued
+incompatibility, stop with skill and user files unchanged; do not retry through another route.
 
 ## Quick start
 
 ```
 qodo --version                                                       # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.9 --distribution skills-sh
+qodo read whoami --json --skill qodo-review-resolver --skill-version 1.4.10 --distribution skills-sh
 qodo read pr-review-session findings --pr-url <PR_URL> --json       # the review session for a PR
 qodo read pr-review-session findings --pr-url <PR_URL> --extended --json # details, if advertised by tool help
 qodo pr-review-session mark-implemented --finding-ids <id>,<id> --explanation "..." --json
