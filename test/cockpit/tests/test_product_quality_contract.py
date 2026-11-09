@@ -87,12 +87,12 @@ class ProductQualityContractTests(unittest.TestCase):
     def test_saved_local_import_preserves_each_original_review_reference(self):
         pr = self.scope.pr()
         first = {'findings': [{'id': 'old', 'title': 'Earlier concern', 'file_path': 'a.py', 'start_line': 1}],
-                 'meta': {'local_review_id': 'review-one', 'local_review_ids': {'old': 'review-one'},
-                          'checkpoint': {'created_at': '2026-01-01T00:00:00Z'}}}
+                 'finding_state': {'complete': True, 'introduced': ['old']},
+                 'meta': {'local_review_ids': {'old': 'review-one'},
+                          'run': {'timing': {'finished_at': '2026-01-01T00:00:00Z'}}}}
         second = {'findings': [{'id': 'old', 'title': 'Earlier concern', 'local_review_id': 'review-two'}, {'id': 'new', 'title': 'New concern'}],
                   'finding_state': {'complete': True, 'introduced': ['new'], 'still_open': ['old']},
-                  'meta': {'local_review_id': 'review-two',
-                           'local_review_ids': {'old': 'review-one', 'new': 'review-two'}}}
+                  'meta': {'local_review_ids': {'old': 'review-one', 'new': 'review-two'}}}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(qodo_local, 'STORE', Path(tmp)):
             qodo_local.add(first, pr=pr['key'], commit='a' * 40)
             qodo_local.add(second, pr=pr['key'], commit=HEAD)
@@ -105,6 +105,12 @@ class ProductQualityContractTests(unittest.TestCase):
         self.assertEqual(findings['old']['local']['line'], 1)
         self.assertNotIn('status', findings['old'])
         self.assertEqual(findings['old']['title'], 'Earlier concern')
+        carried_only = {'findings': [{'id': 'old'}], 'finding_state': {'still_open': ['old']},
+                        'meta': {'local_review_ids': {'old': 'review-one'}}}
+        self.assertTrue(qodo_local._review_id(carried_only).startswith('noid-'))
+        ambiguous = {'findings': [], 'finding_state': {'introduced': ['one', 'two']},
+                     'meta': {'local_review_ids': {'one': 'review-one', 'two': 'review-two'}}}
+        self.assertTrue(qodo_local._review_id(ambiguous).startswith('noid-'))
 
     def test_legacy_local_reference_fallback_is_preserved(self):
         pr = self.scope.pr()

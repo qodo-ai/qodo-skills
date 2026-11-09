@@ -58,6 +58,11 @@ def _review_id(result: dict) -> str:
     cp = meta.get("checkpoint") if isinstance(meta.get("checkpoint"), dict) else {}
     rid = _first(result, "local_review_id", "review_id") or _first(meta, "local_review_id", "review_id") or _first(cp, "id")
     fs = result.get("finding_state") if isinstance(result.get("finding_state"), dict) else {}
+    references = meta.get('local_review_ids') if isinstance(meta.get('local_review_ids'), dict) else {}
+    introduced_ids = {_fid(f) if isinstance(f, dict) else f for f in fs.get('introduced') or [] if isinstance(f, (dict, str))}
+    own_ids = {references[fid] for fid in introduced_ids if fid and isinstance(references.get(fid), str) and references[fid]}
+    if not rid and len(own_ids) == 1:
+        rid = next(iter(own_ids))   # only explicitly introduced findings identify this execution
     for group in ([f for f in result.get("findings") or [] if isinstance(f, dict)] + [f for f in fs.get("introduced") or [] if isinstance(f, dict)],
                   _all(result)):
         if rid:
@@ -72,11 +77,13 @@ def _digest(result: dict) -> str:
 
 
 def _ran_at(result: dict) -> str | None:
-    """When the review ran (not when it was handed over): its checkpoint, else its newest finding."""
+    """When the review ran: its checkpoint, current run timing, else its newest finding."""
     meta = result.get("meta") if isinstance(result.get("meta"), dict) else {}
     cp = meta.get("checkpoint") if isinstance(meta.get("checkpoint"), dict) else {}
+    run = meta.get('run') if isinstance(meta.get('run'), dict) else {}
+    timing = run.get('timing') if isinstance(run.get('timing'), dict) else {}
     made = [str(f["created_at"]) for f in _all(result) if f.get("created_at")]
-    return _first(cp, "created_at") or (max(made) if made else None)
+    return _first(cp, "created_at") or _first(timing, 'finished_at', 'started_at') or (max(made) if made else None)
 
 
 def norm_pr(ref: str | None) -> str | None:
