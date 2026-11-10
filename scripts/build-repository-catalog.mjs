@@ -36,9 +36,18 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
   const catalog = JSON.parse(metadata.toString('utf8'));
   if (!validateCatalog(catalog) || catalog.package.repository !== 'https://github.com/qodo-ai/qodo-skills') throw new Error('Invalid canonical repository catalog metadata');
   const packageBySkill = new Map();
-  for (const pkg of catalog.installPackages) for (const name of pkg.skills) {
+  const packageNames = new Set();
+  for (const pkg of catalog.installPackages) {
+    if (packageNames.has(pkg.name)) throw new Error('Duplicate repository package name');
+    packageNames.add(pkg.name);
+    for (const name of pkg.skills) {
     if (!/^qodo(?:-[a-z0-9]+)*$/.test(pkg.name) || packageBySkill.has(name)) throw new Error('Invalid repository package membership');
     packageBySkill.set(name, pkg.name);
+    }
+  }
+  const registered = new Set(catalog.skills.map((skill) => skill.name));
+  for (const entry of readdirSync(join(repositoryRoot, 'skills'), { withFileTypes: true })) {
+    if ((entry.isDirectory() || entry.isSymbolicLink()) && !registered.has(entry.name)) throw new Error('Uncatalogued repository skill directory');
   }
   let contentBytes = 0;
   let fileCount = 0;

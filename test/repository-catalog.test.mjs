@@ -47,6 +47,13 @@ test('output is deterministic and checksummed without a package/name allowlist',
   assert.throws(() => buildRepositoryCatalog(dir, sha), /metadata/);
   fixture.package.version = '1.2.3'; fixture.runtime.minimumCliVersion = '2.0.0';
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  fixture.installPackages[1].name = fixture.installPackages[0].name;
+  writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  assert.throws(() => buildRepositoryCatalog(dir, sha), /Duplicate repository package/);
+  fixture.installPackages[1].name = 'qodo-next'; writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  mkdirSync(join(dir, 'skills/qodo-unlisted')); writeFileSync(join(dir, 'skills/qodo-unlisted/SKILL.md'), 'unlisted');
+  assert.throws(() => buildRepositoryCatalog(dir, sha), /Uncatalogued/);
+  rmSync(join(dir, 'skills/qodo-unlisted'), { recursive: true });
   writeRepositoryCatalog(dir, sha, join(dir, 'out'));
   assert.deepEqual(readFileSync(join(dir, 'out/qodo-repository-catalog.json')), first);
   assert.equal(JSON.parse(first).skills[0].package, 'qodo-future');
