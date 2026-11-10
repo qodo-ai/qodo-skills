@@ -1,3 +1,4 @@
+import { parseSkillFrontmatter } from './skill-frontmatter.mjs';
 /** Data-only opt-in skill catalog; independent of legacy bundles and provider projections. */
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
@@ -81,6 +82,12 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
     };
     walk(join(repositoryRoot, 'skills', skill.name));
     if (!files.some((file) => file.path === 'SKILL.md')) throw new Error('Repository skill has no SKILL.md');
+    const meta = parseSkillFrontmatter(Buffer.from(files.find((file) => file.path === 'SKILL.md').content, 'base64').toString('utf8'));
+    const recommended = meta?.metadata.recommended === undefined ? true : meta.metadata.recommended === 'true';
+    if (!meta || meta.name !== skill.name || meta.metadata.version !== skill.version
+      || recommended !== skill.recommended || meta.metadata.package !== packageBySkill.get(skill.name)) {
+      throw new Error(`Repository skill frontmatter differs from catalog: ${skill.name}`);
+    }
     return { ...skill, package: packageBySkill.get(skill.name), files };
   });
   if (packageBySkill.size !== skills.length) throw new Error('Repository package contains an undeclared skill');

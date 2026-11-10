@@ -173,6 +173,9 @@ catalog skills, resources and component terms. It does not expand legacy enterpr
 bundles, CLI-managed bundles, setup defaults or provider listings. Enterprise delivery
 also requires the QAR catalog-serving change and an explicitly enabled deployment pin.
 Source merge alone does not publish this artifact or list Cockpit in a marketplace.
+For a retry after publisher changes, rerun the original workflow at its original revision
+or select a new main source commit. Uploaded-byte mismatches deliberately stop publication;
+completed assets are never automatically replaced.
 The artifact supports Unicode resource filenames and contents without rewriting paths.
 Canonical normalization, full Unicode case folding and Windows case checks reject
 collisions and reserved names. Pinned Unicode data and its notice are in

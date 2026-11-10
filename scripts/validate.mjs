@@ -1,3 +1,4 @@
+import { parseSkillFrontmatter } from './skill-frontmatter.mjs';
 /** Validate canonical skills, generated adapters, and release invariants. */
 import { execFileSync } from 'node:child_process';
 import { existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
@@ -53,25 +54,10 @@ function walk(dir) {
 }
 
 function frontmatter(path) {
-  const text = readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
-  const match = text.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) {
+  const result = parseSkillFrontmatter(readFileSync(path, 'utf8'));
+  if (!result) {
     fail(`${relative(root, path)}: missing YAML frontmatter`);
     return {};
-  }
-  const result = { metadata: {} };
-  let section = '';
-  for (const line of match[1].split('\n')) {
-    const field = line.match(/^([a-z_-]+):(?:\s*(.*))?$/);
-    if (field) {
-      section = field[1];
-      if (field[2]) result[field[1]] = field[2].replace(/^['"]|['"]$/g, '');
-      continue;
-    }
-    const nested = line.match(/^  ([a-z_-]+):\s*(.+)\s*$/);
-    if (section === 'metadata' && nested) {
-      result.metadata[nested[1]] = nested[2].replace(/^['"]|['"]$/g, '');
-    }
   }
   return result;
 }

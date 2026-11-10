@@ -34,12 +34,21 @@ test('output is deterministic and checksummed without a package/name allowlist',
   const fixture = { ...base, package: { ...base.package, version: '1.2.3' }, runtime: { ...base.runtime, minimumCliVersion: '2.0.0' },
     installPackages: [{ ...base.installPackages[0], name: 'qodo-future', skills: ['qodo-future-skill'] }, { ...base.installPackages[1], name: 'qodo-next--', skills: ['qodo-z--future-'] }],
     skills: ['qodo-future-skill', 'qodo-z--future-'].map((name) => ({ ...base.skills[0], name })) };
-  mkdirSync(join(dir, 'skills/qodo-z--future-'), { recursive: true }); writeFileSync(join(dir, 'skills/qodo-z--future-/SKILL.md'), 'second');
+  mkdirSync(join(dir, 'skills/qodo-z--future-'), { recursive: true });
+  const document = (name, pkg, body) => `---\nname: ${name}\nmetadata:\n  version: "${base.skills[0].version}"\n  recommended: "true"\n  package: "${pkg}"\n---\n${body}`;
+  writeFileSync(join(dir, 'skills/qodo-z--future-/SKILL.md'), document('qodo-z--future-', 'qodo-next--', 'second'));
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
-  writeFileSync(join(dir, 'skills/qodo-future-skill/SKILL.md'), 'future');
+  const skillPath = join(dir, 'skills/qodo-future-skill/SKILL.md');
+  const original = document('qodo-future-skill', 'qodo-future', 'future');
+  writeFileSync(skillPath, original);
   writeRepositoryCatalog(dir, sha, join(dir, 'out'));
   const first = readFileSync(join(dir, 'out/qodo-repository-catalog.json'));
   assert.equal(JSON.parse(first).minimumCliVersion, '2.3.0');
+  for (const [from, to] of [['name: qodo-future-skill', 'name: qodo-wrong'], [`version: \"${base.skills[0].version}\"`, 'version: \"999.0.0\"'], ['recommended: \"true\"', 'recommended: \"false\"'], ['package: \"qodo-future\"', 'package: \"qodo-wrong\"']]) {
+    writeFileSync(skillPath, original.replace(from, to));
+    assert.throws(() => buildRepositoryCatalog(dir, sha), /frontmatter differs/);
+  }
+  writeFileSync(skillPath, original);
   fixture.runtime.minimumCliVersion = '2.4.0+build.1'; fixture.package.version = '1.2.3+build.2';
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   assert.equal(buildRepositoryCatalog(dir, sha).minimumCliVersion, '2.4.0+build.1');
@@ -146,6 +155,9 @@ test('catalog prereleases address drafts by ID, resume partial uploads and enfor
   const publishedWrites = writes; publishRepositorySnapshot(options); assert.equal(writes, publishedWrites);
   const asset = remote.get('qodo-repository-catalog.json'); remote.set(asset.name, { ...asset, content: Buffer.from('changed') });
   assert.throws(() => publishRepositorySnapshot(options), /immutable/); assert.equal(writes, publishedWrites);
+  release.draft = true;
+  assert.throws(() => publishRepositorySnapshot(options), /immutable/);
+  assert.equal(writes, publishedWrites, 'an uploaded draft asset with changed bytes requires an explicit recovery choice');
   remote.set(asset.name, asset); release.draft = true; immutable = false;
   assert.throws(() => publishRepositorySnapshot(options), /mutable/); assert.equal(release.draft, true);
   tagCreated = false; competingTag = true;
