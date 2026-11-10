@@ -39,10 +39,14 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
   if (!validateCatalog(catalog) || !semver.test(catalog.package.version) || catalog.skills.length > 500 || catalog.installPackages.length > 100 || catalog.package.repository !== 'https://github.com/qodo-ai/qodo-skills') throw new Error('Invalid canonical repository catalog metadata');
   const packageBySkill = new Map();
   const packageNames = new Set();
+  const aliases = new Set();
   for (const pkg of catalog.installPackages) {
     if (packageNames.has(pkg.name)) throw new Error('Duplicate repository package name');
     packageNames.add(pkg.name);
-    if (Object.values(pkg.compatibilityAliases).some((name) => !pkg.skills.includes(name))) throw new Error('Invalid repository compatibility alias');
+    for (const [alias, target] of Object.entries(pkg.compatibilityAliases)) {
+      if (aliases.has(alias) || !pkg.skills.includes(target)) throw new Error('Invalid repository compatibility alias');
+      aliases.add(alias);
+    }
     for (const name of pkg.skills) {
     if (!/^qodo(?:-[a-z0-9-]+)?$/.test(pkg.name) || packageBySkill.has(name)) throw new Error('Invalid repository package membership');
     packageBySkill.set(name, pkg.name);

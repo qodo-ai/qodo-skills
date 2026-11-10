@@ -53,6 +53,11 @@ test('output is deterministic and checksummed without a package/name allowlist',
   fixture.installPackages[0].compatibilityAliases = { missing: 'qodo-missing' };
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /compatibility alias/);
+  fixture.installPackages[0].compatibilityAliases = { shared: 'qodo-future-skill' };
+  fixture.installPackages[1].compatibilityAliases = { shared: 'qodo-z--future-' };
+  writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  assert.throws(() => buildRepositoryCatalog(dir, sha), /compatibility alias/);
+  fixture.installPackages[1].compatibilityAliases = {};
   fixture.installPackages[0].compatibilityAliases = aliases;
   writeFileSync(skillPath, original.replace('  recommended: \"true\"\n', ''));
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
