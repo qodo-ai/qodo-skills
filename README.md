@@ -173,3 +173,10 @@ catalog skills, resources and component terms. It does not expand legacy enterpr
 bundles, CLI-managed bundles, setup defaults or provider listings. Enterprise delivery
 also requires the QAR catalog-serving change and an explicitly enabled deployment pin.
 Source merge alone does not publish this artifact or list Cockpit in a marketplace.
+
+The optional catalog publisher uses the existing protected release environment and
+contents-scoped workflow token. A repository owner must enable release immutability
+before dispatch. Publication verifies the returned immutable flag and fails/attempts
+to return to draft if it is absent; consumers must wait for successful publication
+before proposing a catalog pin. The settings API needs Administration read permission,
+which this workflow deliberately does not add.
