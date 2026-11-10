@@ -32,7 +32,7 @@ test('output is deterministic and checksummed without a package/name allowlist',
   mkdirSync(join(dir, 'distribution')); mkdirSync(join(dir, 'skills/qodo-future-skill'), { recursive: true });
   const base = JSON.parse(readFileSync(join(root, 'distribution/catalog.json'), 'utf8'));
   const fixture = { ...base, package: { ...base.package, version: '1.2.3' }, runtime: { ...base.runtime, minimumCliVersion: '2.0.0' },
-    installPackages: [{ ...base.installPackages[0], name: 'qodo-future', skills: ['qodo-future-skill'] }, { ...base.installPackages[1], name: 'qodo-next--', skills: ['qodo-z--future-'] }],
+    installPackages: [{ ...base.installPackages[0], name: 'qodo-future', compatibilityAliases: {}, skills: ['qodo-future-skill'] }, { ...base.installPackages[1], name: 'qodo-next--', compatibilityAliases: {}, skills: ['qodo-z--future-'] }],
     skills: ['qodo-future-skill', 'qodo-z--future-'].map((name) => ({ ...base.skills[0], name })) };
   mkdirSync(join(dir, 'skills/qodo-z--future-'), { recursive: true });
   const document = (name, pkg, body) => `---\nname: ${name}\ndescription: A fixture skill.\nowner: Qodo\nmetadata:\n  vendor: qodo\n  distribution: skills-sh\n  version: "${base.skills[0].version}"\n  recommended: "true"\n  package: "${pkg}"\n---\n${body}`;
