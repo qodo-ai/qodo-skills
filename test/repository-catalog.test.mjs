@@ -66,12 +66,15 @@ test('output is deterministic and checksummed without a package/name allowlist',
     assert.throws(() => buildRepositoryCatalog(dir, sha), /Unsafe/);
     rmSync(join(dir, 'skills/qodo-future-skill/NUL'));
   }
-  const composed = join(dir, 'skills/qodo-future-skill/\u00e9.txt');
-  const decomposed = join(dir, 'skills/qodo-future-skill/e\u0301.txt');
-  writeFileSync(composed, 'one'); writeFileSync(decomposed, 'two');
-  // Linux can represent both names; normalization-insensitive hosts cannot.
-  if (statSync(composed).ino !== statSync(decomposed).ino) assert.throws(() => buildRepositoryCatalog(dir, sha), /colliding/);
-  rmSync(composed, { force: true }); rmSync(decomposed, { force: true });
+  for (const name of ['é.txt', 'e\u0301.txt', 'ς.txt', 'σ.txt']) {
+    const path = join(dir, 'skills/qodo-future-skill', name); writeFileSync(path, 'data');
+    assert.throws(() => buildRepositoryCatalog(dir, sha), /ASCII filenames/);
+    rmSync(path);
+  }
+  const multilingual = 'שלום 世界 σς';
+  writeFileSync(join(dir, 'skills/qodo-future-skill/international.txt'), multilingual);
+  const resource = buildRepositoryCatalog(dir, sha).skills[0].files.find((file) => file.path === 'international.txt');
+  assert.equal(Buffer.from(resource.content, 'base64').toString('utf8'), multilingual);
   symlinkSync('SKILL.md', join(dir, 'skills/qodo-future-skill/link'));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /symlink/);
 });
@@ -79,17 +82,23 @@ test('output is deterministic and checksummed without a package/name allowlist',
 test('catalog prereleases address drafts by ID, resume partial uploads and enforce immutable publication', async (t) => {
   const { publishRepositorySnapshot } = await import('../scripts/publish-repository-catalog.mjs');
   const dir = mkdtempSync(join(tmpdir(), 'repository-publish-')); t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const remote = new Map(); let release; let writes = 0; let failUpload = true; let immutable = true; let tagCreated = false;
+  const remote = new Map(); let release; let writes = 0; let failUpload = true; let immutable = true; let tagCreated = false; let competingTag = false;
   const run = (command, args) => {
     if (command === 'git') {
       if (args[0] === 'rev-parse') return sha;
       if (args[0] === 'remote') return 'git@github.com:qodo-ai/qodo-skills.git';
-      if (args[0] === 'ls-remote' && tagCreated) return `${sha} refs/tags/catalog-${sha}`;
+      if (args[0] === 'ls-remote' && tagCreated) return `${competingTag ? 'b'.repeat(40) : sha} refs/tags/catalog-${sha}`;
       return '';
     }
     assert.equal(command, 'gh'); assert.equal(args[0], 'api', 'draft tag commands must not be used');
     const method = args.includes('--method') ? args[args.indexOf('--method') + 1] : 'GET';
     const endpoint = args.find((arg) => arg.startsWith('repos/') || arg.startsWith('https:'));
+    if (method === 'POST' && endpoint.endsWith('/git/refs')) {
+      writes++; assert.ok(args.includes(`ref=refs/tags/catalog-${sha}`)); assert.ok(args.includes(`sha=${sha}`));
+      assert.equal(tagCreated, false); tagCreated = true;
+      if (competingTag) throw new Error('competing tag creator won');
+      return '{}';
+    }
     if (endpoint.endsWith('?per_page=100')) return JSON.stringify([release ? [{ ...release, assets: [...remote.values()].map(({ id, name }) => ({ id, name })) }] : []]);
     if (method === 'POST' && endpoint === 'repos/qodo-ai/qodo-skills/releases') {
       writes++; assert.ok(args.includes('prerelease=true')); assert.ok(args.includes('make_latest=false'));
@@ -102,6 +111,7 @@ test('catalog prereleases address drafts by ID, resume partial uploads and enfor
       writes++; remote.set(name, { id: remote.size + 100, name, content: readFileSync(args[args.indexOf('--input') + 1]) }); return '{}';
     }
     if (method === 'PATCH') {
+      if (args.includes('draft=false')) assert.equal(tagCreated, true, 'reserve the source before immutable publication');
       writes++; release.draft = args.includes('draft=true'); release.immutable = !release.draft && immutable; tagCreated ||= !release.draft; return JSON.stringify(release);
     }
     if (endpoint.includes('/assets/')) {
@@ -118,6 +128,9 @@ test('catalog prereleases address drafts by ID, resume partial uploads and enfor
   assert.throws(() => publishRepositorySnapshot(options), /immutable/); assert.equal(writes, publishedWrites);
   remote.set(asset.name, asset); release.draft = true; immutable = false;
   assert.throws(() => publishRepositorySnapshot(options), /mutable/); assert.equal(release.draft, true);
+  tagCreated = false; competingTag = true;
+  assert.throws(() => publishRepositorySnapshot(options), /existing tag must name the same source/);
+  assert.equal(release.draft, true, 'a wrong competing tag must never publish the draft');
   const workflow = readFileSync(join(root, '.github/workflows/repository-catalog.yml'), 'utf8');
   assert.ok(workflow.includes('workflow_dispatch:')); assert.ok(!workflow.includes('publish-release.sh'));
   assert.ok(!workflow.includes('marketplace-release.mjs'));

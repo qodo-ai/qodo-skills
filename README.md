@@ -173,6 +173,8 @@ catalog skills, resources and component terms. It does not expand legacy enterpr
 bundles, CLI-managed bundles, setup defaults or provider listings. Enterprise delivery
 also requires the QAR catalog-serving change and an explicitly enabled deployment pin.
 Source merge alone does not publish this artifact or list Cockpit in a marketplace.
+The beta artifact uses portable ASCII resource filenames and preserves multilingual
+file contents. Case collisions and reserved Windows names are rejected before publication.
 
 The optional catalog publisher uses the existing protected release environment and
 contents-scoped workflow token. A repository owner must enable release immutability

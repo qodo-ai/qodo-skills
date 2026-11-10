@@ -21,7 +21,7 @@ export function publishRepositorySnapshot({ repositoryRoot = root, sourceCommit,
   const tag = `catalog-${sourceCommit}`;
   const verifyTag = () => {
     const rows = run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${tag}`, `refs/tags/${tag}^{}`]).trim();
-    if (!rows) return false; // GitHub creates a new tag when the draft is published.
+    if (!rows) return false;
     const refs = new Map(rows.split(/\r?\n/).map((line) => line.split(/\s+/)).map(([sha, name]) => [name, sha]));
     assert.equal(refs.get(`refs/tags/${tag}^{}`) ?? refs.get(`refs/tags/${tag}`), sourceCommit, 'existing tag must name the same source');
     return true;
@@ -51,6 +51,13 @@ export function publishRepositorySnapshot({ repositoryRoot = root, sourceCommit,
     assert.ok(Buffer.from(bytes).equals(readFileSync(join(outputDirectory, name))), 'published snapshot bytes must be immutable');
   };
   validate();
+  // Reserve the exact source atomically before publication can lock the tag.
+  // A competing creator is acceptable only if it reserved the same commit.
+  if (!verifyTag()) {
+    try { api(['--method', 'POST', 'repos/qodo-ai/qodo-skills/git/refs', '-f', `ref=refs/tags/${tag}`, '-f', `sha=${sourceCommit}`]); }
+    catch (error) { if (!verifyTag()) throw error; }
+    assert.equal(verifyTag(), true, 'catalog tag must be reserved before publishing');
+  }
   for (const name of names) {
     refresh(); validate();
     if (!release.assets.some((asset) => asset.name === name)) {
