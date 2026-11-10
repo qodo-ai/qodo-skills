@@ -1,4 +1,5 @@
 /** Build the deterministic data-only bundle used by the CLI-managed compatibility channel. */
+import { managedPackages } from './package-projections.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
@@ -90,13 +91,13 @@ function collectFiles(repositoryRoot, skillName) {
 export function buildCliManagedBundle(repositoryRoot = root) {
   const catalog = JSON.parse(readFileSync(join(repositoryRoot, 'distribution', 'catalog.json'), 'utf8'));
   const packageBySkill = new Map();
-  for (const installPackage of catalog.installPackages) {
+  for (const installPackage of managedPackages(catalog)) {
     for (const skill of installPackage.skills) {
       if (packageBySkill.has(skill)) throw new Error(`${skill}: belongs to multiple packages`);
       packageBySkill.set(skill, installPackage.name);
     }
   }
-  const skills = Object.fromEntries([...catalog.skills]
+  const skills = Object.fromEntries(catalog.skills.filter((skill) => packageBySkill.has(skill.name))
     .sort((left, right) => bytewise(left.name, right.name))
     .map((skill) => {
       const packageName = packageBySkill.get(skill.name);
@@ -119,7 +120,7 @@ export function buildCliManagedBundle(repositoryRoot = root) {
       tag: `v${catalog.package.version}`,
     },
     aliases: Object.fromEntries(
-      catalog.installPackages.flatMap((installPackage) => Object.entries(installPackage.compatibilityAliases)),
+      managedPackages(catalog).flatMap((installPackage) => Object.entries(installPackage.compatibilityAliases)),
     ),
     skills,
   };

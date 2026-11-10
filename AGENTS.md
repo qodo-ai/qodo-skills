@@ -9,6 +9,12 @@
 - Every skill frontmatter includes `name`, `description`, and standard `metadata` containing
   `vendor`, `version`, and `recommended` string fields.
 - Keep every source file below 500 lines; extract focused references or scripts when needed.
+- Cockpit is maintained here in `skills/qodo-review-cockpit/runtime/`; edit and test it
+  directly. Its existing runtime files and migrated `test/cockpit/tests/test_cockpit.py`
+  are exempt from the line-count guideline. New tooling and instructions still follow
+  the 500-line guideline. Preserve the component terms and unchanged 512 KiB per-resource
+  limit; validate local resources with `node scripts/cockpit-runtime.mjs`. Runtime tests
+  live in `test/cockpit/` and run through `npm test`; no upstream checkout or pin is needed.
 - Use Node built-ins for repository automation. Do not add a runtime dependency without a
   documented need and approval.
 - Contributors edit canonical skills and catalog metadata in ordinary PRs, leaving existing

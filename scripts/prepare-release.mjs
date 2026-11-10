@@ -14,6 +14,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { kiroRoot } from './package-projections.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -125,15 +126,19 @@ function assertNoSymlinks(path, relativePath) {
 }
 
 export function releaseTransaction(repositoryRoot, options = {}) {
+  const packageCatalog = join(repositoryRoot, 'distribution/catalog.json');
+  const optionalRoots = existsSync(packageCatalog)
+    ? JSON.parse(readFileSync(packageCatalog, 'utf8')).installPackages.map((pkg) => kiroRoot(pkg.name)) : [];
+  const mutationPaths = [...new Set([...releaseMutationPaths, ...optionalRoots])];
   const copy = options.copy ?? cpSync;
   const remove = options.remove ?? rmSync;
-  for (const relativePath of releaseMutationPaths) {
+  for (const relativePath of mutationPaths) {
     assertNoSymlinks(join(repositoryRoot, relativePath), relativePath);
   }
   const backupRoot = mkdtempSync(join(options.backupParent ?? tmpdir(), 'qodo-skills-release-transaction-'));
   let states;
   try {
-    states = releaseMutationPaths.map((relativePath, index) => {
+    states = mutationPaths.map((relativePath, index) => {
       const source = join(repositoryRoot, relativePath);
       const backup = join(backupRoot, String(index));
       let existed = false;

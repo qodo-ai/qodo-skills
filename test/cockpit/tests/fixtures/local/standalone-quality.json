@@ -1,0 +1,22 @@
+{
+  "chip": "<span class=\"rchip low\">Clean</span>",
+  "html": "<section class=\"card issues\"><p class=\"bkick top\">Summary</p><p class=\"bsum\">No open findings from Qodo and Upwind. No CI checks ran.</p><p class=\"bkick\">Issue findings</p><div class=\"bfolds qfolds\">Open findings<span class=\"rchip low\">None</span><p class=\"muted\">Nothing open.</p>Reviewers & scanners<span class=\"rchip low\">2 ran</span><ul class=\"qlist\"><li><span class=\"rchip low\">Clean</span><span><b>Qodo</b></span></li><li><span class=\"rchip low\">Clean</span><span><b>Upwind</b></span></li></ul>Tests<p class=\"muted\">No test changes in this package.</p></div><div class=\"rcopyrow qmore\"></div></section>",
+  "tools": [
+    {
+      "name": "Qodo",
+      "open": 0,
+      "sev": {},
+      "ran": true,
+      "failed": false,
+      "unreviewed": []
+    },
+    {
+      "name": "Upwind",
+      "open": 0,
+      "sev": {},
+      "ran": true,
+      "failed": false,
+      "unreviewed": []
+    }
+  ]
+}

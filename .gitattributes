@@ -6,3 +6,5 @@
 *.sh text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf
+# Preserve pinned upstream runtime hashes across source and generated host checkouts.
+**/skills/qodo-review-cockpit/runtime/** -text

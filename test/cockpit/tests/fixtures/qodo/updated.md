@@ -1,0 +1,1 @@
+[Code review](https://github.com/acme/shop/pull/12#issuecomment-1) by qodo was updated up to the latest commit https://github.com/acme/shop/commit/abc

@@ -1,4 +1,5 @@
 /** Contract tests for the data-only CLI-managed compatibility bundle. */
+import { managedPackages } from './package-projections.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -16,8 +17,8 @@ const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json
 assert.equal(bundle.schemaVersion, 1);
 assert.equal(bundle.distribution, 'qodo-cli-managed');
 assert.equal(bundle.packageVersion, JSON.parse(readFileSync(join(root, 'package.json'))).version);
-assert.deepEqual(Object.keys(bundle.skills), catalog.skills.map((skill) => skill.name).sort());
-for (const pkg of catalog.installPackages) {
+assert.deepEqual(Object.keys(bundle.skills), managedPackages(catalog).flatMap((pkg) => pkg.skills).sort());
+for (const pkg of managedPackages(catalog)) {
   const skills = Object.entries(bundle.skills).filter(([, skill]) => skill.package === pkg.name);
   assert.deepEqual(skills.map(([name]) => name).sort(), [...pkg.skills].sort());
 }

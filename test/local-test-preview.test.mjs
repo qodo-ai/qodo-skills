@@ -119,6 +119,24 @@ test('a stale origin/main across a release still previews source without changin
   assert.deepEqual(readdirSync(f.temporaryParent), []);
 });
 
+test('merging a newer main release into a source branch still prepares its preview', (t) => {
+  const f = fixture(t, { staleMain: true });
+  git(f.root, 'checkout', '--quiet', '-b', 'merged-feature', f.base);
+  writeFileSync(join(f.root, 'scripts/sync-adapters.mjs'), read(source, 'scripts/sync-adapters.mjs'));
+  appendFileSync(join(f.root, wisdom), '\nFeature source before main released.\n');
+  f.commit('feature source');
+  git(f.root, 'merge', '--quiet', '--no-edit', f.main);
+  git(f.root, 'update-ref', 'refs/remotes/origin/main', f.main);
+  const before = snapshot(f.root);
+  const version = json(f.root, 'distribution/catalog.json').package.version;
+  f.run((root) => {
+    assert.notEqual(json(root, 'distribution/catalog.json').package.version, version);
+    assert.equal(existsSync(join(root, 'antigravity-plugins/qodo/plugin.json')), true);
+    check(root, 'scripts/validate.mjs');
+  });
+  assert.deepEqual(snapshot(f.root), before, 'preview must leave the merged contributor branch untouched');
+});
+
 test('an unverifiable default base fails before cloning, but an explicit base works offline', (t) => {
   const f = fixture(t, { staleMain: true });
   git(f.root, 'remote', 'remove', 'origin');

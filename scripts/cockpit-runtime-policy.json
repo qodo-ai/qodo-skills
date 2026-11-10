@@ -1,0 +1,145 @@
+{
+  "existingLargeFiles": [
+    "app/app.js",
+    "app/styles/package.js",
+    "app/styles/guided.html",
+    "app/styles/package.html",
+    "app/styles/contract-map.js",
+    "app/styles/console.html",
+    "app/styles/behavior.html",
+    "app/styles/focus.html",
+    "cockpit/collect.py",
+    "cockpit/server.py",
+    "cockpit/adapters/scanners.py",
+    "fixtures/demo-enrich.json",
+    "fixtures/demo-prs.json"
+  ],
+  "never": [
+    "memory/**",
+    "sessions/**",
+    "design/**",
+    "release/**",
+    "dist/**",
+    "PLAN.md",
+    "CLAUDE_CODE_PROMPT.md",
+    "tests/test_release.py",
+    "config.local.json*",
+    ".claude/**",
+    ".github/**",
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/.DS_Store",
+    "**/*.secrets*",
+    "**/.env*",
+    "**/*.pem",
+    "**/*.key"
+  ],
+  "rules": [
+    {
+      "name": "company-email",
+      "pattern": "[A-Za-z0-9._%+-]+@(?:qodo\\.ai|codium\\.ai)\\b"
+    },
+    {
+      "name": "slack",
+      "pattern": "[a-z0-9-]+\\.slack\\.com|<@U[0-9A-Z]{8,}>"
+    },
+    {
+      "name": "claude-private-link",
+      "pattern": "claude\\.ai/(?:artifact|design|code|project|chat|share)/"
+    },
+    {
+      "name": "notion",
+      "pattern": "notion\\.(?:so|site)/"
+    },
+    {
+      "name": "linear",
+      "pattern": "linear\\.app/(?!<team>|team/)[a-z0-9-]+/"
+    },
+    {
+      "name": "atlassian",
+      "pattern": "\\b(?!acme\\.|example\\.|your-?company\\.)[a-z0-9-]+\\.atlassian\\.net"
+    },
+    {
+      "name": "internal-host",
+      "pattern": "qodost|\\.st\\.qodo\\.ai|qodo-platform\\.qodo\\.ai|llm-gateway\\.qodo\\.ai|\\bsdk\\.qodo\\b|\\.internal\\b"
+    },
+    {
+      "name": "private-repo",
+      "pattern": "\\b(?:qodo-ai|codium-ai)/[A-Za-z0-9_.-]+",
+      "flags": "i"
+    },
+    {
+      "name": "internal-codename",
+      "pattern": "\\b(?:pr-agent-pro|qodo-engine|qodo-agent-runtime|qodo-platform|codium-ai-platform-client|litegit|jetbrains-plugin-over-cli|vscode-extension-over-cli|qodo-in-cli|dark-factory|qodo-gitops|review-agent-memory)\\b",
+      "flags": "i"
+    },
+    {
+      "name": "secret",
+      "pattern": "\\b(?:sk|qsk)-[A-Za-z0-9_-]{20,}|\\bgh[pousr]_[A-Za-z0-9]{30,}|\\bxox[abprs]-[A-Za-z0-9-]{10,}|\\bAKIA[0-9A-Z]{16}\\b|-----BEGIN [A-Z ]*PRIVATE KEY-----",
+      "secret": true
+    },
+    {
+      "name": "personal-path",
+      "pattern": "/Users/(?!you\\b|me\\b|name\\b|Shared\\b)[A-Za-z][^/\\s'\"]*|/home/(?!you\\b|user\\b)[A-Za-z][^/\\s'\"]*"
+    },
+    {
+      "name": "real-session-id",
+      "pattern": "\\b20\\d{6}-\\d{6}-[0-9a-f]{4}\\b"
+    }
+  ],
+  "allow": [
+    {
+      "path": "fixtures/**",
+      "rule": "private-repo",
+      "match": "qodo-ai/shop-demo",
+      "why": "the demo's invented repo"
+    },
+    {
+      "path": "tests/**",
+      "rule": "private-repo",
+      "match": "qodo-ai/shop-demo",
+      "why": "the demo's invented repo"
+    },
+    {
+      "path": "tests/**",
+      "rule": "notion",
+      "match": "notion\\.so/Spec-1",
+      "why": "a made-up spec link the link parser is tested on"
+    },
+    {
+      "path": "tests/**",
+      "rule": "linear",
+      "match": "linear\\.app/x/",
+      "why": "a made-up ticket link the link parser is tested on"
+    },
+    {
+      "path": "fixtures/demo-memory/**",
+      "rule": "real-session-id",
+      "match": "\\b(?:20260912-101500-a1b2|20260920-093000-c3d4|20260928-140000-e5f6|20260903-141200-0a0a)\\b",
+      "why": "the demo memory's four invented session ids, by name: any other id there blocks"
+    },
+    {
+      "path": "config.json",
+      "rule": "internal-codename",
+      "match": "codiumai-pr-agent-pro\\[bot\\]",
+      "why": "a public GitHub bot login the collector recognizes"
+    },
+    {
+      "path": "cockpit/**",
+      "rule": "internal-codename",
+      "match": "codiumai-pr-agent-pro\\[bot\\]",
+      "why": "a public GitHub bot login the collector recognizes"
+    }
+  ],
+  "people": [
+    "coditamar"
+  ],
+  "about": "Source-local hygiene for the maintained Cockpit component. Rules and exceptions are reviewed in the same skills PR; no upstream checkout or commit pin.",
+  "reviewedAssets": {
+    "app/favicon.svg": {
+      "sha256": "920815cbd15e4ff8a22f6eca445b3996e17a5431666cca3140be7ce88538fe08",
+      "note": "2026-11-08: unchanged Qodo brand favicon from merged main PR78; source XML contains only svg/circle/mask/path/g geometry and local mask reference, no scripts, external resources or customer content."
+    }
+  },
+  "licenseSha256": "7d6ba799ade7a73f2a7dc7dd3613b673a4ad4e8f89a97084c4d9530d37442246"
+}
