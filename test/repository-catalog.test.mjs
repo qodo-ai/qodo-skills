@@ -68,7 +68,8 @@ test('output is deterministic and checksummed without a package/name allowlist',
   }
   for (const name of ['é.txt', 'e\u0301.txt', 'ς.txt', 'σ.txt']) {
     const path = join(dir, 'skills/qodo-future-skill', name); writeFileSync(path, 'data');
-    assert.throws(() => buildRepositoryCatalog(dir, sha), /ASCII filenames/);
+    const found = buildRepositoryCatalog(dir, sha).skills[0].files.find((file) => file.path.normalize('NFC') === name.normalize('NFC'));
+    assert.ok(found); assert.equal(Buffer.from(found.content, 'base64').toString('utf8'), 'data');
     rmSync(path);
   }
   const multilingual = 'שלום 世界 σς';
@@ -77,6 +78,16 @@ test('output is deterministic and checksummed without a package/name allowlist',
   assert.equal(Buffer.from(resource.content, 'base64').toString('utf8'), multilingual);
   symlinkSync('SKILL.md', join(dir, 'skills/qodo-future-skill/link'));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /symlink/);
+});
+
+test('Unicode comparison covers the pinned full-fold mapping and Windows aliases', async () => {
+  const { resourcePathKeys } = await import('../scripts/resource-path-keys.mjs');
+  const data = JSON.parse(readFileSync(join(root, 'scripts/unicode-casefold.json'), 'utf8'));
+  assert.equal(data.unicodeVersion, '17.0.0'); assert.equal(data.sourceSha256, 'ff8d8fefbf123574205085d6714c36149eb946d717a0c585c27f0f4ef58c4183');
+  for (const [source, folded] of Object.entries(data.fold)) assert.equal(resourcePathKeys(source)[0], resourcePathKeys(folded)[0]);
+  assert.ok(resourcePathKeys('assets/ς.txt').some((key) => resourcePathKeys('assets/σ.txt').includes(key)));
+  assert.ok(resourcePathKeys('assets/é.txt').some((key) => resourcePathKeys('assets/e\u0301.txt').includes(key)));
+  assert.ok(resourcePathKeys('assets/ı.txt').some((key) => resourcePathKeys('assets/i.txt').includes(key)));
 });
 
 test('catalog prereleases address drafts by ID, resume partial uploads and enforce immutable publication', async (t) => {

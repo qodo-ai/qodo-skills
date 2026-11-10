@@ -397,10 +397,9 @@ deleted.
 Direct skills.sh installations retain their existing manual update owner. The CLI never
 runs `npx skills` in the background and never rewrites marketplace files. Separately,
 explicit repository-catalog installations have a `qodo-repository` lifecycle receipt:
-users may enroll only the selected skill in automatic CLI maintenance with
-`--auto-update`. That uses the build-pinned skills engine, retains the recorded
-repository ref or same-origin enterprise deployment, and honors existing global
-opt-outs. It does not enroll existing skills.sh, enterprise-bundle or plugin copies.
+explicit installation includes automatic maintenance of only the selected skill, using
+the build-pinned skills engine and retaining the recorded stable public source or
+same-origin private deployment. Existing update preferences and global opt-outs apply. It does not enroll existing skills.sh, enterprise-bundle or plugin copies.
 The standalone repository catalog includes optional components for explicit selection;
 legacy feeds and default setup remain unchanged. New
 optional skills are discoverable but never auto-installed.

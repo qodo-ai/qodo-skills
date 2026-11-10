@@ -1,6 +1,7 @@
 /** Data-only opt-in skill catalog; independent of legacy bundles and provider projections. */
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
+import { resourcePathKeys, windowsResourceKey } from './resource-path-keys.mjs';
 import { createHash } from 'node:crypto';
 import { lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -60,11 +61,11 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
       if (depth > 64 || lstatSync(directory).isSymbolicLink()) throw new Error('Unsafe repository skill directory');
       const portableNames = new Set();
       for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => bytewise(a.name, b.name))) {
-        if (portableNames.has(entry.name.toLowerCase())) throw new Error('Case-colliding repository skill resource');
-        portableNames.add(entry.name.toLowerCase());
+        if (resourcePathKeys(entry.name).some((key) => portableNames.has(key))) throw new Error('Case-colliding repository skill resource');
+        resourcePathKeys(entry.name).forEach((key) => portableNames.add(key));
         if (entry.name === '.DS_Store') continue;
-        if (!/^[\x20-\x7e]+$/.test(entry.name)) throw new Error('Unsafe repository skill resource path: beta catalogs require ASCII filenames');
-        if (!entry.name || /[\\\u0000-\u001f:<>"|?*]/.test(entry.name) || ['.', '..', '.git', 'node_modules'].includes(entry.name.toLowerCase()) || /^(?:con|prn|aux|nul|conin\$|conout\$|com[1-9¹²³]|lpt[1-9¹²³])(?:\..*)?$/i.test(entry.name) || /[. ]$/.test(entry.name)) throw new Error('Unsafe repository skill resource path');
+        if (/[\uD800-\uDFFF]/u.test(entry.name)) throw new Error('Unsafe repository skill resource path: invalid Unicode');
+        if (!entry.name || /[\\\u0000-\u001f:<>"|?*]/.test(entry.name) || ['.', '..', '.GIT', 'NODE_MODULES'].includes(windowsResourceKey(entry.name)) || /^(?:CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³])(?:\..*)?$/.test(windowsResourceKey(entry.name)) || /[. ]$/.test(entry.name)) throw new Error('Unsafe repository skill resource path');
         const source = join(directory, entry.name);
         const path = prefix ? `${prefix}/${entry.name}` : entry.name;
         const info = lstatSync(source);
