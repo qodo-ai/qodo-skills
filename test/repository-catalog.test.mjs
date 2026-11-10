@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +19,7 @@ test('all canonical resources and component terms survive the standalone catalog
   for (const skill of bundle.skills) for (const file of skill.files) {
     const source = readFileSync(join(root, 'skills', skill.name, file.path));
     assert.ok(Buffer.from(file.content, 'base64').equals(source));
+    assert.equal(file.executable, Boolean(statSync(join(root, 'skills', skill.name, file.path)).mode & 0o111));
     assert.equal(file.sha256, createHash('sha256').update(source).digest('hex'));
   }
   const flags = bundle.installPackages.find((pkg) => pkg.name === 'qodo-cockpit');
@@ -45,30 +46,53 @@ test('output is deterministic and checksummed without a package/name allowlist',
   assert.throws(() => buildRepositoryCatalog(dir, sha), /symlink/);
 });
 
-test('catalog prereleases resume safely and never overwrite published bytes or run marketplace publication', async (t) => {
+test('catalog prereleases address drafts by ID, resume partial uploads and enforce immutable publication', async (t) => {
   const { publishRepositorySnapshot } = await import('../scripts/publish-repository-catalog.mjs');
   const dir = mkdtempSync(join(tmpdir(), 'repository-publish-')); t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const remote = new Map(); let release; let writes = 0;
+  const remote = new Map(); let release; let writes = 0; let failUpload = true; let immutable = true; let tagCreated = false;
   const run = (command, args) => {
     if (command === 'git') {
       if (args[0] === 'rev-parse') return sha;
       if (args[0] === 'remote') return 'git@github.com:qodo-ai/qodo-skills.git';
+      if (args[0] === 'ls-remote' && tagCreated) return `${sha} refs/tags/catalog-${sha}`;
       return '';
     }
-    assert.equal(command, 'gh'); assert.equal(args[0], 'release'); assert.equal(args.at(-1), 'qodo-ai/qodo-skills');
-    if (args[1] === 'view') { if (!release) throw new Error('release not found'); return JSON.stringify({ ...release, assets: [...remote.keys()].map((name) => ({ name })) }); }
-    if (args[1] === 'create') { writes++; assert.ok(args.includes('--prerelease')); assert.ok(args.includes('--latest=false')); release = { isDraft: true, isPrerelease: true }; }
-    if (args[1] === 'upload') { writes++; assert.ok(!args.includes('--clobber')); const path = args[3]; remote.set(path.split('/').at(-1), readFileSync(path)); }
-    if (args[1] === 'download') { const name = args[args.indexOf('--pattern') + 1]; writeFileSync(join(args[args.indexOf('--dir') + 1], name), remote.get(name)); }
-    if (args[1] === 'edit') { writes++; release.isDraft = false; }
-    return '';
+    assert.equal(command, 'gh'); assert.equal(args[0], 'api', 'draft tag commands must not be used');
+    const method = args.includes('--method') ? args[args.indexOf('--method') + 1] : 'GET';
+    const endpoint = args.find((arg) => arg.startsWith('repos/') || arg.startsWith('https:'));
+    if (endpoint.endsWith('?per_page=100')) return JSON.stringify([release ? [{ ...release, assets: [...remote.values()].map(({ id, name }) => ({ id, name })) }] : []]);
+    if (method === 'POST' && endpoint === 'repos/qodo-ai/qodo-skills/releases') {
+      writes++; assert.ok(args.includes('prerelease=true')); assert.ok(args.includes('make_latest=false'));
+      release = { id: 17, tag_name: `catalog-${sha}`, target_commitish: sha, draft: true, prerelease: true, immutable: false, assets: [], upload_url: 'https://uploads.github.com/repos/qodo-ai/qodo-skills/releases/17/assets{?name,label}' };
+      return JSON.stringify(release);
+    }
+    if (method === 'POST') {
+      if (failUpload && remote.size === 1) { failUpload = false; throw new Error('interrupted upload'); }
+      const name = new URL(endpoint).searchParams.get('name'); assert.ok(!remote.has(name), 'never replace assets');
+      writes++; remote.set(name, { id: remote.size + 100, name, content: readFileSync(args[args.indexOf('--input') + 1]) }); return '{}';
+    }
+    if (method === 'PATCH') {
+      writes++; release.draft = args.includes('draft=true'); release.immutable = !release.draft && immutable; tagCreated ||= !release.draft; return JSON.stringify(release);
+    }
+    if (endpoint.includes('/assets/')) {
+      const asset = [...remote.values()].find((item) => String(item.id) === endpoint.split('/').at(-1)); return asset.content.toString('utf8');
+    }
+    return JSON.stringify({ ...release, assets: [...remote.values()].map(({ id, name }) => ({ id, name })) });
   };
   const options = { repositoryRoot: root, sourceCommit: sha, outputDirectory: dir, run };
+  assert.throws(() => publishRepositorySnapshot(options), /interrupted upload/);
+  assert.equal(release.draft, true); assert.equal(remote.size, 1);
   assert.equal(publishRepositorySnapshot(options).marketplacePublication, false);
   const publishedWrites = writes; publishRepositorySnapshot(options); assert.equal(writes, publishedWrites);
-  remote.set('qodo-repository-catalog.json', Buffer.from('changed'));
+  const asset = remote.get('qodo-repository-catalog.json'); remote.set(asset.name, { ...asset, content: Buffer.from('changed') });
   assert.throws(() => publishRepositorySnapshot(options), /immutable/); assert.equal(writes, publishedWrites);
+  remote.set(asset.name, asset); release.draft = true; immutable = false;
+  assert.throws(() => publishRepositorySnapshot(options), /mutable/); assert.equal(release.draft, true);
   const workflow = readFileSync(join(root, '.github/workflows/repository-catalog.yml'), 'utf8');
   assert.ok(workflow.includes('workflow_dispatch:')); assert.ok(!workflow.includes('publish-release.sh'));
   assert.ok(!workflow.includes('marketplace-release.mjs'));
+  assert.ok(workflow.includes('ref: ${{ github.sha }}'));
+  assert.ok(workflow.includes('git worktree add --detach'));
+  assert.ok(workflow.includes('SOURCE_ROOT: ${{ runner.temp }}/catalog-source'));
+  assert.ok(!workflow.includes('git checkout --detach'), 'publisher must stay in the trusted workflow checkout');
 });

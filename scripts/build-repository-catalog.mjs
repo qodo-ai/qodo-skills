@@ -52,7 +52,7 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
           if (info.size > MAX_FILE_BYTES || ++fileCount > MAX_FILES) throw new Error('Repository skill resource exceeds its budget');
           const content = readFileSync(source); contentBytes += content.length;
           if (contentBytes > MAX_CONTENT_BYTES || /-----BEGIN (?:[A-Z0-9][A-Z0-9 -]* )?PRIVATE KEY(?: BLOCK)?-----/.test(content.toString())) throw new Error('Repository skill payload exceeds its budget or contains a private key');
-          files.push({ path, sha256: digest(content), encoding: 'base64', content: content.toString('base64') });
+          files.push({ path, sha256: digest(content), encoding: 'base64', executable: Boolean(info.mode & 0o111), content: content.toString('base64') });
         } else throw new Error('Repository catalog permits regular files only');
       }
     };

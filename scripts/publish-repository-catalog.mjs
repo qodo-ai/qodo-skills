@@ -1,12 +1,12 @@
 /** Publish one data-only prerelease snapshot without entering the marketplace release train. */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { REPOSITORY_CATALOG_NAME, writeRepositoryCatalog } from './build-repository-catalog.mjs';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const endpoint = 'repos/qodo-ai/qodo-skills/releases';
 
 export function publishRepositorySnapshot({ repositoryRoot = root, sourceCommit, outputDirectory, run = (command, args) => execFileSync(command, args, { cwd: repositoryRoot, encoding: 'utf8' }) }) {
   assert.match(sourceCommit ?? '', /^[a-f0-9]{40}$/);
@@ -15,40 +15,64 @@ export function publishRepositorySnapshot({ repositoryRoot = root, sourceCommit,
   run('git', ['merge-base', '--is-ancestor', sourceCommit, 'origin/main']);
   assert.equal(run('git', ['status', '--porcelain', '--untracked-files=all']).trim(), '', 'snapshot source must be clean');
   const tag = `catalog-${sourceCommit}`;
-  const tagRows = run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${tag}`, `refs/tags/${tag}^{}`]).trim();
-  if (tagRows) {
-    const refs = new Map(tagRows.split(/\r?\n/).map((line) => line.split(/\s+/)).map(([sha, name]) => [name, sha]));
+  const verifyTag = () => {
+    const rows = run('git', ['ls-remote', '--tags', 'origin', `refs/tags/${tag}`, `refs/tags/${tag}^{}`]).trim();
+    if (!rows) return false; // GitHub creates a new tag when the draft is published.
+    const refs = new Map(rows.split(/\r?\n/).map((line) => line.split(/\s+/)).map(([sha, name]) => [name, sha]));
     assert.equal(refs.get(`refs/tags/${tag}^{}`) ?? refs.get(`refs/tags/${tag}`), sourceCommit, 'existing tag must name the same source');
-  }
+    return true;
+  };
+  verifyTag();
   writeRepositoryCatalog(repositoryRoot, sourceCommit, outputDirectory);
   const names = [REPOSITORY_CATALOG_NAME, `${REPOSITORY_CATALOG_NAME}.sha256`];
-  const gh = (args) => run('gh', [...args, '--repo', 'qodo-ai/qodo-skills']);
-  let release;
-  try { release = JSON.parse(gh(['release', 'view', tag, '--json', 'isDraft,isPrerelease,assets'])); }
-  catch (error) { if (!/release not found|HTTP 404/i.test(String(error.stderr ?? error.message))) throw error; }
-  if (release) {
-    assert.equal(release.isPrerelease, true, 'catalog snapshots must remain prereleases');
+  const api = (args) => run('gh', ['api', ...args]);
+  // Release-by-tag cannot discover drafts. List (including drafts), then use numeric IDs.
+  const matches = JSON.parse(api(['--paginate', '--slurp', `${endpoint}?per_page=100`])).flat().filter((item) => item.tag_name === tag);
+  assert.ok(matches.length <= 1, 'multiple releases claim this catalog source');
+  let release = matches[0] ?? JSON.parse(api(['--method', 'POST', endpoint, '-f', `tag_name=${tag}`, '-f', `target_commitish=${sourceCommit}`, '-F', 'draft=true', '-F', 'prerelease=true', '-f', 'make_latest=false', '-f', `name=Repository catalog ${sourceCommit.slice(0, 12)}`, '-f', `body=Data-only opt-in skill catalog at ${sourceCommit}. This does not publish marketplaces or alter default installation.`]));
+  assert.ok(Number.isSafeInteger(release.id) && release.id > 0, 'release must have a numeric ID');
+  const releaseEndpoint = `${endpoint}/${release.id}`;
+  const refresh = () => { release = JSON.parse(api([releaseEndpoint])); };
+  const validate = () => {
+    assert.equal(release.tag_name, tag);
+    assert.equal(release.prerelease, true, 'catalog snapshots must remain prereleases');
+    assert.equal(release.target_commitish, sourceCommit, 'release must target the exact source');
     assert.ok(release.assets.every((asset) => names.includes(asset.name)), 'refuse an unexpected snapshot asset inventory');
-  } else {
-    gh(['release', 'create', tag, '--target', sourceCommit, '--draft', '--prerelease', '--latest=false', '--title', `Repository catalog ${sourceCommit.slice(0, 12)}`, '--notes', `Data-only opt-in skill catalog at ${sourceCommit}. This does not publish marketplaces or alter default installation.`]);
-    release = { isDraft: true, isPrerelease: true, assets: [] };
-  }
-  const verify = (name) => {
-    const scratch = mkdtempSync(join(tmpdir(), 'qodo-catalog-download-'));
-    try {
-      gh(['release', 'download', tag, '--pattern', name, '--dir', scratch]);
-      assert.ok(readFileSync(join(scratch, name)).equals(readFileSync(join(outputDirectory, name))), 'published snapshot bytes must be immutable');
-    } finally { rmSync(scratch, { recursive: true, force: true }); }
+    if (!release.draft) assert.equal(release.immutable, true, 'published catalog must be immutable before consumer rollout');
   };
+  const verify = (name) => {
+    const asset = release.assets.find((item) => item.name === name);
+    assert.ok(asset && Number.isSafeInteger(asset.id) && asset.id > 0, 'release asset must have a numeric ID');
+    const bytes = api(['-H', 'Accept: application/octet-stream', `${endpoint}/assets/${asset.id}`]);
+    assert.ok(Buffer.from(bytes).equals(readFileSync(join(outputDirectory, name))), 'published snapshot bytes must be immutable');
+  };
+  validate();
   for (const name of names) {
-    if (release.assets.some((asset) => asset.name === name)) verify(name);
-    else {
-      assert.equal(release.isDraft, true, 'a published snapshot cannot acquire missing assets');
-      gh(['release', 'upload', tag, join(outputDirectory, name)]);
-      verify(name);
+    refresh(); validate();
+    if (!release.assets.some((asset) => asset.name === name)) {
+      assert.equal(release.draft, true, 'a published snapshot cannot acquire missing assets');
+      const upload = new URL(release.upload_url.replace(/\{.*$/, ''));
+      assert.equal(upload.origin, 'https://uploads.github.com');
+      assert.equal(upload.pathname, `/${releaseEndpoint}/assets`);
+      upload.searchParams.set('name', name);
+      api(['--method', 'POST', '-H', 'Content-Type: application/octet-stream', '--input', join(outputDirectory, name), upload.toString()]);
+      refresh(); validate();
+    }
+    verify(name);
+  }
+  verifyTag();
+  if (release.draft) {
+    release = JSON.parse(api(['--method', 'PATCH', releaseEndpoint, '-F', 'draft=false', '-f', 'make_latest=false']));
+    if (release.immutable !== true) {
+      try { api(['--method', 'PATCH', releaseEndpoint, '-F', 'draft=true']); }
+      catch { throw new Error('CRITICAL: published catalog is mutable and could not return to draft; stop consumer rollout'); }
+      throw new Error('Published catalog is mutable; enable release immutability before consumer rollout');
     }
   }
-  if (release.isDraft) gh(['release', 'edit', tag, '--draft=false', '--prerelease', '--latest=false']);
+  refresh(); validate();
+  assert.equal(release.draft, false);
+  assert.equal(verifyTag(), true, 'published catalog tag must resolve to the source');
+  for (const name of names) verify(name);
   return { tag, sourceCommit, assets: names, marketplacePublication: false };
 }
 
@@ -57,6 +81,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   assert.equal(process.env.GITHUB_REF, 'refs/heads/main');
   const sourceCommit = process.env.SOURCE_COMMIT;
   const outputDirectory = process.env.CATALOG_OUTPUT_DIR;
-  assert.ok(outputDirectory, 'CATALOG_OUTPUT_DIR is required');
-  console.log(JSON.stringify(publishRepositorySnapshot({ sourceCommit, outputDirectory })));
+  const repositoryRoot = process.env.SOURCE_ROOT;
+  assert.ok(outputDirectory && repositoryRoot, 'CATALOG_OUTPUT_DIR and SOURCE_ROOT are required');
+  console.log(JSON.stringify(publishRepositorySnapshot({ repositoryRoot, sourceCommit, outputDirectory })));
 }

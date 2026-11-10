@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -37,10 +37,11 @@ jobs:
           set -euo pipefail
           [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]] || { echo 'Use a full lowercase commit SHA'; exit 1; }
           git merge-base --is-ancestor "$SOURCE_COMMIT" origin/main
-          git checkout --detach "$SOURCE_COMMIT"
+          git worktree add --detach "${RUNNER_TEMP}/catalog-source" "$SOURCE_COMMIT"
       - name: Publish only the data catalog
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
+          SOURCE_ROOT: ${{ runner.temp }}/catalog-source
           CATALOG_OUTPUT_DIR: ${{ runner.temp }}/repository-catalog
         run: node scripts/publish-repository-catalog.mjs
