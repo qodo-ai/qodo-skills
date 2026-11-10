@@ -17,7 +17,7 @@ const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const schema = JSON.parse(readFileSync(join(root, 'distribution/catalog.schema.json'), 'utf8'));
 const ajv = new Ajv2020({ allErrors: true }); addFormats(ajv);
 const validateCatalog = ajv.compile(schema);
-const semver = new RegExp(schema.properties.package.properties.version.pattern);
+const semver = new RegExp(`(?:${schema.properties.package.properties.version.pattern})(?![\\s\\S])`);
 const bytewise = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
 
 function catalogMinimumCliVersion(runtimeMinimum) {
@@ -36,7 +36,7 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
   const metadata = readFileSync(join(repositoryRoot, 'distribution/catalog.json'));
   if (metadata.length > 1024 * 1024) throw new Error('Repository catalog metadata exceeds its budget');
   const catalog = JSON.parse(metadata.toString('utf8'));
-  if (!validateCatalog(catalog) || catalog.package.repository !== 'https://github.com/qodo-ai/qodo-skills') throw new Error('Invalid canonical repository catalog metadata');
+  if (!validateCatalog(catalog) || !semver.test(catalog.package.version) || catalog.skills.length > 500 || catalog.installPackages.length > 100 || catalog.package.repository !== 'https://github.com/qodo-ai/qodo-skills') throw new Error('Invalid canonical repository catalog metadata');
   const packageBySkill = new Map();
   const packageNames = new Set();
   for (const pkg of catalog.installPackages) {
@@ -55,6 +55,7 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
   let fileCount = 0;
   const names = new Set();
   const skills = [...catalog.skills].sort((a, b) => bytewise(a.name, b.name)).map((skill) => {
+    if (!semver.test(skill.version)) throw new Error('Invalid repository skill version');
     if (!/^qodo-[a-z0-9-]+$/.test(skill.name) || names.has(skill.name) || !packageBySkill.has(skill.name)) throw new Error('Invalid repository skill identity');
     names.add(skill.name);
     const files = [];
@@ -84,7 +85,8 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
     if (!files.some((file) => file.path === 'SKILL.md')) throw new Error('Repository skill has no SKILL.md');
     const meta = parseSkillFrontmatter(Buffer.from(files.find((file) => file.path === 'SKILL.md').content, 'base64').toString('utf8'));
     const recommended = meta?.metadata.recommended === undefined ? true : meta.metadata.recommended === 'true';
-    if (!meta || meta.name !== skill.name || meta.metadata.version !== skill.version
+    if (!meta || meta.owner !== 'Qodo' || meta.metadata.vendor !== 'qodo' || meta.metadata.distribution !== 'skills-sh'
+      || (meta.metadata.recommended !== undefined && !['true', 'false'].includes(meta.metadata.recommended)) || meta.name !== skill.name || meta.metadata.version !== skill.version
       || recommended !== skill.recommended || meta.metadata.package !== packageBySkill.get(skill.name)) {
       throw new Error(`Repository skill frontmatter differs from catalog: ${skill.name}`);
     }
