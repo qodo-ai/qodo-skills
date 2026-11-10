@@ -96,3 +96,10 @@ test('catalog prereleases address drafts by ID, resume partial uploads and enfor
   assert.ok(workflow.includes('SOURCE_ROOT: ${{ runner.temp }}/catalog-source'));
   assert.ok(!workflow.includes('git checkout --detach'), 'publisher must stay in the trusted workflow checkout');
 });
+
+
+test('publisher command transport carries a catalog larger than the default Node buffer', async () => {
+  const { runRepositoryPublisherCommand } = await import('../scripts/publish-repository-catalog.mjs');
+  const bytes = runRepositoryPublisherCommand(root, process.execPath, ['-e', "process.stdout.write('x'.repeat(2 * 1024 * 1024))"]);
+  assert.equal(Buffer.byteLength(bytes), 2 * 1024 * 1024);
+});

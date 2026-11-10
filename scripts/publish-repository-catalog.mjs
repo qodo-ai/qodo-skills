@@ -8,7 +8,11 @@ import { REPOSITORY_CATALOG_NAME, writeRepositoryCatalog } from './build-reposit
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const endpoint = 'repos/qodo-ai/qodo-skills/releases';
 
-export function publishRepositorySnapshot({ repositoryRoot = root, sourceCommit, outputDirectory, run = (command, args) => execFileSync(command, args, { cwd: repositoryRoot, encoding: 'utf8' }) }) {
+export function runRepositoryPublisherCommand(repositoryRoot, command, args) {
+  return execFileSync(command, args, { cwd: repositoryRoot, encoding: 'utf8', maxBuffer: 65 * 1024 * 1024, timeout: 120_000 });
+}
+
+export function publishRepositorySnapshot({ repositoryRoot = root, sourceCommit, outputDirectory, run = (command, args) => runRepositoryPublisherCommand(repositoryRoot, command, args) }) {
   assert.match(sourceCommit ?? '', /^[a-f0-9]{40}$/);
   assert.equal(run('git', ['rev-parse', 'HEAD']).trim(), sourceCommit, 'source must be the exact checked-out commit');
   assert.match(run('git', ['remote', 'get-url', 'origin']).trim(), /^(?:git@github\.com:|https:\/\/github\.com\/)qodo-ai\/qodo-skills(?:\.git)?$/);
