@@ -42,6 +42,7 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
   for (const pkg of catalog.installPackages) {
     if (packageNames.has(pkg.name)) throw new Error('Duplicate repository package name');
     packageNames.add(pkg.name);
+    if (Object.values(pkg.compatibilityAliases).some((name) => !pkg.skills.includes(name))) throw new Error('Invalid repository compatibility alias');
     for (const name of pkg.skills) {
     if (!/^qodo(?:-[a-z0-9-]+)?$/.test(pkg.name) || packageBySkill.has(name)) throw new Error('Invalid repository package membership');
     packageBySkill.set(name, pkg.name);
@@ -85,7 +86,7 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
     if (!files.some((file) => file.path === 'SKILL.md')) throw new Error('Repository skill has no SKILL.md');
     const meta = parseSkillFrontmatter(Buffer.from(files.find((file) => file.path === 'SKILL.md').content, 'base64').toString('utf8'));
     const recommended = meta?.metadata.recommended === undefined ? true : meta.metadata.recommended === 'true';
-    if (!meta || meta.owner !== 'Qodo' || meta.metadata.vendor !== 'qodo' || meta.metadata.distribution !== 'skills-sh'
+    if (!meta || !meta.description?.trim() || meta.owner !== 'Qodo' || meta.metadata.vendor !== 'qodo' || meta.metadata.distribution !== 'skills-sh'
       || (meta.metadata.recommended !== undefined && !['true', 'false'].includes(meta.metadata.recommended)) || meta.name !== skill.name || meta.metadata.version !== skill.version
       || recommended !== skill.recommended || meta.metadata.package !== packageBySkill.get(skill.name)) {
       throw new Error(`Repository skill frontmatter differs from catalog: ${skill.name}`);
