@@ -66,6 +66,12 @@ test('output is deterministic and checksummed without a package/name allowlist',
     assert.throws(() => buildRepositoryCatalog(dir, sha), /Unsafe/);
     rmSync(join(dir, 'skills/qodo-future-skill/NUL'));
   }
+  const composed = join(dir, 'skills/qodo-future-skill/\u00e9.txt');
+  const decomposed = join(dir, 'skills/qodo-future-skill/e\u0301.txt');
+  writeFileSync(composed, 'one'); writeFileSync(decomposed, 'two');
+  // Linux can represent both names; normalization-insensitive hosts cannot.
+  if (statSync(composed).ino !== statSync(decomposed).ino) assert.throws(() => buildRepositoryCatalog(dir, sha), /colliding/);
+  rmSync(composed, { force: true }); rmSync(decomposed, { force: true });
   symlinkSync('SKILL.md', join(dir, 'skills/qodo-future-skill/link'));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /symlink/);
 });
