@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, statSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, statSync, renameSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,11 +32,11 @@ test('output is deterministic and checksummed without a package/name allowlist',
   mkdirSync(join(dir, 'distribution')); mkdirSync(join(dir, 'skills/qodo-future-skill'), { recursive: true });
   const base = JSON.parse(readFileSync(join(root, 'distribution/catalog.json'), 'utf8'));
   const fixture = { ...base, package: { ...base.package, name: 'qodo-future', version: '1.2.3' }, runtime: { ...base.runtime, minimumCliVersion: '2.0.0' },
-    installPackages: [{ ...base.installPackages[0], name: 'qodo-future', compatibilityAliases: {}, skills: ['qodo-future-skill'] }, { ...base.installPackages[1], name: 'qodo-next--', compatibilityAliases: {}, skills: ['qodo-z--future-'] }],
-    skills: ['qodo-future-skill', 'qodo-z--future-'].map((name, index) => ({ ...base.skills[0], name, recommended: index === 0 })) };
-  mkdirSync(join(dir, 'skills/qodo-z--future-'), { recursive: true });
+    installPackages: [{ ...base.installPackages[0], name: 'qodo-future', compatibilityAliases: {}, skills: ['qodo-future-skill'] }, { ...base.installPackages[1], name: 'qodo-next', compatibilityAliases: {}, skills: ['qodo-z-future'] }],
+    skills: ['qodo-future-skill', 'qodo-z-future'].map((name, index) => ({ ...base.skills[0], name, recommended: index === 0 })) };
+  mkdirSync(join(dir, 'skills/qodo-z-future'), { recursive: true });
   const document = (name, pkg, body) => `---\nname: ${name}\ndescription: A fixture skill.\nowner: Qodo\nmetadata:\n  vendor: qodo\n  distribution: skills-sh\n  version: "${base.skills[0].version}"\n  recommended: "${pkg === 'qodo-future'}"\n  package: "${pkg}"\n---\n${body}`;
-  writeFileSync(join(dir, 'skills/qodo-z--future-/SKILL.md'), document('qodo-z--future-', 'qodo-next--', 'second'));
+  writeFileSync(join(dir, 'skills/qodo-z-future/SKILL.md'), document('qodo-z-future', 'qodo-next', 'second'));
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   const skillPath = join(dir, 'skills/qodo-future-skill/SKILL.md');
   const original = document('qodo-future-skill', 'qodo-future', 'future');
@@ -44,6 +44,22 @@ test('output is deterministic and checksummed without a package/name allowlist',
   writeRepositoryCatalog(dir, sha, join(dir, 'out'));
   const first = readFileSync(join(dir, 'out/qodo-repository-catalog.json'));
   assert.equal(JSON.parse(first).minimumCliVersion, '2.3.0');
+  for (const invalid of ['qodo--future', 'qodo-future-']) {
+    fixture.skills[0].name = invalid; fixture.installPackages[0].skills = [invalid];
+    renameSync(join(dir, 'skills/qodo-future-skill'), join(dir, 'skills', invalid));
+    writeFileSync(join(dir, 'skills', invalid, 'SKILL.md'), document(invalid, 'qodo-future', 'future'));
+    writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+    assert.throws(() => buildRepositoryCatalog(dir, sha), /skill identity/);
+    renameSync(join(dir, 'skills', invalid), join(dir, 'skills/qodo-future-skill'));
+  }
+  fixture.skills[0].name = 'qodo-future-skill'; fixture.installPackages[0].skills = ['qodo-future-skill'];
+  writeFileSync(skillPath, original);
+  fixture.installPackages[1].name = 'qodo-next--';
+  writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  assert.throws(() => buildRepositoryCatalog(dir, sha), /package membership/);
+  fixture.installPackages[1].name = 'qodo-next';
+  writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+
   for (const [from, to] of [['description: A fixture skill.', 'description:'], ['owner: Qodo', 'owner: Other'], ['vendor: qodo', 'vendor: other'], ['distribution: skills-sh', 'distribution: other'], ['recommended: \"true\"', 'recommended: \"invalid\"'], ['name: qodo-future-skill', 'name: qodo-wrong'], [`version: \"${base.skills[0].version}\"`, 'version: \"999.0.0\"'], ['recommended: \"true\"', 'recommended: \"false\"'], ['package: \"qodo-future\"', 'package: \"qodo-wrong\"']]) {
     writeFileSync(skillPath, original.replace(from, to));
     assert.throws(() => buildRepositoryCatalog(dir, sha), /frontmatter differs/);
@@ -54,7 +70,7 @@ test('output is deterministic and checksummed without a package/name allowlist',
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /compatibility alias/);
   fixture.installPackages[0].compatibilityAliases = { shared: 'qodo-future-skill' };
-  fixture.installPackages[1].compatibilityAliases = { shared: 'qodo-z--future-' };
+  fixture.installPackages[1].compatibilityAliases = { shared: 'qodo-z-future' };
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /compatibility alias/);
   fixture.installPackages[1].compatibilityAliases = {};
@@ -68,11 +84,11 @@ test('output is deterministic and checksummed without a package/name allowlist',
   assert.throws(() => buildRepositoryCatalog(dir, sha), /default package/);
   fixture.package.name = 'qodo-future';
   fixture.skills[1].recommended = true;
-  const secondPath = join(dir, 'skills/qodo-z--future-/SKILL.md');
-  writeFileSync(secondPath, document('qodo-z--future-', 'qodo-next--', 'second').replace('recommended: \"false\"', 'recommended: \"true\"'));
+  const secondPath = join(dir, 'skills/qodo-z-future/SKILL.md');
+  writeFileSync(secondPath, document('qodo-z-future', 'qodo-next', 'second').replace('recommended: \"false\"', 'recommended: \"true\"'));
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /frontmatter differs/);
-  fixture.skills[1].recommended = false; writeFileSync(secondPath, document('qodo-z--future-', 'qodo-next--', 'second'));
+  fixture.skills[1].recommended = false; writeFileSync(secondPath, document('qodo-z-future', 'qodo-next', 'second'));
   writeFileSync(skillPath, original.replace('  recommended: \"true\"\n', ''));
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   assert.equal(buildRepositoryCatalog(dir, sha).skills[0].recommended, true);
@@ -101,7 +117,7 @@ test('output is deterministic and checksummed without a package/name allowlist',
   fixture.installPackages[1].name = fixture.installPackages[0].name;
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /Duplicate repository package/);
-  fixture.installPackages[1].name = 'qodo-next--'; writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  fixture.installPackages[1].name = 'qodo-next'; writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   mkdirSync(join(dir, 'skills/qodo-unlisted')); writeFileSync(join(dir, 'skills/qodo-unlisted/SKILL.md'), 'unlisted');
   assert.throws(() => buildRepositoryCatalog(dir, sha), /Uncatalogued/);
   rmSync(join(dir, 'skills/qodo-unlisted'), { recursive: true });
