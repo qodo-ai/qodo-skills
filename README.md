@@ -156,3 +156,34 @@ npm test
 ```
 
 Do not edit generated provider packages by hand.
+
+
+## Optional repository catalog
+
+The Qodo CLI can install a named skill from the repository catalog without adding it
+to default setup or a marketplace. The CLI automatically uses the verified stable public
+source or the catalog pinned and served by the recorded private deployment.
+New repository receipts use the `qodo-repository` owner and are separate from old
+public/enterprise receipts. Explicit installation includes automatic full-package updates
+for that named skill; existing update preferences and local edits are respected.
+Direct `npx skills` installations keep their skills.sh update owner.
+
+`build-repository-catalog.mjs` emits a separate data-only release artifact with all
+catalog skills, resources and component terms. It does not expand legacy enterprise
+bundles, CLI-managed bundles, setup defaults or provider listings. Enterprise delivery
+also requires the QAR catalog-serving change and an explicitly enabled deployment pin.
+Source merge alone does not publish this artifact or list Cockpit in a marketplace.
+For a retry after publisher changes, rerun the original workflow at its original revision
+or select a new main source commit. Uploaded-byte mismatches deliberately stop publication;
+completed assets are never automatically replaced.
+The artifact supports Unicode resource filenames and contents without rewriting paths.
+Canonical normalization, full Unicode case folding and Windows case checks reject
+collisions and reserved names. Pinned Unicode data and its notice are in
+`scripts/unicode-casefold.json`, matching the CLI and QAR consumers.
+
+The optional catalog publisher uses the existing protected release environment and
+contents-scoped workflow token. A repository owner must enable release immutability
+before dispatch. Publication verifies the returned immutable flag and fails/attempts
+to return to draft if it is absent; consumers must wait for successful publication
+before proposing a catalog pin. The settings API needs Administration read permission,
+which this workflow deliberately does not add.
