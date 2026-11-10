@@ -41,7 +41,7 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
     if (packageNames.has(pkg.name)) throw new Error('Duplicate repository package name');
     packageNames.add(pkg.name);
     for (const name of pkg.skills) {
-    if (!/^qodo(?:-[a-z0-9]+)*$/.test(pkg.name) || packageBySkill.has(name)) throw new Error('Invalid repository package membership');
+    if (!/^qodo(?:-[a-z0-9-]+)?$/.test(pkg.name) || packageBySkill.has(name)) throw new Error('Invalid repository package membership');
     packageBySkill.set(name, pkg.name);
     }
   }
@@ -53,7 +53,7 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
   let fileCount = 0;
   const names = new Set();
   const skills = [...catalog.skills].sort((a, b) => bytewise(a.name, b.name)).map((skill) => {
-    if (!/^qodo-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(skill.name) || names.has(skill.name) || !packageBySkill.has(skill.name)) throw new Error('Invalid repository skill identity');
+    if (!/^qodo-[a-z0-9-]+$/.test(skill.name) || names.has(skill.name) || !packageBySkill.has(skill.name)) throw new Error('Invalid repository skill identity');
     names.add(skill.name);
     const files = [];
     const walk = (directory, prefix = '', depth = 0) => {

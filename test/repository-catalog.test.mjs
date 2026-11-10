@@ -32,9 +32,9 @@ test('output is deterministic and checksummed without a package/name allowlist',
   mkdirSync(join(dir, 'distribution')); mkdirSync(join(dir, 'skills/qodo-future-skill'), { recursive: true });
   const base = JSON.parse(readFileSync(join(root, 'distribution/catalog.json'), 'utf8'));
   const fixture = { ...base, package: { ...base.package, version: '1.2.3' }, runtime: { ...base.runtime, minimumCliVersion: '2.0.0' },
-    installPackages: [{ ...base.installPackages[0], name: 'qodo-future', skills: ['qodo-future-skill'] }, { ...base.installPackages[1], name: 'qodo-next', skills: ['qodo-z-future'] }],
-    skills: ['qodo-future-skill', 'qodo-z-future'].map((name) => ({ ...base.skills[0], name })) };
-  mkdirSync(join(dir, 'skills/qodo-z-future'), { recursive: true }); writeFileSync(join(dir, 'skills/qodo-z-future/SKILL.md'), 'second');
+    installPackages: [{ ...base.installPackages[0], name: 'qodo-future', skills: ['qodo-future-skill'] }, { ...base.installPackages[1], name: 'qodo-next--', skills: ['qodo-z--future-'] }],
+    skills: ['qodo-future-skill', 'qodo-z--future-'].map((name) => ({ ...base.skills[0], name })) };
+  mkdirSync(join(dir, 'skills/qodo-z--future-'), { recursive: true }); writeFileSync(join(dir, 'skills/qodo-z--future-/SKILL.md'), 'second');
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   writeFileSync(join(dir, 'skills/qodo-future-skill/SKILL.md'), 'future');
   writeRepositoryCatalog(dir, sha, join(dir, 'out'));
@@ -50,7 +50,7 @@ test('output is deterministic and checksummed without a package/name allowlist',
   fixture.installPackages[1].name = fixture.installPackages[0].name;
   writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /Duplicate repository package/);
-  fixture.installPackages[1].name = 'qodo-next'; writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  fixture.installPackages[1].name = 'qodo-next--'; writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   mkdirSync(join(dir, 'skills/qodo-unlisted')); writeFileSync(join(dir, 'skills/qodo-unlisted/SKILL.md'), 'unlisted');
   assert.throws(() => buildRepositoryCatalog(dir, sha), /Uncatalogued/);
   rmSync(join(dir, 'skills/qodo-unlisted'), { recursive: true });
@@ -82,7 +82,7 @@ test('output is deterministic and checksummed without a package/name allowlist',
 test('catalog prereleases address drafts by ID, resume partial uploads and enforce immutable publication', async (t) => {
   const { publishRepositorySnapshot } = await import('../scripts/publish-repository-catalog.mjs');
   const dir = mkdtempSync(join(tmpdir(), 'repository-publish-')); t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const remote = new Map(); let release; let writes = 0; let failUpload = true; let immutable = true; let tagCreated = false; let competingTag = false;
+  const remote = new Map(); let release; let writes = 0; let failUpload = true; let immutable = true; let tagCreated = false; let competingTag = false; let nextAssetId = 100;
   const run = (command, args) => {
     if (command === 'git') {
       if (args[0] === 'rev-parse') return sha;
@@ -99,16 +99,24 @@ test('catalog prereleases address drafts by ID, resume partial uploads and enfor
       if (competingTag) throw new Error('competing tag creator won');
       return '{}';
     }
-    if (endpoint.endsWith('?per_page=100')) return JSON.stringify([release ? [{ ...release, assets: [...remote.values()].map(({ id, name }) => ({ id, name })) }] : []]);
+    if (endpoint.endsWith('?per_page=100')) return JSON.stringify([release ? [{ ...release, assets: [...remote.values()].map(({ id, name, state }) => ({ id, name, state })) }] : []]);
     if (method === 'POST' && endpoint === 'repos/qodo-ai/qodo-skills/releases') {
       writes++; assert.ok(args.includes('prerelease=true')); assert.ok(args.includes('make_latest=false'));
       release = { id: 17, tag_name: `catalog-${sha}`, target_commitish: sha, draft: true, prerelease: true, immutable: false, assets: [], upload_url: 'https://uploads.github.com/repos/qodo-ai/qodo-skills/releases/17/assets{?name,label}' };
       return JSON.stringify(release);
     }
     if (method === 'POST') {
-      if (failUpload && remote.size === 1) { failUpload = false; throw new Error('interrupted upload'); }
       const name = new URL(endpoint).searchParams.get('name'); assert.ok(!remote.has(name), 'never replace assets');
-      writes++; remote.set(name, { id: remote.size + 100, name, content: readFileSync(args[args.indexOf('--input') + 1]) }); return '{}';
+      if (failUpload && remote.size === 1) {
+        failUpload = false; remote.set(name, { id: nextAssetId++, name, state: 'starter', content: Buffer.alloc(0) });
+        throw new Error('interrupted upload');
+      }
+      writes++; remote.set(name, { id: nextAssetId++, name, state: 'uploaded', content: readFileSync(args[args.indexOf('--input') + 1]) }); return '{}';
+    }
+    if (method === 'DELETE') {
+      const asset = [...remote.values()].find((item) => String(item.id) === endpoint.split('/').at(-1));
+      assert.equal(release.draft, true); assert.equal(asset.state, 'starter', 'never delete uploaded bytes');
+      writes++; remote.delete(asset.name); return '';
     }
     if (method === 'PATCH') {
       if (args.includes('draft=false')) assert.equal(tagCreated, true, 'reserve the source before immutable publication');
@@ -117,11 +125,12 @@ test('catalog prereleases address drafts by ID, resume partial uploads and enfor
     if (endpoint.includes('/assets/')) {
       const asset = [...remote.values()].find((item) => String(item.id) === endpoint.split('/').at(-1)); return asset.content.toString('utf8');
     }
-    return JSON.stringify({ ...release, assets: [...remote.values()].map(({ id, name }) => ({ id, name })) });
+    return JSON.stringify({ ...release, assets: [...remote.values()].map(({ id, name, state }) => ({ id, name, state })) });
   };
   const options = { repositoryRoot: root, sourceCommit: sha, outputDirectory: dir, run };
   assert.throws(() => publishRepositorySnapshot(options), /interrupted upload/);
-  assert.equal(release.draft, true); assert.equal(remote.size, 1);
+  assert.equal(release.draft, true); assert.equal(remote.size, 2);
+  assert.equal([...remote.values()].filter((asset) => asset.state === 'starter').length, 1);
   assert.equal(publishRepositorySnapshot(options).marketplacePublication, false);
   const publishedWrites = writes; publishRepositorySnapshot(options); assert.equal(writes, publishedWrites);
   const asset = remote.get('qodo-repository-catalog.json'); remote.set(asset.name, { ...asset, content: Buffer.from('changed') });

@@ -47,6 +47,7 @@ export function publishRepositorySnapshot({ repositoryRoot = root, sourceCommit,
   const verify = (name) => {
     const asset = release.assets.find((item) => item.name === name);
     assert.ok(asset && Number.isSafeInteger(asset.id) && asset.id > 0, 'release asset must have a numeric ID');
+    assert.equal(asset.state, 'uploaded', 'snapshot asset must finish uploading');
     const bytes = api(['-H', 'Accept: application/octet-stream', `${endpoint}/assets/${asset.id}`]);
     assert.ok(Buffer.from(bytes).equals(readFileSync(join(outputDirectory, name))), 'published snapshot bytes must be immutable');
   };
@@ -60,6 +61,13 @@ export function publishRepositorySnapshot({ repositoryRoot = root, sourceCommit,
   }
   for (const name of names) {
     refresh(); validate();
+    const incomplete = release.assets.find((asset) => asset.name === name && asset.state === 'starter');
+    if (incomplete) {
+      assert.equal(release.draft, true, 'never replace a published asset');
+      assert.ok(Number.isSafeInteger(incomplete.id) && incomplete.id > 0);
+      api(['--method', 'DELETE', `${endpoint}/assets/${incomplete.id}`]);
+      refresh(); validate();
+    }
     if (!release.assets.some((asset) => asset.name === name)) {
       assert.equal(release.draft, true, 'a published snapshot cannot acquire missing assets');
       const upload = new URL(release.upload_url.replace(/\{.*$/, ''));
