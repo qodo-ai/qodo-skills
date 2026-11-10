@@ -42,6 +42,11 @@ test('output is deterministic and checksummed without a package/name allowlist',
   writeFileSync(join(dir, 'skills/qodo-future-skill/large.bin'), Buffer.alloc(512 * 1024 + 1));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /budget/);
   rmSync(join(dir, 'skills/qodo-future-skill/large.bin'));
+  if (process.platform !== 'win32') {
+    writeFileSync(join(dir, 'skills/qodo-future-skill/NUL'), 'not portable');
+    assert.throws(() => buildRepositoryCatalog(dir, sha), /Unsafe/);
+    rmSync(join(dir, 'skills/qodo-future-skill/NUL'));
+  }
   symlinkSync('SKILL.md', join(dir, 'skills/qodo-future-skill/link'));
   assert.throws(() => buildRepositoryCatalog(dir, sha), /symlink/);
 });
