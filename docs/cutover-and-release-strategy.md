@@ -394,7 +394,15 @@ deleted.
 5. Dismissing information or declining a one-time manual update does not disable automatic
    maintenance. New coding-agent sessions load updated files when convenient.
 
-The CLI never runs `npx skills` in the background and never rewrites marketplace files. New
+Direct skills.sh installations retain their existing manual update owner. The CLI never
+runs `npx skills` in the background and never rewrites marketplace files. Separately,
+explicit repository-catalog installations have a `qodo-repository` lifecycle receipt:
+users may enroll only the selected skill in automatic CLI maintenance with
+`--auto-update`. That uses the build-pinned skills engine, retains the recorded
+repository ref or same-origin enterprise deployment, and honors existing global
+opt-outs. It does not enroll existing skills.sh, enterprise-bundle or plugin copies.
+The standalone repository catalog includes optional components for explicit selection;
+legacy feeds and default setup remain unchanged. New
 optional skills are discoverable but never auto-installed.
 
 ## Release-day gates

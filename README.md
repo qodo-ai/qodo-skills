@@ -156,3 +156,20 @@ npm test
 ```
 
 Do not edit generated provider packages by hand.
+
+
+## Optional repository catalog
+
+The Qodo CLI can install a named skill from the repository catalog without adding it
+to default setup or a marketplace. Public Cloud uses an explicitly selected repository
+ref; enterprise clients use the catalog pinned and served by their own deployment.
+New repository receipts use the `qodo-repository` owner and are separate from old
+public/enterprise receipts. Only explicit `--auto-update` enrollment enables background
+updates for that named skill; existing update preferences and local edits are respected.
+Direct `npx skills` installations keep their skills.sh update owner.
+
+`build-repository-catalog.mjs` emits a separate data-only release artifact with all
+catalog skills, resources and component terms. It does not expand legacy enterprise
+bundles, CLI-managed bundles, setup defaults or provider listings. Enterprise delivery
+also requires the QAR catalog-serving change and an explicitly enabled deployment pin.
+Source merge alone does not publish this artifact or list Cockpit in a marketplace.
