@@ -30,11 +30,23 @@ test('all canonical resources and component terms survive the standalone catalog
 test('output is deterministic and checksummed without a package/name allowlist', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'repository-catalog-')); t.after(() => rmSync(dir, { recursive: true, force: true }));
   mkdirSync(join(dir, 'distribution')); mkdirSync(join(dir, 'skills/qodo-future-skill'), { recursive: true });
-  writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify({ package: { version: '1.2.3', repository: 'https://github.com/qodo-ai/qodo-skills' }, runtime: { minimumCliVersion: '2.0.0' }, installPackages: [{ name: 'qodo-future', default: false, skills: ['qodo-future-skill'] }], skills: [{ name: 'qodo-future-skill', version: '1.0.0', recommended: false, displayName: 'Future', shortDescription: 'Future', defaultPrompt: 'Future' }] }));
+  const base = JSON.parse(readFileSync(join(root, 'distribution/catalog.json'), 'utf8'));
+  const fixture = { ...base, package: { ...base.package, version: '1.2.3' }, runtime: { ...base.runtime, minimumCliVersion: '2.0.0' },
+    installPackages: [{ ...base.installPackages[0], name: 'qodo-future', skills: ['qodo-future-skill'] }, { ...base.installPackages[1], name: 'qodo-next', skills: ['qodo-z-future'] }],
+    skills: ['qodo-future-skill', 'qodo-z-future'].map((name) => ({ ...base.skills[0], name })) };
+  mkdirSync(join(dir, 'skills/qodo-z-future'), { recursive: true }); writeFileSync(join(dir, 'skills/qodo-z-future/SKILL.md'), 'second');
+  writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   writeFileSync(join(dir, 'skills/qodo-future-skill/SKILL.md'), 'future');
   writeRepositoryCatalog(dir, sha, join(dir, 'out'));
   const first = readFileSync(join(dir, 'out/qodo-repository-catalog.json'));
   assert.equal(JSON.parse(first).minimumCliVersion, '2.3.0');
+  fixture.runtime.minimumCliVersion = '2.4.0+build.1'; fixture.package.version = '1.2.3+build.2';
+  writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  assert.equal(buildRepositoryCatalog(dir, sha).minimumCliVersion, '2.4.0+build.1');
+  delete fixture.package.version; writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
+  assert.throws(() => buildRepositoryCatalog(dir, sha), /metadata/);
+  fixture.package.version = '1.2.3'; fixture.runtime.minimumCliVersion = '2.0.0';
+  writeFileSync(join(dir, 'distribution/catalog.json'), JSON.stringify(fixture));
   writeRepositoryCatalog(dir, sha, join(dir, 'out'));
   assert.deepEqual(readFileSync(join(dir, 'out/qodo-repository-catalog.json')), first);
   assert.equal(JSON.parse(first).skills[0].package, 'qodo-future');

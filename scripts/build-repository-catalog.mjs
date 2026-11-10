@@ -1,4 +1,6 @@
 /** Data-only opt-in skill catalog; independent of legacy bundles and provider projections. */
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import { createHash } from 'node:crypto';
 import { lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -10,11 +12,15 @@ const MAX_FILE_BYTES = 512 * 1024;
 const MAX_CONTENT_BYTES = 40 * 1024 * 1024;
 const MAX_FILES = 4096;
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const schema = JSON.parse(readFileSync(join(root, 'distribution/catalog.schema.json'), 'utf8'));
+const ajv = new Ajv2020({ allErrors: true }); addFormats(ajv);
+const validateCatalog = ajv.compile(schema);
+const semver = new RegExp(schema.properties.package.properties.version.pattern);
 const bytewise = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
 
 function catalogMinimumCliVersion(runtimeMinimum) {
-  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(runtimeMinimum)) throw new Error('Invalid catalog minimum CLI version');
-  const source = runtimeMinimum.split('-')[0].split('.').map(Number);
+  if (!semver.test(runtimeMinimum)) throw new Error('Invalid catalog minimum CLI version');
+  const source = runtimeMinimum.split('+')[0].split('-')[0].split('.').map(Number);
   const floor = [2, 3, 0];
   for (let i = 0; i < floor.length; i++) {
     if (source[i] > floor[i]) return runtimeMinimum;
@@ -25,7 +31,10 @@ function catalogMinimumCliVersion(runtimeMinimum) {
 
 export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
   if (!/^[a-f0-9]{40}$/.test(sourceCommit)) throw new Error('Repository catalog requires an immutable source commit');
-  const catalog = JSON.parse(readFileSync(join(repositoryRoot, 'distribution/catalog.json'), 'utf8'));
+  const metadata = readFileSync(join(repositoryRoot, 'distribution/catalog.json'));
+  if (metadata.length > 1024 * 1024) throw new Error('Repository catalog metadata exceeds its budget');
+  const catalog = JSON.parse(metadata.toString('utf8'));
+  if (!validateCatalog(catalog) || catalog.package.repository !== 'https://github.com/qodo-ai/qodo-skills') throw new Error('Invalid canonical repository catalog metadata');
   const packageBySkill = new Map();
   for (const pkg of catalog.installPackages) for (const name of pkg.skills) {
     if (!/^qodo(?:-[a-z0-9]+)*$/.test(pkg.name) || packageBySkill.has(name)) throw new Error('Invalid repository package membership');
