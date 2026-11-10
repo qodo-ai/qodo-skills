@@ -52,6 +52,8 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
     packageBySkill.set(name, pkg.name);
     }
   }
+  const defaults = catalog.installPackages.filter((pkg) => pkg.default);
+  if (defaults.length !== 1 || defaults[0].name !== catalog.package.name) throw new Error('Invalid repository default package');
   const registered = new Set(catalog.skills.map((skill) => skill.name));
   for (const entry of readdirSync(join(repositoryRoot, 'skills'), { withFileTypes: true })) {
     if ((entry.isDirectory() || entry.isSymbolicLink()) && !registered.has(entry.name)) throw new Error('Uncatalogued repository skill directory');
@@ -92,7 +94,7 @@ export function buildRepositoryCatalog(repositoryRoot, sourceCommit) {
     const recommended = meta?.metadata.recommended === undefined ? true : meta.metadata.recommended === 'true';
     if (!meta || !meta.description?.trim() || meta.owner !== 'Qodo' || meta.metadata.vendor !== 'qodo' || meta.metadata.distribution !== 'skills-sh'
       || (meta.metadata.recommended !== undefined && !['true', 'false'].includes(meta.metadata.recommended)) || meta.name !== skill.name || meta.metadata.version !== skill.version
-      || recommended !== skill.recommended || meta.metadata.package !== packageBySkill.get(skill.name)) {
+      || recommended !== skill.recommended || recommended !== catalog.installPackages.find((pkg) => pkg.name === packageBySkill.get(skill.name)).default || meta.metadata.package !== packageBySkill.get(skill.name)) {
       throw new Error(`Repository skill frontmatter differs from catalog: ${skill.name}`);
     }
     return { ...skill, package: packageBySkill.get(skill.name), files };
