@@ -44,25 +44,39 @@ class ReaderTests(unittest.TestCase):
                  "GLASSES='<svg class=\"g24\"></svg>',svg=(p,c='')=>'<svg class=\"'+c+'\">'+p+'</svg>',WDONE='_done',wseq=()=>[['a','one'],['b','one'],['c','one']],wpos=(q)=>q.findIndex(([w])=>w===WFULL),store={get:(k,d)=>d,set(){}},document={documentElement:{style:{setProperty(){}}},querySelectorAll:()=>[]};let READER='step',RDAT=2,WFULL='b';")
         code = stubs + cut(self.source, 'const RDICON = ', 'function rdOpen(')
         step = self.run_js(code + 'result=rdHead(true);')
+        foot = self.run_js(code + 'result=rdFoot(true);')
         self.assertIn('<span class="rd-hc">', step)
         hc, hr = step.index('<span class="rd-hc">'), step.index('<span class="rd-hr">')
         self.assertTrue(hc < step.index('data-rdmode="scroll"') < step.index('data-rdfs="-1"') < hr)   # the mode and the text size in the middle
-        self.assertTrue(hr < step.index('data-wfstep="-1"') < step.index('data-wfm-close'))   # the steps beside close, on the right
+        self.assertTrue(hr < step.index('rd-find') < step.index('data-wfm-close'))   # Find and close on the right
+        self.assertNotIn('data-wfstep', step)   # the steps are in the footer
         self.assertIn('class="rd-mi"', step)   # Scroll and Stepper carry icons
-        self.assertTrue(step.index('data-rdend="first"') < step.index('data-wfstep="-1"') < step.index('data-wfstep="1"') < step.index('data-rdend="last"'))   # « ‹ › »
+        self.assertTrue(foot.startswith('<div class="rd-ft">') and foot.index('data-rdend="first"') < foot.index('data-wfstep="-1"') < foot.index('data-wfstep="1"') < foot.index('data-rdend="last"'))   # « ‹ › », centred in the footer
         self.assertIn('title="Open in Reader">${GLASSES}</button>', self.source)   # every widget opens Reader with the glasses icon
-        self.assertIn('data-wfstep="-1"', step)
-        self.assertIn('>2 of 3</span>', step)
+        self.assertIn('data-wfstep="-1"', foot)
+        self.assertIn('>2 of 3</span>', foot)
         self.assertIn('data-wfm-close', step)
         self.assertNotIn('<h2>', step)   # the widget's title is in the body, not the header
         self.assertIn('class="sico"', step)   # the glasses icon is drawn like a widget icon, not filled
-        scroll = self.run_js(code + "READER='scroll';result=rdHead(false);")
+        scroll = self.run_js(code + "READER='scroll';result=rdHead(false)+rdFoot(false);")
         self.assertIn('data-rdstep="1" aria-label="Next widget" title="Next widget (→)" disabled', scroll)   # the last widget is in focus
         self.assertIn('data-rdclose', scroll)
         self.assertIn('data-rdpg aria-pressed="true"', scroll)   # page boundaries: a toggle in Scroll
         self.assertNotIn('data-rdpg', step)   # one widget at a time has no pages to separate
         title = self.run_js(code + "result=rdTitle('b','one');")
         self.assertIn('<h2>B</h2><span class="ssub">2 open</span>', title)
+
+    def test_find_suggests_widgets_by_name_page_and_text(self):
+        stubs = ("const esc=String,sico=()=>'',widgetHtml=()=>'',wname=(w,p)=>({a:'Verdict',b:'Blast radius',c:'Hop by hop'})[w],WIDGETS={a:['Verdict','The bottom line'],b:['Blast radius','How far a fault reaches'],c:['Hop by hop','One request across systems']},"
+                 "BLOCKS={a:{},b:{},c:{}},LAYOUT={pages:[{id:'o',label:'Overview',widgets:['a']},{id:'r',label:'Merge Risk',widgets:['b','c']}]},GLASSES='<svg></svg>',svg=(p)=>p,WDONE='_done',"
+                 "wseq=()=>[['a','o'],['b','r'],['c','r']],wpos=()=>0,store={get:(k,d)=>d,set(){}},document={documentElement:{style:{setProperty(){}}},querySelectorAll:()=>[],querySelector:(q)=>q.includes('rdi=') && q.includes('2')?{textContent:'the engine reads dropped_findings here'}:null,addEventListener(){}};let READER='scroll',RDAT=0,WFULL=null;")
+        code = stubs + self.source[self.source.index('const RDICON = '):self.source.index('function rdOpen(')] + self.source[self.source.index('function rdFind('):self.source.index('function rdFindDraw(')]
+        hits = self.run_js(code + "result=[rdFind('blast').map(h=>h.name), rdFind('merge risk').map(h=>h.name), rdFind('dropped_findings').map(h=>[h.name,h.snip])];")
+        self.assertEqual(hits[0], ['Blast radius'])
+        self.assertEqual(hits[1], ['Blast radius', 'Hop by hop'])   # by page name
+        self.assertEqual(hits[2][0][0], 'Hop by hop'); self.assertIn('dropped_findings', hits[2][0][1])   # by the widget's text, with a snippet
+        self.assertTrue(self.source.index('rd-find') < self.source.index('function rdFoot('))   # Find is in the header; the steps are in the footer
+        self.assertIn('!(e.target.matches && e.target.matches(".rd-q"))', self.source)   # Escape in Find doesn't close Reader
 
     def test_expand_opens_reader_in_stepper_and_scrolling_never_moves_the_focus(self):
         self.assertIn('READER = "step"; WFULL = b.dataset.wfull;', self.source)

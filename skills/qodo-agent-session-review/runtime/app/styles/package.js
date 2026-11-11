@@ -2187,7 +2187,7 @@ function wfullDraw() {
   const B = BLOCKS[WFULL], fresh = !m, body = m && m.querySelector(".wfm-b"), top = body && m.dataset.w === WFULL ? body.scrollTop : 0;   // a new widget starts at its top
   const seq = wseq(), done = WFULL === WDONE;
   if (!m) { m = document.createElement("div"); m.id = "wfm"; m.className = "lmod"; document.body.appendChild(m); }
-  m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="Reader">${rdHead(true)}<div class="wfm-b sbody">${done ? wdoneHtml(seq) : rdTitle(WFULL, WFPAGE) + widgetHtml(WFULL)}</div></div>`;   // Reader in Stepper: the header steps, the body holds the widget with its title
+  m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="Reader">${rdHead(true)}<div class="wfm-b sbody">${done ? wdoneHtml(seq) : rdTitle(WFULL, WFPAGE) + widgetHtml(WFULL)}</div>${rdFoot(true)}</div>`;   // Reader in Stepper: the header steps, the body holds the widget with its title
   if (B && B.after) B.after(m);   // a widget's own setup (Finding review fills its frames here), in this dialog
   if (m.dataset.w === "system" && WFULL !== "system" && BLOCKS.system) BLOCKS.system.after();   // stepping off System hands the map back to the page's copy
   m.querySelector(".wfm-b").scrollTop = top; m.dataset.w = WFULL; if (fresh) m.querySelector("[data-wfm-close]").focus();
@@ -2212,7 +2212,7 @@ document.addEventListener("click", (e) => {
   if (WFULL && e.target.closest && e.target.closest("[data-wfstart]")) { e.preventDefault(); e.stopPropagation(); WFULL = WDONE; const first = wseq()[0]; if (!first) return; WFULL = first[0]; WFPAGE = first[1]; S.tab = first[1]; save(); try { history.replaceState(null, "", "#" + S.tab); } catch (_) {} render(); drawHead(); return; }   // All done › Start again: the first widget
   if (WFULL && (e.target.id === "wfm" || (e.target.closest && e.target.closest("[data-wfm-close]")))) { WFULL = null; wfullDraw(); }
 }, true);
-document.addEventListener("keydown", (e) => { if (WFULL && e.key === "Escape") { e.stopPropagation(); WFULL = null; wfullDraw(); } }, true);
+document.addEventListener("keydown", (e) => { if (WFULL && e.key === "Escape" && !(e.target.matches && e.target.matches(".rd-q"))) { e.stopPropagation(); WFULL = null; wfullDraw(); } }, true);   // Reader's Find box keeps its own Escape
 document.addEventListener("keydown", (e) => { if (!WFULL || !/^Arrow(Left|Right)$/.test(e.key) || (e.target.closest && e.target.closest("input, textarea, select, [contenteditable], [role=tab], [role=tablist], [role=radiogroup], .bv, .wtab, .cm"))) return;   // ← → step through widgets in full screen; tabs, segmented controls and the Contract Map keep their own arrows
   e.preventDefault(); e.stopPropagation(); wfStep(e.key === "ArrowRight" ? 1 : -1); }, true);
 /* Reader: every widget on every page, expanded, in one full-page view: Scroll (one widget in focus) or Stepper (full screen, one at a time) */
