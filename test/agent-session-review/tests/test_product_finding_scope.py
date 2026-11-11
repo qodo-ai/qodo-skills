@@ -83,7 +83,7 @@ class ProductFindingScopeTests(unittest.TestCase):
         rules={'sev':['high'],'ci':True,'conflicts':True,'review':True,'comments':True}
         setup='const esc=String,strip=String,RW=String;KIT.openFindings=()=>[{severity:"low"}];KIT.allFindings=()=>[{severity:"low"}];const prs=()=>[p];'
         setup+='const store={get:()=>('+json.dumps(rules)+'),set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};'
-        for checks,want in (([{'state':'IN_PROGRESS'}],'CI still running on 1 PR'),([],'no CI checks on 1 PR'),([{'state':'SUCCESS'}],'Ready to merge')):
+        for checks,want in (([{'state':'IN_PROGRESS'}],'CI still running on 1 PR'),([],'no passing CI checks on 1 PR'),([{'state':'SKIPPED'},{'state':'NEUTRAL'}],'no passing CI checks on 1 PR'),([{'state':'SUCCESS'}],'Ready to merge')):
             with self.subTest(checks=checks):
                 live={p['key']:{'state':'OPEN','merge_state':'CLEAN','review_decision':'APPROVED','unresolved':0,'checks':checks}}
                 context={'p':public,'C':{'product':False},'LIVE':live,'RK':None,'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
