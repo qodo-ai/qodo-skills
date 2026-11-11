@@ -1,0 +1,24 @@
+{
+  "version": "2.3.0",
+  "summary": "Update Qodo skills and marketplace packages.\n- refactor(skills): rename beta to Agent Session Review (AT-1288) (#164)",
+  "package": {
+    "change": "minor"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-agent-session-review",
+      "version": "1.0.0",
+      "change": "initial"
+    }
+  ],
+  "renames": [
+    {
+      "from": "qodo-review-cockpit",
+      "to": "qodo-agent-session-review",
+      "fromPackage": "qodo-cockpit",
+      "toPackage": "qodo-agent-session-review"
+    }
+  ]
+}

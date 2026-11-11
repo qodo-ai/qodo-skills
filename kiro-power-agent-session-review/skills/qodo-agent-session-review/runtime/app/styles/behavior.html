@@ -1,0 +1,591 @@
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a code-review page whose diff is written in behaviors. A file tree on the left (files or capabilities), the selected file's behavior diff on the right, real code one click under every line, and one comment that can sit in several places. */
+:root{
+  --bg:#F5F6F8; --surface:#FFFFFF; --sunk:#EDEFF3; --ink:#161A20; --muted:#59616E; --faint:#8A919C; --line:#DADEE5;
+  --accent:#2563C9; --accent-ink:#FFFFFF; --accent-soft:#E3ECFA; --hunk:#3C70D0; --hunk-ink:#FFFFFF;
+  --sel:#FFF4C2; --sel-line:#E8C547; --hl:#FFF0B0;
+  --add-bg:#E8F5EA; --add:#1C6B34; --del-bg:#FCEBE8; --del:#A1281D; --chg-bg:#FFF5E0; --chg:#8A5A00;
+  --deep:#A3241C; --review:#D79A1E; --skim:#5B8DB8; --skip:#C3CBD4;
+  --ok:#2A7643; --warn:#9A5B00; --bad:#A3241C;
+  --shadow:0 1px 2px rgba(22,26,32,.06), 0 10px 28px rgba(22,26,32,.08);
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-display:"IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0E1116; --surface:#151A21; --sunk:#1B222B; --ink:#E4E8EE; --muted:#9AA3AF; --faint:#6C7582; --line:#262E39;
+  --accent:#6EA1F2; --accent-ink:#0A1830; --accent-soft:#16243B; --hunk:#2A4F94; --hunk-ink:#E8F0FF;
+  --sel:#3A3315; --sel-line:#B8962E; --hl:#3B3212;
+  --add-bg:#11281A; --add:#7FD39C; --del-bg:#331818; --del:#F29B90; --chg-bg:#2E2511; --chg:#E9B85A;
+  --deep:#D9483B; --review:#F2B950; --skim:#6E9BCB; --skip:#4A5361;
+  --ok:#5EC27F; --warn:#E8A33A; --bad:#E5685B; --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0E1116; --surface:#151A21; --sunk:#1B222B; --ink:#E4E8EE; --muted:#9AA3AF; --faint:#6C7582; --line:#262E39;
+  --accent:#6EA1F2; --accent-ink:#0A1830; --accent-soft:#16243B; --hunk:#2A4F94; --hunk-ink:#E8F0FF;
+  --sel:#3A3315; --sel-line:#B8962E; --hl:#3B3212;
+  --add-bg:#11281A; --add:#7FD39C; --del-bg:#331818; --del:#F29B90; --chg-bg:#2E2511; --chg:#E9B85A;
+  --deep:#D9483B; --review:#F2B950; --skim:#6E9BCB; --skip:#4A5361;
+  --ok:#5EC27F; --warn:#E8A33A; --bad:#E5685B; --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35); color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg); color:var(--ink); font:15px/1.55 var(--f-body); margin:0}
+a{color:var(--accent)}
+button,input,textarea,select{font:inherit; color:inherit}
+code{font:.88em var(--f-mono); background:var(--sunk); padding:.06em .32em; border-radius:4px}
+h1,h2,h3{font-family:var(--f-display); text-wrap:balance; margin:0; line-height:1.15; letter-spacing:-.005em}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.lbl{font:600 11px/1.2 var(--f-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
+.muted{color:var(--muted)}
+.btn{border:1px solid var(--line); background:var(--surface); border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:500}
+.btn:hover{border-color:var(--faint)}
+.btn.pri{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.btn.sm{padding:3px 9px; font-size:13px}
+.chip{display:inline-flex; align-items:center; gap:5px; border:1px solid var(--line); border-radius:999px; padding:1px 9px; font:500 12.5px/1.6 var(--f-body); background:var(--surface); white-space:nowrap}
+.n{font-variant-numeric:tabular-nums}
+
+/* ---------- bar ---------- */
+.bar{position:sticky; top:env(safe-area-inset-top,0px); z-index:30; background:color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+.bar-in{display:flex; align-items:center; gap:16px; padding:10px 20px; flex-wrap:wrap}
+.brand{display:flex; flex-direction:column; min-width:0; flex:1 1 220px}
+.brand .lbl{color:var(--accent)}
+.brand b{font:700 18px/1.2 var(--f-display); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.tabs{display:flex; gap:4px; flex-wrap:wrap}
+.tab{border:0; background:none; padding:7px 12px; border-radius:8px; cursor:pointer; font-weight:500; color:var(--muted)}
+.tab:hover{background:var(--sunk)}
+.tab[aria-current="page"]{background:var(--surface); color:var(--ink); box-shadow:inset 0 0 0 1px var(--line)}
+.tab .n{color:var(--faint); margin-left:4px; font-size:13px}
+
+/* ---------- shell ---------- */
+.app{display:grid; grid-template-columns:minmax(260px, 330px) minmax(0, 1fr); min-height:calc(100% - 60px)}
+.side{border-right:1px solid var(--line); background:var(--surface); position:sticky; top:61px; align-self:start; height:calc(100vh - 61px); overflow:auto; padding:14px 10px 40px}
+.main{min-width:0; padding:22px 28px 140px}
+.main-in{max-width:1000px}
+.side-head{display:flex; gap:6px; align-items:center; padding:0 6px 10px; flex-wrap:wrap}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden}
+.seg button{border:0; background:none; padding:4px 10px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft); color:var(--ink)}
+.side input[type=search]{width:100%; margin:0 0 10px; border:1px solid var(--line); border-radius:8px; padding:6px 10px; background:var(--bg)}
+.tgl{font-size:12.5px; color:var(--muted); display:flex; gap:6px; align-items:center; padding:0 6px 8px}
+.tree-pr{font:600 12px var(--f-mono); color:var(--muted); padding:10px 6px 4px; display:flex; gap:6px; align-items:baseline}
+.tree-pr span{color:var(--faint); font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.dir{display:flex; align-items:center; gap:6px; padding:5px 6px 2px; color:var(--muted); font-size:13px; font-weight:500; word-break:break-all}
+.dir::before{content:"▾"; color:var(--faint); font-size:11px; flex:none}
+.file{display:flex; align-items:center; gap:6px; width:100%; border:0; background:none; text-align:left; padding:5px 6px 5px 22px; border-radius:7px; cursor:pointer; font-size:13.5px}
+.file:hover{background:var(--sunk)}
+.file[aria-current="true"]{background:var(--sel); box-shadow:inset 3px 0 0 var(--sel-line)}
+.file .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.file.dim .nm{color:var(--faint)}
+.file.seen .nm::after{content:" ✓"; color:var(--ok); font-size:12px}
+.bc{font:500 11.5px var(--f-mono); border:1px solid var(--line); border-radius:999px; padding:0 6px; white-space:nowrap; background:var(--surface)}
+.bc .a{color:var(--add)} .bc .d{color:var(--del)} .bc .c{color:var(--chg)}
+.cc{font:600 11px var(--f-mono); min-width:18px; height:18px; border-radius:50%; border:1px solid var(--line); display:grid; place-items:center}
+.cc.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.td{width:7px; height:7px; border-radius:50%; flex:none}
+.t-deep{background:var(--deep)} .t-review{background:var(--review)} .t-skim{background:var(--skim)} .t-skip{background:var(--skip)}
+.capi{display:block; width:100%; border:0; background:none; text-align:left; padding:8px 8px; border-radius:8px; cursor:pointer}
+.capi:hover{background:var(--sunk)}
+.capi[aria-current="true"]{background:var(--sel); box-shadow:inset 3px 0 0 var(--sel-line)}
+.capi b{display:block; font-size:14px}
+.capi span{font-size:12.5px; color:var(--muted)}
+.nav-top{display:block; width:100%; text-align:left; border:0; background:none; padding:7px 8px; border-radius:8px; cursor:pointer; font-weight:600}
+.nav-top:hover{background:var(--sunk)}
+.nav-top[aria-current="true"]{background:var(--sel)}
+
+/* ---------- file view ---------- */
+.fh{display:flex; align-items:flex-start; gap:12px; justify-content:space-between; flex-wrap:wrap}
+.path{font:600 18px/1.3 var(--f-mono); word-break:break-all; margin:0}
+.head{font-size:19px; margin:6px 0 4px; font-weight:500}
+.cap-note{color:var(--accent); font-size:14.5px; margin:0 0 14px}
+.meter{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); margin:6px 0 16px; flex-wrap:wrap}
+.meter .bar2{width:140px; height:6px; background:var(--sunk); border-radius:3px; overflow:hidden}
+.meter .bar2 i{display:block; height:100%; background:var(--ok)}
+hr.sep{border:0; border-top:1px solid var(--line); margin:4px 0 18px}
+
+.hunk{border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--surface); margin:0 0 16px}
+.hh{background:var(--hunk); color:var(--hunk-ink); font:500 14.5px var(--f-mono); padding:8px 14px; display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap}
+.hh button{background:color-mix(in srgb, var(--hunk-ink) 16%, transparent); color:var(--hunk-ink); border:0; border-radius:999px; padding:1px 10px; font:500 12px var(--f-body); cursor:pointer}
+.row{display:grid; grid-template-columns:44px 40px minmax(0,1fr) auto; border-top:1px solid var(--line); align-items:stretch}
+.row:first-of-type{border-top:0}
+.row > *{padding:9px 0}
+.row .ln{font:13px var(--f-mono); color:var(--faint); text-align:center; border-right:1px solid var(--line)}
+.row .sg{font:600 17px/1.3 var(--f-mono); text-align:center; border-right:1px solid var(--line)}
+.row .tx{font:14.5px/1.5 var(--f-mono); padding-inline:14px; min-width:0; overflow-wrap:anywhere; cursor:pointer}
+.row .tx code{font-size:.95em; background:color-mix(in srgb, var(--ink) 7%, transparent)}
+.row .act{display:flex; align-items:center; gap:6px; padding-right:10px; flex-wrap:wrap; justify-content:flex-end}
+.row.add{background:var(--add-bg)} .row.add .sg, .row.add .tx{color:var(--add)}
+.row.del{background:var(--del-bg)} .row.del .sg, .row.del .tx{color:var(--del)}
+.row.chg{background:var(--chg-bg)} .row.chg .sg, .row.chg .tx{color:var(--chg)}
+.row.on .tx span.t{background:var(--hl); color:var(--ink); border-radius:3px; box-decoration-break:clone; -webkit-box-decoration-break:clone; padding:0 2px}
+.row.sel{box-shadow:inset 4px 0 0 var(--sel-line)}
+.kind{font:600 10.5px var(--f-mono); letter-spacing:.06em; text-transform:uppercase; border-radius:4px; padding:1px 6px; border:1px solid currentColor; opacity:.75; white-space:nowrap}
+.pick{width:26px; height:26px; border-radius:6px; border:1px solid var(--line); background:var(--surface); cursor:pointer; display:grid; place-items:center; font:600 14px var(--f-mono); color:var(--muted)}
+.pick[aria-pressed="true"]{background:var(--sel-line); border-color:var(--sel-line); color:#1d1600}
+.lk{font-size:12px; border:1px dashed var(--accent); color:var(--accent); background:none; border-radius:999px; padding:0 8px; cursor:pointer; white-space:nowrap}
+.sev{font:600 11px var(--f-mono); border-radius:4px; padding:1px 6px; color:#fff; white-space:nowrap}
+.sev.high,.sev.critical{background:var(--bad)} .sev.medium{background:var(--warn)} .sev.low,.sev.info{background:var(--faint)}
+.ev{grid-column:1 / -1; padding:0 0 10px 84px; background:var(--surface); border-top:1px dashed var(--line)}
+.ev .evh{font:500 12.5px var(--f-mono); color:var(--muted); padding:8px 0 4px}
+.ev .fnd{border-left:3px solid var(--warn); padding:6px 12px; margin:8px 14px 4px 0; background:var(--sunk); border-radius:0 6px 6px 0; font-size:14px}
+.ev .fnd b{display:block}
+.code{font:12.5px/1.5 var(--f-mono); border:1px solid var(--line); border-radius:8px; overflow-x:auto; margin-right:14px; background:var(--bg)}
+.cl{display:flex; white-space:pre}
+.cl .ln{width:46px; flex:none; text-align:right; padding-right:10px; color:var(--faint); user-select:none}
+.cl .sg{width:16px; flex:none; color:var(--faint)}
+.cl .tx{padding-right:12px}
+.cl.add{background:var(--add-bg)} .cl.del{background:var(--del-bg)}
+.cl.cut .tx{color:var(--faint); font-style:italic}
+.note-on{grid-column:1 / -1; margin:0 14px 10px 84px; padding:8px 12px; border-radius:8px; background:var(--accent-soft); font-size:14px}
+.note-on .lbl{color:var(--accent)}
+.gaps{margin:10px 0 18px; border:1px dashed var(--line); border-radius:10px; padding:10px 14px; background:var(--surface)}
+.gaps summary{cursor:pointer; font-weight:500}
+.gaps .code{margin:6px 0 10px}
+.fallback .code{margin:8px 0 14px}
+
+/* ---------- overview ---------- */
+.hero h1{font-size:24px; margin:4px 0 8px; max-width:46ch; line-height:1.22}
+.hero p{max-width:68ch; color:var(--muted); margin:0 0 14px}
+.tally{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 22px}
+.tally .chip{font-size:14px; padding:3px 12px}
+.tally .a{color:var(--add)} .tally .d{color:var(--del)} .tally .c{color:var(--chg)}
+.legend{display:flex; flex-wrap:wrap; gap:14px; font-size:13px; color:var(--muted); margin:0 0 22px}
+.legend i{display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:5px}
+.grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); gap:12px}
+.card{border:1px solid var(--line); background:var(--surface); border-radius:12px; padding:14px 16px; cursor:pointer; text-align:left; display:flex; flex-direction:column; gap:6px}
+.card:hover{border-color:var(--accent)}
+.card b{font:700 16px var(--f-display)}
+.card p{margin:0; font-size:14px; color:var(--muted)}
+.card .meta{display:flex; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:4px}
+.sec{margin:28px 0 10px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.sec h2{font-size:20px}
+.risk{display:flex; flex-direction:column; gap:8px}
+.risk button{display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:4px 12px; text-align:left; border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:10px 14px; cursor:pointer}
+.risk button:hover{border-color:var(--accent)}
+.risk .p{font:12.5px var(--f-mono); color:var(--muted); grid-column:2}
+.risk .t{font:14px/1.45 var(--f-mono)}
+.why{border-left:3px solid var(--accent); padding:8px 14px; background:var(--surface); border-radius:0 10px 10px 0; font-size:14px; max-width:78ch}
+
+.shots{display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px}
+.shot{border:1px solid var(--line); background:var(--surface); border-radius:12px; overflow:hidden; display:flex; flex-direction:column}
+.shot img{display:block; width:100%; aspect-ratio:16/10; object-fit:cover; object-position:top; border-bottom:1px solid var(--line); max-width:100%}
+.shot div{padding:10px 14px; display:flex; flex-direction:column; gap:6px; font-size:13.5px}
+.shot b{font-size:14.5px}
+.shot .meta{display:flex; flex-wrap:wrap; gap:6px}
+.fshot{display:grid; grid-template-columns:minmax(0, 360px) minmax(0,1fr); gap:14px; align-items:start; border:1px solid var(--line); border-radius:12px; background:var(--surface); padding:10px; margin:0 0 16px}
+.fshot img{border-radius:8px; border:1px solid var(--line); max-width:100%}
+.res{font:600 11px var(--f-mono); color:var(--ok); border:1px solid var(--ok); border-radius:4px; padding:0 5px; white-space:nowrap}
+@media (max-width: 860px){ .fshot{grid-template-columns:minmax(0,1fr)} }
+/* ---------- capability view ---------- */
+.capfile{margin:22px 0 6px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
+.capfile button{border:0; background:none; padding:0; cursor:pointer; font:600 14px var(--f-mono); color:var(--accent); word-break:break-all; text-align:left}
+.capfile span{color:var(--muted); font-size:14px}
+
+/* ---------- review ---------- */
+.prv{border:1px solid var(--line); background:var(--surface); border-radius:12px; padding:14px 16px; margin:0 0 12px}
+.prv h3{font-size:16px; margin-bottom:6px}
+.vbtn{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
+.vbtn button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.nl{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px}
+.nl li{border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:10px 14px}
+.nl .anc{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
+.receipt{font:13px/1.7 var(--f-mono); background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 16px}
+textarea.out{width:100%; min-height:180px; font:12.5px var(--f-mono); border:1px solid var(--line); border-radius:8px; padding:10px; background:var(--bg)}
+
+/* ---------- composer ---------- */
+.composer{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(16px + env(safe-area-inset-bottom,0px)); width:min(760px, calc(100% - 32px)); z-index:40; background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--sel-line); border-radius:12px; box-shadow:var(--shadow); padding:14px 18px}
+.composer h3{font:600 17px var(--f-body); margin:0 0 10px}
+.places{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+.place{display:inline-flex; gap:8px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:4px 10px; font:13px var(--f-mono); background:var(--bg)}
+.place b{font-weight:600}
+.place button{border:0; background:none; cursor:pointer; color:var(--faint); padding:0}
+.composer textarea{width:100%; min-height:70px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:var(--bg); resize:vertical}
+.crow{display:flex; gap:8px; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap}
+.crow .r{display:flex; gap:8px}
+.toast{position:fixed; top:74px; right:20px; z-index:50; background:var(--ink); color:var(--bg); padding:8px 14px; border-radius:8px; font-size:14px}
+.keys{font-size:12.5px; color:var(--faint); margin-top:30px}
+.keys kbd{font:11.5px var(--f-mono); border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 5px; background:var(--surface)}
+
+@media (max-width: 860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static; height:auto; max-height:46vh; border-right:0; border-bottom:1px solid var(--line)}
+  .main{padding:18px 16px 160px}
+  .row{grid-template-columns:30px 28px minmax(0,1fr)}
+  .row .act{grid-column:3; padding:0 10px 8px 14px; justify-content:flex-start}
+  .row .ln{font-size:12px}
+  .ev{padding-left:12px} .note-on{margin-left:12px}
+  .hero h1{font-size:20px}
+  .bar-in{padding:8px 16px}
+}
+</style>
+
+<header class="bar"><div class="bar-in">
+  <div class="brand"><span class="lbl">Behavior Diff</span><b id="ttl"></b></div>
+  <nav class="tabs" id="tabs"></nav>
+  <div id="cknav"></div>
+</div></header>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main class="main"><div class="main-in" id="main"></div></main>
+</div>
+<div class="composer" id="composer" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+{{DATA}}
+<script>
+{{KIT}}
+</script>
+<script>
+const { esc, md, cases, caseIds, base, TIERS, TIER_NAME, codeHtml, store, sevRank } = KIT;
+const C = cases[caseIds[0]];
+const BH = Object.assign({ files: [], capabilities: [], links: [], kept: [] }, C.behavior || {});
+const $ = (s) => document.querySelector(s);
+const SKEY = "behavior:" + C.session;
+const S = Object.assign({ view: "overview", mode: "files", onlyBh: true, q: "", seen: {}, notes: [], verdict: {}, sel: [], open: {} }, store.get(SKEY, {}));
+S.sel = []; S.q = "";
+const save = () => store.set(SKEY, { seen: S.seen, notes: S.notes, verdict: S.verdict, mode: S.mode, onlyBh: S.onlyBh });
+const toast = (m) => { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2400); };
+const strip = (t) => String(t || "").replace(/^feat:\s*(feat\([^)]*\):\s*)?/i, "").replace(/^fix:\s*/i, "");
+const shortPr = (k) => (C.prs.length > 1 && new Set(C.prs.map((p) => p.repo)).size > 1 ? k.split("/")[1].replace("#", " #") : "#" + k.split("#")[1]);
+const SIGN = { " ": "", "-": "−", "+": "+", "~": "~" };
+const ROW = { " ": "ctx", "-": "del", "+": "add", "~": "chg" };
+
+/* ---------- index ---------- */
+const MEDIA = C.media || [];
+const isOpenF = (f) => !f.status || f.status === "open";
+const findings = {}; C.prs.forEach((p) => p.findings.forEach((f) => (findings[f.id] = { ...f, pr: p.key })));
+const covBy = {}; ((BH.coverage || {}).files || []).forEach((c) => (covBy[c.pr + "|" + c.path] = c));
+const capBy = {}; (BH.capabilities || []).forEach((c) => (capBy[c.id] = c));
+const linkBy = {}; (BH.links || []).forEach((l) => (linkBy[l.id] = l));
+const BF = (BH.files || []).map((f, i) => ({ ...f, i, key: f.pr + "|" + f.path }));
+const bfBy = {}; BF.forEach((f) => (bfBy[f.key] = f));
+const LINES = []; // every behavior line with its address
+BF.forEach((f) => (f.hunks || []).forEach((h, hi) => (h.lines || []).forEach((l, li) => {
+  const id = `${f.i}.${hi}.${li}`; l.id = id; LINES.push({ id, f, h, hi, l });
+})));
+const lineById = {}; LINES.forEach((x) => (lineById[x.id] = x));
+const linkPlaces = {}; LINES.forEach((x) => { if (x.l.link) (linkPlaces[x.l.link] = linkPlaces[x.l.link] || []).push(x.id); });
+const count = (ls) => ls.reduce((a, x) => { a[x.l.k] = (a[x.l.k] || 0) + 1; return a; }, {});
+const fileCount = (f) => count(LINES.filter((x) => x.f === f));
+const tierOf = (pf) => { const t = pf.tiers || {}; return TIERS.find((k) => t[k]) || "skip"; };
+const prFiles = (p) => p.files.map((pf) => ({ pr: p.key, pf, key: p.key + "|" + pf.path, bf: bfBy[p.key + "|" + pf.path] }));
+const ALLF = C.prs.flatMap(prFiles);
+const notesOn = (id) => S.notes.filter((n) => n.lines.includes(id));
+const notesInFile = (f) => S.notes.filter((n) => n.lines.some((id) => lineById[id] && lineById[id].f === f));
+
+/* ---------- anchors (for GitHub inline comments) ---------- */
+function anchorOf(x) {
+  const e = (x.l.ev || [])[0];
+  if (!e) return { pr: x.f.pr, path: x.f.path, line: null, side: "new" };
+  /* GitHub places an inline comment on a changed line: the last one the evidence cites */
+  const mark = e.side === "old" ? "-" : "+", col = e.side === "old" ? 1 : 2;
+  const ch = (e.lines || []).filter((l) => l[0] === mark && l[col] >= e.from && l[col] <= e.to).map((l) => l[col]);
+  return { pr: x.f.pr, path: e.path || x.f.path, line: ch.length ? ch[ch.length - 1] : e.to, from: e.from, side: e.side };
+}
+const anchorTxt = (a) => `${a.path}${a.line ? ":" + (a.from && a.from !== a.line ? a.from + "–" : "") + a.line : ""}`;
+
+/* ---------- top bar ---------- */
+function renderTabs() {
+  const kept = (BH.kept || []).length;
+  const tabs = [["overview", "Overview", ""], ["changes", "Changes", BF.length], ["promises", "Promises kept", kept], ["review", "Review", S.notes.length]];
+  const cur = S.view === "file" || S.view === "cap" ? "changes" : S.view;
+  $("#tabs").innerHTML = tabs.map(([v, t, n]) => `<button class="tab" data-tab="${v}" ${cur === v ? 'aria-current="page"' : ""}>${t}${n !== "" ? `<span class="n">${n}</span>` : ""}</button>`).join("");
+}
+
+/* ---------- side: files or capabilities ---------- */
+function renderSide() {
+  const q = S.q.toLowerCase();
+  let h = `<input type="search" id="q" placeholder="Filter files or behaviors" value="${esc(S.q)}">`;
+  h += `<div class="side-head"><span class="lbl" style="flex:1">${S.mode === "files" ? "File tree" : "Capabilities"}</span>
+    <span class="seg"><button data-mode="files" aria-pressed="${S.mode === "files"}">Files</button><button data-mode="caps" aria-pressed="${S.mode === "caps"}">Capabilities</button></span></div>`;
+  if (S.mode === "caps") {
+    h += (BH.capabilities || []).map((c) => {
+      const ls = LINES.filter((x) => x.h.cap === c.id); const n = count(ls);
+      const files = new Set(ls.map((x) => x.f.i)).size;
+      if (q && !(c.title + " " + c.summary).toLowerCase().includes(q) && !ls.some((x) => x.l.text.toLowerCase().includes(q))) return "";
+      return `<button class="capi" data-cap="${esc(c.id)}" ${S.view === "cap" && S.cap === c.id ? 'aria-current="true"' : ""}><b>${esc(c.title)}</b><span>${files} file${files === 1 ? "" : "s"} · ${bc(n)}</span></button>`;
+    }).join("");
+  } else {
+    const total = ALLF.length, withBh = ALLF.filter((x) => x.bf).length;
+    h += `<label class="tgl"><input type="checkbox" id="onlyBh" ${S.onlyBh ? "checked" : ""}> Only files with behaviors (${withBh} of ${total})</label>`;
+    C.prs.forEach((p) => {
+      let fs = prFiles(p).filter((x) => (!S.onlyBh || x.bf));
+      if (q) fs = fs.filter((x) => x.pf.path.toLowerCase().includes(q) || (x.bf && (x.bf.headline + " " + (x.bf.hunks || []).flatMap((h) => h.lines.map((l) => l.text)).join(" ")).toLowerCase().includes(q)));
+      if (!fs.length) return;
+      if (C.prs.length > 1) h += `<div class="tree-pr">${esc(shortPr(p.key))}<span>${esc(strip(p.title))}</span></div>`;
+      const dirs = {};
+      fs.forEach((x) => { const d = x.pf.path.includes("/") ? x.pf.path.slice(0, x.pf.path.lastIndexOf("/")) : "repository root"; (dirs[d] = dirs[d] || []).push(x); });
+      Object.keys(dirs).sort().forEach((d) => {
+        h += `<div class="dir">${esc(d)}</div>`;
+        dirs[d].forEach((x) => {
+          const cur = S.view === "file" && S.file === x.key;
+          const nn = x.bf ? notesInFile(x.bf).length : 0;
+          h += `<button class="file${x.bf ? "" : " dim"}${S.seen[x.key] ? " seen" : ""}" data-file="${esc(x.key)}" ${cur ? 'aria-current="true"' : ""} title="${esc(x.pf.path)}">
+            <span class="td t-${tierOf(x.pf)}" title="${TIER_NAME[tierOf(x.pf)]}"></span><span class="nm">${esc(base(x.pf.path))}</span>
+            ${x.bf ? bc(fileCount(x.bf)) : `<span class="bc muted">code</span>`}${nn ? `<span class="cc on">${nn}</span>` : ""}</button>`;
+        });
+      });
+    });
+  }
+  $("#side").innerHTML = h;
+}
+const bc = (n) => `<span class="bc">${n["+"] ? `<span class="a">+${n["+"]}</span> ` : ""}${n["-"] ? `<span class="d">−${n["-"]}</span> ` : ""}${n["~"] ? `<span class="c">~${n["~"]}</span>` : ""}${!n["+"] && !n["-"] && !n["~"] ? "·" : ""}</span>`;
+
+/* ---------- one behavior line ---------- */
+function rowHtml(x, num) {
+  const l = x.l, f = l.finding && findings[l.finding];
+  const open = S.open[x.id], picked = S.sel.includes(x.id), ns = notesOn(x.id);
+  const places = l.link ? linkPlaces[l.link] : null;
+  let h = `<div class="row ${ROW[l.k] || "ctx"}${open ? " on" : ""}${picked ? " sel" : ""}" data-line="${x.id}">
+    <span class="ln n">${num}</span><span class="sg">${SIGN[l.k] || ""}</span>
+    <span class="tx" data-ev="${x.id}" title="${l.ev && l.ev.length ? "Show the code behind this line" : ""}"><span class="t">${md(l.text)}</span></span>
+    <span class="act">${l.kind && l.kind !== "behavior" ? `<span class="kind">${esc(l.kind)}</span>` : ""}
+      ${f ? (isOpenF(f) ? `<span class="sev ${esc(f.severity)}" title="${esc(f.title)}">${esc(f.severity)}</span>` : `<span class="res" title="${esc(f.title)}">${esc(f.status)}</span>`) : ""}
+      ${places && places.length > 1 ? `<button class="lk" data-link="${esc(l.link)}" title="${esc((linkBy[l.link] || {}).title || "")}">${places.length} places</button>` : ""}
+      ${l.k !== " " ? `<button class="pick" data-pick="${x.id}" aria-pressed="${picked}" title="Add to a comment">${picked ? "✓" : "+"}</button>` : ""}</span>`;
+  if (open) {
+    h += `<div class="ev">`;
+    if (f) h += `<div class="fnd"><b>${esc(f.title)}</b><span class="muted">${esc(f.source === "agent" ? "Agent" : "Qodo")}${KIT.localTag(f)} · ${esc(f.severity)} · ${esc(f.path)}:${esc(f.line)}</span><div>${md(String(f.body || "").slice(0, 420))}${String(f.body || "").length > 420 ? "…" : ""}</div></div>`;
+    (l.ev || []).forEach((e) => { h += `<div class="evh">${esc(e.path)} · ${e.side === "old" ? "before" : "after"} ${e.from}–${e.to}</div>${codeHtml(e)}`; });
+    if (!(l.ev || []).length) h += `<div class="evh">Context line: no code cited.</div>`;
+    h += `</div>`;
+  }
+  ns.forEach((n) => { h += `<div class="note-on"><span class="lbl">${esc(n.type)}${n.lines.length > 1 ? ` · on ${n.lines.length} places` : ""}</span><div>${md(n.text)}</div></div>`; });
+  return h + `</div>`;
+}
+function hunkHtml(f, h, hi) {
+  const cap = capBy[h.cap];
+  let n = 0;
+  const rows = (h.lines || []).map((l) => rowHtml(lineById[l.id], ++n)).join("");
+  return `<section class="hunk"><div class="hh"><span>@@ ${esc(h.title)} @@</span>${cap && S.view !== "cap" ? `<button data-cap="${esc(cap.id)}">${esc(cap.title)}</button>` : ""}</div>${rows}</section>`;
+}
+
+/* ---------- views ---------- */
+function covLine(key) {
+  const c = covBy[key]; if (!c || !c.changed) return "";
+  const p = Math.round((100 * c.cited) / c.changed);
+  return `<div class="meter"><span class="bar2"><i style="width:${p}%"></i></span><span class="n">The sketch cites ${c.cited} of ${c.changed} changed lines (${p}%).</span></div>`;
+}
+function gapsHtml(key) {
+  const c = covBy[key]; if (!c || !c.gaps || !c.gaps.length) return "";
+  return `<details class="gaps"><summary>Code the sketch doesn't describe · ${c.uncited} line${c.uncited === 1 ? "" : "s"}</summary>
+    <p class="muted" style="margin:6px 0 4px;font-size:13.5px">Read these as code. A behavior diff is a claim; anything it leaves out is where a surprise would hide.</p>
+    ${c.gaps.map((g) => `<div class="evh lbl" style="margin-top:8px">${g.side === "old" ? "before" : "after"} ${g.from}–${g.to}</div>${codeHtml(g)}`).join("")}</details>`;
+}
+function viewFile() {
+  const x = ALLF.find((y) => y.key === S.file); if (!x) return viewOverview();
+  S.seen[x.key] = true; save();
+  const p = C.prs.find((q) => q.key === x.pr);
+  let h = `<div class="fh"><div style="min-width:0"><span class="lbl">${esc(shortPr(p.key))} · ${esc(strip(p.title))}</span><h1 class="path">${esc(x.pf.path)}</h1></div>
+    <span class="chip"><span class="td t-${tierOf(x.pf)}"></span>${TIER_NAME[tierOf(x.pf)]} · <span class="n">+${x.pf.add} −${x.pf.del}</span> code</span></div>`;
+  if (!x.bf) {
+    const blocks = Object.values(p.code || {}).length ? p.attention.blocks.filter((b) => b.path === x.pf.path && p.code[b.id]) : [];
+    h += `<p class="head muted">No behavior sketch for this file.</p><p class="muted">${x.pf.role === "test" ? "It is a test file; what it proves is written on the file it tests." : x.pf.role && x.pf.role !== "source" ? `It is ${esc(x.pf.role)}.` : `The plan puts it in ${TIER_NAME[tierOf(x.pf)].toLowerCase()}.`} Here is the code.</p>
+      <div class="fallback">${blocks.slice(0, 4).map((b) => `<div class="evh lbl">${b.from}–${b.to}</div>${codeHtml(p.code[b.id])}`).join("") || `<p class="muted">No code kept for this file in the case data.</p>`}</div>`;
+    return h;
+  }
+  h += `<p class="head">${md(x.bf.headline)}</p><p class="cap-note">Sketch of the real diff. Green is new behavior, red is behavior we stop doing, amber changes in degree. Click a line for its code.</p>`;
+  h += covLine(x.key) + `<hr class="sep">`;
+  MEDIA.filter((m) => (m.paths || []).includes(x.pf.path)).slice(0, 2).forEach((m) => { h += `<figure class="fshot" style="margin:0 0 16px"><img src="${esc(m.src)}" alt="${esc(m.title)}" loading="lazy"><figcaption><span class="lbl">What this file draws</span><b style="display:block;margin:4px 0">${esc(m.title)}</b><span class="muted" style="font-size:14px">${esc(m.caption || "")}</span></figcaption></figure>`; });
+  h += (x.bf.hunks || []).map((hk, hi) => hunkHtml(x.bf, hk, hi)).join("");
+  h += gapsHtml(x.key);
+  const idx = order().indexOf(x.key), nx = order()[idx + 1], pv = order()[idx - 1];
+  h += `<div class="crow"><span>${pv ? `<button class="btn sm" data-file="${esc(pv)}">← ${esc(base(pv.split("|")[1]))}</button>` : ""}</span><span>${nx ? `<button class="btn sm" data-file="${esc(nx)}">${esc(base(nx.split("|")[1]))} →</button>` : `<button class="btn sm" data-tab="review">To the review →</button>`}</span></div>`;
+  return h + keysHtml();
+}
+function viewCap() {
+  const c = capBy[S.cap]; if (!c) return viewOverview();
+  const ls = LINES.filter((x) => x.h.cap === c.id);
+  let h = `<span class="lbl">Capability</span><h1 style="font-size:26px;margin:4px 0 6px">${esc(c.title)}</h1><p class="muted" style="max-width:70ch;margin:0 0 8px">${md(c.summary)}</p>
+    <div class="tally">${(c.prs || []).map((k) => `<span class="chip">${esc(shortPr(k))}</span>`).join("")}${bc(count(ls))}</div><p class="cap-note">Every place this capability changes, file by file.</p>`;
+  const fs = [...new Set(ls.map((x) => x.f))];
+  fs.forEach((f) => {
+    h += `<div class="capfile">${C.prs.length > 1 ? `<span class="chip">${esc(shortPr(f.pr))}</span>` : ""}<button data-file="${esc(f.key)}">${esc(f.path)}</button><span>${md(f.headline)}</span></div>`;
+    (f.hunks || []).forEach((hk, hi) => { if (hk.cap === c.id) h += hunkHtml(f, hk, hi); });
+  });
+  return h + keysHtml();
+}
+function viewOverview() {
+  const n = count(LINES), iface = LINES.filter((x) => x.l.kind === "interface" && x.l.k !== " ").length;
+  const cv = BH.coverage || {}, cp = cv.important_lines ? Math.round((100 * cv.cited) / cv.important_lines) : 0;
+  const risky = LINES.filter((x) => x.l.finding && findings[x.l.finding]).sort((a, b) => { const fa = findings[a.l.finding], fb = findings[b.l.finding]; return (isOpenF(fb) - isOpenF(fa)) || ((sevRank[fa.severity] ?? 5) - (sevRank[fb.severity] ?? 5)); });
+  const nOpen = risky.filter((x) => isOpenF(findings[x.l.finding])).length;
+  const files = new Set(LINES.map((x) => x.f.i)).size;
+  let h = "";
+  if (KIT.host.missing || !BF.length) h += `<div class="ck-missing"><b>No behavior diff yet.</b><p class="muted" style="margin:6px 0 0">${md(KIT.host.missing || "This session has no behavior diff.")} Until then, the file tree shows each file's code.</p></div>`;
+  if ((BH.errors || []).length) h += `<div class="ck-missing"><b>${BH.errors.length} behavior line${BH.errors.length === 1 ? "" : "s"} failed the check</b> and may not match the code. Rerun <code>enrich</code> to see them.<ul class="muted" style="margin:6px 0 0;font-size:13px">${BH.errors.slice(0, 5).map((e) => `<li>${esc(e)}</li>`).join("")}</ul></div>`;
+  h += `<div class="hero"><span class="lbl">${esc(C.title)} · ${C.prs.length} PR${C.prs.length === 1 ? "" : "s"} · ${files} files sketched</span>
+    <h1>${md(BH.headline || C.title)}</h1><p>${esc(C.blurb)}</p></div>
+    <div class="tally"><span class="chip a">+${n["+"] || 0} new behaviors</span><span class="chip d">−${n["-"] || 0} stopped</span><span class="chip c">~${n["~"] || 0} changed in degree</span><span class="chip">${iface} interface changes</span><span class="chip">${(BH.kept || []).length} promises kept</span></div>
+    <div class="legend"><span><i style="background:var(--add-bg);border:1px solid var(--add)"></i>new behavior</span><span><i style="background:var(--del-bg);border:1px solid var(--del)"></i>behavior we stop doing</span><span><i style="background:var(--chg-bg);border:1px solid var(--chg)"></i>changed in degree (a limit, a default, a timing)</span><span><i style="background:var(--hunk)"></i>one capability in one file</span></div>
+    <div class="why"><b>How to read this.</b> Every line is the agent's claim about what the code now does, and every claim cites the lines that make it true: click it to check. The sketch cites <b>${cp}%</b> of the changed lines in the read tiers${cv.important_lines ? ` (${cv.cited} of ${cv.important_lines})` : ""}; each file lists the code it doesn't describe.</div>`;
+  if (MEDIA.length) {
+    h += `<div class="sec"><h2>What it looks like</h2><span class="muted">Real captures of the product. Each links to the files whose behavior draws it.</span></div><div class="shots">`;
+    h += MEDIA.map((m) => `<figure class="shot" style="margin:0"><img src="${esc(m.src)}" alt="${esc(m.title)}" loading="lazy"><div><b>${esc(m.title)}</b><span class="muted">${esc(m.caption || "")}</span><span class="meta">${(m.paths || []).map((pa) => { const x = ALLF.find((y) => y.pf.path === pa && y.bf); return x ? `<button class="chip" data-file="${esc(x.key)}">${esc(base(pa))}</button>` : `<span class="chip">${esc(base(pa))}</span>`; }).join("")}</span></div></figure>`).join("");
+    h += `</div>`;
+  }
+  h += `<div class="sec"><h2>By capability</h2><span class="muted">Start here to see what the change does; open a file when you want where.</span></div><div class="grid">`;
+  h += (BH.capabilities || []).map((c) => { const ls = LINES.filter((x) => x.h.cap === c.id); const nf = new Set(ls.map((x) => x.f.i)).size;
+    return `<button class="card" data-cap="${esc(c.id)}"><b>${esc(c.title)}</b><p>${md(c.summary)}</p><span class="meta">${bc(count(ls))}<span class="chip">${nf} file${nf === 1 ? "" : "s"}</span>${(c.prs || []).slice(0, 4).map((k) => `<span class="chip">${esc(shortPr(k))}</span>`).join("")}${(c.prs || []).length > 4 ? `<span class="chip">+${c.prs.length - 4}</span>` : ""}</span></button>`; }).join("");
+  h += `</div>`;
+  if (risky.length) {
+    h += `<div class="sec"><h2>Where a finding sits on a behavior</h2><span class="muted">${nOpen} open${risky.length - nOpen ? ` · ${risky.length - nOpen} already resolved in the PR` : ""}</span></div><div class="risk">`;
+    h += risky.slice(0, 8).map((x) => { const f = findings[x.l.finding]; return `<button data-goto="${x.id}">${isOpenF(f) ? `<span class="sev ${esc(f.severity)}">${esc(f.severity)}</span>` : `<span class="res">${esc(f.status)}</span>`}<span class="t">${SIGN[x.l.k]} ${md(x.l.text)}</span><span class="p">${esc(x.f.path)} · ${esc(f.title)}</span></button>`; }).join("");
+    h += `</div>`;
+  }
+  const links = (BH.links || []).filter((l) => (linkPlaces[l.id] || []).length > 1);
+  if (links.length) {
+    h += `<div class="sec"><h2>One behavior, many places</h2><span class="muted">Comment once; the comment lands on each place.</span></div><div class="risk">`;
+    h += links.map((l) => { const ps = linkPlaces[l.id].map((id) => lineById[id]); return `<button data-link="${esc(l.id)}"><span class="chip">${ps.length} places</span><span class="t" style="font-family:var(--f-body)"><b>${esc(l.title)}</b> · ${md(l.why || "")}</span><span class="p">${[...new Set(ps.map((x) => base(x.f.path)))].join(" · ")}</span></button>`; }).join("");
+    h += `</div>`;
+  }
+  return h + keysHtml();
+}
+function viewPromises() {
+  let h = `<span class="lbl">What must not break</span><h1 style="font-size:26px;margin:4px 0 6px">Promises kept</h1><p class="muted" style="max-width:70ch">The guarantees this change is careful to keep, and the tests that now prove new behavior. A reviewer approves these as much as the changes.</p>`;
+  h += `<section class="hunk"><div class="hh"><span>@@ kept @@</span></div>`;
+  (BH.kept || []).forEach((k, i) => {
+    const id = "k" + i, open = S.open[id];
+    h += `<div class="row ctx${open ? " on" : ""}"><span class="ln n">${i + 1}</span><span class="sg">=</span><span class="tx" data-ev="${id}"><span class="t">${md(k.text)}</span>${k.proof ? `<div class="muted" style="font-family:var(--f-body);font-size:13px;margin-top:2px">${md(k.proof)}</div>` : ""}</span><span class="act"><span class="chip">${esc(base(k.path || ""))}</span></span>
+      ${open ? `<div class="ev">${(k.ev || []).map((e) => `<div class="evh">${esc(e.path)} · ${e.side === "old" ? "before" : "after"} ${e.from}–${e.to}</div>${codeHtml(e)}`).join("")}</div>` : ""}</div>`;
+  });
+  h += `</section>`;
+  const proofs = LINES.filter((x) => x.l.kind === "proof" && x.l.k !== " ");
+  if (proofs.length) {
+    h += `<div class="sec"><h2>What the tests now prove</h2><span class="muted">${proofs.length} lines</span></div><section class="hunk"><div class="hh"><span>@@ proof @@</span></div>`;
+    let n = 0; h += proofs.map((x) => rowHtml(x, ++n)).join("") + `</section>`;
+  }
+  return h;
+}
+function viewReview() {
+  const seen = BF.filter((f) => S.seen[f.key]).length;
+  const openRisk = LINES.filter((x) => x.l.finding && findings[x.l.finding] && !S.seen[x.f.key]);
+  let h = `<span class="lbl">Your review</span><h1 style="font-size:26px;margin:4px 0 14px">Review</h1>`;
+  C.prs.forEach((p) => {
+    const v = S.verdict[p.key];
+    h += `<div class="prv"><h3>${esc(shortPr(p.key))} · ${esc(strip(p.title))}</h3><div class="vbtn">${[["approve", "Approve"], ["comment", "Comment"], ["changes", "Request changes"]].map(([k, t]) => `<button class="btn sm" data-verdict="${esc(p.key)}|${k}" aria-pressed="${v === k}">${t}</button>`).join("")}</div>
+      <span class="muted" style="font-size:13.5px">${S.notes.filter((n) => n.lines.some((id) => lineById[id] && lineById[id].f.pr === p.key)).length} comments · ${BF.filter((f) => f.pr === p.key && S.seen[f.key]).length} of ${BF.filter((f) => f.pr === p.key).length} sketched files opened</span></div>`;
+  });
+  h += `<div class="sec"><h2>Comments</h2><span class="muted">Each lands on GitHub as an inline comment at every place it names.</span></div>`;
+  h += S.notes.length ? `<ul class="nl">${S.notes.map((n, i) => `<li><span class="lbl">${esc(n.type)}</span><div>${md(n.text)}</div><div class="anc">${n.lines.map((id) => lineById[id]).filter(Boolean).map((x) => `<button class="chip" data-goto="${x.id}">${esc(anchorTxt(anchorOf(x)))}</button>`).join("")}<button class="btn sm" data-del="${i}">Remove</button></div></li>`).join("")}</ul>` : `<p class="muted">No comments yet. Pick lines with <b>+</b> in any file, or open “N places” on a linked behavior.</p>`;
+  h += `<div class="sec"><h2>Receipt</h2></div><div class="receipt">sketched files opened   ${seen} / ${BF.length}<br>behavior lines read      ${LINES.filter((x) => S.seen[x.f.key]).length} / ${LINES.length}<br>findings on unopened files ${openRisk.length}${openRisk.length ? " · " + [...new Set(openRisk.map((x) => base(x.f.path)))].slice(0, 4).join(", ") : ""}<br>code the sketch omits     ${(BH.coverage && BH.coverage.important_lines) ? BH.coverage.important_lines - BH.coverage.cited : 0} lines (listed on each file)</div>`;
+  h += `<div class="crow"><span class="muted" style="font-size:13.5px">${KIT.served ? `Your comments are also in the <a href="${esc(KIT.host.cockpit)}">Agent Session Review's Notes panel</a>. Publish shows a preview first.</span>${KIT.publishHtml(C.prs.map((p) => p.key))}<span>` : "Nothing posts from this page; your comments stay in this browser. Copy the review to share it."}</span><span class="r"><button class="btn pri" id="copy">Copy as Markdown</button></span></div><textarea class="out" id="out" hidden readonly></textarea>`;
+  return h;
+}
+/* one cockpit note per place: GitHub gets an inline comment at each, and says where the others are */
+function noteEvents(n) {
+  const xs = n.lines.map((id) => lineById[id]).filter(Boolean);
+  const akey = (x) => { const a = anchorOf(x); return [x.f.pr, a.path, a.side, a.line].join("|"); };
+  const places = xs.filter((x, i) => xs.findIndex((y) => akey(y) === akey(x)) === i);   // one per distinct anchor
+  const where = (y) => { const a = anchorOf(y); return "`" + a.path + (a.line ? ":" + a.line : "") + "`" + (y.f.pr !== places[0].f.pr ? ` (${shortPr(y.f.pr)})` : ""); };
+  return places.map((x, i) => {
+    const a = anchorOf(x), others = places.filter((y) => y !== x);
+    return KIT.noteEvent({ id: `bd-${n.at}-${i}`, pr: x.f.pr, path: a.path, line: a.line, side: a.side, type: n.type,
+      text: n.text + (others.length ? `\n\n_Same behavior in ${others.length} other place${others.length === 1 ? "" : "s"}: ${others.map(where).join(", ")}._` : ""),
+      label: `${a.path} (${SIGN[x.l.k]} ${x.l.text.replace(/`/g, "").slice(0, 60)})` });
+  });
+}
+function reviewMd() {
+  let o = `# ${C.title} review\n\n`;
+  C.prs.forEach((p) => {
+    const v = S.verdict[p.key];
+    o += `## ${p.key}: ${strip(p.title)}\n**Verdict:** ${v === "approve" ? "Approve" : v === "changes" ? "Request changes" : v === "comment" ? "Comment" : "—"}\n\n`;
+    S.notes.forEach((n) => {
+      const xs = n.lines.map((id) => lineById[id]).filter((x) => x && x.f.pr === p.key); if (!xs.length) return;
+      o += `- **${n.type}** ${n.text}\n` + xs.map((x) => `  - \`${anchorTxt(anchorOf(x))}\` (${SIGN[x.l.k]} ${x.l.text.replace(/`/g, "")})`).join("\n") + "\n";
+    });
+    o += "\n";
+  });
+  return o;
+}
+const keysHtml = () => `<p class="keys"><kbd>j</kbd> <kbd>k</kbd> next / previous file · <kbd>e</kbd> show all code in this file · <kbd>c</kbd> comment on the picked lines · <kbd>Esc</kbd> close</p>`;
+function order() { return ALLF.filter((x) => x.bf).map((x) => x.key); }
+
+/* ---------- composer: one comment, many places ---------- */
+function renderComposer() {
+  const el = $("#composer");
+  if (!S.sel.length) { el.hidden = true; return; }
+  const by = {}; S.sel.forEach((id) => { const x = lineById[id]; if (!x) return; const k = x.f.key; (by[k] = by[k] || { f: x.f, n: 0 }).n++; });
+  const link = S.selLink && linkBy[S.selLink];
+  el.hidden = false;
+  el.innerHTML = `<h3>Comment on ${Object.keys(by).length > 1 ? Object.keys(by).length + " places" : S.sel.length + " line" + (S.sel.length === 1 ? "" : "s")}</h3>
+    <div class="places">${Object.values(by).map((b) => `<span class="place"><b>${esc(base(b.f.path))}</b> ${b.n}<button data-unplace="${esc(b.f.key)}" title="Remove">×</button></span>`).join("")}</div>
+    <textarea id="ctext" placeholder="${esc(link ? link.why : "What should change, or what do you want to ask?")}"></textarea>
+    <p class="muted" style="font-size:12.5px;margin:6px 0 0">${KIT.served ? "Goes to your Agent Session Review notes as an inline comment at each place, queued for the GitHub review." : "Stays in this browser."}</p>
+    <div class="crow"><select id="ctype" class="btn sm"><option value="note">note</option><option value="question">question</option><option value="blocking">blocking</option></select>
+    <span class="r"><button class="btn" id="ccancel">Cancel</button><button class="btn pri" id="cok">Comment</button></span></div>`;
+}
+function pickLink(id) { S.sel = [...linkPlaces[id]]; S.selLink = id; render(); setTimeout(() => $("#ctext") && $("#ctext").focus(), 0); }
+
+/* ---------- render + routing ---------- */
+function render() {
+  $("#ttl").textContent = C.title;
+  renderTabs(); renderSide();
+  const v = { overview: viewOverview, file: viewFile, cap: viewCap, promises: viewPromises, review: viewReview, changes: viewFile }[S.view] || viewOverview;
+  $("#main").innerHTML = v();
+  renderComposer();
+}
+function go(view, extra = {}) {
+  Object.assign(S, { view }, extra);
+  if (view === "changes") { S.view = "file"; S.file = S.file || order()[0]; }
+  const tok = S.view === "file" ? "f" + (ALLF.findIndex((x) => x.key === S.file)) : S.view === "cap" ? "cap-" + S.cap : S.view;
+  try { history.replaceState(null, "", "#" + tok); } catch (_) {}
+  render(); window.scrollTo(0, 0);
+}
+function fromHash() {
+  const h = (location.hash || "").slice(1);
+  if (/^f\d+$/.test(h) && ALLF[+h.slice(1)]) { S.view = "file"; S.file = ALLF[+h.slice(1)].key; }
+  else if (h.startsWith("cap-") && capBy[h.slice(4)]) { S.view = "cap"; S.cap = h.slice(4); }
+  else if (["overview", "promises", "review"].includes(h)) S.view = h;
+  else if (h === "changes") { S.view = "file"; S.file = order()[0]; }
+}
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button, [data-ev]"); if (!t) return;
+  const d = t.dataset;
+  if (d.tab) return go(d.tab);
+  if (d.mode) { S.mode = d.mode; save(); return renderSide(); }
+  if (d.file) return go("file", { file: d.file });
+  if (d.cap) return go("cap", { cap: d.cap });
+  if (d.goto) { const x = lineById[d.goto]; S.open[x.id] = true; go("file", { file: x.f.key }); const r = document.querySelector(`[data-line="${x.id}"]`); if (r) r.scrollIntoView({ block: "center" }); return; }
+  if (d.link) return pickLink(d.link);
+  if (d.ev) { S.open[d.ev] = !S.open[d.ev]; const y = window.scrollY; $("#main").innerHTML = ({ promises: viewPromises, cap: viewCap }[S.view] || viewFile)(); window.scrollTo(0, y); return; }
+  if (d.pick) { const i = S.sel.indexOf(d.pick); i >= 0 ? S.sel.splice(i, 1) : S.sel.push(d.pick); if (!S.sel.length) S.selLink = null; const y = window.scrollY; render(); window.scrollTo(0, y); return; }
+  if (d.unplace) { S.sel = S.sel.filter((id) => lineById[id].f.key !== d.unplace); return renderComposer(); }
+  if (t.id === "ccancel") { S.sel = []; S.selLink = null; const y = window.scrollY; render(); window.scrollTo(0, y); return; }
+  if (t.id === "cok") {
+    const text = $("#ctext").value.trim(); if (!text) { $("#ctext").focus(); return; }
+    const note = { text, type: $("#ctype").value, lines: [...S.sel], link: S.selLink || null, at: Date.now() };
+    S.notes.push(note);
+    KIT.send(noteEvents(note)).then((ok) => { if (ok) toast("Added to your Agent Session Review notes, queued for the GitHub review"); });
+    const n = new Set(S.sel.map((id) => lineById[id].f.key)).size;
+    S.sel = []; S.selLink = null; save(); const y = window.scrollY; render(); window.scrollTo(0, y);
+    return toast(n > 1 ? `Comment added on ${n} files` : "Comment added");
+  }
+  if (d.verdict) { const [k, v] = d.verdict.split("|"); S.verdict[k] = S.verdict[k] === v ? null : v; save(); return render(); }
+  if (d.del) { const [n] = S.notes.splice(+d.del, 1); if (n) KIT.send(noteEvents(n).map((e) => KIT.undoNote(e.note_id, e.pr))); save(); return render(); }
+  if (t.id === "copy") {
+    const text = reviewMd(), out = $("#out");
+    const fallback = () => { out.hidden = false; out.value = text; out.focus(); out.select(); toast("Select all and copy"); };
+    try { navigator.clipboard.writeText(text).then(() => toast("Review copied as Markdown"), fallback); } catch (_) { fallback(); }
+  }
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "q") { S.q = e.target.value; const pos = e.target.selectionStart; renderSide(); const q = $("#q"); q.focus(); q.setSelectionRange(pos, pos); }
+});
+document.addEventListener("change", (e) => { if (e.target.id === "onlyBh") { S.onlyBh = e.target.checked; save(); renderSide(); } });
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea, select")) { if (e.key === "Escape") { S.sel = []; renderComposer(); } return; }
+  const o = order(), i = o.indexOf(S.file);
+  if (e.key === "j") go("file", { file: o[Math.min(o.length - 1, i + 1)] || o[0] });
+  else if (e.key === "k") go("file", { file: o[Math.max(0, i - 1)] || o[0] });
+  else if (e.key === "e" && S.view === "file") { const f = bfBy[S.file]; if (!f) return; const ids = LINES.filter((x) => x.f === f).map((x) => x.id); const all = ids.every((id) => S.open[id]); ids.forEach((id) => (S.open[id] = !all)); render(); }
+  else if (e.key === "c" && S.sel.length) { const t = $("#ctext"); if (t) t.focus(); e.preventDefault(); }
+  else if (e.key === "Escape") { S.sel = []; S.selLink = null; render(); }
+});
+fromHash(); render(); $("#cknav").innerHTML = KIT.navHtml(); KIT.liveBanner($(".bar")); KIT.freshBar($(".bar"), C);
+</script>
