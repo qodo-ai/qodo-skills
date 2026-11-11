@@ -395,7 +395,7 @@ document.addEventListener("click", (e) => {
   if (a === "flat") return keepScroll(() => { BW[v[0] === "t" ? "flat" : "fflat"] = v[1] === "1"; bwSave(); });   // each widget keeps its own layout
 
   if (a === "hide" || a === "kind") { const k = a === "hide" ? "hide" : "kinds"; keepScroll(() => { BW[k] = BW[k].includes(v) ? BW[k].filter((r) => r !== v) : BW[k].concat(v); bwSave(); });
-    const o = document.querySelector(`.bwf-m [data-bw="${a}"][data-bwv="${v}"]`); return o && o.focus(); }   // the menu stays open on the option just ticked
+    const o = bwScope().querySelector(`.bwf-m [data-bw="${a}"][data-bwv="${v}"]`); return o && o.focus(); }   // the menu stays open on the option just ticked
   if (a === "all") { const tree = v === "tree", on = !bwAnyOpen(tree);   // Expand all or Collapse all, by what is open now
     if (!tree) { bwFlows().forEach((fl) => (WOPEN["bf-" + sid(fl.id)] = on)); if (!on) Object.keys(BW.open).forEach((k) => /^(st|fs):/.test(k) && delete BW.open[k]); }
     else { bwFiles().forEach((f) => (BW.open[f.uid] = on)); Object.keys(BW.open).forEach((k) => k.startsWith("dir:") && delete BW.open[k]); BW.dirs = on; }
@@ -405,9 +405,10 @@ document.addEventListener("click", (e) => {
     const el = document.getElementById(`bfs-${id}-${i}`); if (el) { el.scrollIntoView({ block: "center" }); bwFlash(el.querySelector(".bf-b")); } }
 });
 
+const bwScope = () => document.querySelector('.wfm-c[role="dialog"]') || document;   // focus stays in the full-screen copy while one is open
 const bwfShut = () => { if (!BW.fopen) return; BW.fopen = false; document.querySelectorAll(".bwf-m").forEach((m) => (m.hidden = true)); document.querySelectorAll("[data-bwf]").forEach((b) => b.setAttribute("aria-expanded", "false")); };
 document.addEventListener("click", (e) => {   // Code changes' filter menu: its button opens it, a click outside closes it
   const b = e.target.closest && e.target.closest("[data-bwf]");
   if (b) { const was = BW.fopen; bwfShut(); if (!was) { BW.fopen = true; const m = b.nextElementSibling; m.hidden = false; b.setAttribute("aria-expanded", "true"); const o = m.querySelector(".prdd-o"); if (o) o.focus(); } return; }
   if (!(e.target.closest && e.target.closest(".bwf-m"))) bwfShut(); });
-document.addEventListener("keydown", (e) => { if (e.key !== "Escape" || !BW.fopen) return; e.stopPropagation(); bwfShut(); const b = document.querySelector("[data-bwf]"); if (b) b.focus(); }, true);
+document.addEventListener("keydown", (e) => { if (e.key !== "Escape" || !BW.fopen) return; e.stopPropagation(); bwfShut(); const b = bwScope().querySelector("[data-bwf]"); if (b) b.focus(); }, true);

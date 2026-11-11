@@ -100,6 +100,7 @@ document.addEventListener("click", (e) => { const eye = e.target.closest && e.ta
   const box = sc && sc !== document.body, at = (c.previousElementSibling && c.previousElementSibling.classList.contains("ca-ttl") ? c.previousElementSibling : c).getBoundingClientRect().top, d = box ? at - sc.getBoundingClientRect().top - 12 : at - headH() - 12;   // land on the Code changes title
   (box ? sc : window).scrollBy({ top: d, behavior: Math.abs(d) > 1200 ? "auto" : beh });   // a long way jumps; a short one glides
   c.classList.remove("ca-flash"); void c.offsetWidth; c.classList.add("ca-flash"); }, true);   // then the box pulses, so the eye lands somewhere you can see
+document.addEventListener("keydown", (e) => { const eye = (e.key === "Enter" || e.key === " ") && e.target.closest && e.target.closest("[data-caeye]"); if (!eye) return; e.preventDefault(); e.stopPropagation(); eye.click(); }, true);   // the eye by keyboard, like a click
 const pmEyeFit = () => document.querySelectorAll(".pm-c .pm-eye").forEach((e) => { const r = e.parentElement.getBoundingClientRect(); e.hidden = r.width < 44 || r.height < 44; });   // the map's eye only where the cell has room for it
 window.addEventListener("resize", () => { clearTimeout(pmEyeFit.t); pmEyeFit.t = setTimeout(pmEyeFit, 150); });
 const caMark = () => document.querySelectorAll(".plan [data-seg]").forEach((el) => { const x = SEGS[+el.dataset.seg]; el.classList.toggle("ca-on", !!CASEL && !!x && !x.sect && x.p && x.p.key === CASEL.pr && x.path === CASEL.path); });
@@ -257,6 +258,7 @@ function riskRadar() {   // each PR as a shape on three bare axes: its highest l
   ser.forEach((sc) => { const scs = RK.scenarios.filter((x) => (x.prs || []).includes(sc.i)), rk = (x) => [val(x.risk), val(x.factors.damage.level), val(x.factors.radius.level), val(x.factors.complexity.level)];
     const worst = scs.reduce((a, x) => (rk(x).join() > rk(a).join() ? x : a)), by = (k) => scs.find((x) => x.factors[k].level === sc.factors[k]) || worst;   // what decides the PR, and the scenario behind each factor's level
     RDET[sc.i] = { ...sc, risk: top(scs.map((x) => x.risk)), worst, why: Object.fromEntries(RAXES.map((k) => [k, sent1(by(k).factors[k].why)])) }; });
+  Object.keys(RDET).forEach((k) => { if (!ser.some((x) => x.i === k)) delete RDET[k]; }); if (RHOVER && !RDET[RHOVER]) RHOVER = null;   // only the PRs the filter shows now
   const sel = RSEL || new Set(ser.map((x) => x.i)), focus = RHOVER || (sel.size === 1 ? [...sel][0] : null);
   const at = (x, y) => `left:${((100 * (x - VB[0])) / VB[2]).toFixed(2)}%;top:${((100 * (y - VB[1])) / VB[3]).toFixed(2)}%`;
   let h = `<defs><pattern id="rhatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" class="rhl"/></pattern></defs>`;
@@ -780,7 +782,7 @@ function planTree(list, segs) {   // the project's structure: repo, then folders
   return `<div class="ptree" role="group" aria-label="Code map by repo, folder and file">${[...new Set(files.map((x) => x.p.repo))].map((repo) => {
     const mine = files.filter((x) => x.p.repo === repo), multi = new Set(mine.map((x) => x.p.key)).size > 1, root = node();
     mine.forEach((x) => { addTo(root, x); let n = root; x.f.path.split("/").slice(0, -1).forEach((d) => { n = n.dirs[d] = n.dirs[d] || node(); addTo(n, x); }); n.files.push(x); });
-    const file = (x, depth) => `<button class="tr-f" style="--d:${depth}" data-seg="${SEGS.push(fileSegOf(x, segs)) - 1}" aria-label="${esc(`${x.f.path}: ${x.v} lines`)}">${fileIcon(x.f.path)}<span class="tr-n">${esc(base(x.f.path))}</span>${x.t.deep ? `<i class="tr-must" title="Has must-read lines"></i>` : ""}<span class="tr-eye" data-caeye role="button" title="Show its code changes" aria-label="Show the code changes of ${esc(base(x.f.path))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg></span>${multi ? `<span class="tr-pr">#${esc(x.p.number)}</span>` : ""}${mbar({ t: x.t, ty: { [x.ty]: x.v } })}${n2(x.v)}</button>`;
+    const file = (x, depth) => `<button class="tr-f" style="--d:${depth}" data-seg="${SEGS.push(fileSegOf(x, segs)) - 1}" aria-label="${esc(`${x.f.path}: ${x.v} lines`)}">${fileIcon(x.f.path)}<span class="tr-n">${esc(base(x.f.path))}</span>${x.t.deep ? `<i class="tr-must" title="Has must-read lines"></i>` : ""}<span class="tr-eye" data-caeye role="button" tabindex="0" title="Show its code changes" aria-label="Show the code changes of ${esc(base(x.f.path))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg></span>${multi ? `<span class="tr-pr">#${esc(x.p.number)}</span>` : ""}${mbar({ t: x.t, ty: { [x.ty]: x.v } })}${n2(x.v)}</button>`;
     const kids = (n, path, depth) => Object.entries(n.dirs).sort((a, b) => b[1].v - a[1].v).map(([d, c]) => folder(c, d, `${path}/${d}`, depth)).join("")
       + n.files.slice().sort((a, b) => b.v - a.v).map((x) => file(x, depth)).join("");
     const subs = (n, path, depth, pre = "") => Object.entries(n.dirs).sort((a, b) => b[1].v - a[1].v).map(([d, c]) => folder(c, d, `${path}/${d}`, depth, pre)).join("");
@@ -825,7 +827,7 @@ function planMap(list, segs) {
     if (G.w > 110 && G.h > 40) lab += `<span class="pm-gl" style="left:${(100 * (G.x + 11)) / MW}%;top:${(100 * (G.y + 11)) / MH}%;max-width:${(100 * (G.w - 22)) / MW}%"><span class="pm-gn">${esc(g.lab)}</span></span>`;
     squarify(g.files.slice().sort((a, b) => b.v - a.v), G.x + 3, G.y + 3, G.w - 6, G.h - 6).forEach((c) => {
       const x = c.it, id = segOf(x);   // the file's name shows on hover
-      h += `<button class="pm-c" style="${pct(c)};background:${byType() ? `var(--ty-${x.ty})` : heat(x.t, x.v)}" data-seg="${id}" aria-label="${esc(`${x.f.path}: ${x.v} lines`)}">${c.w >= 48 && c.h >= 56 ? `<span class="tr-eye pm-eye" data-caeye role="button" title="Show its code changes" aria-label="Show the code changes of ${esc(base(x.f.path))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg></span>` : ""}</button>`;
+      h += `<button class="pm-c" style="${pct(c)};background:${byType() ? `var(--ty-${x.ty})` : heat(x.t, x.v)}" data-seg="${id}" aria-label="${esc(`${x.f.path}: ${x.v} lines`)}">${c.w >= 48 && c.h >= 56 ? `<span class="tr-eye pm-eye" data-caeye role="button" tabindex="0" title="Show its code changes" aria-label="Show the code changes of ${esc(base(x.f.path))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg></span>` : ""}</button>`;
     });
   });
   return `<div class="pmapw${PMHIDE ? " noside" : ""}"><div class="pmap" role="group" aria-label="Reading plan by folder and file">${h}${lab}</div>${PMHIDE ? "" : `<aside class="pmside" aria-live="polite">${PMIDLE()}</aside>`}</div><p class="muted" style="font-size:12.5px;margin:6px 0 0">Area is changed lines; ${byType() ? "colors are file types" : "color is how much of the file needs reading, from yellow (skip) to red (must read)"}.</p>`;
@@ -1174,7 +1176,8 @@ function pkTable(groups) {   // a repo per row, opening to a row per PR in merge
     const conf = cs.filter((c) => c.merge[1] === "Conflicts").length, ready = cs.filter((c) => c.merge[0] === "ok").length;
     const fail = cs.filter((c) => c.bad).length, run = cs.filter((c) => c.wait).length, found = cs.reduce((a, c) => a + c.open, 0), [a, d] = pkgLines(g.ps);
     const merge = conf ? ["bad", `${conf} conflict${conf === 1 ? "" : "s"}`] : ready === cs.length ? ["ok", "All ready"] : ["warn", `${ready} of ${cs.length} ready`];
-    const ci = cs.some((c) => c.ciUnknown) ? ["", "Unknown"] : fail ? ["bad", `${fail} failing`] : run ? ["warn", `${run} running`] : cs.every((c) => !c.checks) ? ["", "No checks"] : ["ok", "Passed"];   // nothing failing or running is a pass
+    const okN = cs.filter((c) => c.ci[0] === "ok").length;
+    const ci = cs.some((c) => c.ciUnknown) ? ["", "Unknown"] : fail ? ["bad", `${fail} failing`] : run ? ["warn", `${run} running`] : okN === cs.length ? ["ok", "Passed"] : okN ? ["", `${okN} of ${cs.length} passed`] : ["", cs.every((c) => !c.checks) ? "No checks" : "No passing checks"];   // skipped-only or missing checks are not passes
     const sub = [pl(g.ps.length, "PR"), g.stacks ? pl(g.stacks, "stack") : ""].filter(Boolean).join(" · ");
     const repoRow = `<tr class="pkt-r" data-pktog="${esc(key)}" aria-expanded="${open}" tabindex="0"><td><div class="pkt-n"><span class="pkt-cv" aria-hidden="true"></span>${g.href ? `<a class="pkgh" href="${esc(g.href)}" target="_blank" rel="noopener" title="Open ${esc(g.repo)} on GitHub" aria-label="Open ${esc(g.repo)} on GitHub">${GHICON}</a>` : `<span class="pkgh">${GHICON}</span>`}<span><b>${esc(g.repo)}</b><em>${esc(sub)}</em></span></div></td>
       <td>${pkDot(merge)}</td><td>${found ? pkDot(["warn", String(found)]) : cs.some((c) => c.qualityUnknown) ? pkDot(['','Unknown']) : '<span class="pkd">None</span>'}</td><td>${pkDot(ci)}</td><td>${pkNum(a, d)}</td></tr>`;
@@ -1459,7 +1462,7 @@ function headActions() {
     + `<div class="vw"><button type="button" class="hbtn hlbl" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}<span>Share</span></button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
     + `<button type="button" class="hbtn" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>`;   // Share, then More on the far right
 }
-if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; keepScroll(() => {}); drawHead(); }).catch(() => {});
+if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; C.live_at = new Date().toISOString(); keepScroll(() => {}); drawHead(); }).catch(() => {});
 const OVERVIEW = ["prs", "brief", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"];
 const OVERVIEWISH = OVERVIEW.concat(["risk"]);   // blocks that make a tab the overview (Focus's own overview stays OVERVIEW)
 function vOverview() { return OVERVIEW.map((b) => BLOCKS[b].render()).join(""); }
@@ -2320,6 +2323,7 @@ function vdPrs(name, hit, known, of, tone = "high", path = "", off = false, show
   return `<div class="vd-t${off ? " off" : ""}"${off ? ` title="Not a merge threshold: change it in Customize › Verdict settings"` : ""}><span class="vd-k">${esc(name)}</span><b class="vd-n${!known ? "" : !hit.length || off ? " none" : " block"}">${known ? hit.length + vdOf(of) : showReported && hit.length ? `at least ${hit.length}` : "—"}</b>
     <span class="vd-sev">${!known ? showReported ? `<span class="vd-s">coverage unknown</span>${links()}` : `<span class="vd-s">not checked yet</span>` : hit.length ? links() : `<span class="vd-s none">none</span>`}</span></div>`;
 }
+function ciChecks(p) { const L = LIVE[p.key]; return (L && Array.isArray(L.checks) ? L.checks : p.checks) || []; }   // CI as GitHub reports it now once read, else as collected
 const vdTot = (p) => (LIVE[p.key] && LIVE[p.key].threads != null ? LIVE[p.key].threads : p.review_threads);   // every review conversation on the PR, resolved or not
 const vdN = (p) => (LIVE[p.key] && LIVE[p.key].unresolved != null ? LIVE[p.key].unresolved : p.unresolved_threads);   // a PR's unresolved conversations: GitHub's live count once read, else the count collected with the PR
 function vdThreads(ps, off) {   // unresolved review conversations across the PRs
@@ -2330,7 +2334,7 @@ function vdThreads(ps, off) {   // unresolved review conversations across the PR
 const reviewCoverageKnown = (p) => !C.product || (LIVE[p.key] ? LIVE[p.key].reviews_complete === true : p.review_decision_complete === true && p.read_evidence?.sections?.reviews?.complete === true);
 const awaitingReview = (p) => { const L = LIVE[p.key];
   if (!reviewCoverageKnown(p)) return null;
-  return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length; };
+  return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length || (p.changes_requested || []).length > 0; };
 const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], ci: true, conflicts: true, review: true, comments: true };
 let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
 const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
@@ -2338,24 +2342,27 @@ const vrBlocks = (f) => VR.sev.length === 3 || VR.sev.includes(vrSev(f));   // A
 function bVerdict() {   // the bottom line: does the package meet every merge threshold (product mode: the risk review's recommendation), then the numbers behind it
   const ps = prs(), fs = KIT.openFindings({ ...C, prs: ps }), P = !!C.product, A = RK && RK.approval;
   const ciKnown = !P || !productCiUnknown(ps), rvKnown = ps.every(reviewCoverageKnown);   // product mode: incomplete evidence is unknown, never a pass
-  const ci = ps.filter((p) => ((LIVE[p.key] && LIVE[p.key].checks) || p.checks || []).some((c) => CI_BAD.includes(String(c.state || c.conclusion || "").toUpperCase()))), live = Object.keys(LIVE).length > 0;
-  const cf = live ? ps.filter((p) => (LIVE[p.key] || {}).merge_state === "DIRTY") : [], aw = ps.filter(awaitingReview), cm = ps.reduce((a, p) => a + (vdN(p) > 0 ? vdN(p) : 0), 0), bf = fs.filter(vrBlocks);
+  const cst = (c) => String(c.state || c.conclusion || "").toUpperCase(), ci = ps.filter((p) => ciChecks(p).some((c) => CI_BAD.includes(cst(c))));
+  const wt = ps.filter((p) => !ci.includes(p) && ciChecks(p).some((c) => !CI_BAD.includes(cst(c)) && !CI_OK.includes(cst(c)))), nc = ps.filter((p) => !ciChecks(p).length);   // still running; no checks reported
+  const ms = (p) => (LIVE[p.key] || {}).merge_state, cfKnown = Object.keys(LIVE).length > 0;   // read once the live check answered
+  const cf = ps.filter((p) => ms(p) === "DIRTY"), aw = ps.filter(awaitingReview), cm = ps.reduce((a, p) => a + (vdN(p) > 0 ? vdN(p) : 0), 0), bf = fs.filter(vrBlocks);
   const pr = (n) => `${n} PR${n === 1 ? "" : "s"}`, why = [VR.sev.length && bf.length && `${bf.length} open finding${bf.length === 1 ? "" : "s"} to resolve`,
-    VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VR.comments && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
-  const unread = [VR.ci && !ciKnown && "CI", VR.conflicts && !live && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
+    VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.ci && wt.length && `CI still running on ${pr(wt.length)}`, VR.ci && ciKnown && nc.length && `no CI checks on ${pr(nc.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VR.comments && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
+  const unread = [VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
   if (unread.length) why.push(`${unread.length > 1 ? unread.slice(0, -1).join(", ") + " and " + unread.at(-1) : unread[0]} not checked yet`);
   const ok = C.dummy || (!!A && A.result === "approve");
   const st = P ? !A && !C.dummy ? ["unknown", "No verdict yet", "Merge Risk hasn't been assessed for this package."]   // product mode recommends; it never claims merge readiness
       : ok ? ["ok", "Risk review checks pass", "This is a code-review recommendation, not merge readiness. CI and discussion evidence are shown separately."]
       : ["no", "Risk review needs attention", "Address the risk and code-review findings. CI and discussion readiness are assessed separately."]
     : why.length ? ["no", "Not ready to merge", why.join(" · ")] : ["ok", "Ready to merge", "Every merge threshold is met."];
+  const asOf = C.live_at || C.reviewed_at;   // the verdict holds for the data as it was read then
   const gate = (on) => P || on;   // product mode has no merge thresholds, so no row is switched off
   const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
-  return `<div class="vd ${st[0]}"><div class="vd-st"${P ? ` title="${esc((A && A.reasons || []).join(" "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
+  return `<div class="vd ${st[0]}"><div class="vd-st"${P ? ` title="${esc((A && A.reasons || []).join(" "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span>${asOf ? `<small class="vd-at" title="${esc(new Date(asOf).toLocaleString())}">As of ${esc(agoText(asOf))}</small>` : ""}</div></div>
     <div class="vd-t${gate(VR.sev.length) ? "" : " off"}"${gate(VR.sev.length) ? "" : offT}><span class="vd-k">Open findings</span><b class="vd-n${(P ? fs : bf).length ? " block" : " none"}">${fs.length}${vdOf(KIT.allFindings({ ...C, prs: ps }).length)}</b>
-      <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
+      <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${!P && VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
     ${vdPrs("PRs failing CI", ci, ciKnown, ps.length, "high", "/checks", !gate(VR.ci), P)}
-    ${vdPrs("PRs with merge conflicts", cf, live, ps.length, "high", "", !gate(VR.conflicts))}
+    ${vdPrs("PRs with merge conflicts", cf, cfKnown, ps.length, "high", "", !gate(VR.conflicts))}
     ${vdPrs("PRs awaiting human review", aw, rvKnown, ps.length, "medium", "", !gate(VR.review), P)}
     ${vdThreads(ps, !gate(VR.comments))}</div>`;
 }
@@ -2437,10 +2444,10 @@ document.addEventListener("click", (e) => {
 /* a widget never links to another: a layout may not hold it. Each control that opens another widget becomes plain text after a render */
 const XNAV = [["[data-goto], [data-goto-block], [data-done], .start[data-start]", "walk"], ["[data-fsrc]", "findings"], [".dfile[data-dpath], .bn.bch, [data-owgo], [data-pr], [data-place]", "changes"],
   ["[data-scope]", "stories"], ["[data-cmopen]", "system"], ['[data-bw="step"]', "builder"], ["[data-tab]", null]];   // [what it is, the widget it opens]
-const XDROP = ".ulink, .qmore";   // jumps whose words only make sense as a link
+const XDROP = ".ulink, .qmore [data-qsec]";   // jumps whose words only make sense as a link; a .qmore row keeps its outside links
 function unlinkWidgets() {
   document.querySelectorAll("#panel .rpart").forEach((part) => { const w = part.id.slice(4);
-    part.querySelectorAll(XDROP).forEach((el) => el.remove());
+    part.querySelectorAll(XDROP).forEach((el) => el.remove()); part.querySelectorAll(".qmore").forEach((el) => { if (!el.children.length) el.remove(); });
     XNAV.forEach(([sel, to]) => part.querySelectorAll(sel).forEach((el) => { if (to === w) return;
       const x = document.createElement(el.tagName === "BUTTON" || el.tagName === "A" ? "span" : el.tagName.toLowerCase());
       x.className = `${el.className} nolink`.trim(); x.innerHTML = el.innerHTML; if (el.title) x.title = el.title; el.replaceWith(x); })); });
@@ -2524,7 +2531,7 @@ document.addEventListener("click", (e) => {
   if (d.trf) return keepScroll(() => { S.open[d.trf] = !trOpen(d.trf); });   // a tree folder shows or hides its files
   if (d.trrepo !== undefined) { const k = "trr:" + d.trrepo; return keepScroll(() => { S.open[k] = !trOpen(k); }); }   // a repo's row opens or closes its box
   if (d.pmside !== undefined) { PMHIDE = !PMHIDE; store.set("cockpit:map-panel-hidden", PMHIDE); hideTip(); return keepScroll(() => {}); }   // the map's details panel, shown or hidden
-  if (d.cachg !== undefined) { if (!CASEL) return; CASEL.open = CASEL.open === false; const c = document.querySelector(".ca-file"); if (c) c.open = CASEL.open; return caTogSync(); }   // Map: fold or unfold the picked file's changes
+  if (d.cachg !== undefined) { if (!CASEL) return; CASEL.open = CASEL.open === false; document.querySelectorAll(".ca-file").forEach((c) => (c.open = CASEL.open)); return caTogSync(); }   // Map: fold or unfold the picked file's changes, in the page and in full screen alike
   if (d.trall !== undefined) return keepScroll(() => { S.trAll = S.trAll === false; if (CASEL) CASEL.open = S.trAll; Object.keys(S.open).filter((k) => k.startsWith("tr:") || k.startsWith("trr:")).forEach((k) => delete S.open[k]); save(); });   // every repo box, folder and the picked file's changes follow it
   if (d.fsrc !== undefined) return go("findings", { fsrc: d.fsrc || null, pr: "all" }), qscroll("findings");   // the row counts every PR
   if (d.qsec) {   // inside Quality it scrolls to the part; anywhere else it opens the row's own details, never another widget
@@ -3291,7 +3298,8 @@ const CCHG = "cockpit:layout-codechg";   // Code changes left Execution paths (t
 if (!store.get(CCHG, false)) { const L0 = store.get(LKEY, null), i = L0 && Array.isArray(L0.pages) && !L0.pages.some((p) => (p.widgets || []).includes("codechg")) ? L0.pages.findIndex((p) => (p.widgets || []).includes("builder")) : -1;
   if (i >= 0) { const p = L0.pages[i];
     if (p.widgets.length > 1) p.widgets.splice(p.widgets.indexOf("builder") + 1, 0, "codechg");
-    else { L0.pages.splice(i + 1, 0, { id: "code-changes", label: "Code changes", icon: "codechg", widgets: ["codechg"] }); if (PV[p.id]) { PV["code-changes"] = { ...PV[p.id] }; store.set(PVKEY, PV); } }
+    else { const ids = new Set(L0.pages.map((q) => q && q.id)); let id = "code-changes"; while (ids.has(id)) id += "-2";   // an unused id: no existing page or link changes
+      L0.pages.splice(i + 1, 0, { id, label: "Code changes", icon: "codechg", widgets: ["codechg"] }); if (PV[p.id]) { PV[id] = { ...PV[p.id] }; store.set(PVKEY, PV); } }
     store.set(LKEY, L0); }
   store.set(CCHG, true); }
 const WZSEEN = "cockpit:wizard-seen", WZFIRST = !store.get(LKEY, null) && !store.get(WZSEEN, false);   // a first visit: no layout of their own, the wizard not yet shown
@@ -3443,12 +3451,12 @@ if (!Array.isArray(store.get(MYKEY, null))) store.set(MYKEY, [{ id: "dana", name
     pages: [{ id: "verdict", label: "Scope", icon: "ovw", names: { verdict: "Merge overview", prstable: "Package contents", summary: "Product overview" }, widgets: ["summary", "prstable", "verdict", "rsum"] },
       { id: "code-reading", label: "Review", icon: "plan", widgets: ["plan", "builder", "codechg", "triage", "rsum", "decisions", "system", "arch"] }],
     views: { verdict: { mode: "tabs" }, "code-reading": { mode: "accordion", fit: true, wide: false } } }]);   // the first time: Dana's layout to start from
-const myLayouts = () => (store.get(MYKEY, []) || []).filter((g) => g && g.id && g.name && cleanLayout(g)).map((g) => ({ ...g, mine: true, pages: cleanLayout(g).pages,
+const myLayouts = () => (store.get(MYKEY, []) || []).filter((g) => g && g.id && g.name && cleanLayout(g)).map((g) => ({ ...g, mine: true, pages: cleanLayout(g).pages, home: cleanLayout(g).home,
   from: g.from || (g.saved ? `Saved ${new Date(g.saved).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "Saved"), what: g.what || "Your pages, widgets and Page views, as you saved them" }));
 function mySave(name) {   // the layout and its Page views as they are now, under a name; the same name replaces that one
   const views = Object.fromEntries(LAYOUT.pages.map((p) => { const v = { ...VDEF, ...(PV[p.id] || {}) }; return [p.id, { mode: v.mode, wide: !!v.wide, fit: !!v.fit }]; }));
   const list = (store.get(MYKEY, []) || []).filter((g) => g && g.name !== name);
-  list.push({ id: "my-" + Date.now().toString(36), name, saved: new Date().toISOString(), pages: JSON.parse(JSON.stringify(LAYOUT.pages)), views });
+  list.push({ id: "my-" + Date.now().toString(36), name, saved: new Date().toISOString(), pages: JSON.parse(JSON.stringify(LAYOUT.pages)), ...(LAYOUT.home ? { home: LAYOUT.home } : {}), views });   // its home page too
   store.set(MYKEY, list);
 }
 const LGMODE = { accordion: "accordion", manual: "folded", tabs: "as tabs", headless: "headless", open: "" };
@@ -3530,7 +3538,7 @@ document.addEventListener("click", (e) => {
   if (a === "rm") { ws.splice(i, 1); return lDraw(); }
   if (a === "tpl") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "tpl", ...(store.get("cockpit:layout-template:2", null) || { who: "other", depth: "thorough", type: "full" }), kind: "tpl" }); }
   if (a === "lgal") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "lgal" }); }
-  if (a === "lgal-use") { const g = LGAL.concat(myLayouts()).find((x) => x.id === v); if (!g) return; LAYOUT = cleanLayout({ pages: JSON.parse(JSON.stringify(g.pages)) }) || LDEF(); S.tab = LAYOUT.pages[0].id;
+  if (a === "lgal-use") { const g = LGAL.concat(myLayouts()).find((x) => x.id === v); if (!g) return; LAYOUT = cleanLayout({ pages: JSON.parse(JSON.stringify(g.pages)), home: g.home }) || LDEF(); S.tab = LAYOUT.home || LAYOUT.pages[0].id;
     lgViews(LAYOUT.pages, g.views); EDIT = false; lDialog(null); lDraw(); return toast(`Layout: ${g.name}`); }
   if (a === "tpl-pick") { const [k, val] = v.split(":"); LD[k] = val; return lDialog(LD); }
   if (a === "tpl-use") { const pick = { who: LD.who, depth: LD.depth, type: LD.type }; store.set("cockpit:layout-template:2", pick); LAYOUT = cleanLayout(tplLayout(pick)) || LDEF(); lgViews(LAYOUT.pages, pick.depth === "thorough" ? { risk: { mode: "tabs" } } : {}); S.tab = LAYOUT.pages[0].id; EDIT = false; lDialog(null); lDraw(); return toast("Layout made from the template"); }

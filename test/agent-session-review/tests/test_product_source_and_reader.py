@@ -221,7 +221,7 @@ class SourceAndReaderTests(unittest.TestCase):
         code=source[source.index('const vdLink ='):source.index('function crumb()')]
         code=source[source.index('function productCiUnknown('):source.index('\n',source.index('function productCiUnknown('))]+code
         def draw(pr, product=True):
-            context={'C':{'product':product},'LIVE':{},'RK':None,'CI_BAD':['FAILURE','ERROR'],'VDICON':{'unknown':''},'KIT':{}}
+            context={'C':{'product':product},'LIVE':{},'RK':None,'CI_BAD':['FAILURE','ERROR'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'unknown':''},'KIT':{}}
             setup='const esc=String,strip=String,RW=String; KIT.openFindings=()=>[];const store={get:(k,d)=>d,set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};KIT.allFindings=()=>[]; const prs=()=>['+json.dumps(pr)+'];'
             html=self.node(setup+code+';result=bVerdict();',{'context':context})
             def row(label):

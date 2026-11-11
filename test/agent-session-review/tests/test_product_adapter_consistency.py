@@ -20,7 +20,7 @@ class AdapterConsistencyTests(unittest.TestCase):
         source=(util.ROOT/'app/styles/package.js').read_text()
         code=source[source.index('const vdLink ='):source.index('function crumb()')]
         code=source[source.index('function productCiUnknown('):source.index('\n',source.index('function productCiUnknown('))]+code
-        script="const vm=require('node:vm'),x=JSON.parse(require('node:fs').readFileSync(0,'utf8')),c={C:{product:true},LIVE:{},RK:{approval:x.decision,level:'low'},CI_BAD:[],VDICON:{ok:'',no:'',unknown:''},KIT:{}};vm.createContext(c);vm.runInContext('const esc=String,strip=String,RW=String;KIT.openFindings=()=>[];const store={get:(k,d)=>d,set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};KIT.allFindings=()=>[];const prs=()=>['+JSON.stringify(x.pr)+'];'+x.code+';html=bVerdict();',c);process.stdout.write(c.html);"
+        script="const vm=require('node:vm'),x=JSON.parse(require('node:fs').readFileSync(0,'utf8')),c={C:{product:true},LIVE:{},RK:{approval:x.decision,level:'low'},CI_BAD:[],CI_OK:['SUCCESS','NEUTRAL','SKIPPED'],VDICON:{ok:'',no:'',unknown:''},KIT:{}};vm.createContext(c);vm.runInContext('const esc=String,strip=String,RW=String;KIT.openFindings=()=>[];const store={get:(k,d)=>d,set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};KIT.allFindings=()=>[];const prs=()=>['+JSON.stringify(x.pr)+'];'+x.code+';html=bVerdict();',c);process.stdout.write(c.html);"
         result=subprocess.run(['node','-e',script],input=json.dumps({'pr':pr,'decision':decision,'code':code}),capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr);return result.stdout
 

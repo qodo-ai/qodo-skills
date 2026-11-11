@@ -1149,6 +1149,7 @@ body.nv-none .wtabs-w::after{width:calc(100vw - 40px)} @media (max-width:900px){
 .vd.ok .vd-st{background:color-mix(in srgb, var(--add) 6%, var(--surface)); border-color:color-mix(in srgb, var(--add) 25%, var(--line)); color:var(--add)} .vd.ok .vd-st b{color:var(--ink)}
 .vd.no .vd-st{background:var(--surface); border-color:var(--line); color:var(--bad)} .vd.no .vd-st b{color:var(--ink)}   /* a quiet warning: no tint, the red is only in the icon */
 .vd.unknown .vd-st{background:var(--sunk); color:var(--muted)}
+.vd-st small.vd-at{display:block; margin-top:4px; font-size:12px; color:var(--faint)}   /* when the verdict's data was read */
 .vd-t{display:flex; flex-direction:column; gap:6px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
 .vd-k{font:600 11px/1.4 var(--f-body); letter-spacing:.07em; text-transform:uppercase; color:var(--faint)}
 .vd-t > b{font-size:22px; font-weight:650; line-height:1.2; color:var(--ink)} .vd-n.none{color:var(--add)} .vd-n.block{color:var(--bad)}   /* green: passes its merge threshold; red: blocks the merge */
