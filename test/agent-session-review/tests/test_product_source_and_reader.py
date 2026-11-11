@@ -239,7 +239,7 @@ class SourceAndReaderTests(unittest.TestCase):
                 self.assertIn('coverage unknown',row); self.assertIn('—',row); self.assertNotIn('none',row)
             checks[:]=[{'name':'observed failure','state':'failure'}]
             ci,_=draw(view._pr_view(Client().change('org/repo',1)))
-            self.assertIn('at least 1',ci); self.assertIn('#1',ci); self.assertIn('coverage unknown',ci)
+            self.assertIn('>1<small',ci); self.assertNotIn('at least',ci); self.assertIn('#1',ci); self.assertIn('coverage unknown',ci)   # a count like the other cards, marked coverage unknown
             complete=True
             ci,reviews=draw(view._pr_view(Client().change('org/repo',1)))
             self.assertIn('>1<small',ci); self.assertNotIn('coverage unknown',ci); self.assertIn('>1<small',reviews)

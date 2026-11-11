@@ -1107,46 +1107,28 @@ function prChips(p) {   // what stands between the PR and merging first, then th
   return out.map(([t, x]) => `<span class="pchip ${t}">${esc(x)}</span>`).join("");
 }
 const PKICON = { layers: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>' };
-const PRDD = { open: false, q: "" };   // the menu stays open while PRs are ticked, and keeps its search
-function prddHtml() {   // the global PR filter: a search box, All PRs, then each repo's PRs under its name, a divider between repos
-  const ps = prs(), repos = [...new Set(C.prs.map((p) => p.repo))], all = S.pr === "all";
-  const box = (on, some) => `<span class="prdd-x${on || some ? " on" : ""}" aria-hidden="true">${on ? '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' : some ? '<svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg>' : ""}</span>`;
-  const opt = (v, inner, on, find, some) => `<button type="button" class="prdd-o" role="option" aria-selected="${on}" data-prpick="${esc(v)}" data-find="${esc(find)}">${box(on, some)}${inner}</button>`;
+function prddPanel() {   // the global PR filter, in the work package menu: each repo's PRs under its name, a divider between repos
+  const repos = [...new Set(C.prs.map((p) => p.repo))];
+  const box = (on) => `<span class="prdd-x${on ? " on" : ""}" aria-hidden="true">${on ? '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' : ""}</span>`;
+  const opt = (v, inner, on) => `<button type="button" class="prdd-o" role="option" aria-selected="${on}" data-prpick="${esc(v)}">${box(on)}${inner}</button>`;
   const item = (p) => `<span class="prdd-n">#${esc(p.number)}</span><span class="prdd-t">${esc(strip(p.title))}</span>`;
-  const label = all ? `All ${C.prs.length} PRs` : !ps.length ? "No PRs" : ps.length === 1 ? "" : `${ps.length} of ${C.prs.length} PRs`;
-  const tip = `Filter PRs · ${label || `#${ps[0].number} ${strip(ps[0].title)}`}`;   // the filter is an icon; what it shows is in its tooltip and badge
-  return `<button type="button" class="prdd-b${all ? "" : " on"}" aria-haspopup="listbox" aria-expanded="${PRDD.open}" data-prdd title="${esc(tip)}" aria-label="${esc(tip)}"><svg class="prdd-fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>${all ? "" : `<span class="prdd-c">${ps.length}</span>`}</button>
-    <div class="prdd-m"${PRDD.open ? "" : " hidden"}><div class="prdd-s"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="search" class="prdd-q" placeholder="Search PRs" aria-label="Search PRs" value="${esc(PRDD.q)}"></div>
-      <div class="prdd-l" role="listbox" aria-multiselectable="true" aria-label="Pull requests">${opt("all", `<span class="prdd-t">Select all</span>`, all, "all", !all && ps.length > 0)}
-      ${repos.map((r) => `<div class="prdd-sep" role="separator"></div><div class="prdd-g" data-repo="${esc(r)}">${GHICON}${esc(r)}</div>${C.prs.filter((p) => p.repo === r).map((p) => opt(p.key, item(p), prOn(p.key), `${p.number} ${strip(p.title)} ${r}`)).join("")}`).join("")}
-      <p class="prdd-none" hidden>No PRs match</p></div></div>`;
+  return `<div class="prdd-l" role="listbox" aria-multiselectable="true" aria-label="Pull requests">${repos.map((r, n) => `${n ? `<div class="prdd-sep" role="separator"></div>` : ""}<div class="prdd-g" data-repo="${esc(r)}">${GHICON}${esc(r)}</div>${C.prs.filter((p) => p.repo === r).map((p) => opt(p.key, item(p), prOn(p.key))).join("")}`).join("")}</div>`;
 }
-function prddFind(m) {   // the search hides PRs that don't match, then any repo left with none
-  const q = PRDD.q.trim().toLowerCase();
-  m.querySelectorAll(".prdd-o").forEach((o) => (o.hidden = !!q && o.dataset.prpick !== "all" && !o.dataset.find.toLowerCase().includes(q)));
-  m.querySelectorAll(".prdd-g").forEach((g) => { let n = g.nextElementSibling, any = false; while (n && n.classList.contains("prdd-o")) { any = any || !n.hidden; n = n.nextElementSibling; } g.hidden = !any; g.previousElementSibling.hidden = !any; });
-  m.querySelector(".prdd-none").hidden = [...m.querySelectorAll(".prdd-o")].some((o) => !o.hidden && o.dataset.prpick !== "all");
-}
-const prddDraw = (focusKey) => { const sel = $("#prsel"); sel.innerHTML = prddHtml(); const m = sel.querySelector(".prdd-m"); prddFind(m);
-  if (PRDD.open) (focusKey ? m.querySelector(`[data-prpick="${CSS.escape(focusKey)}"]`) : m.querySelector(".prdd-q")).focus(); };
-const prddShut = () => { if (!PRDD.open) return; PRDD.open = false; const m = document.querySelector(".prdd-m"); if (m) { m.hidden = true; m.previousElementSibling.setAttribute("aria-expanded", "false"); } };
+const prddDraw = (focusKey) => { const m = $("#wpk .wpk-m"); if (!m || WPKV !== "prs") return; m.classList.remove("wpk-fwd", "wpk-back"); m.innerHTML = wpkMenu();   // redraw the open filter, keeping the focus on what was ticked
+  (focusKey ? m.querySelector(`[data-prpick="${CSS.escape(focusKey)}"]`) : m.querySelector(".prdd-o")).focus(); };
 document.addEventListener("click", (e) => {
-  const b = e.target.closest && e.target.closest("[data-prdd]"), o = e.target.closest && e.target.closest("[data-prpick]");
-  if (o) {   // tick or untick a PR; All PRs ticks every PR, or unticks them all when they're all ticked
+  const o = e.target.closest && e.target.closest("[data-prpick]");
+  if (o) { e.stopImmediatePropagation();   // tick or untick a PR; the redraw detaches the target, which would read as a click outside the menu
     const k = o.dataset.prpick, cur = S.pr === "all" ? C.prs.map((p) => p.key) : S.pr.slice();
-    S.pr = k === "all" ? (S.pr === "all" ? [] : "all") : cur.includes(k) ? cur.filter((x) => x !== k) : cur.concat(k);
+    S.pr = cur.includes(k) ? cur.filter((x) => x !== k) : cur.concat(k);
     if (S.pr !== "all" && S.pr.length === C.prs.length) S.pr = "all";
     S.file = null; save(); render(); return prddDraw(k);
   }
-  if (b) { PRDD.open = !PRDD.open; return prddDraw(); }
-  if (!(e.target.closest && e.target.closest(".prdd-m"))) prddShut();
 });
-document.addEventListener("input", (e) => { if (!e.target.classList || !e.target.classList.contains("prdd-q")) return; PRDD.q = e.target.value; prddFind(e.target.closest(".prdd-m")); });
-document.addEventListener("keydown", (e) => {   // Escape closes; the arrows walk the search box and the PRs it shows
-  const m = PRDD.open && document.querySelector(".prdd-m"); if (!m) return;
-  if (e.key === "Escape") { e.stopPropagation(); prddShut(); return m.previousElementSibling.focus(); }
+document.addEventListener("keydown", (e) => {   // the arrows walk the search box and the PRs it shows; Escape closes the menu
+  const m = WPKV === "prs" && $("#wpk .wpk-m:not([hidden])"); if (!m) return;
   if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); e.stopPropagation();
-    const os = [m.querySelector(".prdd-q"), ...[...m.querySelectorAll(".prdd-o")].filter((o) => !o.hidden)], i = os.indexOf(document.activeElement);
+    const os = [...m.querySelectorAll(".prdd-o")], i = os.indexOf(document.activeElement);
     os[(i + (e.key === "ArrowDown" ? 1 : -1) + os.length) % os.length].focus(); }
 }, true);
 const linesChip = (a, d, cls = "chip") => { a = a || 0; d = d || 0; const n = a + d;   // a change's size as one grey chip; added and removed are in its tooltip
@@ -1228,25 +1210,43 @@ const HICON = {
   sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
   moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
   chev: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>' };
-let WPKS = [];   // the work packages on this machine, for the switcher beside the title
+let WPKS = [], WPKV = "list";   // the work packages on this machine, for the switcher beside the title; WPKV: the menu's view, the list or this package's PR filter
+const prFilterOk = () => C.prs.length > 1 && !curBlocks().includes("review");   // Your review publishes the whole package, so its page has no filter
+const FWD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>', BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+const prCount = () => { const n = prs().length; return S.pr === "all" ? "" : `${n} of ${C.prs.length} PR${C.prs.length === 1 ? "" : "s"}`; };
 const wpkMeta = (s) => {   // the package in counts: PRs, repos and stacks, no names
   const repos = s.repos ?? new Set(s.prs.map((k) => String(k).split("#")[0])).size;
   return [pl1(s.prs.length, "PR"), pl1(repos, "repo"), pl1(s.stacks || 0, "stack")].join(" · ");
 };
-function wpkDraw() {
-  const box = $("#wpk"); if (!box || !WPKS.length) return;   // one package still gets the menu: its gear opens Manage work packages
+function wpkMenu() {   // the list of packages, or (after the current one's arrow) its PR filter with a way back
+  const me = WPKS.find((s) => s.id === KIT.host.session), local = WPKS.length === 1 && WPKS[0].local;
+  if (WPKV === "prs") return `<div class="wpk-top wpk-bkt"><button type="button" class="hsrow wpk-bk" data-wpk-back title="Back to the work packages">${BACK}<span>Back</span></button></div><div class="wpk-prs">${prddPanel()}</div>`;
   const item = (s) => {
     const tag = s.dummy ? ["Dummy", "A copy with made-up PRs, for trying the page"] : s.demo ? ["Demo", ""]
       : s.story ? null : ["Refresh", `The agent hasn't written this package's story yet. Ask Claude Code: /review-prs refresh session ${s.id}`];
     const inner = `<i class="hrad" aria-hidden="true"></i><span class="wpk-tx"><b>${esc(s.title)}</b><small>${esc(wpkMeta(s))}</small></span>${tag ? `<span class="wpk-tag" title="${esc(tag[1])}">${tag[0]}</span>` : ""}`;
-    const q = esc(`${s.title} ${s.prs.join(" ")}`.toLowerCase());
-    return s.id === KIT.host.session ? `<div class="hopt on" role="menuitemradio" aria-checked="true" data-wpk-q="${q}">${inner}</div>`
+    const q = esc(`${s.title} ${s.prs.join(" ")}`.toLowerCase()), fw = s.id === KIT.host.session && prFilterOk(), n = prCount();
+    return s.id === KIT.host.session ? `<div class="hopt on${fw ? " wpk-cur" : ""}" role="menuitemradio" aria-checked="true" data-wpk-q="${q}"${fw ? ` data-wpk-prs tabindex="0" title="Filter this package's PRs"` : ""}>${inner}${fw ? `${n ? `<span class="wpk-fn">${esc(n)}</span>` : ""}<span class="wpk-fw" aria-label="Filter PRs">${FWD}</span>` : ""}</div>`
       : `<button type="button" class="hopt" role="menuitemradio" aria-checked="false" data-wpk-go="${esc(s.id)}" data-wpk-q="${q}">${inner}</button>`;
   };
+  return `<div class="wpk-top"><div class="wpk-h"><span>${local ? "This work package" : "Work packages on this machine"}</span>${local ? "" : `<button type="button" class="wz-ic" data-wpk-manage aria-label="Manage work packages" title="Manage work packages">${MICON.gear}</button>`}</div>${local ? "" : `<input class="wpk-q" type="search" placeholder="Search work packages" aria-label="Search work packages" autocomplete="off">`}</div>${WPKS.map(item).join("")}<p class="wpk-none" hidden>No work package matches.</p>`;
+}
+function wpkDraw() {
+  const box = $("#wpk"); if (!box || !WPKS.length) return;   // one package still gets the menu: its gear opens Manage work packages
   const me = WPKS.find((s) => s.id === KIT.host.session);
-  box.innerHTML = `<button type="button" class="wpk-b" data-wpk aria-haspopup="menu" aria-expanded="false" aria-label="${esc(me ? me.title : C.title)}: switch work package"><span>${esc(me ? me.title : C.title)}</span>${HICON.chev}</button>`
-    + `<div class="wpk-m" role="menu" aria-label="Work packages" hidden><div class="wpk-top"><div class="wpk-h"><span>Work packages on this machine</span><button type="button" class="wz-ic" data-wpk-manage aria-label="Manage work packages" title="Manage work packages">${MICON.gear}</button></div><input class="wpk-q" type="search" placeholder="Search work packages" aria-label="Search work packages" autocomplete="off"></div>${WPKS.map(item).join("")}<p class="wpk-none" hidden>No work package matches.</p></div>`;
-  box.hidden = false; $("#ttl").hidden = true; crumb();   // a renamed package's name reaches the header too
+  box.innerHTML = `<button type="button" class="wpk-b" data-wpk aria-haspopup="menu" aria-expanded="false" aria-label="${esc(me ? me.title : C.title)}: switch work package or filter its PRs"><span>${esc(me ? me.title : C.title)}</span>${HICON.chev}</button>`
+    + `<div class="wpk-m" role="menu" aria-label="Work packages" hidden>${wpkMenu()}</div>`;
+  box.hidden = false; $("#ttl").hidden = true; crumb(); wpkMark();   // a renamed package's name reaches the header too
+}
+function wpkMark() {   // under the package's name, while the PR filter is on: how many PRs show; it opens the filter
+  const f = $("#wpkf"); if (!f) return; const n = prFilterOk() ? prCount() : "";
+  f.hidden = !n || !WPKS.length; f.innerHTML = n ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>${esc(n)}` : ""; f.title = n ? `Showing ${n}: change the PR filter` : "";
+}
+function wpkOpen(view) {   // open the menu on the list or on the PR filter; switching while open slides the new view in
+  const m = $("#wpk .wpk-m"), b = $("#wpk [data-wpk]"); if (!m) return; const slide = !m.hidden && WPKV !== view; WPKV = view; m.innerHTML = wpkMenu(); m.hidden = false; b.setAttribute("aria-expanded", "true");
+  m.classList.remove("wpk-fwd", "wpk-back"); if (slide) { void m.offsetWidth; m.classList.add(view === "prs" ? "wpk-fwd" : "wpk-back"); }
+  if (view === "prs") return m.querySelector(".prdd-o").focus();
+  const q = m.querySelector(".wpk-q"); if (q) { q.value = ""; wpkFilter(""); q.focus(); } else { const c = m.querySelector("[data-wpk-prs]"); if (c) c.focus(); }
 }
 function wpkFilter(v) {   // the search box: keep packages whose name or PRs contain every word typed
   const words = v.toLowerCase().split(/\s+/).filter(Boolean), m = $("#wpk .wpk-m"); let n = 0;
@@ -1268,15 +1268,21 @@ async function wpkGo(id) {   // the server keeps the pick until it restarts; thi
     history.replaceState(null, "", location.pathname); location.reload();
   } catch (err) { wpkClose(); toast(`Couldn't switch: ${err.message}`); }
 }
+document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("[data-wpk-prs]")) { e.preventDefault(); wpkOpen("prs"); } });
 document.addEventListener("click", (e) => {
+  const t = e.target.closest ? e.target : null; if (!t) return;
+  if (t.closest("[data-wpk-prs]")) { e.stopImmediatePropagation(); return wpkOpen("prs"); }   // the current package's arrow: its PR filter
+  if (t.closest("[data-wpk-back]")) { e.stopImmediatePropagation(); return wpkOpen("list"); }
+  if (t.closest("[data-wpk-flt]")) { e.stopImmediatePropagation(); return wpkOpen("prs"); }
   const go = e.target.closest && e.target.closest("[data-wpk-go]"); if (go) return wpkGo(go.dataset.wpkGo);
   if (e.target.closest && e.target.closest("[data-wpk-manage]")) { wpkClose(); return lDialog({ kind: "wpks" }); }
   const box = e.target.closest && e.target.closest(".snav-wp"), b = e.target.closest && (e.target.closest("[data-wpk]") || (box && !e.target.closest(".wpk-m") ? box.querySelector("[data-wpk]") : null)), m = $("#wpk .wpk-m");   // anywhere on the grey box opens it
-  if (b && m) { const open = m.hidden; m.hidden = !open; b.setAttribute("aria-expanded", String(open)); if (open) { const q = m.querySelector(".wpk-q"); q.value = ""; wpkFilter(""); q.focus(); } return; }
+  if (b && m) { if (m.hidden) return wpkOpen("list"); return wpkClose(); }
   if (!(e.target.closest && e.target.closest(".wpk-m"))) wpkClose();
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#wpk .wpk-m:not([hidden])")) { e.stopPropagation(); wpkClose(); $("#wpk [data-wpk]").focus(); } }, true);
-if (KIT.served) fetch("/api/sessions").then((r) => r.json()).then((j) => { WPKS = j.sessions || []; wpkDraw(); }).catch(() => {});
+{ const solo = () => { WPKS = [{ id: KIT.host.session, title: C.title, prs: C.prs.map((p) => p.key), story: true, local: true }]; wpkDraw(); };   // a snapshot, or no list: this package alone, for its PR filter
+  if (KIT.served) fetch("/api/sessions").then((r) => r.json()).then((j) => { WPKS = j.sessions || []; if (WPKS.length) wpkDraw(); else solo(); }).catch(solo); else setTimeout(solo); }   // after this script, once the layout exists
 const TKEY = "cockpit:theme", DARKQ = matchMedia("(prefers-color-scheme: dark)");
 const themeNow = () => document.documentElement.dataset.theme || (DARKQ.matches ? "dark" : "light");
 const themeMark = () => document.querySelectorAll("[data-theme-set]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themeSet === themeNow()));
@@ -1299,15 +1305,14 @@ function freshHtml() {   // the side nav's foot: refresh, with how long ago the 
 const folderBtn = () => KIT.served ? `<span class="tipw ft-fw"><button class="snav-fd" data-reveal aria-label="Open the data folder">${MICON.folder}</button><span class="htip" role="tooltip"><b>${/Mac/.test(navigator.platform) ? "Open the data folder in Finder" : "Open the data folder"}</b><p>This review's session folder: its data, execution paths and triage pages (sessions/${esc(KIT.host.session || "")})</p></span></span>` : "";   // beside the refresh: where its data lives
 const drawHead = () => { $("#cknav").innerHTML = headActions(); $("#snavfoot").innerHTML = freshHtml(); };   // the header's buttons and the nav's refresh, drawn together
 setInterval(() => { const h = document.querySelector(".hago"); if (h && C.reviewed_at) h.textContent = agoText(C.reviewed_at); }, 60000);   // the label keeps up as time passes
-function freshTip() {
+function freshTip() {   // when the data was read and whether the server answers, then the PR commits (in a dialog) and the evidence limits
   const at = C.reviewed_at ? new Date(C.reviewed_at) : null, when = at && !isNaN(at) ? at.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
-  const row = (p) => { const v = LIVE[p.key] || {};
-    return `<li><span>#${esc(String(p.key).split("#").pop())}</span><code>${esc(String(p.head_sha || "").slice(0, 7))}</code>${v.moved ? `<em>${v.new_commits > 0 ? pl(v.new_commits, "new commit") : "new commits"}</em>` : ""}</li>`; };
-  const rows = [...new Set(C.prs.map((p) => p.repo))].map((r) => `<li class="ft-r">${GHICON}${esc(String(r).split("/").pop())}</li>${C.prs.filter((p) => p.repo === r).map(row).join("")}`).join("");   // grouped by repo, each named once
   const act = C.demo ? "The demo is fixed; there's nothing to re-read." : KIT.served ? ""
     : `A snapshot. To refresh, ask Claude Code: <code>/review-prs refresh session ${esc(C.session || "")}</code>`;
-  return `<div class="ft-h"><span>Review data fetched</span><b class="ft-ago" title="${esc(when)}">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : "—"}</b></div><ul>${rows}</ul>${act ? `<p>${act}</p>` : ""}`   // the time first, then what it covers
-    + (KIT.served && !C.demo ? `<div class="srv" data-srv>${srvText()}</div>` : "");   // the server check last
+  const moved = C.prs.filter((p) => (LIVE[p.key] || {}).moved).length;
+  return `<div class="ft-h"><span>Review data fetched</span><b class="ft-ago" title="${esc(when)}">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : "—"}</b></div>`
+    + (KIT.served && !C.demo ? `<div class="srv" data-srv>${srvText()}</div>` : "") + (act ? `<p>${act}</p>` : "")
+    + `<button type="button" class="ev-tip" data-commits-open aria-haspopup="dialog"><span class="ev-k">PR commits</span><span class="ev-s">${Object.keys(LIVE).length ? `<i class="ev-dot ${moved ? "warn" : "ok"}"></i>${C.prs.length - moved} of ${pl(C.prs.length, "PR")} up to date` : "Not checked for new commits yet"}</span><span class="ev-more">View the commits</span></button>` + evTip();   // a section of its own, like the evidence limits
 }
 const SRV = { ok: null, at: 0, err: "" };   // the local server, as the last check found it
 const srvAgo = () => { const s = Math.round((Date.now() - SRV.at) / 1000); return s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.round(s / 60)} min ago`; };
@@ -1346,7 +1351,7 @@ function settingsHtml() {   // the Settings modal: its tabs down the left, like 
       + (KIT.host.app && KIT.host.app.path ? `<div class="smod-r smod-src"><span><b>App settings file</b><em>Your layout, Page views, theme, menus and saved layouts, shared by every review on this machine</em></span>
         <div class="src-f"><code class="src-in smod-path">${esc(KIT.host.app.path)}</code><button class="btn sm" type="button" data-copy-apppath>Copy</button><button class="wz-ic src-rv" type="button" data-reveal="app-state" aria-label="Show the app settings file in Finder" title="Show in Finder">${MICON.folder}</button></div></div>` : "")
     : `<p class="smod-k">Navigation</p><button class="hsrow htg smod-r" role="switch" aria-checked="${SUBON}" data-subon><span><b>Show sub-menus</b><em>A page with several widgets lists them under its name in the side menu, opened with its arrow. Hidden while editing pages and widgets</em></span><i class="hsw" aria-hidden="true"></i></button>
-      <p class="smod-k smod-k2">Ask Qodo</p><button class="hsrow htg smod-r" role="switch" aria-checked="${ASKON}" data-askon><span><b>Show Ask Qodo</b><em>The Ask Qodo button, the Ask buttons on items and the prompt over selected text, on every page</em></span><i class="hsw" aria-hidden="true"></i></button>`;
+      <p class="smod-k smod-k2">Ask Qodo</p><button class="hsrow htg smod-r" role="switch" aria-checked="${ASKON}" data-askon><span><b>Show Ask Qodo</b><em>The Ask Qodo button, the Ask buttons on items and the prompt over selected text, on every page</em></span><i class="hsw" aria-hidden="true"></i></button>` + wcSetRow();
   return `<div class="smod-c" role="dialog" aria-modal="true" aria-labelledby="smod-t"><div class="smod-h"><b id="smod-t">Settings</b><button type="button" data-smod-close aria-label="Close" title="Close"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
     <div class="smod-g"><nav class="smod-nav" role="tablist" aria-orientation="vertical" aria-label="Settings">${tabs.map(([k, t, ic]) => `<button class="smod-t" role="tab" data-settab="${k}" aria-selected="${SETTAB === k}">${ic}<span>${t}</span></button>`).join("")}</nav>
     <div class="smod-b" role="tabpanel">${body}</div></div></div>`;
@@ -1441,13 +1446,16 @@ function sharePrompt() {   // generic setup steps from the README, with this pac
   return "Open this review with the installed qodo-agent-session-review skill.";
 }
 const COPYICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
-function shareMenu() {   // how to share: the steps, then the copy button
-  return `<p class="vw-h">Share this review</p><ol class="sh-s"><li><b>Copy the prompt</b> below.</li><li><b>Send it</b> to the person you're sharing with, in Slack or email.</li><li>They <b>paste it into their agent</b> (Claude Code or Codex). It installs the Agent Session Review if it's missing, then rebuilds this review from the same ${C.prs.length} PRs.</li></ol>`
-    + `<button type="button" class="sh-cp" role="menuitem" data-share-copy>${COPYICON}Copy to clipboard</button>`;
+function shareMenu() {   // two plain menu rows; what each does is in its tooltip
+  const ic = (x) => x.replace("<svg ", '<svg class="sico" ');
+  return `<button type="button" class="hsrow" role="menuitem" data-share-copy title="A prompt that rebuilds this review from the same ${C.prs.length} PRs in the other person's agent">${ic(COPYICON)}<span>Copy share prompt</span></button>`
+    + `<button type="button" class="hsrow" role="menuitem" data-share-export title="Every widget, page by page, laid out like Reader; pick Save as PDF in the print dialog">${ic(PDFICON)}<span>Export PDF</span></button>`;
 }
+const PDFICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>';
 function shareClose(focus) { const m = document.querySelector(".sh-m"), b = document.querySelector("[data-share]"); if (m) m.hidden = true; if (b) { b.setAttribute("aria-expanded", "false"); if (focus) b.focus(); } }
 document.addEventListener("click", (e) => {
   const t = e.target.closest ? e.target : null, m = document.querySelector(".sh-m");
+  if (t && t.closest("[data-share-export]")) { shareClose(); return rdExport(); }
   if (t && t.closest("[data-share-copy]")) { shareClose(); return (navigator.clipboard ? navigator.clipboard.writeText(sharePrompt()) : Promise.reject()).then(() => toast("Share prompt copied: send it to the person you're sharing with"), () => toast("Couldn't copy the share prompt")); }
   if (t && t.closest("[data-share]") && m) { const open = m.hidden; m.hidden = !open; t.closest("[data-share]").setAttribute("aria-expanded", String(open)); if (open) m.querySelector("button").focus(); return; }
   if (m && !m.hidden && !(t && m.contains(t))) shareClose();
@@ -1455,7 +1463,8 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => { const m = document.querySelector(".sh-m:not([hidden])"); if (m && e.key === "Escape") shareClose(true); });
 function headActions() {
   const name = (KIT.host.styles.find((s) => s.id === KIT.host.style) || {}).name || "";
-  return `<div class="vw"><button type="button" class="hbtn hlbl" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Page view" title="Page view: how this page's widgets open">${EYE}<span>View</span></button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
+  return `<button type="button" class="hbtn hlbl" data-reader aria-label="Reader: every widget, expanded, in one view" title="Reader: every widget, expanded, in one view">${GLASSES}<span>Reader</span></button>`
+    + `<div class="vw"><button type="button" class="hbtn hlbl" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Page view" title="Page view: how this page's widgets open">${EYE}<span>View</span></button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
 
     + `<div class="theme" role="group" aria-label="Theme">${[["light", "Light", HICON.sun], ["dark", "Dark", HICON.moon]].map(([k, n, i]) => `<button type="button" data-theme-set="${k}" aria-pressed="${themeNow() === k}" aria-label="${n} mode" title="${n} mode">${i}</button>`).join("")}</div>`
     + `<span class="vsep hdsep" aria-hidden="true"></span>`   // the view options (View, theme), then sharing
@@ -2049,7 +2058,8 @@ const BLOCKS = {   // kept in step with BLOCKS in cockpit/recipes.py
     sub: () => { const Y = C.system; if (!Y) return ""; const k = Y.counts, n = Y.contracts.filter((c) => c.change !== "unchanged").length;
       return [`${n} contract${n === 1 ? "" : "s"}`, k.missing && `${k.missing} missing`, k.mismatches && `${k.mismatches} mismatch${k.mismatches === 1 ? "" : "es"}`, k.collisions && `${k.collisions} colliding`, k.one_way && `${k.one_way} one-way`].filter(Boolean).join(" · "); } },
   other: { label: "Other work", what: "Other work on the same code", render: () => otherWorkHtml(), sub: () => (OW.length ? owHead() : "") },
-  verdict: { label: "Verdict", what: "The bottom line: whether the package is ready to merge, and what still blocks it", render: bVerdict },
+  verdict: { label: "Verdict", what: "The bottom line: whether the package is ready to merge, and what still blocks it", render: bVerdict,
+    sub: () => { const at = C.live_at || C.reviewed_at; return at ? `<span class="chip pkn" title="${esc(new Date(at).toLocaleString())}">As of ${esc(agoText(at))}</span>` : ""; } },   // when its data was read, in the title bar
   decisions: { label: "Agent decisions", what: "Each behavior or technical decision the code makes, set against its human instruction: accept it or ask for a correction", render: bDecisions, sub: decSub },
   issues: { label: "Quality & Issue findings", what: "What the reviewers, scanners and CI found and how it was tested, then how the code kept to the plan", render: bIssues, sub: issuesSub },
   prs: { label: "Package contents", what: "Each PR by repo: its state, issues and size, and how the PRs stack", render: () => bPrs(), sub: () => pkgSub() },
@@ -2088,7 +2098,7 @@ const useRecipe = () => DRAFT || RECIPE;
 function tabsOf(r) {   // [id, label, blocks]: Focus's tab ids where they fit, so links like go("findings") still land
   const used = new Set();
   return r.tabs.map((t, i) => { let id = t.id || (t.blocks.some((b) => OVERVIEWISH.includes(b)) ? "overview" : t.blocks[0]);
-    if (used.has(id)) id = "t" + i; used.add(id); return [id, t.label, t.blocks, t.icon]; });
+    if (used.has(id)) id = "t" + i; used.add(id); return [id, t.label, t.blocks, t.icon, t.dividers || []]; });   // dividers: the nav dividers above this page
 }
 let TABS = tabsOf(RECIPE);
 const resolveTab = (id) => (TABS.find((t) => t[0] === id) || TABS.find((t) => t[2].includes(id))
@@ -2169,16 +2179,15 @@ const sico = (b) => `<svg class="sico" viewBox="0 0 24 24" aria-hidden="true">${
 const wname = (w, p = typeof curPage === "function" ? curPage() : null) => ((p && p.names) || {})[w] || (BLOCKS[w] && BLOCKS[w].label) || (WIDGETS[w] || [w])[0];   // a widget's name on this page: the one given here, else its own
 const blockSec = ([b, h]) => { const B = BLOCKS[b] || {}; return { id: b, label: wname(b), icon: b, sub: B.sub ? B.sub() : "", html: h }; };   // no widget controls in the header: its right side holds the layout's
 /* full screen: any widget opens in a large modal, like the gallery; it redraws with the page while open */
-const MAXICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/></svg>';
-const wfullBtn = (s) => BLOCKS[s.id] ? `<button type="button" class="wfull" data-wfull="${esc(s.id)}" aria-label="Open ${esc(s.label)} full screen" title="Full screen">${MAXICON}</button>` : "";
+const wfullBtn = (s) => BLOCKS[s.id] ? `<button type="button" class="wfull" data-wfull="${esc(s.id)}" aria-label="Open ${esc(s.label)} in Reader" title="Open in Reader">${GLASSES}</button>` : "";   // opens Reader, in Steps, on this widget
 let WFULL = null;   // the widget open full screen
 function wfullDraw() {
   let m = document.getElementById("wfm");
-  if (!WFULL || (!BLOCKS[WFULL] && WFULL !== WDONE)) { WFULL = null; const was = m && m.dataset.w; if (m) m.remove(); if (was === "system" && BLOCKS.system) BLOCKS.system.after(); return; }   // closing System hands the map back to the page's copy
+  if (!WFULL || (!BLOCKS[WFULL] && WFULL !== WDONE)) { WFULL = null; if (READER === "step") READER = null; const was = m && m.dataset.w; if (m) m.remove(); if (was === "system" && BLOCKS.system) BLOCKS.system.after(); return; }   // closing System hands the map back to the page's copy
   const B = BLOCKS[WFULL], fresh = !m, body = m && m.querySelector(".wfm-b"), top = body && m.dataset.w === WFULL ? body.scrollTop : 0;   // a new widget starts at its top
-  const seq = wseq(), done = WFULL === WDONE, at = done ? seq.length : wpos(seq), nav = seq.length && at >= 0 ? `<span class="wfm-nav"><button type="button" class="wz-ic" data-wfstep="-1" aria-label="Previous widget" title="Previous widget (←)"${at ? "" : " disabled"}>${svg('<path d="m15 18-6-6 6-6"/>')}</button><span class="wfm-n">${done ? "Done" : `${at + 1} of ${seq.length}`}</span><button type="button" class="wz-ic" data-wfstep="1" aria-label="${at === seq.length - 1 ? "Finish" : "Next widget"}" title="${at === seq.length - 1 ? "Finish" : "Next widget (→)"}"${done ? " disabled" : ""}>${svg('<path d="m9 18 6-6-6-6"/>')}</button></span>` : "";
+  const seq = wseq(), done = WFULL === WDONE;
   if (!m) { m = document.createElement("div"); m.id = "wfm"; m.className = "lmod"; document.body.appendChild(m); }
-  m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="${done ? "All done" : esc(wname(WFULL))}"><div class="lmod-h wfm-h"><span class="stile">${done ? svg('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>', "sico") : sico(WFULL)}</span><b>${done ? "All done" : esc(wname(WFULL))}</b>${B && B.sub ? `<span class="ssub">${B.sub()}</span>` : ""}${nav}<button type="button" class="wz-ic" data-wfm-close aria-label="Close full screen" title="Close (Esc)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div><div class="wfm-b sbody">${done ? wdoneHtml(seq) : widgetHtml(WFULL)}</div></div>`;
+  m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="Reader">${rdHead(true)}<div class="wfm-b sbody">${done ? wdoneHtml(seq) : rdTitle(WFULL, WFPAGE) + widgetHtml(WFULL)}</div></div>`;   // Reader in Stepper: the header steps, the body holds the widget with its title
   if (B && B.after) B.after(m);   // a widget's own setup (Finding review fills its frames here), in this dialog
   if (m.dataset.w === "system" && WFULL !== "system" && BLOCKS.system) BLOCKS.system.after();   // stepping off System hands the map back to the page's copy
   m.querySelector(".wfm-b").scrollTop = top; m.dataset.w = WFULL; if (fresh) m.querySelector("[data-wfm-close]").focus();
@@ -2198,7 +2207,7 @@ function wfStep(dir) {   // full screen: the previous or next widget; past the l
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-wfull]");
-  if (b) { e.preventDefault(); e.stopPropagation(); WFULL = b.dataset.wfull; WFPAGE = S.tab; return wfullDraw(); }   // the copy on this page
+  if (b) { e.preventDefault(); e.stopPropagation(); READER = "step"; WFULL = b.dataset.wfull; WFPAGE = S.tab; return wfullDraw(); }   // a widget's expand button: Reader, in Stepper, on that widget
   const st = WFULL && e.target.closest && e.target.closest("[data-wfstep]"); if (st) { e.preventDefault(); e.stopPropagation(); return wfStep(+st.dataset.wfstep); }
   if (WFULL && e.target.closest && e.target.closest("[data-wfstart]")) { e.preventDefault(); e.stopPropagation(); WFULL = WDONE; const first = wseq()[0]; if (!first) return; WFULL = first[0]; WFPAGE = first[1]; S.tab = first[1]; save(); try { history.replaceState(null, "", "#" + S.tab); } catch (_) {} render(); drawHead(); return; }   // All done › Start again: the first widget
   if (WFULL && (e.target.id === "wfm" || (e.target.closest && e.target.closest("[data-wfm-close]")))) { WFULL = null; wfullDraw(); }
@@ -2206,6 +2215,12 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => { if (WFULL && e.key === "Escape") { e.stopPropagation(); WFULL = null; wfullDraw(); } }, true);
 document.addEventListener("keydown", (e) => { if (!WFULL || !/^Arrow(Left|Right)$/.test(e.key) || (e.target.closest && e.target.closest("input, textarea, select, [contenteditable], [role=tab], [role=tablist], [role=radiogroup], .bv, .wtab, .cm"))) return;   // ← → step through widgets in full screen; tabs, segmented controls and the Contract Map keep their own arrows
   e.preventDefault(); e.stopPropagation(); wfStep(e.key === "ArrowRight" ? 1 : -1); }, true);
+/* Reader: every widget on every page, expanded, in one full-page view: Scroll (one widget in focus) or Stepper (full screen, one at a time) */
+const GLASSES = '<svg class="g24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="15" r="4"/><circle cx="18" cy="15" r="4"/><path d="M14 15a2 2 0 0 0-2-2 2 2 0 0 0-2 2"/><path d="M2.5 13 5 7c.7-1.3 1.4-2 3-2"/><path d="M21.5 13 19 7c-.7-1.3-1.5-2-3-2"/></svg>';
+let READER = null, RDAT = 0;   // READER: "scroll" or "step" while open; RDAT: the widget in focus in Scroll, by its place in wseq()
+/*@READER@*/   // cockpit/styles.py puts app/styles/reader.js here, inside this scope
+/*@EVIDENCE@*/   // and app/styles/evidence.js here
+/*@WELCOME@*/   // and app/styles/welcome.js
 const soloHtml = (s) => `<div class="rpart" id="blk-${s.id}"><div class="sec solo" role="region" aria-label="${esc(s.label)}"><div class="ssum"><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}</div><div class="sbody">${s.html}</div></div></div>`;   // a widget that doesn't fold: a page's only one, or every one in Always open
 function secHtml(s, cur, first) {   // the Overview's card: icon, title, a summary chip, folded until opened; every page uses it
   return `<div class="rpart" id="blk-${s.id}"><details class="sec" data-sec="${esc(s.id)}"${secOpen(s.id, cur, first) ? " open" : ""}><summary><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}<span class="chev" aria-hidden="true"></span></summary><div class="sbody">${s.html}</div></details></div>`;
@@ -2272,17 +2287,23 @@ document.addEventListener("click", (e) => { if (!(e.target.closest && e.target.c
   MINI = !MINI; store.set(MKEY, MINI); render(); drawHead(); });
 let NVOPEN = false;   // the open page's sections show under it in the nav only after its arrow is clicked
 const PCOUNT = { walk: ["walkthrough unit", "walkthrough units"], findings: ["quality issue", "quality issues"], review: ["note", "notes"], changes: ["changed file", "changed files"], arch: ["architecture view", "architecture views"], stories: ["story", "stories"] };
-function navHtml(c, parts) {
-  return TABS.map(([id, t, bl, ic], i) => {
+const navPage = ([id, t, bl, ic], i, parts) => {
     const on = S.tab === id, subs = on && SECS && SUBON && !EDIT ? parts : [];   // the page's widgets as a sub-menu: never while editing them
     // a first click opens the page; a click on the open page (anywhere on its row, arrow included) shows or hides its sections
     const cv = subs.length ? `<button type="button" class="nv-cvb" data-nvx aria-expanded="${NVOPEN}" aria-label="${NVOPEN ? "Hide" : "Show"} the sections of ${esc(t)}"><span class="nv-chev" aria-hidden="true"></span></button>` : "";
     const b = `<button type="button" class="nv-p"${on ? ` aria-current="page"${subs.length ? ` data-nvx aria-expanded="${NVOPEN}"` : ""}` : ` data-tab="${esc(id)}"`}${MINI ? ` title="${esc(t)}"` : ""}>${sico(ic || NVICON[id] || id)}<span class="nv-l">${esc(t)}</span></button>${cv}`;
     return (EDIT || cv ? `<div class="nv-r">${EDIT ? `<button class="wgrip" data-grip="p:${i}" aria-label="Drag the ${esc(t)} page to reorder, or use the arrow keys" title="Drag to reorder">${GRIP}</button>` : ""}${b}${EDIT ? `<button class="nv-x" data-ly="page-rm" data-lyv="${esc(id)}" aria-label="Delete the ${esc(t)} page" title="Delete page"${TABS.length < 2 ? " disabled" : ""}>${LYICON.bin}</button>` : ""}</div>` : b)
       + (subs.length && NVOPEN ? `<ol class="nv-s">${subs.map((s) => `<li><a href="#blk-${s.id}" data-toc="${esc(s.id)}" title="${esc(s.label)}">${s.iconHtml || sico(s.navIcon || s.icon)}<span>${esc(s.nav || s.label)}</span></a></li>`).join("")}</ol>` : "");
-  }).join("") + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button>` : "");
+};
+const navDiv = (d, i) => EDIT ? `<div class="nv-r nv-dr"><button class="wgrip" data-grip="p:${i}" aria-label="Drag the ${esc(d.label)} divider to reorder, or use the arrow keys" title="Drag to reorder">${GRIP}</button><span class="nv-cat">${esc(d.label)}</span><button class="nv-x" data-ly="div-edit" data-lyv="${esc(d.id)}" aria-label="Rename the ${esc(d.label)} divider" title="Rename divider">${LYICON.pen}</button><button class="nv-x" data-ly="div-rm" data-lyv="${esc(d.id)}" aria-label="Delete the ${esc(d.label)} divider" title="Delete divider">${LYICON.bin}</button></div>`
+  : `<p class="nv-cat" role="separator">${esc(d.label)}</p>`;   // a divider: a name above a group of pages
+function navHtml(c, parts) {   // while editing, the layout's own list (dividers drag like pages); otherwise each page with the dividers above it
+  const rows = EDIT ? navItems().map((x) => (x.widgets ? TABS.find((t) => t[0] === x.id) : x)).filter(Boolean) : TABS.flatMap((t) => [...(t[4] || []).map((label) => ({ label })), t]);
+  return rows.map((r, i) => (Array.isArray(r) ? navPage(r, i, parts) : navDiv(r, i))).join("")
+    + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button><button class="nv-add" data-ly="div-new"><b>${LYICON.div}Add divider</b><span>A name above a group of pages</span></button>` : "");
 }
-const LYICON = {   // the layout editor's icons: more options, a page, a widget, editing
+const LYICON = {   // the layout editor's icons: more options, a page, a widget, a divider, editing
+  div: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 16-4 4-4-4"/><path d="M3 12h18"/><path d="m8 8 4-4 4 4"/></svg>',
   more: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>',
   page: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 12v6"/><path d="M9 15h6"/></svg>',
   widget: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><path d="M17.5 14v7"/><path d="M14 17.5h7"/></svg>',
@@ -2296,7 +2317,7 @@ const LYICON = {   // the layout editor's icons: more options, a page, a widget,
 function nvMore(btn) {   // the ⋮ menu opens under its header button, right-aligned (fixed, so nothing clips it)
   let m = document.querySelector(".nv-mm"); if (m && !m.hidden) { m.hidden = true; btn.setAttribute("aria-expanded", "false"); return; }
   if (!m) { m = document.createElement("div"); m.className = "nv-mm hmenu"; m.setAttribute("role", "menu"); document.body.appendChild(m); }
-  m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Marketplace</span></button><button class="hsrow" role="menuitem" data-ly="tpl">${LYICON.tpl}<span>Layout wizard</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="mine">${LYICON.page}<span>My layouts</span></button><button class="hsrow" role="menuitem" data-ly="my-new">${LYICON.save}<span>Add to my layouts</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="reset" title="Back to the Work Package default pages, widgets and Page views">${LYICON.reset}<span>Reset to default</span></button>`;
+  m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Templates</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="mine">${LYICON.page}<span>My layouts</span></button><button class="hsrow" role="menuitem" data-ly="my-new">${LYICON.save}<span>Add to my layouts</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="reset" title="Back to the Work Package default pages, widgets and Page views">${LYICON.reset}<span>Reset to default</span></button>`;
   const r = btn.getBoundingClientRect(); m.hidden = false; m.style.top = r.bottom + 6 + "px"; m.style.left = Math.max(8, r.right - m.offsetWidth) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
 }
 document.addEventListener("click", (e) => {
@@ -2318,9 +2339,9 @@ const VDICON = { ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>'
   unknown: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>' };
 const vdLink = (href, cls, title, text) => href && /^https:\/\//.test(href) ? `<a class="vd-s ${cls}" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(title)}">${text}</a>` : `<span class="vd-s ${cls}" title="${esc(title)}">${text}</span>`;
 const vdOf = (n) => (n != null ? `<small class="vd-of">of ${n}</small>` : "");   // the total the count is out of, smaller than the count
-function vdPrs(name, hit, known, of, tone = "high", path = "", off = false, showReported = false) {   // a card counting the PRs in a state; unknown coverage keeps observed PRs as a lower bound
+function vdPrs(name, hit, known, of, tone = "high", path = "", off = false, showReported = false) {   // a card counting the PRs in a state; with unknown coverage it counts the PRs observed, marked "coverage unknown"
   const links = () => hit.map((p) => vdLink(p.url && p.url + path, tone, `${strip(p.title)}: open on GitHub`, `#${esc(p.number)}`)).join("");
-  return `<div class="vd-t${off ? " off" : ""}"${off ? ` title="Not a merge threshold: change it in Customize › Verdict settings"` : ""}><span class="vd-k">${esc(name)}</span><b class="vd-n${!known ? "" : !hit.length || off ? " none" : " block"}">${known ? hit.length + vdOf(of) : showReported && hit.length ? `at least ${hit.length}` : "—"}</b>
+  return `<div class="vd-t${off ? " off" : ""}"${off ? ` title="Not a merge threshold: change it in Customize › Verdict settings"` : ""}><span class="vd-k">${esc(name)}</span><b class="vd-n${!(known || (showReported && hit.length)) ? "" : !hit.length || off ? " none" : " block"}">${known || (showReported && hit.length) ? hit.length + vdOf(of) : "—"}</b>
     <span class="vd-sev">${!known ? showReported ? `<span class="vd-s">coverage unknown</span>${links()}` : `<span class="vd-s">not checked yet</span>` : hit.length ? links() : `<span class="vd-s none">none</span>`}</span></div>`;
 }
 function ciChecks(p) { const L = LIVE[p.key]; return (L && Array.isArray(L.checks) ? L.checks : p.checks) || []; }   // CI as GitHub reports it now once read, else as collected
@@ -2339,8 +2360,8 @@ const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"],
 let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
 const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
 const vrBlocks = (f) => VR.sev.length === 3 || VR.sev.includes(vrSev(f));   // All: every open finding, whatever its severity
-function bVerdict() {   // the bottom line: does the package meet every merge threshold (product mode: the risk review's recommendation), then the numbers behind it
-  const ps = prs(), fs = KIT.openFindings({ ...C, prs: ps }), P = !!C.product, A = RK && RK.approval;
+function bVerdict() {   // the bottom line: does the package meet every merge threshold, then the numbers behind it; Merge Risk has its own widget and no say here
+  const ps = prs(), fs = KIT.openFindings({ ...C, prs: ps }), P = !!C.product;
   const ciKnown = !P || !productCiUnknown(ps), rvKnown = ps.every(reviewCoverageKnown);   // product mode: incomplete evidence is unknown, never a pass
   const cst = (c) => String(c.state || c.conclusion || "").toUpperCase(), ci = ps.filter((p) => ciChecks(p).some((c) => CI_BAD.includes(cst(c))));
   const wt = ps.filter((p) => !ci.includes(p) && ciChecks(p).some((c) => !CI_BAD.includes(cst(c)) && !CI_OK.includes(cst(c)))), nc = ps.filter((p) => !ci.includes(p) && !wt.includes(p) && !ciChecks(p).some((c) => cst(c) === "SUCCESS"));   // still running; no passing check (skipped and neutral are not passes, as in the package table)
@@ -2350,21 +2371,16 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
     VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.ci && wt.length && `CI still running on ${pr(wt.length)}`, VR.ci && ciKnown && nc.length && `no passing CI checks on ${pr(nc.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VR.comments && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
   const unread = [VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
   if (unread.length) why.push(`${unread.length > 1 ? unread.slice(0, -1).join(", ") + " and " + unread.at(-1) : unread[0]} not checked yet`);
-  const ok = C.dummy || (!!A && A.result === "approve");
-  const st = P ? !A && !C.dummy ? ["unknown", "No verdict yet", "Merge Risk hasn't been assessed for this package."]   // product mode recommends; it never claims merge readiness
-      : ok ? ["ok", "Risk review checks pass", "This is a code-review recommendation, not merge readiness. CI and discussion evidence are shown separately."]
-      : ["no", "Risk review needs attention", "Address the risk and code-review findings. CI and discussion readiness are assessed separately."]
-    : why.length ? ["no", "Not ready to merge", why.join(" · ")] : ["ok", "Ready to merge", "Every merge threshold is met."];
-  const asOf = C.live_at || C.reviewed_at;   // the verdict holds for the data as it was read then
-  const gate = (on) => P || on;   // product mode has no merge thresholds, so no row is switched off
+  const on = [VR.sev.length, VR.ci, VR.conflicts, VR.review, VR.comments].filter(Boolean).length, unmet = [VR.sev.length && bf.length, VR.ci && (ci.length || wt.length || !ciKnown || nc.length), VR.conflicts && (cf.length || !cfKnown), VR.review && (aw.length || !rvKnown), VR.comments && (cm || ps.some((p) => vdN(p) == null))].filter(Boolean).length;
+  const st = why.length ? ["no", "Not ready to merge", `${unmet} of ${on} merge threshold${on === 1 ? "" : "s"} not met`] : ["ok", "Ready to merge", "Every merge threshold is met."];   // the cards below say which; the full list is on hover
   const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
-  return `<div class="vd ${st[0]}"><div class="vd-st"${P ? ` title="${esc((A && A.reasons || []).join(" "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span>${asOf ? `<small class="vd-at" title="${esc(new Date(asOf).toLocaleString())}">As of ${esc(agoText(asOf))}</small>` : ""}</div></div>
-    <div class="vd-t${gate(VR.sev.length) ? "" : " off"}"${gate(VR.sev.length) ? "" : offT}><span class="vd-k">Open findings</span><b class="vd-n${(P ? fs : bf).length ? " block" : " none"}">${fs.length}${vdOf(KIT.allFindings({ ...C, prs: ps }).length)}</b>
-      <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${!P && VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
-    ${vdPrs("PRs failing CI", ci, ciKnown, ps.length, "high", "/checks", !gate(VR.ci), P)}
-    ${vdPrs("PRs with merge conflicts", cf, cfKnown, ps.length, "high", "", !gate(VR.conflicts))}
-    ${vdPrs("PRs awaiting human review", aw, rvKnown, ps.length, "medium", "", !gate(VR.review), P)}
-    ${vdThreads(ps, !gate(VR.comments))}</div>`;
+  return `<div class="vd ${st[0]}"><div class="vd-st"${why.length ? ` title="${esc(why.join(" · "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
+    <div class="vd-t${VR.sev.length ? "" : " off"}"${VR.sev.length ? "" : offT}><span class="vd-k">Open findings</span><b class="vd-n${bf.length ? " block" : " none"}">${fs.length}${vdOf(KIT.allFindings({ ...C, prs: ps }).length)}</b>
+      <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
+    ${vdPrs("PRs failing CI", ci, ciKnown, ps.length, "high", "/checks", !VR.ci, P)}
+    ${vdPrs("PRs with merge conflicts", cf, cfKnown, ps.length, "high", "", !VR.conflicts)}
+    ${vdPrs("PRs awaiting human review", aw, rvKnown, ps.length, "medium", "", !VR.review, P)}
+    ${vdThreads(ps, !VR.comments)}</div>`;
 }
 const WRENCH = '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
 const VRZERO = [["ci", "PRs failing CI"], ["conflicts", "PRs with merge conflicts"], ["review", "PRs awaiting human review"], ["comments", "Unresolved comments"]];
@@ -2458,8 +2474,7 @@ function render() {
   $("#ttl").textContent = C.title;
   applyRecipe(); S.tab = resolveTab(S.tab); viewSync();
   const c = counts(), blocks = curBlocks();
-  const sel = $("#prsel");
-  if (C.prs.length > 1) { sel.hidden = blocks.includes("review"); sel.innerHTML = prddHtml(); }   // the PR filter narrows every widget; Your review publishes the whole package, so its page has none
+  wpkMark();   // the PR filter (in the work package menu) narrows every widget
   const parts = EDIT ? curPage().widgets.map((w) => ({ id: "w-" + w, label: wname(w), icon: w }))
     : blocks.map((b) => [b, (has(b) && widgetHtml(b)) || wEmpty(b)]).map(blockSec);
   SECS = parts.length > 1;   // several widgets: listed in the nav as a sub-menu
@@ -2473,6 +2488,7 @@ function render() {
     : parts.map(soloHtml).join("");
   document.documentElement.style.setProperty("--hh", headH() + "px"); tocMark(); accFit(); psecFit(); caMark(); pmEyeFit(); unlinkWidgets();   // a full-screen widget follows the page's changes
   if (!EDIT) blocks.forEach((b) => BLOCKS[b] && BLOCKS[b].after && BLOCKS[b].after());   // parts may be a page's own sections now
+  if (READER === "scroll") rdDraw();   // Reader's copy follows the page
   if (WFULL) wfullDraw();   // after the page's own setup, so a full-screen widget (the Contract Map) keeps its mount
   if (!EDIT && blocks.some((b) => BLOCKS[b] && BLOCKS[b].mermaid)) loadMermaid();
   if (ASK.open) ctxMark(true);   // the redraw replaced the outlined element
@@ -3249,7 +3265,8 @@ const LDEF = () => ({ pages: [   // the default pages, in order: what anyone ope
   { id: "builder", label: "Execution paths", icon: "builder", widgets: ["builder"] },
   { id: "code-changes", label: "Code changes", icon: "codechg", widgets: ["codechg"] },
   { id: "triage", label: "Finding review", icon: "triage", widgets: ["triage"] },
-  { id: "system", label: "System", icon: "ovw", widgets: ["system"] }] });
+  { id: "system", label: "System", icon: "ovw", widgets: ["system"] }],
+  dividers: [{ id: "d-intent", label: "Intent", at: "brief" }, { id: "d-review", label: "Review", at: "risk" }, { id: "d-reference", label: "Reference", at: "system" }] });   // at: the page each divider sits above
 const VIEWDEF = { prs: { mode: "open", wide: true, fit: true }, brief: { mode: "manual", wide: true }, "coding-agent-decisions": { mode: "open", wide: true }, risk: { mode: "accordion", wide: true },
   plan: { mode: "accordion", wide: true }, "review-walkthrough": { mode: "open", wide: true }, builder: { mode: "open", wide: true, fit: true }, "code-changes": { mode: "open", wide: true, fit: true },
   triage: { mode: "open", wide: true }, system: { mode: "open", wide: true } };   // the default layout's Page view, page by page
@@ -3290,7 +3307,10 @@ function cleanLayout(x) {   // what a stored layout may hold: named pages, known
     const names = Object.fromEntries(Object.entries((p && p.names) || {}).filter(([w, n]) => Object.hasOwn(WIDGETS, w) && typeof n === "string" && n.trim()).map(([w, n]) => [w, n.trim().slice(0, 40)]));   // widget names given on this page
     return { id, label, icon: PICONS.includes(p.icon) ? p.icon : "ovw", ...(Object.keys(names).length ? { names } : {}),
       widgets: (Array.isArray(p.widgets) ? p.widgets : []).flatMap((w) => (w === "brief" ? BRIEF3 : w === "behaviors" ? BEH6 : w === "risk" ? RISK5 : [w])).filter((w, i, ws) => typeof w === "string" && Object.hasOwn(WIDGETS, w) && ws.indexOf(w) === i) }; }).filter((p) => p && p.widgets.length);   // each widget once per page, on as many pages as you like; no page without a widget
-  return pages.length ? { pages, ...(x.home && pages.some((p) => p.id === x.home) ? { home: x.home } : {}) } : null;   // home: the page a load opens on
+  const dids = new Set(), dividers = (Array.isArray(x.dividers) ? x.dividers : []).slice(0, 12).map((d) => { const label = String((d && d.label) || "").trim().slice(0, 24); if (!label) return null;
+    let id = rslug(d.id || "d-" + label); while (dids.has(id)) id += "-2"; dids.add(id);
+    return { id, label, at: pages.some((p) => p.id === d.at) ? d.at : null }; }).filter(Boolean);   // at: the page below it; null, after the last page
+  return pages.length ? { pages, dividers, ...(x.home && pages.some((p) => p.id === x.home) ? { home: x.home } : {}) } : null;   // home: the page a load opens on
 }
 const RTXT = "cockpit:layout-rtext";   // Risk summary joined after the stored layouts were made: added once, after Risk assessment
 if (!store.get(RTXT, false)) { const L0 = store.get(LKEY, null); if (L0 && Array.isArray(L0.pages) && !L0.pages.some((p) => (p.widgets || []).includes("rtext"))) { L0.pages.forEach((p) => { const i = (p.widgets || []).indexOf("rsum"); if (i >= 0) p.widgets.splice(i + 1, 0, "rtext"); }); store.set(LKEY, L0); } store.set(RTXT, true); }
@@ -3302,11 +3322,18 @@ if (!store.get(CCHG, false)) { const L0 = store.get(LKEY, null), i = L0 && Array
       L0.pages.splice(i + 1, 0, { id, label: "Code changes", icon: "codechg", widgets: ["codechg"] }); if (PV[p.id]) { PV[id] = { ...PV[p.id] }; store.set(PVKEY, PV); } }
     store.set(LKEY, L0); }
   store.set(CCHG, true); }
-const WZSEEN = "cockpit:wizard-seen", WZFIRST = !store.get(LKEY, null) && !store.get(WZSEEN, false);   // a first visit: no layout of their own, the wizard not yet shown
+const DIVS = "cockpit:layout-dividers";   // nav dividers came after the stored layouts: a layout without any gets the default's above the pages it still has, once
+if (!store.get(DIVS, false)) { const L0 = store.get(LKEY, null);
+  if (L0 && Array.isArray(L0.pages) && !Array.isArray(L0.dividers)) { L0.dividers = LDEF().dividers.filter((d) => L0.pages.some((p) => p && p.id === d.at)); L0.pages.forEach((p) => p && delete p.group); store.set(LKEY, L0); }
+  store.set(DIVS, true); }
+const navItems = () => { const ds = LAYOUT.dividers || [];   // the nav as one list: each page after the dividers above it, then any divider below the last page
+  return [...LAYOUT.pages.flatMap((p) => [...ds.filter((d) => d.at === p.id), p]), ...ds.filter((d) => !LAYOUT.pages.some((p) => p.id === d.at))]; };
+const navSet = (xs) => { LAYOUT.pages = xs.filter((x) => x.widgets); LAYOUT.dividers = xs.filter((x) => !x.widgets);   // a reordered nav back into pages and dividers
+  xs.forEach((x, i) => { if (!x.widgets) { const n = xs.slice(i + 1).find((y) => y.widgets); x.at = n ? n.id : null; } }); };
 let LAYOUT = cleanLayout(store.get(LKEY, null)) || LDEF(), EDIT = false, LD = null;   // LD: the open dialog (the gallery or the page form)
 const has = (w) => Object.hasOwn(BLOCKS, w);   // Execution paths and Finding review exist only when the session holds their files
 function layoutRecipe() {   // every page and every widget on it, whether or not this review has data for it: an empty widget says so
-  return { ...RISKR, id: "package-layout", tabs: LAYOUT.pages.map((p) => ({ id: p.id, label: p.label, icon: p.icon, blocks: p.widgets.slice() })) };
+  return { ...RISKR, id: "package-layout", tabs: LAYOUT.pages.map((p) => ({ id: p.id, label: p.label, icon: p.icon, dividers: (LAYOUT.dividers || []).filter((d) => d.at === p.id).map((d) => d.label), blocks: p.widgets.slice() })) };
 }
 const WEMPTY = { builder: "No execution paths were written for this review. Ask the coding agent for one with the code-review-master skill.",
   codechg: "No code changes tree was written for this review. Ask the coding agent for one with the code-review-master skill.",
@@ -3331,7 +3358,7 @@ document.addEventListener("click", (e) => { const b = e.target.closest && e.targ
 function editHtml() {
   const ws = curPage().widgets, last = ws.length === 1;
   const card = (w, i) => `<div class="wcard" id="blk-w-${w}"><button class="wgrip" data-grip="w:${i}" aria-label="Drag ${esc(WIDGETS[w][0])} to reorder, or use the arrow keys" title="Drag to reorder">${GRIP}</button><span class="stile">${sico(w)}</span><div class="wc-t"><b>${esc(wname(w))}<button class="ptl-ed wc-ed" data-ly="w-edit" data-lyv="${w}" aria-label="Rename ${esc(wname(w))}" title="Rename widget"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button></b><span>${esc(WIDGETS[w][1])}</span>${has(w) ? "" : "<em>No data in this review</em>"}</div>
-    <div class="wc-a">${w === "verdict" && !C.product ? `<button class="wz-ic" data-vrset aria-expanded="${VRSET}" aria-controls="vr-pane" aria-label="Verdict settings" title="Verdict settings">${WRENCH}</button>` : ""}<button class="wz-ic" data-ly="rm" data-lyv="${i}" aria-label="Remove ${esc(WIDGETS[w][0])}"${last ? ` title="The only widget: removing it deletes the page"` : ""}${last && LAYOUT.pages.length < 2 ? " disabled" : ""}>${LYICON.bin}</button></div>${w === "verdict" ? `<div class="vr-pane pmside" id="vr-pane" role="region" aria-label="Verdict settings"${VRSET ? "" : " hidden"}>${vrPaneHtml()}</div>` : ""}</div>`;
+    <div class="wc-a">${w === "verdict" ? `<button class="wz-ic" data-vrset aria-expanded="${VRSET}" aria-controls="vr-pane" aria-label="Verdict settings" title="Verdict settings">${WRENCH}</button>` : ""}<button class="wz-ic" data-ly="rm" data-lyv="${i}" aria-label="Remove ${esc(WIDGETS[w][0])}"${last ? ` title="The only widget: removing it deletes the page"` : ""}${last && LAYOUT.pages.length < 2 ? " disabled" : ""}>${LYICON.bin}</button></div>${w === "verdict" ? `<div class="vr-pane pmside" id="vr-pane" role="region" aria-label="Verdict settings"${VRSET ? "" : " hidden"}>${vrPaneHtml()}</div>` : ""}</div>`;
   return `<div class="scol">${ws.map(card).join("")}<button class="wadd" data-ly="gallery"><b>${LYICON.widget}Add a widget</b><span>Pick one from the gallery</span></button></div>`;
 }
 function dialogHtml() {
@@ -3346,6 +3373,9 @@ function dialogHtml() {
         const fold = (cls, title, sub, list) => list.length ? `<details class="wgal-sec ${cls}" data-wmore${LD.moreOpen || LD.q ? " open" : ""}><summary class="wgal-h">${title}<span>${sub}</span><span class="chev" aria-hidden="true"></span></summary><div class="wgal">${list.map(tile).join("")}</div></details>` : "";   // the rest, folded until opened
         return sec("pop", "Popular", "In your layout now, plus the System map and Code changes", ws.filter((w) => pop.has(w))) + fold("more", "More widgets", "Everything else the review can show", ws.filter((w) => !pop.has(w))); })()}
       <div class="lmod-f"><span>${LD.added ? `${pl1(LD.added, "widget")} added to ${esc(p.label)}` : np ? "Pick the new page's first widget" : `Pick the widgets to add to ${esc(p.label)}`}</span><button class="btn pri" data-ly="close">Done</button></div></div>`; }
+  if (LD.kind === "div") return `<div class="lmod-c sm" role="dialog" aria-modal="true" aria-label="${LD.id ? "Rename divider" : "Add divider"}"><div class="lmod-h"><b>${LD.id ? "Rename divider" : "Add divider"}</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
+    <p class="lmod-p">A name shown above a group of pages in the nav.${LD.id ? "" : " It's added below the last page; drag it into place."}</p><label class="wz-l">Name<input data-ly-name maxlength="24" value="${esc(LD.name)}" placeholder="e.g. Intent"></label>
+    <div class="wz-row"><button class="btn pri" data-ly="div-save">Save</button><button class="btn" data-ly="close">Cancel</button></div></div>`;
   if (LD.kind === "tpl") return tplHtml();
   if (LD.kind === "lgal") return lgalHtml();
   if (LD.kind === "wpks") return wpksHtml();
@@ -3405,15 +3435,14 @@ function tplLayout({ who, depth, type }) {   // the pages a template makes: an a
 }
 function tplHtml() {
   const q = TPLQ.map(([k, title, opts]) => `<div class="tpl-q"><p class="tpl-qh">${title}</p><div class="tpl-os${opts.length > 2 ? " three" : ""}">${opts.map(([v, t, d, ic]) => `<button class="tpl-o" data-ly="tpl-pick" data-lyv="${k}:${v}" aria-pressed="${LD[k] === v}"><span class="tpl-i"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></span><b>${t}</b><span>${d}</span></button>`).join("")}</div></div>`).join("");
-  const L = tplLayout(LD), nw = L.pages.reduce((a, x) => a + x.widgets.length, 0);
   return `<div class="lmod-c tpl-c" role="dialog" aria-modal="true" aria-label="Build your own review"><div class="lmod-h"><b>Build your own review</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
-    ${LD.first ? `<p class="lmod-p">Welcome. Three questions set up this review's pages and widgets for you. Cancel keeps the default layout; the wizard is in the More menu any time.</p>` : ""}
+    ${LD.first ? `<p class="lmod-p">Three questions set up this review's pages and widgets for you. Cancel keeps the default layout; the wizard is on the welcome page, which Settings opens any time.</p>` : ""}
     <div class="tpl-qs">${q}</div><p class="tpl-gal">Prefer to browse? <button type="button" data-ly="lgal">View the Layout Marketplace →</button></p>
-    <div class="lmod-f"><span>${pl(L.pages.length, "page")} · ${pl(nw, "widget")}</span><span class="tpl-b"><button class="btn" data-ly="close">Cancel</button><button class="btn pri" data-ly="tpl-use">${LYICON.tpl}Use this layout</button></span></div></div>`;
+    <div class="lmod-f"><button type="button" class="tpl-back" data-wc-back>← Back to the welcome page</button><span class="tpl-b"><button class="btn" data-ly="close">Cancel</button><button class="btn pri" data-ly="tpl-use">${LYICON.tpl}Use this layout</button></span></div></div>`;
 }
 /* the layout gallery: each review style's parts, in its order, rebuilt from Work Package's widgets */
 const LGAL = [
-  { id: "package", name: "Work Package", from: "This style's default", what: "An overview with the verdict and the PRs, then the requirements, agent decisions, Merge Risk, the code map, the review walkthrough, execution paths, code changes, finding review and the system map", views: VIEWDEF, pages: LDEF().pages },
+  { id: "package", name: "Work Package", from: "This style's default", what: "An overview with the verdict and the PRs, then the requirements, agent decisions, Merge Risk, the code map, the review walkthrough, execution paths, code changes, finding review and the system map", views: VIEWDEF, pages: LDEF().pages, dividers: LDEF().dividers },
   { id: "cockpit", name: "Agent Session Review", from: "The Agent Session Review app", what: "The story first, then the reading plan, the walk through the code, the findings and your review", views: { story: { mode: "open" }, plan: { mode: "open" }, findings: { mode: "tabs" } }, pages: [
     { id: "story", label: "Story", icon: "stories", widgets: ["summary", "stories", "flow"] }, { id: "plan", label: "Reading plan", icon: "plan", widgets: ["plan", "starts"] },
     { id: "walk", label: "Walk", icon: "walk", widgets: ["walk", "codechg"] }, { id: "findings", label: "Findings", icon: "findings", widgets: ["findings", "triage"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },
@@ -3451,12 +3480,12 @@ if (!Array.isArray(store.get(MYKEY, null))) store.set(MYKEY, [{ id: "dana", name
     pages: [{ id: "verdict", label: "Scope", icon: "ovw", names: { verdict: "Merge overview", prstable: "Package contents", summary: "Product overview" }, widgets: ["summary", "prstable", "verdict", "rsum"] },
       { id: "code-reading", label: "Review", icon: "plan", widgets: ["plan", "builder", "codechg", "triage", "rsum", "decisions", "system", "arch"] }],
     views: { verdict: { mode: "tabs" }, "code-reading": { mode: "accordion", fit: true, wide: false } } }]);   // the first time: Dana's layout to start from
-const myLayouts = () => (store.get(MYKEY, []) || []).filter((g) => g && g.id && g.name && cleanLayout(g)).map((g) => ({ ...g, mine: true, pages: cleanLayout(g).pages, home: cleanLayout(g).home,
+const myLayouts = () => (store.get(MYKEY, []) || []).filter((g) => g && g.id && g.name && cleanLayout(g)).map((g) => ({ ...g, mine: true, pages: cleanLayout(g).pages, dividers: cleanLayout(g).dividers, home: cleanLayout(g).home,
   from: g.from || (g.saved ? `Saved ${new Date(g.saved).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "Saved"), what: g.what || "Your pages, widgets and Page views, as you saved them" }));
 function mySave(name) {   // the layout and its Page views as they are now, under a name; the same name replaces that one
   const views = Object.fromEntries(LAYOUT.pages.map((p) => { const v = { ...VDEF, ...(PV[p.id] || {}) }; return [p.id, { mode: v.mode, wide: !!v.wide, fit: !!v.fit }]; }));
   const list = (store.get(MYKEY, []) || []).filter((g) => g && g.name !== name);
-  list.push({ id: "my-" + Date.now().toString(36), name, saved: new Date().toISOString(), pages: JSON.parse(JSON.stringify(LAYOUT.pages)), ...(LAYOUT.home ? { home: LAYOUT.home } : {}), views });   // its home page too
+  list.push({ id: "my-" + Date.now().toString(36), name, saved: new Date().toISOString(), pages: JSON.parse(JSON.stringify(LAYOUT.pages)), dividers: JSON.parse(JSON.stringify(LAYOUT.dividers || [])), ...(LAYOUT.home ? { home: LAYOUT.home } : {}), views });   // its home page too
   store.set(MYKEY, list);
 }
 const LGMODE = { accordion: "accordion", manual: "folded", tabs: "as tabs", headless: "headless", open: "" };
@@ -3520,8 +3549,9 @@ function lgalHtml() {
   return `<div class="lmod-c" role="dialog" aria-modal="true" aria-label="Layout Marketplace"><div class="lmod-h"><b>Layout Marketplace</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
     <p class="lmod-p">Each review style's parts, in its order, rebuilt as a Work Package layout. Using one replaces your pages and widgets; change them after with Customize in the More menu.</p>${cards}</div>`;
 }
-if (WZFIRST) setTimeout(() => { store.set(WZSEEN, true); lDialog({ kind: "tpl", first: true, who: "other", depth: "thorough", type: "full" }); }, 0);   // the first visit opens on the wizard
-const lDraw = () => { LAYOUT.pages = LAYOUT.pages.filter((x) => x.widgets.length);   // a page whose last widget moved or went is gone
+setTimeout(wcAuto, 0);   // the first open, or a regenerated review, opens on the welcome page (welcome.js)
+const lDraw = () => { const ps = LAYOUT.pages; (LAYOUT.dividers || []).forEach((d) => { let i = ps.findIndex((x) => x.id === d.at); while (i >= 0 && i < ps.length && !ps[i].widgets.length) i++; d.at = i >= 0 && i < ps.length ? ps[i].id : null; });   // a divider above a page that goes moves to the next page
+  LAYOUT.pages = ps.filter((x) => x.widgets.length);   // a page whose last widget moved or went is gone
   if (!LAYOUT.pages.some((x) => x.id === S.tab)) S.tab = LAYOUT.pages[0].id;
   store.set(LKEY, LAYOUT); RECIPE = layoutRecipe(); save(); render(); drawHead(); };
 document.addEventListener("click", (e) => {
@@ -3533,12 +3563,12 @@ document.addEventListener("click", (e) => {
   if (a === "close") return lDialog(null);
   if (a === "add") {
     if (LD.newPage) { let id = rslug(WIDGETS[v][0]); while (LAYOUT.pages.some((x) => x.id === id)) id += "-2";
-      LAYOUT.pages.push({ id, label: WIDGETS[v][0], icon: PICONS.includes(v) ? v : "ovw", widgets: [v] }); S.tab = id; LD.newPage = false; } else p.widgets.push(v);   // the next picks join the new page
+      LAYOUT.pages.push({ id, label: WIDGETS[v][0], icon: PICONS.includes(v) ? v : "ovw", widgets: [v] }); S.tab = id; (LAYOUT.dividers || []).forEach((d) => { if (!LAYOUT.pages.some((x) => x.id === d.at)) d.at = id; }); LD.newPage = false; } else p.widgets.push(v);   // the next picks join the new page; a divider below the last page goes above it
     LD.added = (LD.added || 0) + 1; lDraw(); return lDialog(LD); }   // the gallery stays open: pick more, then Done
   if (a === "rm") { ws.splice(i, 1); return lDraw(); }
   if (a === "tpl") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "tpl", ...(store.get("cockpit:layout-template:2", null) || { who: "other", depth: "thorough", type: "full" }), kind: "tpl" }); }
   if (a === "lgal") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "lgal" }); }
-  if (a === "lgal-use") { const g = LGAL.concat(myLayouts()).find((x) => x.id === v); if (!g) return; LAYOUT = cleanLayout({ pages: JSON.parse(JSON.stringify(g.pages)), home: g.home }) || LDEF(); S.tab = LAYOUT.home || LAYOUT.pages[0].id;
+  if (a === "lgal-use") { const g = LGAL.concat(myLayouts()).find((x) => x.id === v); if (!g) return; LAYOUT = cleanLayout({ pages: JSON.parse(JSON.stringify(g.pages)), dividers: JSON.parse(JSON.stringify(g.dividers || [])), home: g.home }) || LDEF(); S.tab = LAYOUT.home || LAYOUT.pages[0].id;
     lgViews(LAYOUT.pages, g.views); EDIT = false; lDialog(null); lDraw(); return toast(`Layout: ${g.name}`); }
   if (a === "tpl-pick") { const [k, val] = v.split(":"); LD[k] = val; return lDialog(LD); }
   if (a === "tpl-use") { const pick = { who: LD.who, depth: LD.depth, type: LD.type }; store.set("cockpit:layout-template:2", pick); LAYOUT = cleanLayout(tplLayout(pick)) || LDEF(); lgViews(LAYOUT.pages, pick.depth === "thorough" ? { risk: { mode: "tabs" } } : {}); S.tab = LAYOUT.pages[0].id; EDIT = false; lDialog(null); lDraw(); return toast("Layout made from the template"); }
@@ -3557,13 +3587,18 @@ document.addEventListener("click", (e) => {
     const had = (store.get(MYKEY, []) || []).some((g) => g && g.name === name); mySave(name); lDialog(LD.back ? { kind: "mine" } : null); return toast(had ? `Updated in My layouts: ${name}` : `Added to My layouts: ${name}`); }
   if (a === "my-rm") { const g = myLayouts().find((x) => x.id === v); store.set(MYKEY, (store.get(MYKEY, []) || []).filter((x) => x && x.id !== v)); LD.rm = null; lDialog(LD); return toast(`Deleted ${g ? g.name : "the layout"}`); }
   if (a === "page-new") return lDialog({ kind: "gallery", newPage: true });
+  if (a === "div-new" || a === "div-edit") { const d = (LAYOUT.dividers || []).find((x) => x.id === v); return lDialog({ kind: "div", id: d && d.id, name: d ? d.label : "" }); }
+  if (a === "div-rm") { LAYOUT.dividers = (LAYOUT.dividers || []).filter((x) => x.id !== v); return lDraw(); }
+  if (a === "div-save") { const f = document.querySelector("[data-ly-name]"), name = f.value.trim().slice(0, 24); if (!name) return f.focus();
+    const ds = LAYOUT.dividers = LAYOUT.dividers || [], d = ds.find((x) => x.id === LD.id); let id = rslug("d-" + name); while (ds.some((x) => x.id === id)) id += "-2";
+    if (d) d.label = name; else ds.push({ id, label: name, at: null }); lDialog(null); return lDraw(); }
   if (a === "page-edit") return lDialog({ kind: "page", page: p.id, name: p.label, icon: p.icon, home: LAYOUT.home === p.id });
   if (a === "w-edit") return lDialog({ kind: "wname", w: v, name: wname(v) });
   if (a === "w-save" || a === "w-reset") { const n = a === "w-save" ? document.querySelector("[data-ly-name]").value.trim().slice(0, 40) : "", own = (BLOCKS[LD.w] && BLOCKS[LD.w].label) || WIDGETS[LD.w][0];
     p.names = { ...(p.names || {}) }; if (n && n !== own) p.names[LD.w] = n; else delete p.names[LD.w]; if (!Object.keys(p.names).length) delete p.names;   // an empty name, or its own, goes back to its own
     lDialog(null); return lDraw(); }
   if (a === "icon") { LD.name = document.querySelector("[data-ly-name]").value; LD.icon = v; return lDialog(LD); }
-  if (a === "page-rm") { LAYOUT.pages = LAYOUT.pages.filter((x) => x.id !== v); return lDraw(); }
+  if (a === "page-rm") { const q = LAYOUT.pages.find((x) => x.id === v); if (q) q.widgets = []; return lDraw(); }   // lDraw drops it and moves its dividers down
   if (a === "page-save") { const f = document.querySelector("[data-ly-name]"), name = f.value.trim().slice(0, 32); if (!name) return f.focus();
     Object.assign(LAYOUT.pages.find((x) => x.id === LD.page), { label: name, icon: LD.icon });
     const hm = document.querySelector("[data-ly-home]"); if (hm && hm.checked) LAYOUT.home = LD.page; else if (LAYOUT.home === LD.page) delete LAYOUT.home;   // one home page at most
@@ -3571,7 +3606,7 @@ document.addEventListener("click", (e) => {
 });
 let DRAG = null;   // what a handle is dragging: its list, index and element, the slot it would land in, and the copy under the pointer
 const DRAGS = { w: { items: "#panel .wcard", end: "#panel .wadd", list: () => curPage().widgets },   // the page's widgets
-  p: { items: "#tabs .nv-r", end: "#tabs .nv-add", list: () => LAYOUT.pages } };                     // the pages, in the nav
+  p: { items: "#tabs .nv-r", end: "#tabs .nv-add", list: navItems, set: navSet } };                    // the pages and dividers, in the nav
 document.addEventListener("pointerdown", (e) => {
   const g = e.target.closest && e.target.closest("[data-grip]"); if (!g || e.button > 0) return;
   e.preventDefault();
@@ -3597,7 +3632,7 @@ function dragEnd(drop) {
   for (let n = slot.previousElementSibling; n; n = n.previousElementSibling) if (n.matches(D.items) && n !== el) j++;
   ghost.remove(); document.body.classList.remove("wdrag"); DRAG = null;
   if (!drop || j === i) { slot.remove(); el.style.display = ""; if (subs) subs.style.display = ""; return; }
-  const xs = D.list(); xs.splice(j, 0, xs.splice(i, 1)[0]); lDraw();
+  const xs = D.list(); xs.splice(j, 0, xs.splice(i, 1)[0]); if (D.set) D.set(xs); lDraw();
 }
 document.addEventListener("pointerup", () => dragEnd(true));
 document.addEventListener("pointercancel", () => dragEnd(false));
@@ -3606,11 +3641,11 @@ document.addEventListener("keydown", (e) => {   // on a handle, the arrow keys m
   const g = e.target.closest && e.target.closest("[data-grip]"); if (!g || !["ArrowUp", "ArrowDown"].includes(e.key)) return;
   e.preventDefault(); e.stopPropagation();
   const [k, n] = g.dataset.grip.split(":"), xs = DRAGS[k].list(), i = +n, j = e.key === "ArrowUp" ? i - 1 : i + 1; if (j < 0 || j >= xs.length) return;
-  [xs[i], xs[j]] = [xs[j], xs[i]]; lDraw(); const h = document.querySelector(`[data-grip="${k}:${j}"]`); if (h) h.focus();
+  [xs[i], xs[j]] = [xs[j], xs[i]]; if (DRAGS[k].set) DRAGS[k].set(xs); lDraw(); const h = document.querySelector(`[data-grip="${k}:${j}"]`); if (h) h.focus();
 }, true);
 document.addEventListener("keydown", (e) => { if (!LD) return;
   if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); lDialog(null); }
-  else if (e.key === "Enter" && e.target.matches && e.target.matches("[data-ly-name]")) { e.preventDefault(); document.querySelector('[data-ly="page-save"], [data-ly="w-save"], [data-ly="my-save"], [data-ly="wpk-ren-save"], [data-ly="mine-ren-save"]').click(); } }, true);
+  else if (e.key === "Enter" && e.target.matches && e.target.matches("[data-ly-name]")) { e.preventDefault(); document.querySelector('[data-ly="page-save"], [data-ly="div-save"], [data-ly="w-save"], [data-ly="my-save"], [data-ly="wpk-ren-save"], [data-ly="mine-ren-save"]').click(); } }, true);
 RECIPE = layoutRecipe(); TABS = tabsOf(RECIPE);
 const hasPlan = TABS.some(([id]) => id === "plan");   // Code map's page is "plan" here; only older styles fold a "plan" tab into the walkthrough
 const h0 = ((location.hash || "").slice(1) || "").replace(/^plan$/, hasPlan ? "plan" : "walk");

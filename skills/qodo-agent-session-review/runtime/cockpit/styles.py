@@ -41,6 +41,16 @@ STYLES: dict[str, dict] = {
 }
 APP = "cockpit"      # the full app (app/index.html)
 DEFAULT = "package"  # what a review opens on when neither --style nor config "style" says otherwise
+# the product notice: a toast over the content area (beside the side nav, in the page's font) until the reader acknowledges it
+NOTICE_BAR = ('<style>.ck-notice{position:fixed;z-index:60;bottom:max(20px,env(safe-area-inset-bottom,0px));left:var(--nvw,0px);right:0;margin:0 auto;width:min(560px,calc(100vw - var(--nvw,0px) - 32px));'
+              'display:flex;align-items:center;gap:14px;padding:12px 12px 12px 16px;border:1px solid var(--line-strong,var(--line));border-radius:12px;background:var(--surface);color:var(--muted);'
+              'font-size:13px;line-height:1.45;box-shadow:0 16px 40px rgba(0,0,0,.35);animation:ck-pop .25s ease-out}.ck-notice[hidden]{display:none}.ck-notice span{flex:1;min-width:0}'
+              '.ck-notice button{flex:none;padding:6px 14px;border:1px solid var(--accent-line,var(--line));border-radius:8px;background:var(--accent-soft,var(--sunk));color:var(--accent-text,var(--ink));font:inherit;font-weight:600;cursor:pointer}'
+              '.ck-notice button:hover{filter:brightness(1.1)}@keyframes ck-pop{from{opacity:0;transform:translateY(12px)}}'
+              'body.nv-none .ck-notice{left:0;width:min(560px,calc(100vw - 32px))}@media (max-width:900px){.ck-notice{left:0;width:calc(100vw - 32px)}}@media print{.ck-notice{display:none!important}}</style>'
+              '<aside role="note" class="ck-notice" id="ck-notice" hidden><span>{{NOTICE}}</span><button type="button"'
+              ' onclick="this.parentNode.hidden=true;try{localStorage.setItem(\'cockpit:notice-ack\',\'1\')}catch(e){}">Got it</button></aside>'
+              '<script>{const n=document.getElementById("ck-notice");try{n.hidden=!!localStorage.getItem("cockpit:notice-ack")}catch(e){n.hidden=false}}</script>')
 
 
 def names(ready_only: bool = True) -> list[str]:
@@ -70,6 +80,25 @@ def _json_tag(obj, **attrs) -> str:
     a = "".join(f' {k.replace("_", "-")}="{v}"' for k, v in attrs.items())
     # inside <script>: escape every '<' so data can never close the tag or open a comment
     return f'<script type="application/json"{a}>' + json.dumps(obj, ensure_ascii=False).replace("<", "\\u003c") + "</script>"
+
+
+def evidence_limits(data: dict) -> dict:
+    """What the managed reads couldn't confirm, per PR: sections not read in full, patches not confirmed complete, overlap
+    read warnings and a Qodo read error. `recorded` is false when the PR carries no completeness records at all (a package
+    collected before product reads recorded them), so the page says that once instead of flagging every file."""
+    prs = []
+    for pr in data.get('prs', []):
+        read = pr.get('read_evidence') or {}
+        files = pr.get('files', [])
+        def done(f):
+            ev = f.get('patch_evidence') or {}
+            return ev.get('complete') is True and all(x.get('patch_complete') is True for x in ev.get('items', []))
+        prs.append({'key': pr.get('key', ''), 'title': pr.get('title', ''), 'recorded': bool(read) or any(f.get('patch_evidence') for f in files),
+                    'sections': [{'name': k, 'status': str(v.get('status') or ''), 'complete': v.get('complete') is True} for k, v in (read.get('sections') or {}).items()],
+                    'files': len(files), 'files_open': [f.get('path', '') for f in files if f.get('patch_evidence') and not done(f)],
+                    'files_unrecorded': sum(1 for f in files if not f.get('patch_evidence')),
+                    'overlaps': [str(w) for w in pr.get('overlap_read_warnings') or []], 'qodo_error': str(pr.get('qodo_read_error') or '')})
+    return {'prs': prs}
 
 
 def _esc(s: str) -> str:
@@ -130,25 +159,18 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
         host["app"] = {"keys": list(appstate.APP_KEYS), "state": appstate.load(), "path": str(appstate.path())}
     tpl = (STYLES_DIR / meta["template"]).read_text()
     if '{{PACKAGE_SCRIPT}}' in tpl:
-        tpl = tpl.replace('{{PACKAGE_SCRIPT}}', (STYLES_DIR / 'product-state.js').read_text() + '\n' + (STYLES_DIR / 'package.js').read_text())
+        script = (STYLES_DIR / 'package.js').read_text()
+        for mark, part in (('/*@READER@*/', 'reader.js'), ('/*@EVIDENCE@*/', 'evidence.js'), ('/*@WELCOME@*/', 'welcome.js')):   # parts in their own files keep package.js under the 512 KiB limit
+            script = script.replace(mark, (STYLES_DIR / part).read_text(), 1)
+        tpl = tpl.replace('{{PACKAGE_SCRIPT}}', (STYLES_DIR / 'product-state.js').read_text() + '\n' + script)
     kit = (STYLES_DIR / "kit.js").read_text()
     page_title = title or f"{view['title']} · {meta['name']}"
     from .product import enabled, NOTICE
     if enabled(data):
         host['product'] = True
         host['notice'] = NOTICE
-        tpl += '<aside role="note" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;background:var(--surface);color:var(--ink);border-top:1px solid var(--line);padding:6px 12px;font:12px sans-serif">' + NOTICE + '</aside>'
-    if enabled(data):
-        rows = []
-        for pr in data.get('prs', []):
-            sections = (pr.get('read_evidence') or {}).get('sections') or {}
-            gaps = [k + ': ' + str(v.get('status')) + ' / complete=' + str(v.get('complete')) for k, v in sections.items() if v.get('complete') is not True]
-            gaps += [f['path'] + ': patch completeness ' + str((f.get('patch_evidence') or {}).get('complete')) for f in pr.get('files', []) if any(x.get('patch_complete') is not True for x in (f.get('patch_evidence') or {}).get('items', [])) or (f.get('patch_evidence') or {}).get('complete') is not True]
-            gaps += pr.get('overlap_read_warnings') or []
-            if pr.get('qodo_read_error'):
-                gaps.append(pr['qodo_read_error'])
-            rows.append('<li>' + _esc(pr['key']) + ': ' + _esc('; '.join(gaps) or 'bounded source pages exhausted; mutable evidence observed per page') + '</li>')
-        tpl += '<details style="margin:16px;padding:12px"><summary>Managed source evidence and limits</summary><p>Review data is observed per page. Unknown or unavailable evidence does not establish a clean review. Diagrams and fonts may require their public CDNs.</p><ul>' + ''.join(rows) + '</ul></details>'
+        tpl += NOTICE_BAR.replace('{{NOTICE}}', NOTICE)
+        host['limits'] = evidence_limits(data)   # shown in the refresh details, in full in a dialog
     if enabled(data) and (data.get('collection') or {}).get('complete') is False:
         coll = data['collection']
         gap = f"Work package collection incomplete: {len(coll.get('collected_refs') or [])} of {len(coll.get('requested_refs') or [])} requested changes retained. Omitted: {', '.join(coll.get('omitted_refs') or []) or 'some source evidence'}."
