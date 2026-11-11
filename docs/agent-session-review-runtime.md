@@ -52,7 +52,7 @@ Product enrichment and refresh share a per-session `.cockpit-writer.lock` direct
 
 Product HTTP operations and snapshot writers also share activity leases under the sessions directory's `.cockpit-active/`; parallel browser requests remain concurrent. Trash takes exclusive access and refuses an active operation from another tab or server. Its guard remains outside the moved package, so deletion cannot invalidate cleanup. A crashed process can leave a stale lease; verify that no operation still owns that session before manually removing it. App settings use an OS-released cross-process lock on both POSIX and Windows. Authored risk line references are syntax-checked and verified against one collected file's visible new-side source; unverified context retains its original numbers but renders as a file-only reference with a warning.
 
-Ownership: this component and its behavior tests are maintained in qodo-skills. See [component maintenance](../skills/qodo-agent-session-review/references/packaging.md) and `test/agent-session-review/README.md`. This contract was adapted from the original Agent Session Review component and retains its component terms in runtime/LICENSE.
+Ownership: this component and its behavior tests are maintained in qodo-skills. See [component maintenance](../skills/qodo-agent-session-review/references/packaging.md) and `test/agent-session-review/README.md`. This contract was adapted from the original Cockpit component, now maintained as Agent Session Review, and retains its component terms in runtime/LICENSE.
 
 JSON requests are limited to 2,000,000 bytes before reading or parsing. Event offsets and CLI
 session names are validated; CLI sessions cannot escape their configured directory. Finding

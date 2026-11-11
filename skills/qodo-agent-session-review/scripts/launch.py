@@ -66,7 +66,8 @@ def state_home():
     if not selected and (RUNTIME / 'sessions').is_dir():
         sys.exit('Agent Session Review found reviews in its old runtime directory. Select an external data home and '
                  'migrate them explicitly; no reviews were moved.')
-    return Path(selected or Path.home() / '.qodo' / 'agent-session-review').expanduser().resolve()
+    from cockpit.util import DEFAULT_HOME
+    return Path(selected or DEFAULT_HOME).expanduser().resolve()
 
 
 def resolve_cli():

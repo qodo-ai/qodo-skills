@@ -15,7 +15,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { kiroRoot } from './package-projections.mjs';
-import { activeSkillRenames, declaredSkillRenames } from './skill-renames.mjs';
+import { activeSkillRenames } from './skill-renames.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -130,7 +130,7 @@ export function releaseTransaction(repositoryRoot, options = {}) {
   const packageCatalog = join(repositoryRoot, 'distribution/catalog.json');
   const optionalRoots = existsSync(packageCatalog)
     ? JSON.parse(readFileSync(packageCatalog, 'utf8')).installPackages.map((pkg) => kiroRoot(pkg.name)) : [];
-  const retiredRoots = declaredSkillRenames(repositoryRoot).map(({ fromPackage }) => kiroRoot(fromPackage));
+  const retiredRoots = (options.retiredPackages ?? []).map((name) => kiroRoot(name));
   const mutationPaths = [...new Set([...releaseMutationPaths, ...optionalRoots, ...retiredRoots])];
   const copy = options.copy ?? cpSync;
   const remove = options.remove ?? rmSync;
@@ -317,6 +317,16 @@ export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD
       ...(renames.length ? { renames } : {}),
     });
 
+    // Retire only packages verified against this release's actual base catalog,
+    // inside the same rollback transaction as their replacement projections.
+    for (const { fromPackage, toPackage } of renames) {
+      if (fromPackage === toPackage || catalog.installPackages.some((entry) => entry.name === fromPackage)) continue;
+      for (const path of ['packages', 'codex-packages', 'antigravity-plugins']
+        .map((base) => join(base, fromPackage)).concat(kiroRoot(fromPackage))) {
+        rmSync(join(repositoryRoot, path), { recursive: true, force: true });
+      }
+    }
+
     execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'sync-adapters.mjs')], {
       cwd: repositoryRoot,
       stdio: 'inherit',
@@ -330,7 +340,7 @@ export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD
       stdio: 'inherit',
     });
     return { version: nextPackageVersion, changes };
-  });
+  }, { retiredPackages: renames.map(({ fromPackage }) => fromPackage) });
 }
 
 if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -234,6 +234,15 @@ test('data-home aliases and the configured CLI command retain one consistent lau
   const standard = f.run({ REVIEW_COCKPIT_HOME: '', PR_COCKPIT_HOME: '' });
   assert.equal(standard.status, 0, standard.stderr);
   assert.equal(JSON.parse(standard.stdout).home, join(f.path, '.qodo/agent-session-review'));
+  const oldHome = join(f.path, '.qodo/review-cockpit');
+  put(join(oldHome, 'sessions/kept/events.jsonl'), 'saved reviewer note\n');
+  const retained = f.run({ REVIEW_COCKPIT_HOME: '', PR_COCKPIT_HOME: '' });
+  assert.equal(retained.status, 0, retained.stderr);
+  assert.equal(JSON.parse(retained.stdout).home, oldHome);
+  mkdirSync(join(f.path, '.qodo/agent-session-review'));
+  const current = f.run({ REVIEW_COCKPIT_HOME: '', PR_COCKPIT_HOME: '' });
+  assert.equal(JSON.parse(current.stdout).home, join(f.path, '.qodo/agent-session-review'));
+  assert.equal(readFileSync(join(oldHome, 'sessions/kept/events.jsonl'), 'utf8'), 'saved reviewer note\n');
 });
 
 test('replacing installed resources preserves external sessions, config, styles and legacy installation', (t) => {

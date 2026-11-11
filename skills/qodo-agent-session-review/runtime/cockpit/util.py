@@ -10,12 +10,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent   # the code: skill, engine, app (replaced on every update)
 DEFAULT_HOME = Path.home() / ".qodo" / "agent-session-review"
+LEGACY_HOME = Path.home() / ".qodo" / "review-cockpit"
+if not DEFAULT_HOME.exists() and LEGACY_HOME.is_dir():
+    DEFAULT_HOME = LEGACY_HOME
 
 
 def data_home() -> Path:
     """Where your reviews, memory and config live, apart from the code so an update never touches them:
-    $REVIEW_COCKPIT_HOME, else `home` in config.local.json, else a checkout that already holds its sessions
-    (kept as it is; `cockpit migrate` moves it), else ~/.qodo/agent-session-review."""
+    $QODO_AGENT_SESSION_REVIEW_HOME (legacy aliases remain accepted), else `home` in config.local.json,
+    else a checkout holding its sessions, else the current or pre-existing legacy external data home.
+    Fresh installations use ~/.qodo/agent-session-review; this selection never moves stored data."""
     env = (os.environ.get("QODO_AGENT_SESSION_REVIEW_HOME") or os.environ.get("REVIEW_COCKPIT_HOME")) or os.environ.get("PR_COCKPIT_HOME")
     if env:
         return Path(env).expanduser()

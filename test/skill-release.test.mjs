@@ -197,10 +197,23 @@ test('an explicit optional rename previews, records provenance and removes only 
   const path = join(f.root, 'distribution/skill-renames.json');
   const declared = readJson(f.root, 'distribution/skill-renames.json');
   const rename = { from, to, fromPackage: from, toPackage: to };
-  declared.renames.push(rename); writeFileSync(path, JSON.stringify(declared));
+  declared.renames.push(rename, { from: 'qodo-unrelated', to: 'qodo-other', fromPackage: 'qodo-unrelated', toPackage: 'qodo-other' });
+  writeFileSync(path, JSON.stringify(declared));
   f.commit('rename optional review');
-  assert.deepEqual(planSkillRelease(f.root).skills, [{ name: to, change: 'initial' }]);
-  const result = prepareSkillRelease(f.root);
+  const plan = planSkillRelease(f.root);
+  assert.deepEqual(plan.skills, [{ name: to, change: 'initial' }]);
+  const unrelated = join(f.root, 'packages/qodo-unrelated/keep.txt');
+  mkdirSync(dirname(unrelated), { recursive: true }); writeFileSync(unrelated, 'keep unrelated generated state');
+  const builder = join(f.root, 'scripts/build-cli-managed-bundle.mjs'), originalBuilder = readFileSync(builder);
+  writeFileSync(builder, originalBuilder + '\nthrow new Error("injected rename release failure");\n');
+  assert.throws(() => prepareSkillRelease(f.root, plan), /Command failed/);
+  assert(existsSync(join(f.root, 'kiro-power-agent-session-review')));
+  assert(!existsSync(join(f.root, 'kiro-power-renamed-review')));
+  assert.equal(readFileSync(unrelated, 'utf8'), 'keep unrelated generated state');
+  writeFileSync(builder, originalBuilder);
+  const result = prepareSkillRelease(f.root, plan);
+  assert.equal(readFileSync(unrelated, 'utf8'), 'keep unrelated generated state');
+  rmSync(dirname(unrelated), { recursive: true });
   const releasePath = join(f.root, `releases/v${result.version}.json`);
   assert.deepEqual(JSON.parse(readFileSync(releasePath)).renames, [rename]);
   for (const base of ['packages', 'codex-packages', 'antigravity-plugins']) {
