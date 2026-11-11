@@ -52,6 +52,25 @@ class ProductFindingScopeTests(unittest.TestCase):
                 self.assertRegex(legacy,'(Not r|R)eady to merge');   # standalone: main's merge thresholds
                 self.assertNotIn('Risk review checks pass',legacy)
 
+    def test_product_verdict_has_no_merge_thresholds_or_merge_risk_row(self):
+        source=(util.ROOT/'app/styles/package.js').read_text()
+        code=source[source.index('function productCiUnknown('):source.index('\n',source.index('function productCiUnknown('))]
+        code+=source[source.index('const vdLink ='):source.index('function crumb()')]
+        self.assertIn('w === "verdict" && !C.product',source)   # no Verdict settings wrench in product mode
+        p=self.pr();p['checks']=[{'name':'build','state':'SUCCESS'}]
+        with mock.patch.dict(os.environ,{'REVIEW_COCKPIT_PRODUCT':'0'}):
+            decision=approval({'product':True,'prs':[p]},'low');public=view._pr_view(p)
+        rules={'sev':[],'ci':False,'conflicts':False,'review':False,'comments':False}   # every threshold switched off
+        setup='const esc=String,strip=String,RW=String;KIT.openFindings=()=>[];KIT.allFindings=()=>[];const prs=()=>[p];'
+        setup+='const store={get:()=>('+json.dumps(rules)+'),set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};'
+        for product in (True,False):
+            with self.subTest(product=product):
+                context={'p':public,'C':{'product':product},'LIVE':{},'RK':{'approval':decision,'level':'low'},'CI_BAD':['FAILURE'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
+                html=self.node(setup+code+';result=bVerdict();',context)
+                self.assertNotIn('>Merge Risk<',html)
+                if product:self.assertNotIn('vd-t off',html);self.assertIn('not merge readiness',html)
+                else:self.assertIn('vd-t off',html)
+
     def render(self,p):
         package=(util.ROOT/'app/styles/package.js').read_text();app=(util.ROOT/'app/app.js').read_text()
         code=package[package.index('const findingOnCurrentCode ='):package.index('\n',package.index('const findingOnCurrentCode ='))]+'\n'
