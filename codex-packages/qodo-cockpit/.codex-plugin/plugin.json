@@ -1,0 +1,41 @@
+{
+  "name": "qodo-cockpit",
+  "version": "2.2.0",
+  "description": "Optional interactive PR/work-package review with local notes, refresh/resume and export.",
+  "author": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "homepage": "https://www.qodo.ai",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT AND LicenseRef-Qodo-Cockpit",
+  "keywords": [
+    "qodo",
+    "code-review",
+    "code-intelligence",
+    "standards",
+    "coding-agents"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Qodo Review Cockpit",
+    "shortDescription": "Qodo Review Cockpit",
+    "defaultPrompt": [
+      "Use $qodo-review-cockpit to review these PRs together in the interactive browser Cockpit."
+    ],
+    "longDescription": "Optional interactive PR/work-package review with local notes, refresh/resume and export.",
+    "developerName": "Qodo",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Qodo Review Cockpit"
+    ],
+    "websiteURL": "https://www.qodo.ai",
+    "supportURL": "https://help.qodo.ai/hc/en-us/requests/new",
+    "privacyPolicyURL": "https://www.qodo.ai/privacy-policy/",
+    "termsOfServiceURL": "https://www.qodo.ai/terms/",
+    "brandColor": "#6D4AFF",
+    "composerIcon": "./assets/qodo.png",
+    "logo": "./assets/qodo.png"
+  }
+}

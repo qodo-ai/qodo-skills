@@ -1,0 +1,16 @@
+{
+  "version": "2.2.0",
+  "summary": "Update Qodo skills and marketplace packages.\n- feat: add optional interactive review cockpit with owned runtime (#157)\n- feat(skills): publish optional repository catalog snapshots (#162)\n- fix(skills): keep optional beta out of marketplace indexes (#163)",
+  "package": {
+    "change": "minor"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-review-cockpit",
+      "version": "1.0.0",
+      "change": "initial"
+    }
+  ]
+}

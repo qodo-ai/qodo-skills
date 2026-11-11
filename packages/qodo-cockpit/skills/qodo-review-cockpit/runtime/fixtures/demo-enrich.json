@@ -1,0 +1,1165 @@
+{
+  "story": [
+    {
+      "id": "s1",
+      "kind": "diagram",
+      "weight": "lead",
+      "title": "Two PRs rewrite the checkout total",
+      "lede": "#101 changes where unit prices come from, #102 changes what happens after the sum. Both land in `checkout.py`; #103 is independent.",
+      "mermaid": "flowchart LR\n  OT[\"order_total(items, code)\"] --> LT[\"line_total(item)\"]\n  LT -->|get| PC[\"PriceCache\"]\n  PC -->|miss| DB[(prices DB)]\n  ST[[price_changed stream]] -->|apply| PC\n  OT -->|code given| AD[\"apply_discount\"]\n  AD -->|find_code| DB\n  class PC,ST,LT pr101\n  class AD,OT pr102",
+      "refs": [
+        {
+          "pr": "qodo-ai/shop-demo#101"
+        },
+        {
+          "pr": "qodo-ai/shop-demo#102"
+        },
+        {
+          "path": "src/payments/checkout.py",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "id": "flow",
+      "kind": "flow",
+      "title": "How a checkout total is made",
+      "lede": "A total now starts from cached unit prices and ends with an optional discount, all in integer cents.",
+      "follow": "Follow one checkout, step by step",
+      "answers": [
+        {
+          "q": "Where do prices come from now?",
+          "a": "From a short-lived cache in front of the catalog, so a price can be up to a minute old instead of read fresh on every checkout."
+        },
+        {
+          "q": "What does a discount code change?",
+          "a": "It runs after the items are summed. A fixed code subtracts cents; a percent code multiplies, which can leave a fraction of a cent."
+        }
+      ],
+      "hops": [
+        {
+          "from": "Cart",
+          "to": "Checkout",
+          "call": "checkout(cart)",
+          "carries": "line items: product id and quantity"
+        },
+        {
+          "from": "Checkout",
+          "to": "Price cache",
+          "call": "PriceCache.get",
+          "carries": "a product id",
+          "returns": "the unit price in cents, cached for 60 s",
+          "fails": "a cache miss reads the catalog",
+          "prs": [
+            "qodo-ai/shop-demo#101"
+          ]
+        },
+        {
+          "from": "Checkout",
+          "to": "Discounts",
+          "call": "apply_discount",
+          "carries": "the summed total in cents and the code",
+          "returns": "the discounted total",
+          "fails": "a percent code returns a fractional total, which breaks the cents rule",
+          "prs": [
+            "qodo-ai/shop-demo#102"
+          ]
+        },
+        {
+          "from": "Checkout",
+          "to": "Payment",
+          "call": "charge",
+          "carries": "the total in integer cents",
+          "prs": [
+            "qodo-ai/shop-demo#102"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "kind": "journey",
+      "title": "The shopper's path, after both",
+      "lede": "One step is still a gap: a percent code produces a fractional total.",
+      "steps": [
+        {
+          "actor": "Shopper",
+          "text": "adds items to the cart",
+          "prs": [],
+          "status": "unchanged"
+        },
+        {
+          "actor": "Checkout",
+          "text": "reads each unit price through `PriceCache.get`",
+          "prs": [
+            "qodo-ai/shop-demo#101"
+          ],
+          "status": "changed"
+        },
+        {
+          "actor": "Shopper",
+          "text": "enters a discount code",
+          "prs": [
+            "qodo-ai/shop-demo#102"
+          ],
+          "status": "new"
+        },
+        {
+          "actor": "Checkout",
+          "text": "charges an integer total in cents",
+          "prs": [
+            "qodo-ai/shop-demo#102"
+          ],
+          "status": "gap"
+        }
+      ]
+    },
+    {
+      "id": "stories",
+      "kind": "stories",
+      "title": "Who checkout changes for",
+      "lede": "Shoppers get discount codes and fresher prices; analysts keep their dashboards for 30 days. Code ownership checks are missing.",
+      "items": [
+        {
+          "for": "user",
+          "as": "shopper",
+          "want": "to enter a discount code at checkout",
+          "so_that": "I pay the promoted price",
+          "prs": [
+            "qodo-ai/shop-demo#102"
+          ],
+          "status": "partial",
+          "source": {
+            "kind": "qodo",
+            "title": "Qodo summary of #102"
+          },
+          "checks": [
+            {
+              "text": "a percent or fixed code lowers the total",
+              "status": "done"
+            },
+            {
+              "text": "the total stays in whole cents",
+              "status": "missing"
+            },
+            {
+              "text": "only active codes for this customer apply",
+              "status": "missing"
+            }
+          ]
+        },
+        {
+          "for": "user",
+          "as": "shopper",
+          "want": "to see the current price for every item",
+          "so_that": "what I pay matches the catalog",
+          "prs": [
+            "qodo-ai/shop-demo#101"
+          ],
+          "status": "delivered",
+          "source": {
+            "kind": "pr",
+            "title": "#101 description"
+          }
+        },
+        {
+          "for": "operator",
+          "as": "site operator",
+          "want": "the price cache to stop reloading 2 GB every 10 minutes",
+          "so_that": "memory and DB load stay flat",
+          "prs": [
+            "qodo-ai/shop-demo#101"
+          ],
+          "status": "delivered",
+          "source": {
+            "kind": "qodo",
+            "title": "Qodo summary of #101"
+          }
+        },
+        {
+          "for": "developer",
+          "as": "analyst",
+          "want": "autocomplete events under their new names, with the old names for 30 days",
+          "so_that": "dashboards keep working while I migrate",
+          "prs": [
+            "qodo-ai/shop-demo#103"
+          ],
+          "status": "delivered",
+          "source": {
+            "kind": "inferred",
+            "title": "from events.py"
+          }
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "kind": "callout",
+      "tone": "invariant",
+      "title": "Prices are integers in cents",
+      "lede": "A confirmed fact in memory, and #102 breaks it on its first percent code.",
+      "text": "`discounts.py:8` multiplies by `(1 - value/100)` and returns a float into `order_total`.",
+      "refs": [
+        {
+          "concept": "invariants/prices-in-cents.md"
+        },
+        {
+          "finding": "q-102-0"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "kind": "question",
+      "title": "Merge order",
+      "lede": "Both PRs edit `checkout.py`; #102 was written against the old dict access.",
+      "ask": "Which lands first?",
+      "options": [
+        "#101 first, then rebase #102",
+        "#102 first",
+        "Land together"
+      ]
+    }
+  ],
+  "prs": {
+    "qodo-ai/shop-demo#101": {
+      "story": [
+        {
+          "id": "p1",
+          "kind": "shape",
+          "form": "pseudocode",
+          "diff": true,
+          "weight": "lead",
+          "title": "From 2 GB reloads to a stream",
+          "lede": "The cache stops reloading every price every 10 minutes and applies changes one by one, falling back to the DB on a miss.",
+          "text": " PriceCache  (price_cache.py)\n-  every 600 s: _prices = fetch_all_prices()   # ~2 GB, GC pauses\n-  get(sku): _prices[sku]\n+  apply(sku, cents)                           # from the price_changed stream\n+    insert as most recent, evict past 500k SKUs\n+  get(sku)\n+    hit  -> cached cents\n+    miss -> fetch_price(sku), then apply\n checkout.line_total(item)\n-  cache._prices[item.sku]\n+  cache.get(item.sku)",
+          "notes": [
+            {
+              "line": 8,
+              "text": "The DB call runs outside the lock; see the next beat."
+            }
+          ],
+          "refs": [
+            {
+              "path": "src/cache/price_cache.py",
+              "line": 12,
+              "end_line": 25
+            },
+            {
+              "path": "src/payments/checkout.py",
+              "line": 9
+            }
+          ]
+        },
+        {
+          "id": "p2",
+          "kind": "code",
+          "title": "The miss path runs unlocked",
+          "lede": "Concurrent misses on one SKU each call the DB. Qodo flags it as high; I agree.",
+          "path": "src/cache/price_cache.py",
+          "from": 19,
+          "to": 25,
+          "notes": [
+            {
+              "line": 23,
+              "text": "Outside the lock: a cold start sends every concurrent request for the same SKU to the DB."
+            }
+          ]
+        },
+        {
+          "id": "p3",
+          "kind": "findings",
+          "title": "Decide on these",
+          "lede": "One real risk, one broken test, one nit.",
+          "ids": [
+            "q-101-1",
+            "q-101-0",
+            "q-101-2"
+          ]
+        }
+      ],
+      "stances": {
+        "q-101-1": {
+          "stance": "agree",
+          "why": "Cold start after deploy makes this likely; a per-SKU lock or single-flight fixes it."
+        },
+        "q-101-0": {
+          "stance": "agree",
+          "why": "MAX_SKUS is read at import time through the module global."
+        },
+        "q-101-2": {
+          "stance": "disagree",
+          "why": "The name is clear enough for a two-line test."
+        }
+      },
+      "layers": [
+        {
+          "id": "cache",
+          "title": "The cache applies changes itself",
+          "summary": "`PriceCache` drops the 10-minute full reload. It applies stream updates, evicts past 500k SKUs, and falls back to the DB on a miss. The test covers apply-then-get.",
+          "ranges": [
+            {
+              "path": "src/cache/price_cache.py",
+              "from": 1,
+              "to": 25,
+              "note": "Line 23 calls the DB outside the lock."
+            },
+            {
+              "path": "tests/test_price_cache.py",
+              "from": 1,
+              "to": 14
+            }
+          ]
+        },
+        {
+          "id": "checkout",
+          "title": "Checkout reads through the cache",
+          "depends_on": [
+            "cache"
+          ],
+          "summary": "Checkout stops reading the raw dict and goes through `get`, so misses fall back to the DB instead of raising.",
+          "ranges": [
+            {
+              "path": "src/payments/checkout.py",
+              "from": 9,
+              "to": 9
+            }
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "miss-db",
+          "text": "A cache miss fetches that one SKU from the DB at checkout",
+          "status": "unplanned",
+          "source": "pr",
+          "why": "The plan is a cache refreshed from the price_changed stream; nothing said checkout would read the DB. After a restart every SKU misses once, so the first checkouts each make a DB call per line.",
+          "effects": [
+            "volume"
+          ],
+          "notice": "Nothing would tell us: no metric on misses, and it only shows as DB load after a deploy.",
+          "ev": [
+            {
+              "path": "src/cache/price_cache.py",
+              "side": "new",
+              "from": 19,
+              "to": 25
+            }
+          ],
+          "pattern": "The other caches in src/cache never call the DB: a miss returns nothing and the caller decides."
+        },
+        {
+          "id": "lru",
+          "text": "The cache holds at most 500,000 SKUs and drops the least recently used",
+          "status": "unplanned",
+          "source": "pr",
+          "why": "Not in the plan. With more SKUs than that, evicted prices come back through the DB path above.",
+          "effects": [
+            "volume"
+          ],
+          "ev": [
+            {
+              "path": "src/cache/price_cache.py",
+              "side": "new",
+              "from": 5,
+              "to": 5
+            },
+            {
+              "path": "src/cache/price_cache.py",
+              "side": "new",
+              "from": 16,
+              "to": 17
+            }
+          ]
+        },
+        {
+          "id": "stream",
+          "text": "Nothing subscribes to price_changed, so apply() is never called",
+          "status": "missing",
+          "source": "pr",
+          "plan": "switches to incremental refresh driven by the `price_changed` stream",
+          "why": "apply() exists, but no code in this PR feeds it; until something does, prices only enter the cache on a miss."
+        },
+        {
+          "id": "apply",
+          "text": "Prices are updated one SKU at a time under a lock",
+          "status": "planned",
+          "source": "pr",
+          "plan": "incremental refresh instead of full reload",
+          "ev": [
+            {
+              "path": "src/cache/price_cache.py",
+              "side": "new",
+              "from": 12,
+              "to": 17
+            }
+          ]
+        }
+      ],
+      "quality": {
+        "summary": "The cache's miss path is tested; checkout only switches to it.",
+        "tests": [
+          {
+            "path": "src/payments/checkout.py",
+            "verdict": "fine",
+            "why": "One line: `line_total` reads the price through `cache.get` instead of the dict, so a miss falls back to the DB rather than raising `KeyError`.",
+            "covered_by": "`tests/test_price_cache.py`, which tests `cache.get` on a hit and a miss"
+          }
+        ]
+      }
+    },
+    "qodo-ai/shop-demo#102": {
+      "story": [
+        {
+          "id": "p1",
+          "kind": "code",
+          "weight": "lead",
+          "title": "Percent codes return a float",
+          "lede": "Fixed codes stay in cents; percent codes leave integers on line 8.",
+          "path": "src/payments/discounts.py",
+          "from": 3,
+          "to": 11,
+          "notes": [
+            {
+              "line": 8,
+              "text": "`total_cents * (1 - d.value / 100)` is a float. Round explicitly, e.g. `total_cents * (100 - d.value) // 100`."
+            },
+            {
+              "line": 4,
+              "text": "No check that the code is active or belongs to this customer."
+            }
+          ]
+        },
+        {
+          "id": "p2",
+          "kind": "findings",
+          "title": "Two blockers",
+          "lede": "Both high findings are real; the rest can wait.",
+          "ids": [
+            "q-102-0",
+            "q-102-1",
+            "q-102-2"
+          ]
+        },
+        {
+          "id": "p3",
+          "kind": "question",
+          "title": "Is validation in scope?",
+          "lede": "The PR body says nothing about expiry or ownership.",
+          "ask": "Block on code validation, or take it as a follow-up?",
+          "options": [
+            "Block",
+            "Follow-up ticket"
+          ]
+        }
+      ],
+      "stances": {
+        "q-102-0": {
+          "stance": "agree",
+          "why": "Breaks the cents invariant."
+        },
+        "q-102-1": {
+          "stance": "agree",
+          "why": "Any shopper can use any code."
+        },
+        "q-102-2": {
+          "stance": "partial",
+          "why": "Only reachable from the admin preview."
+        },
+        "q-102-4": {
+          "stance": "disagree",
+          "why": "Formatter handles it."
+        }
+      },
+      "layers": [
+        {
+          "id": "discounts",
+          "title": "Discount codes and their math",
+          "summary": "`apply_discount` looks the code up and applies a percent or fixed amount; `describe` formats it. The tests cover the percent case only.",
+          "ranges": [
+            {
+              "path": "src/payments/discounts.py",
+              "from": 1,
+              "to": 16,
+              "note": "Line 8 returns a float for percent codes."
+            },
+            {
+              "path": "tests/test_discounts.py",
+              "from": 1,
+              "to": 9
+            }
+          ]
+        },
+        {
+          "id": "wire",
+          "title": "Checkout takes an optional code",
+          "depends_on": [
+            "discounts"
+          ],
+          "summary": "`order_total` accepts a code and applies it after summing the lines.",
+          "ranges": [
+            {
+              "path": "src/payments/checkout.py",
+              "from": 2,
+              "to": 2
+            },
+            {
+              "path": "src/payments/checkout.py",
+              "from": 15,
+              "to": 19
+            }
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "unknown-code",
+          "text": "An unknown or expired code silently charges the full price",
+          "status": "unplanned",
+          "source": "pr",
+          "why": "The PR says it supports percent and fixed codes; what happens to a bad code was decided in the code. The shopper sees no error.",
+          "effects": [
+            "ux"
+          ],
+          "ev": [
+            {
+              "path": "src/payments/discounts.py",
+              "side": "new",
+              "from": 5,
+              "to": 6
+            }
+          ]
+        },
+        {
+          "id": "float",
+          "text": "Percent discounts return fractional cents",
+          "status": "unplanned",
+          "source": "inferred",
+          "why": "total_cents * (1 - value/100) is a float; the rest of checkout works in integer cents.",
+          "effects": [
+            "data"
+          ],
+          "ev": [
+            {
+              "path": "src/payments/discounts.py",
+              "side": "new",
+              "from": 8,
+              "to": 8
+            }
+          ]
+        },
+        {
+          "id": "kinds",
+          "text": "Percent and fixed-amount codes, fixed never below zero",
+          "status": "planned",
+          "source": "pr",
+          "plan": "Supports percent and fixed-amount codes.",
+          "ev": [
+            {
+              "path": "src/payments/discounts.py",
+              "side": "new",
+              "from": 7,
+              "to": 10
+            }
+          ]
+        }
+      ],
+      "quality": {
+        "summary": "Discounts are tested on their own; the checkout path that applies them is not.",
+        "tests": [
+          {
+            "path": "src/payments/checkout.py",
+            "verdict": "concern",
+            "why": "`order_total` gains a `code` argument, but no test calls it with one, so applying a discount to a real cart (and an unknown code) is untested. A test of `order_total(items, code=...)` would close it."
+          }
+        ]
+      }
+    },
+    "qodo-ai/shop-demo#103": {
+      "story": [
+        {
+          "id": "p1",
+          "kind": "table",
+          "weight": "lead",
+          "title": "Old names keep firing until 5 Nov",
+          "lede": "Each event is sent under both names for 30 days, so dashboards can migrate.",
+          "columns": [
+            "New name",
+            "Also sent as",
+            "Until"
+          ],
+          "rows": [
+            [
+              "`autocomplete_shown`",
+              "`ghost_text_shown`",
+              "2026-11-05"
+            ],
+            [
+              "`autocomplete_accepted`",
+              "`ghost_text_accepted`",
+              "2026-11-05"
+            ]
+          ],
+          "refs": [
+            {
+              "path": "src/telemetry/events.py",
+              "line": 3,
+              "end_line": 12
+            }
+          ]
+        },
+        {
+          "id": "p2",
+          "kind": "findings",
+          "weight": "aside",
+          "title": "A test with an expiry date",
+          "lede": "It starts failing on 6 Nov.",
+          "ids": [
+            "q-103-0",
+            "q-103-1"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "alias-date",
+          "text": "The old event names stop on a fixed date, 2026-11-05",
+          "status": "changed",
+          "source": "pr",
+          "plan": "keeps old names as aliases for 30 days",
+          "why": "30 days from when? The date is in the code, so a late release shortens the window and dashboards on the old names go quiet early.",
+          "effects": [
+            "data"
+          ],
+          "ev": [
+            {
+              "path": "src/telemetry/events.py",
+              "side": "new",
+              "from": 6,
+              "to": 6
+            },
+            {
+              "path": "src/telemetry/events.py",
+              "side": "new",
+              "from": 11,
+              "to": 11
+            }
+          ]
+        },
+        {
+          "id": "rename",
+          "text": "Events emit the new autocomplete_* names, and the old names as aliases",
+          "status": "planned",
+          "source": "pr",
+          "plan": "Renames emitted event names; keeps old names as aliases",
+          "ev": [
+            {
+              "path": "src/telemetry/events.py",
+              "side": "new",
+              "from": 3,
+              "to": 5
+            },
+            {
+              "path": "src/telemetry/events.py",
+              "side": "new",
+              "from": 10,
+              "to": 12
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "behavior": {
+    "headline": "Prices load per SKU on demand instead of a 2 GB reload every 10 minutes, checkout can take a discount code, and autocomplete events get new names with a 30-day alias.",
+    "capabilities": [
+      {
+        "id": "prices",
+        "title": "Looking up a price",
+        "summary": "The cache fills one SKU at a time, keeps at most 500,000 and evicts the oldest; checkout reads through it.",
+        "prs": [
+          "qodo-ai/shop-demo#101"
+        ]
+      },
+      {
+        "id": "total",
+        "title": "Paying at checkout",
+        "summary": "The order total stays integer cents and can take an optional discount code.",
+        "prs": [
+          "qodo-ai/shop-demo#101",
+          "qodo-ai/shop-demo#102"
+        ]
+      },
+      {
+        "id": "telemetry",
+        "title": "Autocomplete telemetry",
+        "summary": "Events are renamed to autocomplete_*; the old ghost_text_* names are sent too until 2026-11-05.",
+        "prs": [
+          "qodo-ai/shop-demo#103"
+        ]
+      }
+    ],
+    "files": [
+      {
+        "pr": "qodo-ai/shop-demo#101",
+        "path": "src/cache/price_cache.py",
+        "headline": "The cache stops reloading everything and fills on demand.",
+        "hunks": [
+          {
+            "cap": "prices",
+            "title": "loading prices",
+            "lines": [
+              {
+                "k": "-",
+                "kind": "behavior",
+                "text": "a background thread reloads every price (~2 GB) every 10 minutes.",
+                "ev": [
+                  {
+                    "side": "old",
+                    "from": 6,
+                    "to": 12
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "a price is fetched from the DB the first time its SKU is asked for, then kept.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 19,
+                    "to": 25
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "config",
+                "text": "at most `MAX_SKUS` = 500,000 prices are kept; the least recently used goes first.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 5,
+                    "to": 5
+                  },
+                  {
+                    "side": "new",
+                    "from": 15,
+                    "to": 17
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "a cold cache probably sends every concurrent miss for one SKU to the DB: the fetch runs outside the lock.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 20,
+                    "to": 24
+                  }
+                ],
+                "finding": "q-101-1"
+              }
+            ]
+          },
+          {
+            "cap": "prices",
+            "title": "price updates",
+            "lines": [
+              {
+                "k": "+",
+                "kind": "interface",
+                "text": "`PriceCache.apply(sku, cents)` writes one price under a lock.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 12,
+                    "to": 17
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "pr": "qodo-ai/shop-demo#101",
+        "path": "src/payments/checkout.py",
+        "headline": "Checkout reads prices through the cache.",
+        "hunks": [
+          {
+            "cap": "total",
+            "title": "line total",
+            "lines": [
+              {
+                "k": "-",
+                "kind": "behavior",
+                "text": "a SKU missing from the cache raises KeyError at checkout.",
+                "ev": [
+                  {
+                    "side": "old",
+                    "from": 9,
+                    "to": 9
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "a missing SKU is fetched and cached instead.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 9,
+                    "to": 9
+                  }
+                ],
+                "link": "cents"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "pr": "qodo-ai/shop-demo#101",
+        "path": "tests/test_price_cache.py",
+        "headline": "Tests cover apply-then-get and eviction.",
+        "hunks": [
+          {
+            "cap": "prices",
+            "title": "proof",
+            "lines": [
+              {
+                "k": "+",
+                "kind": "proof",
+                "text": "a price written with apply() is what get() returns.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 3,
+                    "to": 6
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "proof",
+                "text": "eviction is meant to be tested, but patching `MAX_SKUS` probably has no effect on apply().",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 8,
+                    "to": 13
+                  }
+                ],
+                "finding": "q-101-0"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "pr": "qodo-ai/shop-demo#102",
+        "path": "src/payments/checkout.py",
+        "headline": "The order total can take a discount code.",
+        "hunks": [
+          {
+            "cap": "total",
+            "title": "order total",
+            "lines": [
+              {
+                "k": "~",
+                "kind": "interface",
+                "text": "`order_total(items)` → `order_total(items, code=None)`; without a code nothing changes.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 15,
+                    "to": 19
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "with a code, the total goes through `apply_discount` before it is returned.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 17,
+                    "to": 18
+                  }
+                ],
+                "link": "cents"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "pr": "qodo-ai/shop-demo#102",
+        "path": "src/payments/discounts.py",
+        "headline": "Codes take a percent or a fixed amount off; unknown codes change nothing.",
+        "hunks": [
+          {
+            "cap": "total",
+            "title": "applying a code",
+            "lines": [
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "an unknown code leaves the total as it was.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 4,
+                    "to": 6
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "a percent code returns a float, so the total stops being integer cents.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 7,
+                    "to": 8
+                  }
+                ],
+                "finding": "q-102-0",
+                "link": "cents"
+              },
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "a fixed code never takes the total below 0.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 9,
+                    "to": 10
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "any code that exists is accepted: nothing checks it is active or belongs to this customer.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 3,
+                    "to": 4
+                  }
+                ],
+                "finding": "q-102-1"
+              }
+            ]
+          },
+          {
+            "cap": "total",
+            "title": "describing a code",
+            "lines": [
+              {
+                "k": "+",
+                "kind": "interface",
+                "text": "`describe(code)` returns \"10% off\" or \"$5.00 off\"; an unknown code raises AttributeError.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 13,
+                    "to": 15
+                  }
+                ],
+                "finding": "q-102-2"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "pr": "qodo-ai/shop-demo#103",
+        "path": "src/telemetry/events.py",
+        "headline": "Autocomplete events get new names; the old names keep flowing for 30 days.",
+        "hunks": [
+          {
+            "cap": "telemetry",
+            "title": "event names",
+            "lines": [
+              {
+                "k": "~",
+                "kind": "interface",
+                "text": "`ghost_text_shown` / `ghost_text_accepted` → `autocomplete_shown` / `autocomplete_accepted`.",
+                "ev": [
+                  {
+                    "side": "old",
+                    "from": 1,
+                    "to": 2
+                  },
+                  {
+                    "side": "new",
+                    "from": 3,
+                    "to": 4
+                  }
+                ]
+              },
+              {
+                "k": "+",
+                "kind": "behavior",
+                "text": "each event is sent a second time under its old name until 2026-11-05, then only the new name.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 5,
+                    "to": 6
+                  },
+                  {
+                    "side": "new",
+                    "from": 10,
+                    "to": 12
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "pr": "qodo-ai/shop-demo#103",
+        "path": "tests/test_events.py",
+        "headline": "The alias is tested, on today's date.",
+        "hunks": [
+          {
+            "cap": "telemetry",
+            "title": "proof",
+            "lines": [
+              {
+                "k": "+",
+                "kind": "proof",
+                "text": "emit sends the new and the old name; the test fails after 2026-11-05 because it reads today's date.",
+                "ev": [
+                  {
+                    "side": "new",
+                    "from": 3,
+                    "to": 5
+                  }
+                ],
+                "finding": "q-103-0"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "links": [
+      {
+        "id": "cents",
+        "title": "Totals are integer cents",
+        "why": "Every step from line total to discount must keep integer cents, or receipts and refunds disagree by a cent."
+      }
+    ],
+    "kept": [
+      {
+        "text": "a missing SKU still ends in a price from the DB, never a 0.",
+        "pr": "qodo-ai/shop-demo#101",
+        "path": "src/cache/price_cache.py",
+        "ev": [
+          {
+            "side": "new",
+            "from": 23,
+            "to": 25
+          }
+        ]
+      },
+      {
+        "text": "an order without a code totals exactly as before.",
+        "pr": "qodo-ai/shop-demo#102",
+        "path": "src/payments/checkout.py",
+        "ev": [
+          {
+            "side": "new",
+            "from": 15,
+            "to": 19
+          }
+        ],
+        "proof": "order_total keeps its old result when code is None"
+      },
+      {
+        "text": "dashboards on the old event names keep receiving data until 2026-11-05.",
+        "pr": "qodo-ai/shop-demo#103",
+        "path": "src/telemetry/events.py",
+        "ev": [
+          {
+            "side": "new",
+            "from": 10,
+            "to": 12
+          }
+        ]
+      }
+    ]
+  },
+  "deploy": [
+    {
+      "step": "Merge and deploy #101 behind its cache",
+      "prs": [
+        "qodo-ai/shop-demo#101"
+      ],
+      "why": "#102 reads prices through cache.get()",
+      "verify": "Checkout p95 and DB connections stay flat for an hour after the deploy"
+    },
+    {
+      "step": "Merge and deploy #102",
+      "prs": [
+        "qodo-ai/shop-demo#102"
+      ],
+      "why": "needs #101's cache.get()",
+      "verify": "Apply a percent and a fixed code on staging; totals are whole cents"
+    },
+    {
+      "step": "Merge and deploy #103",
+      "prs": [
+        "qodo-ai/shop-demo#103"
+      ],
+      "why": "independent; ship before the alias date",
+      "verify": "Both autocomplete_* and ghost_text_* events arrive in the analytics stream"
+    }
+  ],
+  "notices": [
+    {
+      "id": "cache-miss",
+      "pr": "qodo-ai/shop-demo#101",
+      "decision": "miss-db",
+      "kind": "pattern",
+      "source": "you-should-know",
+      "response": "knew",
+      "text": "Unlike the other caches here, PriceCache.get() falls back to a DB read on a miss.",
+      "state": "open",
+      "why": "Still true at the PR head (price_cache.py:23–25). The author answered “knew this already”, which isn't accepting it."
+    },
+    {
+      "id": "rounding",
+      "pr": "qodo-ai/shop-demo#102",
+      "kind": "risk",
+      "source": "you-should-know",
+      "response": "dismissed",
+      "text": "Percent discounts produce fractional cents; the rest of checkout rounds to whole cents.",
+      "state": "open",
+      "why": "Dismissed during coding, still in the code (discounts.py:8)."
+    },
+    {
+      "id": "alias-old",
+      "pr": "qodo-ai/shop-demo#103",
+      "kind": "plan",
+      "source": "you-should-know",
+      "response": "learn_more",
+      "text": "The plan says 30 days of aliases; the code first had no end date at all.",
+      "state": "stale",
+      "why": "No longer applies as written: the code now ends the aliases on 2026-11-05 (see the decision on the fixed date)."
+    }
+  ]
+}

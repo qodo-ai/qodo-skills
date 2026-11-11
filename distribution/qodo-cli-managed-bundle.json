@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "distribution": "qodo-cli-managed",
   "instructionMode": "embedded",
-  "packageVersion": "2.1.11",
+  "packageVersion": "2.2.0",
   "minimumCliVersion": "2.0.0",
   "source": {
     "repository": "https://github.com/qodo-ai/qodo-skills",
-    "tag": "v2.1.11"
+    "tag": "v2.2.0"
   },
   "aliases": {
     "codebase-wisdom": "qodo-codebase-wisdom",
