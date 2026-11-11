@@ -224,6 +224,9 @@ test('data-home aliases and the configured CLI command retain one consistent lau
   const f = installedFixture(t);
   const official = join(f.path, 'session-review-data');
   const selected = f.run({ QODO_AGENT_SESSION_REVIEW_HOME: official,
+    // Keep Node for the Windows shim, but remove Qodo from PATH so ignoring
+    // the explicit override cannot pass by launching the same executable.
+    PATH: process.platform === 'win32' ? dirname(process.execPath) : '',
     QODO_AGENT_SESSION_REVIEW_CLI: join(f.path, process.platform === 'win32' ? 'bin/qodo.cmd' : 'bin/qodo') });
   assert.equal(selected.status, 0, selected.stderr);
   assert.equal(JSON.parse(selected.stdout).home, official);
