@@ -83,6 +83,7 @@ class ReaderTests(unittest.TestCase):
         self.assertNotIn('.rd-pgt, .rd-find{display:none}', html)   # phones keep Find
         self.assertIn('.rd-q{max-width:min(150px, 40vw)}', html)   # and close stays on screen
         self.assertIn('if (!find.open) {', self.source)   # dismissed suggestions stay dismissed after a redraw
+        self.assertIn('opts = box.hidden ? [] : [...box.querySelectorAll(".rd-r")]', self.source)   # Enter and the arrows ignore closed suggestions
 
     def test_expand_opens_reader_in_stepper_and_scrolling_never_moves_the_focus(self):
         self.assertIn('READER = "step"; WFULL = b.dataset.wfull;', self.source)

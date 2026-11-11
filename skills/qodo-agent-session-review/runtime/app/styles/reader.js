@@ -121,7 +121,8 @@ function rdGo(i) {   // to a widget, in either mode
 }
 document.addEventListener("input", (e) => { if (e.target.matches && e.target.matches(".rd-q")) rdFindDraw(e.target); });
 document.addEventListener("keydown", (e) => { const q = e.target.matches && e.target.matches(".rd-q") ? e.target : null; if (!q) return;
-  const box = q.parentNode.querySelector(".rd-res"), opts = [...box.querySelectorAll(".rd-r")];
+  const box = q.parentNode.querySelector(".rd-res"), opts = box.hidden ? [] : [...box.querySelectorAll(".rd-r")];   // closed suggestions don't navigate
+  if (box.hidden && e.key === "ArrowDown" && q.value.trim()) { e.preventDefault(); return rdFindDraw(q); }   // ↓ reopens them
   if (e.key === "Escape") { e.preventDefault(); if (!box.hidden) { box.hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); } else if (q.value) q.value = ""; else q.blur(); return; }   // closes the suggestions, not Reader
   if ((e.key === "ArrowDown" || e.key === "ArrowUp") && opts.length) { e.preventDefault(); RDFI = (RDFI + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length; opts.forEach((o, k) => { o.classList.toggle("on", k === RDFI); o.setAttribute("aria-selected", String(k === RDFI)); }); q.setAttribute("aria-activedescendant", opts[RDFI].id); opts[RDFI].scrollIntoView({ block: "nearest" }); return; }
   if (e.key === "Enter" && opts.length) { e.preventDefault(); rdGo(+opts[RDFI].dataset.rdgo); } });
