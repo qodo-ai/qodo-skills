@@ -16,6 +16,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { kiroRoot } from './package-projections.mjs';
 import { activeSkillRenames } from './skill-renames.mjs';
+import { releaseBaseline } from './release-baseline.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -345,7 +346,7 @@ export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD
 
 if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const release = prepareRelease(process.argv.slice(2));
+    const release = prepareRelease(process.argv.slice(2), root, { baseCommit: releaseBaseline(root) });
     console.log(`Prepared Qodo skills v${release.version} with ${release.changes.length} skill change(s).`);
   } catch (error) {
     console.error(error.message);

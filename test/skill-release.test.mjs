@@ -199,7 +199,7 @@ test('an explicit optional rename previews, records provenance and removes only 
   const rename = { from, to, fromPackage: from, toPackage: to };
   declared.renames.push(rename, { from: 'qodo-unrelated', to: 'qodo-other', fromPackage: 'qodo-unrelated', toPackage: 'qodo-other' });
   writeFileSync(path, JSON.stringify(declared));
-  f.commit('rename optional review');
+  const renamedSource = f.commit('rename optional review');
   const plan = planSkillRelease(f.root);
   assert.deepEqual(plan.skills, [{ name: to, change: 'initial' }]);
   const unrelated = join(f.root, 'packages/qodo-unrelated/keep.txt');
@@ -229,6 +229,15 @@ test('an explicit optional rename previews, records provenance and removes only 
   const record = JSON.parse(readFileSync(releasePath)); record.renames = [];
   writeFileSync(releasePath, JSON.stringify(record)); f.commit('omit rename provenance');
   assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /must record the declared skill renames/);
+  // The documented manual command must resolve the same prepared baseline
+  // after the source rename is committed, including initial/version handling.
+  f.reset(renamedSource);
+  f.check('scripts/prepare-release.mjs', '--summary', 'Manual optional rename.', '--skill', `${to}=initial`);
+  assert.deepEqual(JSON.parse(readFileSync(releasePath)).renames, [rename]);
+  assert(!existsSync(join(f.root, 'kiro-power-agent-session-review')));
+  assert(existsSync(join(f.root, 'kiro-power-renamed-review', 'skills', to, 'runtime/LICENSE')));
+  f.commit('manual optional rename release');
+  f.check('scripts/validate-diff.mjs', f.base);
 });
 
 test('Antigravity artifacts belong to versioned release PRs, not source PRs', (t) => {

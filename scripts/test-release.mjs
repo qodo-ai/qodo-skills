@@ -88,7 +88,7 @@ try {
       '--skill', 'qodo-review=initial',
     ], { cwd: repositoryRoot, stdio: 'pipe' }),
     (error) => {
-      assert.match(String(error.stderr), /initial is only valid for a skill absent from the HEAD catalog/);
+      assert.match(String(error.stderr), /initial is only valid for a skill absent from the release base catalog/);
       return true;
     },
   );
