@@ -83,17 +83,19 @@ def _json_tag(obj, **attrs) -> str:
 
 
 def evidence_limits(data: dict) -> dict:
-    """What the managed reads couldn't confirm, per PR: sections not read in full, patches not confirmed complete, overlap
-    read warnings and a Qodo read error. `recorded` is false when the PR carries no completeness records at all (a package
+    """What the managed reads couldn't confirm, per PR: sections not read in full, a changed-file list not confirmed complete,
+    changed files missing from the review, patches not confirmed complete, overlap read warnings and a Qodo read error. `recorded` is false when the PR carries no completeness records at all (a package
     collected before product reads recorded them), so the page says that once instead of flagging every file."""
     prs = []
     for pr in data.get('prs', []):
         read = pr.get('read_evidence') or {}
         files = pr.get('files', [])
-        def done(f):
+        def done(f):   # a returned patch counts only with complete, nonempty items, as local_patch_evidence() requires
             ev = f.get('patch_evidence') or {}
-            return ev.get('complete') is True and all(x.get('patch_complete') is True for x in ev.get('items', []))
+            return ev.get('complete') is True and bool(ev.get('items')) and all(x.get('patch_complete') is True for x in ev['items'])
+        listed = pr.get('files_complete', ((read.get('sections') or {}).get('files') or {}).get('complete'))
         prs.append({'key': pr.get('key', ''), 'title': pr.get('title', ''), 'recorded': bool(read) or any(f.get('patch_evidence') for f in files),
+                    'files_list_complete': listed is True, 'files_missing': max(0, int(pr.get('files_missing') or 0)),
                     'sections': [{'name': k, 'status': str(v.get('status') or ''), 'complete': v.get('complete') is True} for k, v in (read.get('sections') or {}).items()],
                     'files': len(files), 'files_open': [f.get('path', '') for f in files if f.get('patch_evidence') and not done(f)],
                     'files_unrecorded': sum(1 for f in files if not f.get('patch_evidence')),

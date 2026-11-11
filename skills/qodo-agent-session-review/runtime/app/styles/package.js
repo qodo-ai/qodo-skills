@@ -1117,6 +1117,7 @@ function prddPanel() {   // the global PR filter, in the work package menu: each
 const prddDraw = (focusKey) => { const m = $("#wpk .wpk-m"); if (!m || WPKV !== "prs") return; m.classList.remove("wpk-fwd", "wpk-back"); m.innerHTML = wpkMenu();   // redraw the open filter, keeping the focus on what was ticked
   (focusKey ? m.querySelector(`[data-prpick="${CSS.escape(focusKey)}"]`) : m.querySelector(".prdd-o")).focus(); };
 document.addEventListener("click", (e) => {
+  if (e.target.closest && e.target.closest("[data-pr-all]")) { S.pr = "all"; S.file = null; save(); return render(); }   // the empty filter's way back
   const o = e.target.closest && e.target.closest("[data-prpick]");
   if (o) { e.stopImmediatePropagation();   // tick or untick a PR; the redraw detaches the target, which would read as a click outside the menu
     const k = o.dataset.prpick, cur = S.pr === "all" ? C.prs.map((p) => p.key) : S.pr.slice();
@@ -2298,7 +2299,8 @@ const navPage = ([id, t, bl, ic], i, parts) => {
 const navDiv = (d, i) => EDIT ? `<div class="nv-r nv-dr"><button class="wgrip" data-grip="p:${i}" aria-label="Drag the ${esc(d.label)} divider to reorder, or use the arrow keys" title="Drag to reorder">${GRIP}</button><span class="nv-cat">${esc(d.label)}</span><button class="nv-x" data-ly="div-edit" data-lyv="${esc(d.id)}" aria-label="Rename the ${esc(d.label)} divider" title="Rename divider">${LYICON.pen}</button><button class="nv-x" data-ly="div-rm" data-lyv="${esc(d.id)}" aria-label="Delete the ${esc(d.label)} divider" title="Delete divider">${LYICON.bin}</button></div>`
   : `<p class="nv-cat" role="separator">${esc(d.label)}</p>`;   // a divider: a name above a group of pages
 function navHtml(c, parts) {   // while editing, the layout's own list (dividers drag like pages); otherwise each page with the dividers above it
-  const rows = EDIT ? navItems().map((x) => (x.widgets ? TABS.find((t) => t[0] === x.id) : x)).filter(Boolean) : TABS.flatMap((t) => [...(t[4] || []).map((label) => ({ label })), t]);
+  const rows = EDIT ? navItems().map((x) => (x.widgets ? TABS.find((t) => t[0] === x.id) : x)).filter(Boolean) : TABS.flatMap((t) => [...(t[4] || []).map((label) => ({ label })), t])
+    .concat(RECIPE && RECIPE.id === "package-layout" ? (LAYOUT.dividers || []).filter((d) => !LAYOUT.pages.some((p) => p.id === d.at)).map((d) => ({ label: d.label })) : []);   // a divider below the last page shows there too
   return rows.map((r, i) => (Array.isArray(r) ? navPage(r, i, parts) : navDiv(r, i))).join("")
     + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button><button class="nv-add" data-ly="div-new"><b>${LYICON.div}Add divider</b><span>A name above a group of pages</span></button>` : "");
 }
@@ -2362,21 +2364,21 @@ const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity]
 const vrBlocks = (f) => VR.sev.length === 3 || VR.sev.includes(vrSev(f));   // All: every open finding, whatever its severity
 function bVerdict() {   // the bottom line: does the package meet every merge threshold, then the numbers behind it; Merge Risk has its own widget and no say here
   const ps = prs(), fs = KIT.openFindings({ ...C, prs: ps }), P = !!C.product;
-  const ciKnown = !P || !productCiUnknown(ps), rvKnown = ps.every(reviewCoverageKnown);   // product mode: incomplete evidence is unknown, never a pass
+  const ciKnown = !P || !productCiUnknown(ps), rvKnown = ps.every(reviewCoverageKnown), fdKnown = !P || ps.every((p) => (p.product_evidence || {}).qodo_complete === true && !p.qodo_read_error);   // product mode: Qodo's findings read in full, else unknown   // product mode: incomplete evidence is unknown, never a pass
   const cst = (c) => String(c.state || c.conclusion || "").toUpperCase(), ci = ps.filter((p) => ciChecks(p).some((c) => CI_BAD.includes(cst(c))));
   const wt = ps.filter((p) => !ci.includes(p) && ciChecks(p).some((c) => !CI_BAD.includes(cst(c)) && !CI_OK.includes(cst(c)))), nc = ps.filter((p) => !ci.includes(p) && !wt.includes(p) && !ciChecks(p).some((c) => cst(c) === "SUCCESS"));   // still running; no passing check (skipped and neutral are not passes, as in the package table)
   const ms = (p) => (LIVE[p.key] || {}).merge_state, cfKnown = Object.keys(LIVE).length > 0;   // read once the live check answered
   const cf = ps.filter((p) => ms(p) === "DIRTY"), aw = ps.filter(awaitingReview), cm = ps.reduce((a, p) => a + (vdN(p) > 0 ? vdN(p) : 0), 0), bf = fs.filter(vrBlocks);
   const pr = (n) => `${n} PR${n === 1 ? "" : "s"}`, why = [VR.sev.length && bf.length && `${bf.length} open finding${bf.length === 1 ? "" : "s"} to resolve`,
     VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.ci && wt.length && `CI still running on ${pr(wt.length)}`, VR.ci && ciKnown && nc.length && `no passing CI checks on ${pr(nc.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VR.comments && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
-  const unread = [VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
+  const unread = [VR.sev.length && !fdKnown && "findings", VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
   if (unread.length) why.push(`${unread.length > 1 ? unread.slice(0, -1).join(", ") + " and " + unread.at(-1) : unread[0]} not checked yet`);
-  const on = [VR.sev.length, VR.ci, VR.conflicts, VR.review, VR.comments].filter(Boolean).length, unmet = [VR.sev.length && bf.length, VR.ci && (ci.length || wt.length || !ciKnown || nc.length), VR.conflicts && (cf.length || !cfKnown), VR.review && (aw.length || !rvKnown), VR.comments && (cm || ps.some((p) => vdN(p) == null))].filter(Boolean).length;
+  const on = [VR.sev.length, VR.ci, VR.conflicts, VR.review, VR.comments].filter(Boolean).length, unmet = [VR.sev.length && (bf.length || !fdKnown), VR.ci && (ci.length || wt.length || !ciKnown || nc.length), VR.conflicts && (cf.length || !cfKnown), VR.review && (aw.length || !rvKnown), VR.comments && (cm || ps.some((p) => vdN(p) == null))].filter(Boolean).length;
   const st = why.length ? ["no", "Not ready to merge", `${unmet} of ${on} merge threshold${on === 1 ? "" : "s"} not met`] : ["ok", "Ready to merge", "Every merge threshold is met."];   // the cards below say which; the full list is on hover
   const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
   return `<div class="vd ${st[0]}"><div class="vd-st"${why.length ? ` title="${esc(why.join(" · "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
     <div class="vd-t${VR.sev.length ? "" : " off"}"${VR.sev.length ? "" : offT}><span class="vd-k">Open findings</span><b class="vd-n${bf.length ? " block" : " none"}">${fs.length}${vdOf(KIT.allFindings({ ...C, prs: ps }).length)}</b>
-      <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
+      <span class="vd-sev">${fdKnown ? "" : `<span class="vd-s">coverage unknown</span>`}${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
     ${vdPrs("PRs failing CI", ci, ciKnown, ps.length, "high", "/checks", !VR.ci, P)}
     ${vdPrs("PRs with merge conflicts", cf, cfKnown, ps.length, "high", "", !VR.conflicts)}
     ${vdPrs("PRs awaiting human review", aw, rvKnown, ps.length, "medium", "", !VR.review, P)}
@@ -2484,7 +2486,7 @@ function render() {
   document.body.classList.toggle("tab-system", blocks.includes("system"));
   if (!blocks.includes("system") && typeof CM !== "undefined" && CM.endWalk) CM.endWalk();   // its bar sits on the page, not in the tab
   $("#tabs").innerHTML = navHtml(c, parts);
-  $("#panel").innerHTML = EDIT ? editHtml() : S.pr !== "all" && !S.pr.length ? `<p class="lempty">No PRs are selected. Pick one or more in the PR filter, or tick <b>Select all</b>.</p>` : !blocks.length ? `<p class="lempty">This page has no widgets yet. Click <b>Edit</b> to add some.</p>` : VMODE === "tabs" ? wtabsHtml(parts) : FOLD ? `<div class="scol">${parts.map((p) => OPENV() ? soloHtml(p) : secHtml(p, SECT[S.tab], parts[0].id)).join("")}</div>`
+  $("#panel").innerHTML = EDIT ? editHtml() : S.pr !== "all" && !S.pr.length ? `<p class="lempty">No PRs are selected. Pick one or more in the Workpackage menu's PR filter, or <button type="button" class="btn sm" data-pr-all>show all PRs</button>.</p>` : !blocks.length ? `<p class="lempty">This page has no widgets yet. Click <b>Edit</b> to add some.</p>` : VMODE === "tabs" ? wtabsHtml(parts) : FOLD ? `<div class="scol">${parts.map((p) => OPENV() ? soloHtml(p) : secHtml(p, SECT[S.tab], parts[0].id)).join("")}</div>`
     : parts.map(soloHtml).join("");
   document.documentElement.style.setProperty("--hh", headH() + "px"); tocMark(); accFit(); psecFit(); caMark(); pmEyeFit(); unlinkWidgets();   // a full-screen widget follows the page's changes
   if (!EDIT) blocks.forEach((b) => BLOCKS[b] && BLOCKS[b].after && BLOCKS[b].after());   // parts may be a page's own sections now

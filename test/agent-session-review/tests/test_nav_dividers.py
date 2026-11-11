@@ -27,7 +27,7 @@ class NavDividerTests(unittest.TestCase):
 
     def nav(self, edit, layout):
         tabs = [[p['id'], p['label'], [], 'ovw', [d['label'] for d in layout['dividers'] if d['at'] == p['id']]] for p in layout['pages']]
-        code = f'let EDIT={json.dumps(edit)},LAYOUT={json.dumps(layout)},TABS={json.dumps(tabs)};'
+        code = f'let EDIT={json.dumps(edit)},LAYOUT={json.dumps(layout)},TABS={json.dumps(tabs)},RECIPE={{id:"package-layout"}};'
         code += cut(self.source, 'const navItems = ', 'let LAYOUT = cleanLayout') + cut(self.source, 'const navPage = ', 'const LYICON')
         return self.run_js(code + 'result=navHtml({},[]);')
 
@@ -39,7 +39,7 @@ class NavDividerTests(unittest.TestCase):
         html = self.nav(False, self.LAYOUT)
         self.assertLess(html.index('>Overview<'), html.index('>Intent</p>'))
         self.assertLess(html.index('>Intent</p>'), html.index('>Requirements<'))
-        self.assertNotIn('Later', html)   # a divider below the last page heads nothing, so reading hides it
+        self.assertGreater(html.index('>Later</p>'), html.index('>Requirements<'))   # a divider below the last page still shows, at the bottom
         self.assertNotIn('Add divider', html)
 
     def test_customize_lists_dividers_with_pages_to_drag_rename_and_delete(self):

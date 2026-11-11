@@ -14,9 +14,9 @@ class EvidenceLimitsTests(unittest.TestCase):
     def test_limits_say_not_recorded_once_and_list_real_gaps(self):
         data = {'prs': [
             {'key': 'o/a#1', 'title': 'Old', 'files': [{'path': 'a.py'}, {'path': 'b.py'}]},
-            {'key': 'o/b#2', 'title': 'New', 'read_evidence': {'sections': {'checks': {'status': 'truncated', 'complete': False}, 'reviews': {'status': 'exhausted', 'complete': True}}},
+            {'key': 'o/b#2', 'title': 'New', 'read_evidence': {'sections': {'checks': {'status': 'truncated', 'complete': False}, 'reviews': {'status': 'exhausted', 'complete': True}, 'files': {'status': 'exhausted', 'complete': True}}},
              'files': [{'path': 'c.py', 'patch_evidence': DONE}, {'path': 'd.py', 'patch_evidence': {'complete': False, 'items': []}}], 'qodo_read_error': 'Qodo unavailable'},
-            {'key': 'o/c#3', 'title': 'Clean', 'read_evidence': {'sections': {'checks': {'status': 'exhausted', 'complete': True}}}, 'files': [{'path': 'e.py', 'patch_evidence': DONE}]}]}
+            {'key': 'o/c#3', 'title': 'Clean', 'read_evidence': {'sections': {'checks': {'status': 'exhausted', 'complete': True}, 'files': {'status': 'exhausted', 'complete': True}}}, 'files': [{'path': 'e.py', 'patch_evidence': DONE}]}]}
         old, new, clean = evidence_limits(data)['prs']
         self.assertFalse(old['recorded'])
         self.assertEqual(old['files_unrecorded'], 2)
@@ -39,6 +39,21 @@ class EvidenceLimitsTests(unittest.TestCase):
         self.assertIn('<code>d.py</code>', new_html)
         self.assertIn('<b>checks</b>', new_html)
         self.assertIn('data-ev-open', tip)
+
+    def test_missing_changed_files_and_an_unconfirmed_file_list_are_gaps(self):
+        data = {'prs': [{'key': 'o/a#1', 'title': 'A', 'read_evidence': {'sections': {'files': {'status': 'exhausted', 'complete': True}}}, 'files_complete': False, 'files_missing': 3,
+                         'files': [{'path': 'a.py', 'patch_evidence': {'complete': True, 'items': []}}]}]}
+        pr = evidence_limits(data)['prs'][0]
+        self.assertFalse(pr['files_list_complete'])
+        self.assertEqual(pr['files_missing'], 3)
+        self.assertEqual(pr['files_open'], ['a.py'])   # a patch with no items isn't confirmed
+        source = (util.ROOT / 'app/styles/evidence.js').read_text()
+        stubs = "const KIT={host:{limits:" + json.dumps(evidence_limits(data)) + "}},esc=String,strip=String,pl=(n,w)=>n+' '+w+(n===1?'':'s');"
+        out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': stubs + source.split('document.addEventListener')[0] + 'result=[evState(EVL.prs[0]),evPr(EVL.prs[0])];'}), capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        state, html = json.loads(out.stdout)
+        self.assertEqual(state, ['warn', '3 gaps'])
+        self.assertIn('Changed-file list', html); self.assertIn("3 changed files the PR reports aren't in the review", html)
 
     def test_the_page_no_longer_appends_the_limits_block(self):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()

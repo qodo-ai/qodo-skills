@@ -1,4 +1,4 @@
-/* Reader (joined after package.js into one script): every widget on every page, expanded, in one full-page view — Scroll, with one widget in focus, or Stepper, the full-screen dialog — and Share › Export, its layout on paper */
+/* Reader (cockpit/styles.py splices this file into package.js at its READER marker comment, inside package.js's scope): every widget on every page, expanded, in one full-page view — Scroll, with one widget in focus, or Stepper, the full-screen dialog — and Share › Export, its layout on paper */
 const RDKEY = "cockpit:reader-mode";
 const RDICON = { scroll: '<path d="M7 2h10"/><path d="M5 6h14"/><rect width="18" height="12" x="3" y="10" rx="2"/>', step: '<path d="M2 7v10"/><path d="M6 5v14"/><rect width="12" height="18" x="10" y="3" rx="2"/>' };   // a stack read down, a stack stepped across
 const rdSeg = () => `<span class="pviews rd-seg" role="group" aria-label="Reader mode">${[["scroll", "Scroll"], ["step", "Steps"]].map(([k, t]) => `<button type="button" class="pv" data-rdmode="${k}" aria-pressed="${READER === k}">${svg(RDICON[k], "rd-mi")}${t}</button>`).join("")}</span>`;
@@ -13,7 +13,7 @@ const rdFs = () => `<span class="rd-fs" role="group" aria-label="Text size"><but
 const GLASSES_T = GLASSES.replace('class="g24"', 'class="sico"');   // in the dialog's tile, drawn like every widget icon
 function rdHead(step) {   // one header for both modes: Reader on the left, the mode switch and text size in the middle, Find and close on the right
   return `<div class="lmod-h wfm-h rd-hd"><span class="rd-hl"><span class="stile">${GLASSES_T}</span><b>Reader</b></span><span class="rd-hc">${rdSeg()}${rdFs()}${step ? "" : rdPgBtn()}</span><span class="rd-hr">`
-    + `<span class="rd-find"><svg class="rd-fi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="search" class="rd-q" placeholder="Find a widget" aria-label="Find a widget" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rd-res"><div class="rd-res" id="rd-res" role="listbox" hidden></div></span>`
+    + `<span class="rd-find"><svg class="rd-fi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="search" class="rd-q" placeholder="Find" aria-label="Find a widget" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rd-res"><div class="rd-res" id="rd-res" role="listbox" hidden></div></span>`
     + `<button type="button" class="wz-ic" ${step ? "data-wfm-close" : "data-rdclose"} aria-label="Close Reader" title="Close (Esc)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span></div>`;
 }
 function rdFoot(step) {   // a narrow footer, centred: first, previous, where you are, next, last
@@ -25,7 +25,16 @@ const rdPage = (id) => LAYOUT.pages.find((p) => p.id === id) || {};
 const rdWidget = ([w, pid], i, extra = "") => { const B = BLOCKS[w], pg = rdPage(pid);   // a widget as Reader and the export show it: its title bar, then all of it
   return `<section class="rd-w" data-rdi="${i}"><div class="ssum rd-h"${extra}><span class="stile">${sico(w)}</span><h2>${esc(wname(w, pg))}</h2>${B.sub ? `<span class="ssub">${B.sub()}</span>` : ""}</div><div class="sbody">${widgetHtml(w)}</div></section>`; };
 const rdBody = (seq, extra) => seq.map((x, i) => (i === 0 || seq[i - 1][1] !== x[1] ? `<p class="rd-pg">${esc(rdPage(x[1]).label || "")}</p>` : "") + rdWidget(x, i, extra(i))).join("");   // each page's name above its first widget
-const rdAfter = (root, seq) => root.querySelectorAll(".rd-w").forEach((el) => { const B = BLOCKS[seq[+el.dataset.rdi][0]]; if (B && B.after) B.after(el); });
+const rdAfter = (root, seq) => { const seen = {};   // each widget's own setup, once: a widget with one live instance (the System map) shows on its first page only
+  root.querySelectorAll(".rd-w").forEach((el) => { const [w, pid] = seq[+el.dataset.rdi], B = BLOCKS[w]; if (!B || !B.after) return;
+    if (seen[w]) { el.querySelector(".sbody").innerHTML = `<p class="wempty">This widget is shown earlier, on ${esc(seen[w])}.</p>`; return; }
+    seen[w] = rdPage(pid).label || "an earlier page"; B.after(el); });
+  return rdMermaid(root); };
+function rdMermaid(root) {   // diagrams in Reader and the PDF: the page's loader only draws the page panel
+  if (!root.querySelector("[data-mermaid]")) return Promise.resolve();
+  if (window.mermaid) return Promise.resolve(KIT.mermaid(root)).catch(() => {});
+  loadMermaid(); return new Promise((done) => { let n = 0; const t = setInterval(() => { if (window.mermaid || ++n > 50) { clearInterval(t); done(window.mermaid ? Promise.resolve(KIT.mermaid(root)).catch(() => {}) : null); } }, 100); });
+}
 function rdOpen(mode) {   // from the header: start at this page's first widget
   const seq = wseq(); if (!seq.length) return toast("This review has no widgets to read yet");
   const i = seq.findIndex(([, p]) => p === S.tab); RDAT = i >= 0 ? i : 0; rdMode(mode || store.get(RDKEY, "scroll"));
@@ -81,10 +90,11 @@ function rdExport() {   // Share › Export: Reader's layout on paper, every wid
   const el = document.createElement("div"), title = document.title.split(" · ")[0], day = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
   el.id = "rdp"; el.className = "rdp";
   el.innerHTML = `<header class="rdp-cover"><p class="rd-pg">Work package review</p><h1>${esc(title)}</h1><p class="muted">${pl(C.prs.length, "pull request")} · exported ${esc(day)}</p><ul>${C.prs.map((p) => `<li><b>${esc(p.key)}</b> ${esc(strip(p.title || ""))}</li>`).join("")}</ul></header>${rdBody(seq, () => "")}`;
-  document.body.appendChild(el); rdAfter(el, seq); el.querySelectorAll("details").forEach((d) => (d.open = true));
-  R.dataset.theme = "light"; document.body.classList.add("rd-printing");
+  document.body.appendChild(el); R.dataset.theme = "light"; document.body.classList.add("rd-printing");
+  el.querySelectorAll("details").forEach((d) => (d.open = true));
+  el.querySelectorAll("textarea").forEach((x) => { const d = document.createElement("div"); d.className = "rdp-ta"; d.textContent = x.value; x.replaceWith(d); });   // typed notes as text, not editable fields
   const done = () => { el.remove(); document.body.classList.remove("rd-printing"); if (was) R.dataset.theme = was; else delete R.dataset.theme; if (BLOCKS.system) BLOCKS.system.after(); };
-  addEventListener("afterprint", done, { once: true }); setTimeout(() => print(), 120);   // after the layout settles
+  addEventListener("afterprint", done, { once: true }); rdAfter(el, seq).then(() => setTimeout(() => print(), 120));   // after the widgets' setup and diagrams
 }
 /* Find: widgets by name, page, what they show and (in Scroll) their text; picking one goes to it in either mode */
 function rdFind(q) {

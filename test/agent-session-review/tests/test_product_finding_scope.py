@@ -45,6 +45,7 @@ class ProductFindingScopeTests(unittest.TestCase):
                 setup='const esc=String,strip=String,RW=String;KIT.openFindings=()=>[];const store={get:(k,d)=>d,set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};KIT.allFindings=()=>[];const prs=()=>[p];'
                 html=self.node(setup+code+';result=bVerdict();',context)
                 self.assertNotIn('Risk review',html);self.assertIn('Not ready to merge',html)   # an approving risk review has no say; unread thresholds are not met
+                self.assertIn('findings',html)   # Qodo's findings not read in full: the findings threshold is not checked yet, never a pass
                 if case=='failing':self.assertIn('#1',html);self.assertIn('PRs failing CI',html)
                 if case=='partial-ci':self.assertIn('coverage unknown',html)
                 context['C']['product']=False
