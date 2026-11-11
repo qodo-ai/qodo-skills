@@ -2164,9 +2164,16 @@ class StyleTests(unittest.TestCase):
         view = {"headRefOid": "abc", "state": "OPEN", "mergeStateStatus": "CLEAN", "reviewDecision": "REVIEW_REQUIRED", "isDraft": False, "comments": [], "reviews": []}
         with mock.patch.object(CL, "gh_json", return_value=view), mock.patch.object(CL.threads, "fetch", return_value={1: {"resolved": False}, 2: {"resolved": True}, 3: {"resolved": False}}):
             got = CL.live_state([pr])["o/r#1"]
-        self.assertEqual((got["unresolved"], got["unresolved_ids"], got["review_decision"]), (2, [1, 3], "REVIEW_REQUIRED"))
+        self.assertEqual((got["unresolved"], got["unresolved_ids"], got["threads"], got["review_decision"]), (2, [1, 3], 3, "REVIEW_REQUIRED"))
+        self.assertIsNone(got["checks"])                                                   # no rollup read: unknown, so the snapshot's checks stand
+        rolled = {**view, "statusCheckRollup": [{"name": "ci", "conclusion": "FAILURE", "completedAt": "2026-01-02T00:00:00Z"}]}
+        with mock.patch.object(CL, "gh_json", return_value=rolled), mock.patch.object(CL.threads, "fetch", return_value={}):
+            self.assertEqual(CL.live_state([pr])["o/r#1"]["checks"], [{"name": "ci", "state": "FAILURE"}])
         with mock.patch.object(CL, "gh_json", return_value=view), mock.patch.object(CL.threads, "fetch", side_effect=RuntimeError("no gh")):
             self.assertIsNone(CL.live_state([pr])["o/r#1"]["unresolved"])                  # unknown, not zero
+
+    def test_comment_badges_map_to_three_severities(self):
+        self.assertEqual([Q.SEVERITY[k] for k in ("required", "action_required", "recommended", "informational")], ["high", "high", "medium", "low"])
 
     def test_manage_work_packages(self):
         import shutil, subprocess, tempfile, threading, urllib.error, urllib.request

@@ -42,14 +42,15 @@ class ProductFindingScopeTests(unittest.TestCase):
                 data={'product':True,'prs':[p]};decision=approval(data,'low');self.assertEqual(decision['result'],'approve')
                 public=view._pr_view(p)
                 context={'p':public,'C':{'product':True},'LIVE':{},'RK':{'approval':decision,'level':'low'},'CI_BAD':['FAILURE'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
-                setup='const esc=String,strip=String,RW=String;KIT.openFindings=()=>[];const prs=()=>[p];'
+                setup='const esc=String,strip=String,RW=String;KIT.openFindings=()=>[];const store={get:(k,d)=>d,set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};KIT.allFindings=()=>[];const prs=()=>[p];'
                 html=self.node(setup+code+';result=bVerdict();',context)
                 self.assertIn('Risk review checks pass',html);self.assertIn('not merge readiness',html);self.assertNotIn('Ready to merge',html)
                 if case=='failing':self.assertIn('#1',html);self.assertIn('PRs failing CI',html)
                 if case=='partial-ci':self.assertIn('coverage unknown',html)
                 context['C']['product']=False
                 legacy=self.node(setup+code+';result=bVerdict();',context)
-                self.assertIn('Ready to merge',legacy);self.assertNotIn('Risk review checks pass',legacy)
+                self.assertRegex(legacy,'(Not r|R)eady to merge');   # standalone: main's merge thresholds
+                self.assertNotIn('Risk review checks pass',legacy)
 
     def render(self,p):
         package=(util.ROOT/'app/styles/package.js').read_text();app=(util.ROOT/'app/app.js').read_text()

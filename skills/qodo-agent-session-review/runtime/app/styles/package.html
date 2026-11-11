@@ -167,7 +167,7 @@ header.top{z-index:40} .hrow{padding-block:12px}
 .tline{display:flex; align-items:baseline; gap:10px; min-width:0}
 .tline h1{margin:0; font-size:17px; font-weight:600; line-height:1.3; white-space:nowrap; flex:none}
 .fname{font-size:15px; font-weight:500; color:var(--muted); min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.tsep{align-self:center; height:18px}
+.tsep{align-self:center; height:18px} .hdsep{align-self:center; height:20px; margin:0 7px}
 .wpk{position:relative; display:inline-flex; min-width:0} .wpk[hidden]{display:none}
 .wpk-b{display:inline-flex; align-items:center; gap:6px; min-width:0; max-width:420px; margin-left:-6px; padding:3px 8px; border:1px solid transparent; border-radius:8px; background:none; font:inherit; font-size:15px; font-weight:500; color:var(--muted); cursor:pointer}
 .wpk-b span{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -183,12 +183,13 @@ header.top{z-index:40} .hrow{padding-block:12px}
 .wpk-q{display:block; width:calc(100% - 12px); box-sizing:border-box; margin:2px 6px 0; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font:inherit; font-size:14px}
 .wpk-none{margin:0; padding:8px 10px; font-size:13px; color:var(--faint)}
 .fname::before{content:"/"; color:var(--faint); margin-right:10px; font-weight:400}
-.hact{display:flex; align-items:center; gap:6px; flex:none; margin-left:auto}
+.hact{display:flex; align-items:center; gap:3px; flex:none; margin-left:auto}
 .hact .hbtn{display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--muted); cursor:pointer; position:relative}
 .hact .hbtn:hover, .hact .hbtn[aria-expanded="true"], .tipw:focus-within .hbtn{color:var(--ink); border-color:var(--accent-line); background:var(--sunk)}
 .hact .hbtn svg{width:16px; height:16px; color:inherit; fill:none; stroke:currentColor; stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round} .hact .hbtn svg.g24{stroke-width:1.8}   /* a 24-unit icon drawn at 16px needs a heavier stroke */
 .hact .hbtn.qa-btn{width:auto; gap:6px; padding:0 9px 0 6px; border-color:var(--accent-line); background:var(--accent-soft); color:var(--accent-text)}   /* Ask Qodo stands apart: wider, the anteater in its own colours beside the panel icon, so it invites a click */
 .hact .hbtn.qa-btn .kd-logo{width:22px; height:22px; stroke:none} .hact .hbtn.qa-btn:hover{background:color-mix(in srgb, var(--accent) 22%, var(--surface))}
+.hact .hbtn.hlbl{width:auto; gap:6px; padding:0 10px 0 8px; font:500 13px var(--f-body)}   /* View and Share: the icon and its word */
 .hact .hbtn[aria-disabled="true"]{cursor:default; opacity:.7}
 .hact .hbtn.moved::after{content:""; position:absolute; top:-3px; right:-3px; width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 2px var(--bg)}
 .hact .hbtn.busy svg{animation:hspin 1s linear infinite}
@@ -658,6 +659,8 @@ body.tab-system main.wrap, body.wide main.wrap{max-width:1480px}   /* the System
 .scol{display:flex; flex-direction:column; gap:28px; min-width:0}   /* clear air between widgets */
 details.sec, .sec.solo{border-color:var(--wline); box-shadow:0 1px 2px rgba(0,0,0,.05), 0 4px 14px -8px rgba(0,0,0,.12)}   /* a widget's frame reads stronger than the folds inside it */
 details.sec > summary, .sec.solo > .ssum{background:var(--whead)} details.sec[open] > summary, .sec.solo > .ssum{border-bottom-color:var(--wline)}   /* its header bar marks where it starts */
+.nohead .sec.solo{position:relative} .nohead .sec.solo > .ssum{display:contents} .nohead .sec.solo > .ssum > :not(.wfull){display:none} .nohead .sec.solo > .sbody{border-radius:9px 9px 0 0}
+.nohead .sec.solo > .ssum > .wfull{position:absolute; top:6px; right:6px; z-index:2; background:var(--surface); opacity:0; transition:opacity .15s} .nohead .sec.solo:hover > .ssum > .wfull, .nohead .sec.solo > .ssum > .wfull:focus-visible{opacity:1}   /* Headless widgets: only the body, its top corners rounded */
 .sec.solo > .ssum{border-radius:9px 9px 0 0} details.sec > summary{border-radius:9px} details.sec[open] > summary{border-radius:9px 9px 0 0}   /* the tinted bar follows the card's rounded corners, inside its border */
 :root{--wline:color-mix(in srgb, var(--line-strong) 55%, var(--line)); --whead:color-mix(in srgb, var(--ink) 3%, var(--surface))}
 body.accord details.sec{interpolate-size:allow-keywords}   /* Accordion: a widget slides open and shut, its content fading in */
@@ -992,7 +995,7 @@ textarea.out{width:100%; min-height:180px; font:12.5px var(--f-mono); border:1px
 .radar{display:block; width:100%; height:auto; overflow:visible; user-select:none} .radar line, .radar path, .radar circle{vector-effect:non-scaling-stroke}   /* lines keep their width however big the chart is */
 .rgraph{display:grid; grid-template-columns:minmax(180px, 240px) minmax(0, 1fr); gap:20px; align-items:center} .rgraph .rchart{width:min(100%, calc((var(--acch, 55vh) - 48px) * 204 / 168)); justify-self:center}   /* as big as the widget's height allows */
 .rgraph.side{grid-template-columns:minmax(180px, 240px) minmax(0, 1fr) 260px; align-items:stretch} .rgraph.side > .rleg, .rgraph.side > .rchart{align-self:center}   /* PRs, chart, then the details panel */
-.rside{height:auto; min-height:0; background:var(--surface)} .rsd-t{margin:0 0 10px; color:var(--muted)} .rsd-sum{display:flex; align-items:flex-start; gap:8px; margin:0 0 12px; padding-bottom:12px; border-bottom:1px solid var(--line)} .rsd-sum .rchip{flex:none}
+.rside{height:auto; min-height:0; background:var(--surface); display:grid} .rsd-st{grid-area:1/1; visibility:hidden} .rsd-st.on{visibility:visible} .rsd-t{margin:0 0 10px; color:var(--muted)} .rsd-sum{display:flex; align-items:flex-start; gap:8px; margin:0 0 12px; padding-bottom:12px; border-bottom:1px solid var(--line)} .rsd-sum .rchip{flex:none}
 .rsd-f{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px} .rsd-f li{display:flex; flex-wrap:wrap; align-items:center; gap:6px} .rsd-f .rnp{display:inline-flex; align-items:center; gap:5px; font-weight:600} .rsd-f .rni svg{width:13px; height:13px} .rsd-f p{flex-basis:100%; margin:0; color:var(--muted); display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden}   /* one line per factor */
 @container (max-width:620px){ .rgraph, .rgraph.side{grid-template-columns:1fr} .rgraph .rleg{order:2} .rgraph .rside{order:3; height:auto; min-height:0} }
 .risk .rwide{container-type:inline-size}
@@ -1051,7 +1054,13 @@ textarea.out{width:100%; min-height:180px; font:12.5px var(--f-mono); border:1px
 .nv-add{margin-top:18px; padding:8px 10px; border:1px dashed var(--line-strong); border-radius:8px; background:none; color:var(--muted); font:500 13.5px var(--f-body); text-align:left; cursor:pointer} .nv-add:hover{border-color:var(--accent-line); color:var(--ink)}
 .wcard{display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
 .wc-t{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px} .wc-t span{font-size:13px; color:var(--muted)} .wc-t em{font-style:normal; font-size:12px; color:var(--warn)}
-.wc-a{display:flex; gap:2px}
+.wc-a{display:flex; gap:2px} .wc-a [data-vrset][aria-expanded="true"]{background:var(--sunk); color:var(--ink)}
+.wcard:has(> .vr-pane){flex-wrap:wrap} .vr-pane{flex-basis:100%; margin:2px 0 0; padding:14px 16px 16px; border:1px solid var(--line); border-radius:10px; height:auto; min-height:0; background:var(--surface)} .vr-pane[hidden]{display:none} .vr-pane.pmside > p.vr-p{margin:0 0 14px; font-size:13px} .vr-pane .hsrow b{color:var(--ink); font-weight:500}   /* Customize › Verdict settings */
+.vr-sev{display:inline-flex; gap:2px; padding:2px; margin-bottom:8px; border:1px solid var(--line); border-radius:8px} .vr-c{padding:5px 12px; border:0; border-radius:6px; background:none; color:var(--muted); font:500 13px var(--f-body); cursor:pointer}
+.vr-c:hover{color:var(--ink)} .vr-c[aria-pressed="true"]{background:var(--accent-soft); color:var(--ink); font-weight:600} .vr-z{display:flex; flex-direction:column; gap:8px} .vr-z .smod-r + .smod-r{margin:0}
+.vd-of{margin-left:6px; font-size:13px; font-weight:500; color:var(--faint)}   /* "of 7" after a count */
+.vd-s.off{opacity:.55}   /* a severity that isn't a merge threshold */
+.vd.norisk{display:grid; grid-template-columns:1fr 1fr} .vd.norisk .vd-m{display:contents}   /* without Merge Risk: the verdict takes the first of six cells, two by three */
 .wgrip{flex:none; display:grid; place-items:center; width:24px; height:40px; margin-left:-6px; border:0; border-radius:6px; background:none; color:var(--faint); cursor:grab; touch-action:none}
 .wgrip:hover{background:var(--sunk); color:var(--ink)} .wgrip:focus-visible{outline:none; box-shadow:0 0 0 2px var(--ring)} .wgrip svg{width:16px; height:16px; fill:currentColor}
 .wslot{border:2px dashed var(--accent-line); border-radius:10px; background:color-mix(in srgb, var(--accent-soft) 45%, transparent)}
@@ -1144,29 +1153,30 @@ body.nv-none .wtabs-w::after{width:calc(100vw - 40px)} @media (max-width:900px){
 .vd-m{display:grid; grid-template-columns:1fr 1fr; gap:12px}   /* four cards, two by two */
 .vd-t{display:flex; flex-direction:column; gap:6px; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
 .vd-k{font:600 11px/1.4 var(--f-body); letter-spacing:.07em; text-transform:uppercase; color:var(--faint)}
-.vd-t > b{font-size:22px; font-weight:650; line-height:1.2; color:var(--ink)} .vd-lv.low{color:var(--add)} .vd-lv.medium{color:var(--warn)} .vd-lv.high{color:var(--bad)} .vd-n.none{color:var(--add)}
+.vd-t > b{font-size:22px; font-weight:650; line-height:1.2; color:var(--ink)} .vd-lv.low{color:var(--add)} .vd-lv.medium{color:var(--warn)} .vd-lv.high{color:var(--bad)} .vd-n.none{color:var(--add)} .vd-n.block{color:var(--bad)}   /* green: passes its merge threshold; red: blocks the merge */
 .vd-meter{display:flex; gap:4px} .vd-meter i{flex:1; height:6px; border-radius:3px; background:var(--sunk)} .vd-meter i.low{background:var(--add)} .vd-meter i.medium{background:var(--warn)} .vd-meter i.high{background:var(--bad)}
 .vd-sev{display:flex; flex-wrap:wrap; gap:6px} .vd-s{font:500 12px/1.6 var(--f-body); padding:0 8px; border-radius:999px; background:var(--sunk); color:var(--muted)} a.vd-s{text-decoration:none} a.vd-s:hover{text-decoration:underline; filter:brightness(.95)}   /* a chip that opens its PR or comment */
-.vd-s.high{background:var(--tag-high-bg); color:var(--tag-high)} .vd-s.medium{background:var(--tag-med-bg); color:var(--tag-med)} .vd-s.none{background:var(--add-bg); color:var(--add)}
-@media (max-width:640px){ .vd-m{grid-template-columns:1fr} }
+/* every chip one quiet grey: the count above carries the colour */
+@media (max-width:640px){ .vd-m, .vd.norisk{grid-template-columns:1fr} }
 /* Package contents: its size as chips, plain line counts */
 .ssub:has(.pkn){display:inline-flex; flex-wrap:wrap; gap:6px} .pkn{gap:5px} .pkn svg, .pkn .sico{width:13px; height:13px} .pkn svg:not(.sico){fill:currentColor}
 .pkg .dbx{display:none}
 
 /* Settings modal */
 .smod{position:fixed; inset:0; z-index:60; display:grid; place-items:center; padding:24px; background:rgba(0,0,0,.45)} .smod[hidden]{display:none}
-.smod-c{width:min(680px, 100%); border:1px solid var(--line-strong); border-radius:12px; background:var(--surface); box-shadow:var(--shadow)}
+.smod-c{display:flex; flex-direction:column; width:min(680px, 100%); max-height:calc(100dvh - 48px); border:1px solid var(--line-strong); border-radius:12px; background:var(--surface); box-shadow:var(--shadow)}
 .smod-h{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line)} .smod-h b{font-size:16px}
 .smod-h [data-smod-close]{display:grid; place-items:center; width:28px; height:28px; padding:0; border:0; border-radius:6px; background:none; box-shadow:none; color:var(--faint); font-size:14px; line-height:1; cursor:pointer}
 .smod-h [data-smod-close]:hover{background:var(--sunk); color:var(--ink)}   /* a quiet close, like the nav's own icons */
-.smod-g{display:grid; grid-template-columns:180px minmax(0, 1fr); min-height:340px}   /* the tabs down the left, the open one beside them */
+.smod-g{display:grid; grid-template-columns:180px minmax(0, 1fr); grid-template-rows:minmax(0, 1fr); height:370px; min-height:0}   /* the tabs down the left, the open one beside them; one height for every tab, a longer tab scrolls */
 .smod-nav{display:flex; flex-direction:column; gap:2px; padding:10px 8px; border-right:1px solid var(--line); background:color-mix(in srgb, var(--ink) 2.5%, var(--surface)); border-bottom-left-radius:12px}
 .smod-t{display:flex; align-items:center; gap:9px; width:100%; padding:8px 10px; border:0; border-radius:7px; background:none; color:var(--muted); font:500 13.5px var(--f-body); text-align:left; cursor:pointer}
 .smod-t .sico{width:16px; height:16px} .smod-t:hover{background:var(--sunk); color:var(--ink)} .smod-t[aria-selected="true"]{background:var(--sunk); color:var(--ink); font-weight:600}
 .smod-ctx{font-weight:400; letter-spacing:0; text-transform:none; color:var(--muted)} .smod-keys{padding:0}
-@media (max-width:560px){ .smod-g{grid-template-columns:1fr} .smod-nav{flex-direction:row; border-right:0; border-bottom:1px solid var(--line); border-radius:0} }
-.smod-b{padding:14px 16px 18px; min-width:0} .smod-k{margin:0 0 8px; font:600 11px/1.4 var(--f-body); letter-spacing:.07em; text-transform:uppercase; color:var(--faint)}
+@media (max-width:560px){ .smod-g{grid-template-columns:1fr; grid-template-rows:auto minmax(0, 1fr)} .smod-nav{flex-direction:row; border-right:0; border-bottom:1px solid var(--line); border-radius:0} }
+.smod-b{padding:14px 16px 18px; min-width:0; overflow-y:auto; overscroll-behavior:contain; border-bottom-right-radius:12px} .smod-k{margin:0 0 8px; font:600 11px/1.4 var(--f-body); letter-spacing:.07em; text-transform:uppercase; color:var(--faint)}
 body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpop, body.ask-off .qa-btn{display:none !important}   /* Settings › Show Ask Qodo off */
+.sty-l{display:flex; flex-direction:column; gap:8px} .smod-b .sty-l .smod-r{margin:0} .sty-r{gap:10px; font-size:14px} .sty-r > span > em{visibility:visible; white-space:normal; color:var(--muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.4} .sty-r .sty-ask{flex:none; align-self:center} .smod-b .ck-create{display:inline-block; margin-top:10px}   /* Settings › Review style */
 .smod-k2{margin-top:18px} .smod-b .smod-r + .smod-r{margin-top:8px} .smod-src{display:flex; flex-direction:column; gap:10px}
 .src-f{display:flex; gap:8px} .src-rv{flex:none; align-self:center} .src-rv .sico{width:16px; height:16px}   /* Show in Finder */ .smod-path{overflow-x:auto; white-space:nowrap; user-select:all}   /* the app settings file: one line, selectable */
 .src-in{flex:1; min-width:0; padding:7px 10px; border:1px solid var(--line-strong); border-radius:6px; background:var(--bg); color:var(--ink); font:13px var(--f-mono)}
@@ -1183,7 +1193,7 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .smod-r{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px} .smod-r > span{display:flex; flex-direction:column; gap:2px; text-align:left} .smod-r em{font-style:normal; font-size:12.5px; color:var(--muted)}
 
 /* the PR filter */
-.prdd{position:relative} .hrow > .prdd:not([hidden]){margin-left:auto; margin-right:-8px} .hrow > .prdd:not([hidden]) + .hact{margin-left:0}   /* the PR filter sits with the header buttons, 6px apart like them */
+.prdd{position:relative} .hrow > .prdd:not([hidden]){margin-left:auto; margin-right:-11px} .hrow > .prdd:not([hidden]) + .hact{margin-left:0}   /* the PR filter sits with the header buttons, 3px apart like them */
 .prdd-b{position:relative; display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--muted); cursor:pointer}   /* an icon, like the header's other buttons */
 .prdd-fi{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round}   /* three lines narrowing like a funnel */ .prdd-b.on{color:var(--accent-text); border-color:var(--accent-line)}
 .prdd-c{position:absolute; top:-6px; right:-6px; min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:999px; background:var(--accent); color:var(--accent-ink); font:600 10.5px/16px var(--f-body); text-align:center}   /* how many PRs the filter keeps */
@@ -1224,7 +1234,6 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .snav-rf svg{width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round} .snav-rf.busy svg{animation:hspin 1s linear infinite}
 .snav-rf.moved::after{content:""; position:absolute; top:6px; left:22px; width:7px; height:7px; border-radius:50%; background:var(--accent)}   /* new commits since the review */
 .snav-foot .htip{top:auto; bottom:calc(100% + 8px); left:0; right:auto}
-.nv-mm .hsub{right:calc(100% + 10px)} .nv-mm .hsub::after{width:12px}   /* Review styles opens to the left, inside the window */
 .snav-rf{font-size:14px; padding:7px 12px; border:1px solid var(--line-strong); background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.05); color:var(--ink)} .snav-rf:hover{border-color:var(--accent-line)} .snav-rf[aria-disabled="true"]{color:var(--muted); box-shadow:none}   /* reads as a button, not a nav row */
 .snav-rf svg{width:18px; height:18px} .snav-foot .htip .ft-h{display:flex; flex-direction:column; gap:1px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--line)} .ft-h span{font-size:11.5px; color:var(--faint)} .ft-h b{font-size:15px; font-weight:600; color:var(--ink)}   /* when the data was fetched: the time leads, its label quiet */
 .srv{display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:10px 0 0; padding:7px 10px; border-radius:8px; background:var(--sunk); font-size:12.5px; color:var(--muted)} .srv span{flex:1}

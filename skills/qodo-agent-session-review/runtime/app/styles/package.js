@@ -240,12 +240,13 @@ const AXN = { radius: "Blast radius", complexity: "Complexity", damage: "Damage"
 let RSEL = null, RHOVER = null, RFOC = null;   // the PRs shown on the chart (null: all of them) and the one under the pointer
 const RDET = {};   // each PR's levels and reasons, for the details panel
 const sent1 = (t) => { const m = String(t || "").match(/^.*?[.!?](?=\s|$)/s); return (m ? m[0] : String(t || "")).trim(); };   // a reason's first sentence
-const rSideHtml = () => { const d = RHOVER && RDET[RHOVER];
+const rSideOne = (k) => { const d = k && RDET[k];
   if (!d) return `<p class="pms-h">Hover a pull request</p><p class="muted">Its overall risk and a line on each factor show here.</p>`;
   return `<p class="pms-h">#${esc(d.num)} <span class="muted">${esc(d.repo)}</span></p><p class="rsd-t">${esc(d.sub)}</p>
     <div class="rsd-sum">${rchip(d.risk)}<span>Decided by <b>${esc(d.worst.component)}</b>, its riskiest scenario.</span></div>
     <ul class="rsd-f">${RAXES.map((k) => `<li><span class="rnp"><span class="rni">${fic(k)}</span>${AXN[k]}</span><i class="rsdot ${rtone(d.factors[k])}"></i><b>${esc(RW(d.factors[k]))}</b><p title="${esc(d.why[k])}">${md(d.why[k])}</p></li>`).join("")}</ul>`; };
-const rSide = () => document.querySelectorAll(".rside").forEach((sd) => (sd.innerHTML = rSideHtml()));
+const rSideHtml = () => [""].concat(Object.keys(RDET)).map((k) => `<div class="rsd-st${k === (RHOVER || "") ? " on" : ""}" data-rsd="${esc(k)}">${rSideOne(k)}</div>`).join("");   // every PR stacked in one cell: the panel is as tall as the tallest, so hovering never moves the page
+const rSide = () => document.querySelectorAll(".rside .rsd-st").forEach((x) => x.classList.toggle("on", x.dataset.rsd === (RHOVER && RDET[RHOVER] ? RHOVER : "")));
 function riskRadar() {   // each PR as a shape on three bare axes: its highest level per factor across its failure scenarios; the legend turns PRs on and off
   const cx = 150, cy = 110, r = 72, VB = [64, 4, 204, 168], TIP = 1.18;   // a tight frame: the triangle and its labels, little else
   const pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 3, rr = r * v / 3; return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)]; };
@@ -1333,9 +1334,9 @@ function keysHtml() {   // the keys for the part of the page being read; clickin
       : `<button class="kd-row" ${a ? `data-kd="${a}"` : "disabled"}><span class="kd-k"><kbd>${esc(k)}</kbd></span><span>${esc(t)}</span></button>`; }).join("")}</div>`;
 }
 function settingsHtml() {   // the Settings modal: its tabs down the left, like a small side menu; the open one on the right
-  const tabs = [["general", "General", MICON.gear], KIT.served && ["packages", "File paths", MICON.folder], ["keys", "Shortcuts", MICON.keys]].filter(Boolean);
+  const tabs = [["general", "General", MICON.gear], KIT.served && ["packages", "File paths", MICON.folder], ["style", "Review style", MICON.layout], ["keys", "Shortcuts", MICON.keys]].filter(Boolean);
   if (!tabs.some((t) => t[0] === SETTAB)) SETTAB = "general";
-  const body = SETTAB === "keys" ? keysHtml()
+  const body = SETTAB === "keys" ? keysHtml() : SETTAB === "style" ? stylesTab()
     : SETTAB === "packages" ? `<p class="smod-k">File paths</p><div class="smod-r smod-src"><span><b>Work package folder</b><em>The Workpackage menu lists the packages in this folder, and new reviews are collected into it</em></span>
         <form class="src-f" data-src-form><input class="src-in" name="path" spellcheck="false" autocomplete="off" placeholder="Loading…" aria-label="Work package folder"><button class="btn pri sm" type="submit">Save</button><button class="wz-ic src-rv" type="button" data-reveal="sessions" aria-label="Show the work package folder in Finder" title="Show in Finder">${MICON.folder}</button></form>
         <p class="src-m" aria-live="polite"></p></div>`
@@ -1371,24 +1372,25 @@ function setOpen(on) {
   if (on) { const vm = document.querySelector(".vw-m"), vb = document.querySelector("[data-vw]"); if (vm) vm.hidden = true; if (vb) vb.setAttribute("aria-expanded", "false"); m.innerHTML = settingsHtml(); m.hidden = false; (m.querySelector(".smod-t[aria-selected=true]") || m).focus(); if (SETTAB === "packages") srcLoad(); } else m.hidden = true;
 }
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector(".smod:not([hidden])")) { e.stopPropagation(); setOpen(false); } }, true);
-function stylesMenu() {   // Review styles, its options one word each in a sub-menu (in the side nav's More menu)
+function stylesTab() {   // Settings › Review style: every style and saved layout, one row each with what it is
   const H = KIT.host, here = H.style === "focus", own = here && RECIPE !== FOCUS ? RECIPE : null;
-  const fUrl = (H.styles.find((s) => s.id === "focus" && s.url && !s.needs) || {}).url, cur = H.styles.find((s) => s.id === H.style);
-  const opt = (tag, attrs, name, on, tip, cls = "") => `<${tag} class="hopt${on ? " on" : ""}${cls}" role="menuitemradio" aria-checked="${on}"${attrs}${tip ? ` title="${esc(tip)}"` : ""}><i class="hrad" aria-hidden="true"></i><b>${esc(name)}</b>${cls ? "<em>Copy for Claude</em>" : ""}</${tag}>`;
-  const items = H.styles.slice().sort((a, b) => (b.id === "package") - (a.id === "package")).map((s) => s.id === H.style && !own ? opt("div", "", oneWord(s), true, s.what)
-    : s.id === "focus" && here ? opt("button", ` data-ck-recipe="focus"`, oneWord(s), false, s.what)
-    : s.id === H.style || (s.url && !s.needs) ? opt("a", ` href="${esc(s.url)}"`, oneWord(s), false, s.what)
-    : s.ask ? opt("button", ` data-ck-ask="${esc(s.ask)}"`, oneWord(s), false, "Claude Code makes this layout first: copy the request and paste it there", " later") : "").join("");
+  const fUrl = (H.styles.find((s) => s.id === "focus" && s.url && !s.needs) || {}).url;
+  const opt = (tag, attrs, name, on, what, later) => `<${tag} class="hopt vw-r smod-r sty-r${on ? " on" : ""}${later ? " later" : ""}" role="radio" aria-checked="${on}"${attrs}><i class="hrad" aria-hidden="true"></i><span><b>${esc(name)}</b>${what ? `<em title="${esc(what)}">${esc(what)}</em>` : ""}</span>${later ? "<em class=\"sty-ask\">Copy for Claude</em>" : ""}</${tag}>`;
+  const items = H.styles.slice().sort((a, b) => (b.id === "package") - (a.id === "package")).map((s) => s.id === H.style && !own ? opt("div", "", s.name, true, s.what)
+    : s.id === "focus" && here ? opt("button", ` data-ck-recipe="focus"`, s.name, false, s.what)
+    : s.id === H.style || (s.url && !s.needs) ? opt("a", ` href="${esc(s.url)}"`, s.name, false, s.what)
+    : s.ask ? opt("button", ` data-ck-ask="${esc(s.ask)}"`, s.name, false, "Claude Code makes this layout first: copy the request and paste it there", true) : "").join("");
   const mine = KIT.recipes().map((r) => own && own.id === r.id ? opt("div", "", r.name, true, r.about)
     : here ? opt("button", ` data-ck-recipe="${esc(r.id)}"`, r.name, false, r.about)
     : fUrl ? opt("a", ` href="${esc(fUrl)}#style-${esc(r.id)}"`, r.name, false, r.about) : "").join("");
-  const create = here ? `<button class="ck-create" role="menuitem" data-ck="create">＋ Create your own</button>` : fUrl ? `<a class="ck-create" role="menuitem" href="${esc(fUrl)}#create">＋ Create your own</a>` : "";
-  return `<div class="hlay"><button class="hsrow" data-hsub aria-haspopup="menu" aria-expanded="false">${MICON.layout}<span>Review styles</span><b>${esc(own ? own.name : cur ? oneWord(cur) : "")}</b><i class="hchev" aria-hidden="true">›</i></button>`
-    + `<div class="hsub" role="menu" aria-label="Review styles">${items}${mine ? `<div class="hsep"></div>${mine}` : ""}${create}</div></div>`;
+  const create = here ? `<button class="ck-create" data-ck="create">＋ Create your own</button>` : fUrl ? `<a class="ck-create" href="${esc(fUrl)}#create">＋ Create your own</a>` : "";
+  return `<p class="smod-k">Review styles</p><div class="sty-l" role="radiogroup" aria-label="Review styles">${items}</div>`
+    + (mine || create ? `<p class="smod-k smod-k2">Your styles</p><div class="sty-l" role="radiogroup" aria-label="Your styles">${mine}</div>${create}` : "");
 }
 document.addEventListener("click", (e) => {
   const so = e.target.closest && e.target.closest("[data-settings-open]"); if (so) return setOpen(true);   // the gear opens Settings straight away
   const st = e.target.closest && e.target.closest("[data-settab]"); if (st) { SETTAB = st.dataset.settab; const m = document.querySelector(".smod"); m.innerHTML = settingsHtml(); m.querySelector(`[data-settab="${SETTAB}"]`).focus(); if (SETTAB === "packages") srcLoad(); return; }
+  if (e.target.closest && e.target.closest('.smod [data-ck-recipe], .smod [data-ck="create"]')) return setOpen(false);   // a style picked here: the page re-lays out behind
   const sk = e.target.closest && e.target.closest(".smod [data-kd]"); if (sk) { setOpen(false); return dockGo(sk.dataset.kd); }   // a shortcut clicked does it
   const wd = e.target.closest && e.target.closest("[data-wide]");
   if (wd) { WIDE = !WIDE; viewSet("wide", WIDE); wd.setAttribute("aria-checked", String(WIDE)); document.body.classList.toggle("wide", WIDE); return keepScroll(() => {}); }
@@ -1407,9 +1409,9 @@ document.addEventListener("click", (e) => {
   if (sub) { const l = sub.parentNode, open = !l.classList.contains("open"); l.classList.toggle("open", open); sub.setAttribute("aria-expanded", String(open)); return; }
 }, true);
 const EYE = '<svg class="g24" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg>';
-const VMDESC = { open: ["Always open", "No folding: the page's widgets read as one long scroll"], accordion: ["Accordion", "The first widget starts open; opening another closes it"], manual: ["Manual", "Every widget starts closed; opened ones stay open"], tabs: ["As tabs", "One tab per widget: only the chosen widget's content, with no frame around it"] };
+const VMDESC = { open: ["Expanded", "No folding: the page's widgets read as one long scroll"], headless: ["Headless", "Every widget open, without its title bar: only its content"], accordion: ["Accordion", "The first widget starts open; opening another closes it"], manual: ["Manual", "Every widget starts closed; opened ones stay open"], tabs: ["Tabs", "One tab per widget: only the chosen widget's content, with no frame around it"] };
 function setVmode(v) {   // a new mode: folds opened or closed by hand start over, on every page
-  VMODE = v; viewSet("mode", VMODE); ACCORD = VMODE === "accordion";
+  VMODE = v; viewSet("mode", VMODE); ACCORD = VMODE === "accordion"; hdApply();
   [SECT, OPN, WOPEN, DOPEN, S.open].forEach((o) => Object.keys(o).forEach((k) => delete o[k])); if (typeof BW !== "undefined") Object.keys(BW.open).forEach((k) => delete BW.open[k]);
   opnSave(); save(); keepScroll(() => {}); const m = document.querySelector(".vw-m"); if (!m) return;
   m.querySelectorAll("[data-vmode]").forEach((x) => { const on = x.dataset.vmode === v; x.classList.toggle("on", on); x.setAttribute("aria-checked", String(on)); });
@@ -1450,10 +1452,11 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => { const m = document.querySelector(".sh-m:not([hidden])"); if (m && e.key === "Escape") shareClose(true); });
 function headActions() {
   const name = (KIT.host.styles.find((s) => s.id === KIT.host.style) || {}).name || "";
-  return `<div class="vw"><button type="button" class="hbtn" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Page view" title="Page view: how this page's widgets open">${EYE}</button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
+  return `<div class="vw"><button type="button" class="hbtn hlbl" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Page view" title="Page view: how this page's widgets open">${EYE}<span>View</span></button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
 
     + `<div class="theme" role="group" aria-label="Theme">${[["light", "Light", HICON.sun], ["dark", "Dark", HICON.moon]].map(([k, n, i]) => `<button type="button" data-theme-set="${k}" aria-pressed="${themeNow() === k}" aria-label="${n} mode" title="${n} mode">${i}</button>`).join("")}</div>`
-    + `<div class="vw"><button type="button" class="hbtn" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}</button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
+    + `<span class="vsep hdsep" aria-hidden="true"></span>`   // the view options (View, theme), then sharing
+    + `<div class="vw"><button type="button" class="hbtn hlbl" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}<span>Share</span></button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
     + `<button type="button" class="hbtn" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>`;   // Share, then More on the far right
 }
 if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; keepScroll(() => {}); drawHead(); }).catch(() => {});
@@ -2100,7 +2103,7 @@ function counts() {
            system: C.system ? C.system.contracts.filter((x) => x.change !== "unchanged").length : 0 };
 }
 const VKEY = "cockpit:widget-view:2";
-const VMODES = ["open", "accordion", "manual", "tabs"];   // Page view: Always open, Accordion (the default), Manual
+const VMODES = ["open", "headless", "accordion", "manual", "tabs"];   // Page view: Always open, Headless widgets, Accordion (the default), Manual, As tabs
 let VMODE = VMODES.includes(store.get(VKEY, null)) ? store.get(VKEY, null) : "accordion";
 const EXPAND = false;   // folds inside a widget always start closed: Page view sets only how the widgets themselves open
 let ACCORD = VMODE === "accordion";
@@ -2108,12 +2111,14 @@ const WDKEY = "cockpit:wide-widgets";
 let WIDE = store.get(WDKEY, false) === true;   // wider widgets: a view choice, saved in this browser
 const FTKEY = "cockpit:fit-height";
 let FIT = store.get(FTKEY, false) === true;   // an open widget shows all of its content; off, Accordion caps it at about half the screen
+const OPENV = () => VMODE === "open" || VMODE === "headless";   // no folding: Always open, or Headless widgets without their title bars
+const hdApply = () => document.body.classList.toggle("nohead", VMODE === "headless");
 const PVKEY = "cockpit:page-view", PV = store.get(PVKEY, {}) || {};   // the Page view per page: { pageId: { mode, wide, fit } }; a page with none takes the last saved choices
 const VDEF = { mode: VMODE, wide: WIDE, fit: FIT };
 function viewSync() {   // the current page's view: its mode, width and height choices
   const v = { ...VDEF, ...(PV[(typeof curPage === "function" && curPage() || {}).id] || {}) };
   VMODE = VMODES.includes(v.mode) ? v.mode : "accordion"; ACCORD = VMODE === "accordion"; WIDE = !!v.wide; FIT = !!v.fit;
-  document.body.classList.toggle("wide", WIDE);
+  document.body.classList.toggle("wide", WIDE); hdApply();
   const m = document.querySelector(".vw-m"); if (m && m.hidden) m.innerHTML = viewMenu();
 }
 const viewSet = (k, val) => { const id = curPage().id; PV[id] = { ...(PV[id] || {}), [k]: val }; store.set(PVKEY, PV);
@@ -2198,7 +2203,7 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => { if (WFULL && e.key === "Escape") { e.stopPropagation(); WFULL = null; wfullDraw(); } }, true);
 document.addEventListener("keydown", (e) => { if (!WFULL || !/^Arrow(Left|Right)$/.test(e.key) || (e.target.closest && e.target.closest("input, textarea, select, [contenteditable], [role=tab], [role=tablist], [role=radiogroup], .bv, .wtab, .cm"))) return;   // ← → step through widgets in full screen; tabs, segmented controls and the Contract Map keep their own arrows
   e.preventDefault(); e.stopPropagation(); wfStep(e.key === "ArrowRight" ? 1 : -1); }, true);
-const soloHtml = (s) => `<div class="rpart" id="blk-${s.id}"><div class="sec solo"><div class="ssum"><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}</div><div class="sbody">${s.html}</div></div></div>`;   // a widget that doesn't fold: a page's only one, or every one in Always open
+const soloHtml = (s) => `<div class="rpart" id="blk-${s.id}"><div class="sec solo" role="region" aria-label="${esc(s.label)}"><div class="ssum"><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}</div><div class="sbody">${s.html}</div></div></div>`;   // a widget that doesn't fold: a page's only one, or every one in Always open
 function secHtml(s, cur, first) {   // the Overview's card: icon, title, a summary chip, folded until opened; every page uses it
   return `<div class="rpart" id="blk-${s.id}"><details class="sec" data-sec="${esc(s.id)}"${secOpen(s.id, cur, first) ? " open" : ""}><summary><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}<span class="chev" aria-hidden="true"></span></summary><div class="sbody">${s.html}</div></details></div>`;
 }
@@ -2288,12 +2293,12 @@ const LYICON = {   // the layout editor's icons: more options, a page, a widget,
 function nvMore(btn) {   // the ⋮ menu opens under its header button, right-aligned (fixed, so nothing clips it)
   let m = document.querySelector(".nv-mm"); if (m && !m.hidden) { m.hidden = true; btn.setAttribute("aria-expanded", "false"); return; }
   if (!m) { m = document.createElement("div"); m.className = "nv-mm hmenu"; m.setAttribute("role", "menu"); document.body.appendChild(m); }
-  m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Marketplace</span></button><button class="hsrow" role="menuitem" data-ly="tpl">${LYICON.tpl}<span>Layout wizard</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="mine">${LYICON.page}<span>My layouts</span></button><button class="hsrow" role="menuitem" data-ly="my-new">${LYICON.save}<span>Add to my layouts</span></button><div class="hsep"></div>${stylesMenu()}`;
+  m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Marketplace</span></button><button class="hsrow" role="menuitem" data-ly="tpl">${LYICON.tpl}<span>Layout wizard</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="mine">${LYICON.page}<span>My layouts</span></button><button class="hsrow" role="menuitem" data-ly="my-new">${LYICON.save}<span>Add to my layouts</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="reset" title="Back to the Work Package default pages, widgets and Page views">${LYICON.reset}<span>Reset to default</span></button>`;
   const r = btn.getBoundingClientRect(); m.hidden = false; m.style.top = r.bottom + 6 + "px"; m.style.left = Math.max(8, r.right - m.offsetWidth) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-nvmore]"); if (b) return nvMore(b);
-  const m = document.querySelector(".nv-mm:not([hidden])"); if (m && (!m.contains(e.target) || e.target.closest('[data-ly], [data-ck-recipe], [data-ck="create"], a[href]'))) { m.hidden = true; const t = document.querySelector("[data-nvmore]"); if (t) t.setAttribute("aria-expanded", "false"); }
+  const m = document.querySelector(".nv-mm:not([hidden])"); if (m && (!m.contains(e.target) || e.target.closest("[data-ly]"))) { m.hidden = true; const t = document.querySelector("[data-nvmore]"); if (t) t.setAttribute("aria-expanded", "false"); }
 }, true);
 document.addEventListener("keydown", (e) => { const m = document.querySelector(".nv-mm:not([hidden])"); if (m && e.key === "Escape") { m.hidden = true; const t = document.querySelector("[data-nvmore]"); if (t) { t.setAttribute("aria-expanded", "false"); t.focus(); } } });
 function saveBar() {   // in Edit mode a Save bar floats up from the bottom; Save leaves Edit mode
@@ -2309,37 +2314,71 @@ window.addEventListener("resize", lsavePlace);
 const VDICON = { ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>', no: '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
   unknown: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>' };
 const vdLink = (href, cls, title, text) => href && /^https:\/\//.test(href) ? `<a class="vd-s ${cls}" href="${esc(href)}" target="_blank" rel="noopener" title="${esc(title)}">${text}</a>` : `<span class="vd-s ${cls}" title="${esc(title)}">${text}</span>`;
-function vdPrs(name, hit, known, tone = "high", path = "", showReported = false) {   // unknown coverage retains any observed negative PRs as a lower bound
+const vdOf = (n) => (n != null ? `<small class="vd-of">of ${n}</small>` : "");   // the total the count is out of, smaller than the count
+function vdPrs(name, hit, known, of, tone = "high", path = "", off = false, showReported = false) {   // a card counting the PRs in a state; unknown coverage keeps observed PRs as a lower bound
   const links = () => hit.map((p) => vdLink(p.url && p.url + path, tone, `${strip(p.title)}: open on GitHub`, `#${esc(p.number)}`)).join("");
-  return `<div class="vd-t"><span class="vd-k">${esc(name)}</span><b class="vd-n${known && !hit.length ? " none" : ""}">${known ? hit.length : showReported && hit.length ? `at least ${hit.length}` : "—"}</b>
+  return `<div class="vd-t${off ? " off" : ""}"${off ? ` title="Not a merge threshold: change it in Customize › Verdict settings"` : ""}><span class="vd-k">${esc(name)}</span><b class="vd-n${!known ? "" : !hit.length || off ? " none" : " block"}">${known ? hit.length + vdOf(of) : showReported && hit.length ? `at least ${hit.length}` : "—"}</b>
     <span class="vd-sev">${!known ? showReported ? `<span class="vd-s">coverage unknown</span>${links()}` : `<span class="vd-s">not checked yet</span>` : hit.length ? links() : `<span class="vd-s none">none</span>`}</span></div>`;
 }
-function vdThreads(ps) {   // unresolved review conversations across the PRs: GitHub's live count once read, else the count collected with the PR
-  const live = (p) => LIVE[p.key] && LIVE[p.key].unresolved != null, n = (p) => (live(p) ? LIVE[p.key].unresolved : p.unresolved_threads), first = (p) => ((live(p) ? LIVE[p.key].unresolved_ids : p.unresolved_ids) || [])[0], known = ps.filter((p) => n(p) != null), hit = known.filter((p) => n(p) > 0), tot = hit.reduce((a, p) => a + n(p), 0);
-  return `<div class="vd-t"><span class="vd-k">Unresolved comments</span><b class="vd-n${known.length && !tot ? " none" : ""}">${known.length ? tot : "—"}</b>
-    <span class="vd-sev">${!known.length ? `<span class="vd-s">not checked yet</span>` : hit.length ? hit.map((p) => vdLink(p.url && (first(p) ? `${p.url}#discussion_r${first(p)}` : p.url), "medium", `${strip(p.title)}: open its first unresolved comment on GitHub`, `#${esc(p.number)} · ${n(p)}`)).join("") : `<span class="vd-s none">none</span>`}</span></div>`;
+const vdTot = (p) => (LIVE[p.key] && LIVE[p.key].threads != null ? LIVE[p.key].threads : p.review_threads);   // every review conversation on the PR, resolved or not
+const vdN = (p) => (LIVE[p.key] && LIVE[p.key].unresolved != null ? LIVE[p.key].unresolved : p.unresolved_threads);   // a PR's unresolved conversations: GitHub's live count once read, else the count collected with the PR
+function vdThreads(ps, off) {   // unresolved review conversations across the PRs
+  const live = (p) => LIVE[p.key] && LIVE[p.key].unresolved != null, first = (p) => ((live(p) ? LIVE[p.key].unresolved_ids : p.unresolved_ids) || [])[0], known = ps.filter((p) => vdN(p) != null), hit = known.filter((p) => vdN(p) > 0), tot = hit.reduce((a, p) => a + vdN(p), 0), all = known.every((p) => vdTot(p) != null) ? known.reduce((a, p) => a + vdTot(p), 0) : null;
+  return `<div class="vd-t${off ? " off" : ""}"${off ? ` title="Not a merge threshold: change it in Customize › Verdict settings"` : ""}><span class="vd-k">Unresolved comments</span><b class="vd-n${!known.length ? "" : !tot || off ? " none" : " block"}">${known.length ? tot + vdOf(all) : "—"}</b>
+    <span class="vd-sev">${!known.length ? `<span class="vd-s">not checked yet</span>` : hit.length ? hit.map((p) => vdLink(p.url && (first(p) ? `${p.url}#discussion_r${first(p)}` : p.url), "medium", `${strip(p.title)}: open its first unresolved comment on GitHub`, `#${esc(p.number)}(${vdN(p)})`)).join("") : `<span class="vd-s none">none</span>`}</span></div>`;
 }
 const reviewCoverageKnown = (p) => !C.product || (LIVE[p.key] ? LIVE[p.key].reviews_complete === true : p.review_decision_complete === true && p.read_evidence?.sections?.reviews?.complete === true);
 const awaitingReview = (p) => { const L = LIVE[p.key];
   if (!reviewCoverageKnown(p)) return null;
   return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length; };
-function bVerdict() {   // the bottom line: can the package merge as it is, then Merge Risk and the open findings behind that answer
-  const ps = prs(), A = RK && RK.approval, ok = C.dummy || (!!A && A.result === "approve"), fs = KIT.openFindings({ ...C, prs: ps }), lv = RK ? RK.level : "", LV = ["low", "medium", "high"];
-  const st = !A && !C.dummy ? ["unknown", "No verdict yet", "Merge Risk hasn't been assessed for this package."]
-    : C.product ? ok ? ["ok", "Risk review checks pass", "This is a code-review recommendation, not merge readiness. CI and discussion evidence are shown separately."]
+const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], showRisk: true, ci: true, conflicts: true, review: true, comments: true };
+let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
+const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
+const vrBlocks = (f) => VR.sev.length === 3 || VR.sev.includes(vrSev(f));   // All: every open finding, whatever its severity
+function bVerdict() {   // the bottom line: does the package meet every merge threshold (product mode: the risk review's recommendation), then the numbers behind it
+  const ps = prs(), fs = KIT.openFindings({ ...C, prs: ps }), lv = RK ? RK.level : "", LV = ["low", "medium", "high"], P = !!C.product, A = RK && RK.approval;
+  const ciKnown = !P || !productCiUnknown(ps), rvKnown = ps.every(reviewCoverageKnown);   // product mode: incomplete evidence is unknown, never a pass
+  const ci = ps.filter((p) => ((LIVE[p.key] && LIVE[p.key].checks) || p.checks || []).some((c) => CI_BAD.includes(String(c.state || c.conclusion || "").toUpperCase()))), live = Object.keys(LIVE).length > 0;
+  const cf = live ? ps.filter((p) => (LIVE[p.key] || {}).merge_state === "DIRTY") : [], aw = ps.filter(awaitingReview), cm = ps.reduce((a, p) => a + (vdN(p) > 0 ? vdN(p) : 0), 0), bf = fs.filter(vrBlocks);
+  const pr = (n) => `${n} PR${n === 1 ? "" : "s"}`, why = [VR.sev.length && bf.length && `${bf.length} open finding${bf.length === 1 ? "" : "s"} to resolve`,
+    VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VR.comments && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
+  const unread = [VR.ci && !ciKnown && "CI", VR.conflicts && !live && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
+  if (unread.length) why.push(`${unread.length > 1 ? unread.slice(0, -1).join(", ") + " and " + unread.at(-1) : unread[0]} not checked yet`);
+  const ok = C.dummy || (!!A && A.result === "approve");
+  const st = P ? !A && !C.dummy ? ["unknown", "No verdict yet", "Merge Risk hasn't been assessed for this package."]   // product mode recommends; it never claims merge readiness
+      : ok ? ["ok", "Risk review checks pass", "This is a code-review recommendation, not merge readiness. CI and discussion evidence are shown separately."]
       : ["no", "Risk review needs attention", "Address the risk and code-review findings. CI and discussion readiness are assessed separately."]
-    : ok ? ["ok", "Ready to merge", "Merge Risk's auto-approval check passes."] : ["no", "Not ready to merge", "Address the open findings and acknowledge the Merge Risk first."];
-  const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => f.severity === k).length]).filter(([, n]) => n);
-  return `<div class="vd ${st[0]}"><div class="vd-st" title="${esc((A && A.reasons || []).join(" "))}"><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
-    <div class="vd-m"><div class="vd-t"><span class="vd-k">Merge Risk</span><b class="vd-lv ${esc(lv)}">${lv ? esc(RW(lv)) : "Not assessed"}</b>
-      <span class="vd-meter" role="img" aria-label="${esc(lv || "unknown")} of low, medium, high">${LV.map((k, i) => `<i class="${lv && i <= LV.indexOf(lv) ? esc(lv) : ""}"></i>`).join("")}</span></div>
-    <div class="vd-t"><span class="vd-k">Open findings</span><b class="vd-n${fs.length ? "" : " none"}">${fs.length}</b>
-      <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
-    ${vdPrs("PRs failing CI", ps.filter((p) => (p.checks || []).some((c) => CI_BAD.includes(String(c.state || c.conclusion || "").toUpperCase()))), !C.product || !productCiUnknown(ps), "high", "/checks", !!C.product)}
-    ${vdPrs("PRs with merge conflicts", ps.filter((p) => (LIVE[p.key] || {}).merge_state === "DIRTY"), Object.keys(LIVE).length > 0)}
-    ${vdPrs("PRs awaiting human review", ps.filter(awaitingReview), ps.every(reviewCoverageKnown), "medium", "", !!C.product)}
-    ${vdThreads(ps)}</div></div>`;
+    : why.length ? ["no", "Not ready to merge", why.join(" · ")] : ["ok", "Ready to merge", "Every merge threshold is met."];
+  const showRisk = P || VR.showRisk, gate = (on) => P || on;   // product mode has no merge thresholds, so no row is switched off
+  const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
+  return `<div class="vd ${st[0]}${showRisk ? "" : " norisk"}"><div class="vd-st"${P ? ` title="${esc((A && A.reasons || []).join(" "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
+    <div class="vd-m">${showRisk ? `<div class="vd-t"><span class="vd-k">Merge Risk</span><b class="vd-lv ${esc(lv)}">${lv ? esc(RW(lv)) : "Not assessed"}</b>
+      <span class="vd-meter" role="img" aria-label="${esc(lv || "unknown")} of low, medium, high">${LV.map((k, i) => `<i class="${lv && i <= LV.indexOf(lv) ? esc(lv) : ""}"></i>`).join("")}</span></div>` : ""}
+    <div class="vd-t${gate(VR.sev.length) ? "" : " off"}"${gate(VR.sev.length) ? "" : offT}><span class="vd-k">Open findings</span><b class="vd-n${(P ? fs : bf).length ? " block" : " none"}">${fs.length}${vdOf(KIT.allFindings({ ...C, prs: ps }).length)}</b>
+      <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
+    ${vdPrs("PRs failing CI", ci, ciKnown, ps.length, "high", "/checks", !gate(VR.ci), P)}
+    ${vdPrs("PRs with merge conflicts", cf, live, ps.length, "high", "", !gate(VR.conflicts))}
+    ${vdPrs("PRs awaiting human review", aw, rvKnown, ps.length, "medium", "", !gate(VR.review), P)}
+    ${vdThreads(ps, !gate(VR.comments))}</div></div>`;
 }
+const WRENCH = '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
+const VRZERO = [["ci", "PRs failing CI"], ["conflicts", "PRs with merge conflicts"], ["review", "PRs awaiting human review"], ["comments", "Unresolved comments"]];
+function vrPaneHtml() {   // Customize › Verdict settings: the merge thresholds
+  const all = VR.sev.length === 3, sw = (k, t, d) => `<button class="hsrow htg smod-r" role="switch" aria-checked="${!!VR[k]}" data-vr="${k}"><span><b>${t}</b>${d ? `<em>${d}</em>` : ""}</span><i class="hsw" aria-hidden="true"></i></button>`;
+  return `<p class="pms-h">Merge thresholds</p><p class="muted vr-p">What has to be true before Verdict says Ready to merge.</p>
+    <p class="smod-k">Open findings</p><div class="vr-sev" role="group" aria-label="Open findings that must be resolved">${[["high", "High"], ["medium", "Medium"], ["low", "Low"]].map(([k, t]) => `<button type="button" class="vr-c" data-vrsev="${k}" aria-pressed="${VR.sev.includes(k)}">${t}</button>`).join("")}</div>
+    <p class="muted vr-p">${!VR.sev.length ? "Findings don't block a merge." : all ? "Every open finding must be resolved." : `Open ${VR.sev.join(" and ").replace(/ and (?=.* and )/, ", ")} findings must be resolved.`}</p>
+    <p class="smod-k smod-k2">Require zero</p><div class="vr-z">${VRZERO.map(([k, t]) => sw(k, t)).join("")}</div>
+    <p class="smod-k smod-k2">Display</p>${sw("showRisk", "Show Merge Risk", "The Merge Risk level and its meter, first in the widget")}`;
+}
+document.addEventListener("click", (e) => {
+  const c = e.target.closest && e.target.closest("[data-vrsev]"), t = !c && e.target.closest && e.target.closest("[data-vr]"); if (!c && !t) return;
+  if (c) { const k = c.dataset.vrsev, on = new Set(VR.sev); on.has(k) ? on.delete(k) : on.add(k);
+    VR = { ...VR, sev: ["high", "medium", "low"].filter((x) => on.has(x)) }; }
+  else VR = { ...VR, [t.dataset.vr]: !VR[t.dataset.vr] };
+  store.set(VRKEY, VR); const pn = document.querySelector(".vr-pane"); if (pn) pn.innerHTML = vrPaneHtml();
+  const f = document.querySelector(c ? `.vr-pane [data-vrsev="${c.dataset.vrsev}"]` : `.vr-pane [data-vr="${t.dataset.vr}"]`); if (f) f.focus();
+});
 function crumb() {   // the header names the page, then the open section; with the side menu collapsed, the work package first
   const nm = document.body.classList.contains("nv-mini") ? (WPKS.find((s) => s.id === KIT.host.session) || {}).title || C.title : "";
   const pg = (TABS.find((x) => x[0] === S.tab) || TABS[0])[1], cur = SECT[S.tab], d = (cur && document.querySelector(`#panel details.sec[open][data-sec="${cur}"] > summary h2`)) || document.querySelector('#panel .wtab[aria-selected="true"] span');
@@ -2420,13 +2459,13 @@ function render() {
   const parts = EDIT ? curPage().widgets.map((w) => ({ id: "w-" + w, label: wname(w), icon: w }))
     : blocks.map((b) => [b, (has(b) && widgetHtml(b)) || wEmpty(b)]).map(blockSec);
   SECS = parts.length > 1;   // several widgets: listed in the nav as a sub-menu
-  const FOLD = SECS || VMODE !== "open";   // widgets fold by the Page view, however many the page holds
+  const FOLD = SECS || !OPENV();   // widgets fold by the Page view, however many the page holds
   if (!EDIT) parts.forEach((s) => { if (s.sub) return; const n = c[s.id] || 0, w = PCOUNT[s.id] || (parts.length === 1 && PCOUNT[S.tab]);   // the count lives in the widget's header, never above it
     if (n && w) s.sub = chip(`${n} ${n === 1 ? w[0] : w[1]}`); });
   document.body.classList.toggle("tab-system", blocks.includes("system"));
   if (!blocks.includes("system") && typeof CM !== "undefined" && CM.endWalk) CM.endWalk();   // its bar sits on the page, not in the tab
   $("#tabs").innerHTML = navHtml(c, parts);
-  $("#panel").innerHTML = EDIT ? editHtml() : S.pr !== "all" && !S.pr.length ? `<p class="lempty">No PRs are selected. Pick one or more in the PR filter, or tick <b>Select all</b>.</p>` : !blocks.length ? `<p class="lempty">This page has no widgets yet. Click <b>Edit</b> to add some.</p>` : VMODE === "tabs" ? wtabsHtml(parts) : FOLD ? `<div class="scol">${parts.map((p) => VMODE === "open" ? soloHtml(p) : secHtml(p, SECT[S.tab], parts[0].id)).join("")}</div>`
+  $("#panel").innerHTML = EDIT ? editHtml() : S.pr !== "all" && !S.pr.length ? `<p class="lempty">No PRs are selected. Pick one or more in the PR filter, or tick <b>Select all</b>.</p>` : !blocks.length ? `<p class="lempty">This page has no widgets yet. Click <b>Edit</b> to add some.</p>` : VMODE === "tabs" ? wtabsHtml(parts) : FOLD ? `<div class="scol">${parts.map((p) => OPENV() ? soloHtml(p) : secHtml(p, SECT[S.tab], parts[0].id)).join("")}</div>`
     : parts.map(soloHtml).join("");
   document.documentElement.style.setProperty("--hh", headH() + "px"); tocMark(); accFit(); psecFit(); caMark(); pmEyeFit(); unlinkWidgets();   // a full-screen widget follows the page's changes
   if (!EDIT) blocks.forEach((b) => BLOCKS[b] && BLOCKS[b].after && BLOCKS[b].after());   // parts may be a page's own sections now
@@ -3281,10 +3320,13 @@ function widgetHtml(b) {   // a page-sized widget shows its own sections one aft
 document.addEventListener("toggle", (e) => { const d = e.target; if (!d.matches || !d.matches("details.wfold")) return;
   WOPEN[d.dataset.wf] = d.open; }, true);
 const GRIP = '<svg viewBox="0 0 24 24" aria-hidden="true">' + [5, 12, 19].map((y) => `<circle cx="9" cy="${y}" r="1.6"/><circle cx="15" cy="${y}" r="1.6"/>`).join("") + "</svg>";
+let VRSET = false;   // Customize: the Verdict settings pane is open
+document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-vrset]"); if (!b) return;
+  VRSET = !VRSET; b.setAttribute("aria-expanded", String(VRSET)); const pn = document.getElementById("vr-pane"); if (pn) pn.hidden = !VRSET; });
 function editHtml() {
   const ws = curPage().widgets, last = ws.length === 1;
   const card = (w, i) => `<div class="wcard" id="blk-w-${w}"><button class="wgrip" data-grip="w:${i}" aria-label="Drag ${esc(WIDGETS[w][0])} to reorder, or use the arrow keys" title="Drag to reorder">${GRIP}</button><span class="stile">${sico(w)}</span><div class="wc-t"><b>${esc(wname(w))}<button class="ptl-ed wc-ed" data-ly="w-edit" data-lyv="${w}" aria-label="Rename ${esc(wname(w))}" title="Rename widget"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button></b><span>${esc(WIDGETS[w][1])}</span>${has(w) ? "" : "<em>No data in this review</em>"}</div>
-    <div class="wc-a"><button class="wz-ic" data-ly="rm" data-lyv="${i}" aria-label="Remove ${esc(WIDGETS[w][0])}"${last ? ` title="The only widget: removing it deletes the page"` : ""}${last && LAYOUT.pages.length < 2 ? " disabled" : ""}>${LYICON.bin}</button></div></div>`;
+    <div class="wc-a">${w === "verdict" && !C.product ? `<button class="wz-ic" data-vrset aria-expanded="${VRSET}" aria-controls="vr-pane" aria-label="Verdict settings" title="Verdict settings">${WRENCH}</button>` : ""}<button class="wz-ic" data-ly="rm" data-lyv="${i}" aria-label="Remove ${esc(WIDGETS[w][0])}"${last ? ` title="The only widget: removing it deletes the page"` : ""}${last && LAYOUT.pages.length < 2 ? " disabled" : ""}>${LYICON.bin}</button></div>${w === "verdict" ? `<div class="vr-pane pmside" id="vr-pane" role="region" aria-label="Verdict settings"${VRSET ? "" : " hidden"}>${vrPaneHtml()}</div>` : ""}</div>`;
   return `<div class="scol">${ws.map(card).join("")}<button class="wadd" data-ly="gallery"><b>${LYICON.widget}Add a widget</b><span>Pick one from the gallery</span></button></div>`;
 }
 function dialogHtml() {
@@ -3412,7 +3454,7 @@ function mySave(name) {   // the layout and its Page views as they are now, unde
   list.push({ id: "my-" + Date.now().toString(36), name, saved: new Date().toISOString(), pages: JSON.parse(JSON.stringify(LAYOUT.pages)), views });
   store.set(MYKEY, list);
 }
-const LGMODE = { accordion: "accordion", manual: "folded", tabs: "as tabs", open: "" };
+const LGMODE = { accordion: "accordion", manual: "folded", tabs: "as tabs", headless: "headless", open: "" };
 if (!store.get(PVKEY, null) && !store.get(LKEY, null)) lgViews(LAYOUT.pages, VIEWDEF);   // a first visit starts with the default Page views
 const MSORT = { name: (g) => g.name.toLowerCase(), pages: (g) => g.pages.length, widgets: (g) => g.pages.reduce((a, x) => a + x.widgets.length, 0), saved: (g) => g.saved || "" };
 function mineHtml() {   // My layouts: your saved layouts, to use, rename or delete; every column sorts
