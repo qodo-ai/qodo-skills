@@ -55,6 +55,15 @@ class EvidenceLimitsTests(unittest.TestCase):
         self.assertEqual(state, ['warn', '3 gaps'])
         self.assertIn('Changed-file list', html); self.assertIn("3 changed files the PR reports aren't in the review", html)
 
+    def test_an_incomplete_files_section_counts_once(self):
+        data = {'prs': [{'key': 'o/a#1', 'title': 'A', 'read_evidence': {'sections': {'files': {'status': 'truncated', 'complete': False}}}, 'files_complete': False,
+                         'files': [{'path': 'a.py', 'patch_evidence': {'complete': True, 'items': [{'patch_complete': True}]}}]}]}
+        source = (util.ROOT / 'app/styles/evidence.js').read_text()
+        stubs = "const KIT={host:{limits:" + json.dumps(evidence_limits(data)) + "}},esc=String,strip=String,pl=(n,w)=>n+' '+w+(n===1?'':'s');"
+        out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': stubs + source.split('document.addEventListener')[0] + 'result=evState(EVL.prs[0]);'}), capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(json.loads(out.stdout), ['warn', '1 gap'])   # the files section and the file list are one failed read
+
     def test_the_page_no_longer_appends_the_limits_block(self):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()
         self.assertNotIn('Managed source evidence and limits', styles)

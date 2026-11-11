@@ -91,10 +91,11 @@ function rdExport() {   // Share › Export: Reader's layout on paper, every wid
   const el = document.createElement("div"), title = document.title.split(" · ")[0], day = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
   el.id = "rdp"; el.className = "rdp";
   el.innerHTML = `<header class="rdp-cover"><p class="rd-pg">Work package review</p><h1>${esc(title)}</h1><p class="muted">${pl(C.prs.length, "pull request")} · exported ${esc(day)}</p><ul>${C.prs.map((p) => `<li><b>${esc(p.key)}</b> ${esc(strip(p.title || ""))}</li>`).join("")}</ul></header>${rdBody(seq, () => "")}`;
-  document.body.appendChild(el); R.dataset.theme = "light"; document.body.classList.add("rd-printing");
+  document.body.appendChild(el); R.dataset.theme = "light"; document.body.classList.add("rd-printing"); KIT.mermaidReset();   // diagrams redraw in the light colours
   el.querySelectorAll("details").forEach((d) => (d.open = true));
   el.querySelectorAll("textarea").forEach((x) => { const d = document.createElement("div"); d.className = "rdp-ta"; d.textContent = x.value; x.replaceWith(d); });   // typed notes as text, not editable fields
-  const done = () => { el.remove(); document.body.classList.remove("rd-printing"); if (was) R.dataset.theme = was; else delete R.dataset.theme; if (BLOCKS.system) BLOCKS.system.after(); };
+  const done = () => { el.remove(); document.body.classList.remove("rd-printing"); if (was) R.dataset.theme = was; else delete R.dataset.theme; if (BLOCKS.system) BLOCKS.system.after();
+    KIT.mermaidReset(); if (window.mermaid) KIT.mermaid($("#panel")); };   // and back in the page's own theme
   addEventListener("afterprint", done, { once: true }); rdAfter(el, seq).then(() => setTimeout(() => print(), 120));   // after the widgets' setup and diagrams
 }
 /* Find: widgets by name, page, what they show and (in Scroll) their text; picking one goes to it in either mode */

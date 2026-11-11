@@ -1,6 +1,7 @@
 /* Evidence limits (joined inside package.js at its marker): what the managed reads couldn't confirm, as a line in the refresh details, in full in a dialog */
 const EVL = KIT.host.limits || null;   // product mode only; see evidence_limits() in cockpit/styles.py
-const evGaps = (p) => p.sections.filter((s) => !s.complete).length + (p.recorded && !p.files_list_complete ? 1 : 0) + (p.files_missing ? 1 : 0) + p.files_open.length + p.files_unrecorded + p.overlaps.length + (p.qodo_error ? 1 : 0);
+const evListGap = (p) => p.recorded && !p.files_list_complete && !p.sections.some((s) => s.name === "files" && !s.complete);   // an unconfirmed file list, unless the files section already reports it
+const evGaps = (p) => p.sections.filter((s) => !s.complete).length + (evListGap(p) ? 1 : 0) + (p.files_missing ? 1 : 0) + p.files_open.length + p.files_unrecorded + p.overlaps.length + (p.qodo_error ? 1 : 0);
 const evState = (p) => (!p.recorded ? ["none", "Not recorded"] : evGaps(p) ? ["warn", pl(evGaps(p), "gap")] : ["ok", "Complete"]);   // a PR: [tone, label]
 function evSummary() {   // the package: [tone, headline, a line under it]
   const ps = EVL.prs, none = ps.filter((p) => !p.recorded).length, gaps = ps.filter((p) => p.recorded && evGaps(p)).length;
@@ -16,7 +17,7 @@ function evPr(p) {   // one PR in the dialog: folded unless it has gaps
   const [tone, st] = evState(p), secs = p.sections.filter((s) => !s.complete), sure = p.files - p.files_open.length - p.files_unrecorded;
   const body = !p.recorded ? `<p class="muted">No completeness was recorded for this PR, so none of its reads can be confirmed complete.</p>` : [
     secs.length && `<p class="ev-l">Sections not read in full</p><ul>${secs.map((s) => `<li><b>${esc(s.name)}</b><span class="muted">${esc(s.status || "unknown")}</span></li>`).join("")}</ul>`,
-    !p.files_list_complete && `<p class="ev-l">Changed-file list</p><p>Not confirmed complete, so some changed files may be missing.</p>`,
+    evListGap(p) && `<p class="ev-l">Changed-file list</p><p>Not confirmed complete, so some changed files may be missing.</p>`,
     p.files_missing && `<p class="ev-l">Missing changed files</p><p>${pl(p.files_missing, "changed file")} the PR reports ${p.files_missing === 1 ? "isn't" : "aren't"} in the review.</p>`,
     (p.files_open.length || p.files_unrecorded) && `<p class="ev-l">Patches confirmed complete: ${sure} of ${p.files}</p>${p.files_open.length ? `<ul>${p.files_open.map((f) => `<li><code>${esc(f)}</code></li>`).join("")}</ul>` : ""}${p.files_unrecorded ? `<p class="muted">${pl(p.files_unrecorded, "file")} with no completeness recorded.</p>` : ""}`,
     p.overlaps.length && `<p class="ev-l">Reading overlapping work</p><ul>${p.overlaps.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`,
