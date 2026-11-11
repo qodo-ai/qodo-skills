@@ -1,0 +1,16 @@
+/* the triage page in the Work Package's light palette, when the review around it is light */
+html[data-theme="light"]{ color-scheme:light;
+  --bg:#F4F4F4; --surface:#FFFFFF; --surface-2:#EDEDED; --ink:#111111; --muted:#565656; --line:#DFDFDF;
+  --raised:#FFFFFF; --raised-line:#C3C3C3;
+  --accent:#634FD1; --accent-strong:#634FD1; --accent-hover:#7968FA; --accent-soft:#DDDCFF;
+  --del-bg:#FFE0E9; --del-ink:#A3264A; --del-strong:#CC315D; --ins-bg:#E6F7F1; --ins-ink:#206B58; --code-bg:#FFFFFF;
+  --warn-bg:#FFF2E0; --warn-ink:#855614; --quiet-bg:#EDEDED; --quiet-ink:#3D3D3D; --gutter:#989898;
+  --merged-bg:#DDDCFF; --merged-ink:#39277F; }
+html[data-theme="light"] .topbar{ background:rgba(255,255,255,.97); box-shadow:0 1px 2px rgba(9,10,11,.05), 0 8px 24px rgba(9,10,11,.06); }
+html[data-theme="light"] .pr-pop, html[data-theme="light"] .tip{ background:#FFFFFF; box-shadow:0 12px 30px rgba(9,10,11,.14); }
+html[data-theme="light"] .qchip{ background:#EDEDED; color:#2A2A2A; }
+html[data-theme="light"] tbody tr:hover td{ background:rgba(0,0,0,.025); }
+html[data-theme="light"] .ln{ color:#2A2A2A; }
+html[data-theme="light"] .bulb:hover, html[data-theme="light"] .bulb:focus-visible, html[data-theme="light"] .bulb.on{ color:#634FD1; }
+html[data-theme="light"] .ln.bad .bulb:hover, html[data-theme="light"] .ln.bad .bulb:focus-visible, html[data-theme="light"] .ln.bad .bulb.on{ color:#CC315D; background:rgba(204,49,93,.12); }
+html[data-theme="light"] .bar{ box-shadow:0 14px 36px rgba(9,10,11,.22); }

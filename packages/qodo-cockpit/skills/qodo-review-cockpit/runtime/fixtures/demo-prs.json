@@ -1,0 +1,1034 @@
+{
+  "reviewer_login": "demo-reviewer",
+  "prs": [
+    {
+      "key": "qodo-ai/shop-demo#101",
+      "repo": "qodo-ai/shop-demo",
+      "number": 101,
+      "title": "Refresh price cache incrementally instead of full reload",
+      "body": "Full 2GB reloads every 10 min cause GC pauses that exhaust the checkout DB pool.\nThis switches to incremental refresh driven by the `price_changed` stream.",
+      "url": "https://github.com/qodo-ai/shop-demo/pull/101",
+      "author": "maya",
+      "base": "main",
+      "head": "maya/incremental-price-cache",
+      "head_sha": null,
+      "labels": [
+        "performance"
+      ],
+      "additions": 33,
+      "deletions": 10,
+      "files": [
+        {
+          "path": "src/cache/price_cache.py",
+          "additions": 19,
+          "deletions": 9,
+          "hunks": [
+            {
+              "id": "h0",
+              "header": "@@ -1,18 +1,31 @@",
+              "lines": [
+                [
+                  "-",
+                  1,
+                  null,
+                  "import threading, time"
+                ],
+                [
+                  "+",
+                  null,
+                  1,
+                  "import threading"
+                ],
+                [
+                  "+",
+                  null,
+                  2,
+                  "from collections import OrderedDict"
+                ],
+                [
+                  " ",
+                  2,
+                  3,
+                  "from src.db import fetch_all_prices, fetch_price"
+                ],
+                [
+                  " ",
+                  3,
+                  4,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  5,
+                  "MAX_SKUS = 500_000"
+                ],
+                [
+                  "+",
+                  null,
+                  6,
+                  ""
+                ],
+                [
+                  " ",
+                  4,
+                  7,
+                  "class PriceCache:"
+                ],
+                [
+                  " ",
+                  5,
+                  8,
+                  "    def __init__(self):"
+                ],
+                [
+                  "-",
+                  6,
+                  null,
+                  "        self._prices = {}"
+                ],
+                [
+                  "-",
+                  7,
+                  null,
+                  "        threading.Thread(target=self._reload_loop, daemon=True).start()"
+                ],
+                [
+                  "+",
+                  null,
+                  9,
+                  "        self._prices = OrderedDict()"
+                ],
+                [
+                  "+",
+                  null,
+                  10,
+                  "        self._lock = threading.Lock()"
+                ],
+                [
+                  " ",
+                  8,
+                  11,
+                  ""
+                ],
+                [
+                  "-",
+                  9,
+                  null,
+                  "    def _reload_loop(self):"
+                ],
+                [
+                  "-",
+                  10,
+                  null,
+                  "        while True:"
+                ],
+                [
+                  "-",
+                  11,
+                  null,
+                  "            self._prices = fetch_all_prices()  # ~2GB"
+                ],
+                [
+                  "-",
+                  12,
+                  null,
+                  "            time.sleep(600)"
+                ],
+                [
+                  "+",
+                  null,
+                  12,
+                  "    def apply(self, sku, cents):"
+                ],
+                [
+                  "+",
+                  null,
+                  13,
+                  "        with self._lock:"
+                ],
+                [
+                  "+",
+                  null,
+                  14,
+                  "            self._prices[sku] = cents"
+                ],
+                [
+                  "+",
+                  null,
+                  15,
+                  "            self._prices.move_to_end(sku)"
+                ],
+                [
+                  "+",
+                  null,
+                  16,
+                  "            if len(self._prices) > MAX_SKUS:"
+                ],
+                [
+                  "+",
+                  null,
+                  17,
+                  "                self._prices.popitem(last=False)"
+                ],
+                [
+                  " ",
+                  13,
+                  18,
+                  ""
+                ],
+                [
+                  "-",
+                  14,
+                  null,
+                  "    def get(self, sku):"
+                ],
+                [
+                  "-",
+                  15,
+                  null,
+                  "        return self._prices[sku]"
+                ],
+                [
+                  "+",
+                  null,
+                  19,
+                  "    def get(self, sku):"
+                ],
+                [
+                  "+",
+                  null,
+                  20,
+                  "        with self._lock:"
+                ],
+                [
+                  "+",
+                  null,
+                  21,
+                  "            if sku in self._prices:"
+                ],
+                [
+                  "+",
+                  null,
+                  22,
+                  "                return self._prices[sku]"
+                ],
+                [
+                  "+",
+                  null,
+                  23,
+                  "        cents = fetch_price(sku)"
+                ],
+                [
+                  "+",
+                  null,
+                  24,
+                  "        self.apply(sku, cents)"
+                ],
+                [
+                  "+",
+                  null,
+                  25,
+                  "        return cents"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/payments/checkout.py",
+          "additions": 1,
+          "deletions": 1,
+          "hunks": [
+            {
+              "id": "h0",
+              "header": "@@ -8,9 +8,9 @@ from src.cache.price_cache import cache",
+              "lines": [
+                [
+                  " ",
+                  8,
+                  8,
+                  "def line_total(item):"
+                ],
+                [
+                  "-",
+                  9,
+                  null,
+                  "    unit = cache._prices[item.sku]"
+                ],
+                [
+                  "+",
+                  null,
+                  9,
+                  "    unit = cache.get(item.sku)"
+                ],
+                [
+                  " ",
+                  10,
+                  10,
+                  "    return unit * item.qty"
+                ],
+                [
+                  " ",
+                  11,
+                  11,
+                  ""
+                ],
+                [
+                  " ",
+                  12,
+                  12,
+                  "def order_total(items):"
+                ],
+                [
+                  " ",
+                  13,
+                  13,
+                  "    return sum(line_total(i) for i in items)"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "path": "tests/test_price_cache.py",
+          "additions": 13,
+          "deletions": 0,
+          "hunks": [
+            {
+              "id": "h0",
+              "header": "@@ -0,0 +1,14 @@",
+              "lines": [
+                [
+                  "+",
+                  null,
+                  1,
+                  "from src.cache.price_cache import PriceCache, MAX_SKUS"
+                ],
+                [
+                  "+",
+                  null,
+                  2,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  3,
+                  "def test_apply_then_get(monkeypatch):"
+                ],
+                [
+                  "+",
+                  null,
+                  4,
+                  "    c = PriceCache()"
+                ],
+                [
+                  "+",
+                  null,
+                  5,
+                  "    c.apply(\"A\", 1299)"
+                ],
+                [
+                  "+",
+                  null,
+                  6,
+                  "    assert c.get(\"A\") == 1299"
+                ],
+                [
+                  "+",
+                  null,
+                  7,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  8,
+                  "def test_evicts_oldest(monkeypatch):"
+                ],
+                [
+                  "+",
+                  null,
+                  9,
+                  "    c = PriceCache()"
+                ],
+                [
+                  "+",
+                  null,
+                  10,
+                  "    monkeypatch.setattr(\"src.cache.price_cache.MAX_SKUS\", 2)"
+                ],
+                [
+                  "+",
+                  null,
+                  11,
+                  "    for s in \"ABC\":"
+                ],
+                [
+                  "+",
+                  null,
+                  12,
+                  "        c.apply(s, 1)"
+                ],
+                [
+                  "+",
+                  null,
+                  13,
+                  "    assert \"A\" not in c._prices"
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "unit-tests",
+          "state": "SUCCESS"
+        },
+        {
+          "name": "lint",
+          "state": "SUCCESS"
+        }
+      ],
+      "created": "2026-10-05T12:00:00Z",
+      "summary": "Replaces the 10-minute full reload of the price cache with incremental updates from the `price_changed` stream, and caps the cache at 500k SKUs. Checkout now reads through `PriceCache.get()` instead of the raw dict.",
+      "risk": "**Medium.** Cache misses now fall through to the DB on the checkout path. If the stream lags, prices can be stale for up to the consumer lag.",
+      "diagrams": [
+        {
+          "id": "flow",
+          "title": "Price refresh: before vs after",
+          "mermaid": "sequenceDiagram\n  participant S as price_changed stream\n  participant C as PriceCache\n  participant K as Checkout\n  participant D as DB\n  S->>C: apply(sku, cents)\n  K->>C: get(sku)\n  alt hit\n    C-->>K: cents\n  else miss\n    C->>D: SELECT price_cents\n    D-->>C: cents\n    C-->>K: cents\n  end"
+        }
+      ],
+      "findings": [
+        {
+          "id": "q-101-0",
+          "pr": "qodo-ai/shop-demo#101",
+          "source": "qodo",
+          "url": null,
+          "category": "bug",
+          "severity": "medium",
+          "path": "tests/test_price_cache.py",
+          "line": 10,
+          "title": "Monkeypatching MAX_SKUS has no effect: apply() reads the module constant captured at import",
+          "body": "`apply()` compares against the global `MAX_SKUS` at call time, so the patch works only if the module attribute is read. It is, but the test asserts on `_prices` (private). Consider a public `__len__`."
+        },
+        {
+          "id": "q-101-1",
+          "pr": "qodo-ai/shop-demo#101",
+          "source": "qodo",
+          "url": null,
+          "category": "performance",
+          "severity": "high",
+          "path": "src/cache/price_cache.py",
+          "line": 26,
+          "title": "Cache miss calls the DB while holding no lock: thundering herd on cold start",
+          "body": "On deploy, every checkout misses and calls `fetch_price` concurrently. Consider warming the cache or single-flight per SKU."
+        },
+        {
+          "id": "q-101-2",
+          "pr": "qodo-ai/shop-demo#101",
+          "source": "qodo",
+          "url": null,
+          "category": "naming",
+          "severity": "low",
+          "path": "tests/test_price_cache.py",
+          "line": 3,
+          "title": "Test name `test_apply_then_get` could be more descriptive",
+          "body": "Suggest `test_get_returns_applied_price`."
+        }
+      ],
+      "_raw_comments": [
+        {
+          "id": 9001,
+          "author": "demo-reviewer",
+          "body": "Do we have a metric for stream consumer lag? That bounds staleness here.",
+          "path": "src/cache/price_cache.py",
+          "line": 14,
+          "url": "https://github.com/qodo-ai/shop-demo/pull/101#discussion_r9001",
+          "created": "2026-10-05T16:20:00Z"
+        }
+      ]
+    },
+    {
+      "key": "qodo-ai/shop-demo#102",
+      "repo": "qodo-ai/shop-demo",
+      "number": 102,
+      "title": "Add discount codes at checkout",
+      "body": "Adds `apply_discount(code, total)` and wires it into `order_total`. Supports percent and fixed-amount codes.",
+      "url": "https://github.com/qodo-ai/shop-demo/pull/102",
+      "author": "joe",
+      "base": "main",
+      "head": "joe/discount-codes",
+      "head_sha": null,
+      "labels": [
+        "feature",
+        "payments"
+      ],
+      "additions": 31,
+      "deletions": 2,
+      "files": [
+        {
+          "path": "src/payments/checkout.py",
+          "additions": 6,
+          "deletions": 2,
+          "hunks": [
+            {
+              "id": "h0",
+              "header": "@@ -1,4 +1,5 @@",
+              "lines": [
+                [
+                  " ",
+                  1,
+                  1,
+                  "from src.cache.price_cache import cache"
+                ],
+                [
+                  "+",
+                  null,
+                  2,
+                  "from src.payments.discounts import apply_discount"
+                ],
+                [
+                  " ",
+                  2,
+                  3,
+                  ""
+                ]
+              ]
+            },
+            {
+              "id": "h1",
+              "header": "@@ -12,5 +13,8 @@ def line_total(item):",
+              "lines": [
+                [
+                  " ",
+                  12,
+                  13,
+                  "    return unit * item.qty"
+                ],
+                [
+                  " ",
+                  13,
+                  14,
+                  ""
+                ],
+                [
+                  "-",
+                  14,
+                  null,
+                  "def order_total(items):"
+                ],
+                [
+                  "-",
+                  15,
+                  null,
+                  "    return sum(line_total(i) for i in items)"
+                ],
+                [
+                  "+",
+                  null,
+                  15,
+                  "def order_total(items, code=None):"
+                ],
+                [
+                  "+",
+                  null,
+                  16,
+                  "    total = sum(line_total(i) for i in items)"
+                ],
+                [
+                  "+",
+                  null,
+                  17,
+                  "    if code:"
+                ],
+                [
+                  "+",
+                  null,
+                  18,
+                  "        total = apply_discount(code, total)"
+                ],
+                [
+                  "+",
+                  null,
+                  19,
+                  "    return total"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "path": "src/payments/discounts.py",
+          "additions": 16,
+          "deletions": 0,
+          "hunks": [
+            {
+              "id": "h0",
+              "header": "@@ -0,0 +1,16 @@",
+              "lines": [
+                [
+                  "+",
+                  null,
+                  1,
+                  "from src.db import find_code"
+                ],
+                [
+                  "+",
+                  null,
+                  2,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  3,
+                  "def apply_discount(code, total_cents):"
+                ],
+                [
+                  "+",
+                  null,
+                  4,
+                  "    d = find_code(code)"
+                ],
+                [
+                  "+",
+                  null,
+                  5,
+                  "    if d is None:"
+                ],
+                [
+                  "+",
+                  null,
+                  6,
+                  "        return total_cents"
+                ],
+                [
+                  "+",
+                  null,
+                  7,
+                  "    if d.kind == \"percent\":"
+                ],
+                [
+                  "+",
+                  null,
+                  8,
+                  "        return total_cents * (1 - d.value / 100)"
+                ],
+                [
+                  "+",
+                  null,
+                  9,
+                  "    if d.kind == \"fixed\":"
+                ],
+                [
+                  "+",
+                  null,
+                  10,
+                  "        return max(0, total_cents - d.value)"
+                ],
+                [
+                  "+",
+                  null,
+                  11,
+                  "    return total_cents"
+                ],
+                [
+                  "+",
+                  null,
+                  12,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  13,
+                  "def describe(code):"
+                ],
+                [
+                  "+",
+                  null,
+                  14,
+                  "    d = find_code(code)"
+                ],
+                [
+                  "+",
+                  null,
+                  15,
+                  "    return f\"{d.value}% off\" if d.kind == \"percent\" else f\"${d.value/100:.2f} off\""
+                ],
+                [
+                  "+",
+                  null,
+                  16,
+                  ""
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "path": "tests/test_discounts.py",
+          "additions": 9,
+          "deletions": 0,
+          "hunks": [
+            {
+              "id": "h0",
+              "header": "@@ -0,0 +1,9 @@",
+              "lines": [
+                [
+                  "+",
+                  null,
+                  1,
+                  "from src.payments.discounts import apply_discount"
+                ],
+                [
+                  "+",
+                  null,
+                  2,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  3,
+                  "def test_percent(fake_codes):"
+                ],
+                [
+                  "+",
+                  null,
+                  4,
+                  "    fake_codes.add(\"TEN\", \"percent\", 10)"
+                ],
+                [
+                  "+",
+                  null,
+                  5,
+                  "    assert apply_discount(\"TEN\", 1000) == 900"
+                ],
+                [
+                  "+",
+                  null,
+                  6,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  7,
+                  "def test_fixed(fake_codes):"
+                ],
+                [
+                  "+",
+                  null,
+                  8,
+                  "    fake_codes.add(\"FIVE\", \"fixed\", 500)"
+                ],
+                [
+                  "+",
+                  null,
+                  9,
+                  "    assert apply_discount(\"FIVE\", 1000) == 500"
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "unit-tests",
+          "state": "SUCCESS"
+        },
+        {
+          "name": "lint",
+          "state": "FAILURE"
+        }
+      ],
+      "created": "2026-10-05T12:00:00Z",
+      "summary": "Adds percent and fixed-amount discount codes. `order_total` now takes an optional `code` and applies it after summing line totals.",
+      "risk": "**High.** Percent discounts are computed with floats on a cents total, which can produce fractional cents and break the integer-cents invariant.",
+      "diagrams": [
+        {
+          "id": "flow",
+          "title": "Discount decision",
+          "mermaid": "flowchart TD\n  A[order_total items, code] --> B[sum line_total]\n  B --> C{code?}\n  C -- no --> R[return total]\n  C -- yes --> D{kind}\n  D -- percent --> P[total * 1 - pct/100]\n  D -- fixed --> F[max 0, total - amount]\n  P --> R\n  F --> R"
+        }
+      ],
+      "findings": [
+        {
+          "id": "q-102-0",
+          "pr": "qodo-ai/shop-demo#102",
+          "source": "qodo",
+          "url": null,
+          "category": "bug",
+          "severity": "high",
+          "path": "src/payments/discounts.py",
+          "line": 8,
+          "title": "Percent discount returns a float; totals must be integer cents",
+          "body": "`total_cents * (1 - d.value / 100)` yields e.g. `899.1`. Use integer math: `total_cents * (100 - d.value) // 100`, and decide the rounding rule."
+        },
+        {
+          "id": "q-102-1",
+          "pr": "qodo-ai/shop-demo#102",
+          "source": "qodo",
+          "url": null,
+          "category": "security",
+          "severity": "high",
+          "path": "src/payments/discounts.py",
+          "line": 4,
+          "title": "No validation that a code is active or belongs to this customer",
+          "body": "`find_code` returns any code ever created. Expired or single-use codes can be replayed."
+        },
+        {
+          "id": "q-102-2",
+          "pr": "qodo-ai/shop-demo#102",
+          "source": "qodo",
+          "url": null,
+          "category": "bug",
+          "severity": "medium",
+          "path": "src/payments/discounts.py",
+          "line": 14,
+          "title": "`describe()` crashes with AttributeError when the code does not exist",
+          "body": "`find_code` can return None."
+        },
+        {
+          "id": "q-102-3",
+          "pr": "qodo-ai/shop-demo#102",
+          "source": "qodo",
+          "url": null,
+          "category": "naming",
+          "severity": "low",
+          "path": "tests/test_discounts.py",
+          "line": 3,
+          "title": "Rename `test_percent` to describe the expected behaviour",
+          "body": "e.g. `test_ten_percent_off_1000_cents_is_900`."
+        },
+        {
+          "id": "q-102-4",
+          "pr": "qodo-ai/shop-demo#102",
+          "source": "qodo",
+          "url": null,
+          "category": "style",
+          "severity": "low",
+          "path": "src/payments/discounts.py",
+          "line": 16,
+          "title": "Trailing blank line at end of file",
+          "body": "Lint failure: W391."
+        }
+      ],
+      "_raw_comments": []
+    },
+    {
+      "key": "qodo-ai/shop-demo#103",
+      "repo": "qodo-ai/shop-demo",
+      "number": 103,
+      "title": "Rename ghost_text telemetry events to autocomplete_*",
+      "body": "Product calls it Autocomplete. Renames emitted event names; keeps old names as aliases for 30 days.",
+      "url": "https://github.com/qodo-ai/shop-demo/pull/103",
+      "author": "lior",
+      "base": "main",
+      "head": "lior/rename-ghost-text-events",
+      "head_sha": null,
+      "labels": [
+        "telemetry"
+      ],
+      "additions": 16,
+      "deletions": 2,
+      "files": [
+        {
+          "path": "src/telemetry/events.py",
+          "additions": 9,
+          "deletions": 2,
+          "hunks": [
+            {
+              "id": "h0",
+              "header": "@@ -1,6 +1,14 @@",
+              "lines": [
+                [
+                  "-",
+                  1,
+                  null,
+                  "SHOWN = \"ghost_text_shown\""
+                ],
+                [
+                  "-",
+                  2,
+                  null,
+                  "ACCEPTED = \"ghost_text_accepted\""
+                ],
+                [
+                  "+",
+                  null,
+                  1,
+                  "import datetime"
+                ],
+                [
+                  "+",
+                  null,
+                  2,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  3,
+                  "SHOWN = \"autocomplete_shown\""
+                ],
+                [
+                  "+",
+                  null,
+                  4,
+                  "ACCEPTED = \"autocomplete_accepted\""
+                ],
+                [
+                  "+",
+                  null,
+                  5,
+                  "ALIASES = {SHOWN: \"ghost_text_shown\", ACCEPTED: \"ghost_text_accepted\"}"
+                ],
+                [
+                  "+",
+                  null,
+                  6,
+                  "ALIAS_UNTIL = datetime.date(2026, 11, 5)"
+                ],
+                [
+                  " ",
+                  3,
+                  7,
+                  ""
+                ],
+                [
+                  " ",
+                  4,
+                  8,
+                  "def emit(client, name, **props):"
+                ],
+                [
+                  " ",
+                  5,
+                  9,
+                  "    client.track(name, props)"
+                ],
+                [
+                  "+",
+                  null,
+                  10,
+                  "    alias = ALIASES.get(name)"
+                ],
+                [
+                  "+",
+                  null,
+                  11,
+                  "    if alias and datetime.date.today() <= ALIAS_UNTIL:"
+                ],
+                [
+                  "+",
+                  null,
+                  12,
+                  "        client.track(alias, props)"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "path": "tests/test_events.py",
+          "additions": 7,
+          "deletions": 0,
+          "hunks": [
+            {
+              "id": "h0",
+              "header": "@@ -0,0 +1,7 @@",
+              "lines": [
+                [
+                  "+",
+                  null,
+                  1,
+                  "from src.telemetry import events"
+                ],
+                [
+                  "+",
+                  null,
+                  2,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  3,
+                  "def test_emits_alias(fake_client):"
+                ],
+                [
+                  "+",
+                  null,
+                  4,
+                  "    events.emit(fake_client, events.SHOWN)"
+                ],
+                [
+                  "+",
+                  null,
+                  5,
+                  "    assert fake_client.names == [\"autocomplete_shown\", \"ghost_text_shown\"]"
+                ],
+                [
+                  "+",
+                  null,
+                  6,
+                  ""
+                ],
+                [
+                  "+",
+                  null,
+                  7,
+                  ""
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "unit-tests",
+          "state": "SUCCESS"
+        }
+      ],
+      "created": "2026-10-05T12:00:00Z",
+      "summary": "Renames `ghost_text_shown` / `ghost_text_accepted` to `autocomplete_shown` / `autocomplete_accepted`, and emits both names during a 30-day transition.",
+      "risk": "**Low** for runtime. Dashboards and saved SQL that filter on the old names keep working only while aliases are emitted.",
+      "diagrams": [],
+      "findings": [
+        {
+          "id": "q-103-0",
+          "pr": "qodo-ai/shop-demo#103",
+          "source": "qodo",
+          "url": null,
+          "category": "tests",
+          "severity": "medium",
+          "path": "tests/test_events.py",
+          "line": 4,
+          "title": "Test depends on today's date; it will fail after 2026-11-05",
+          "body": "Freeze the date or inject a clock."
+        },
+        {
+          "id": "q-103-1",
+          "pr": "qodo-ai/shop-demo#103",
+          "source": "qodo",
+          "url": null,
+          "category": "naming",
+          "severity": "low",
+          "path": "tests/test_events.py",
+          "line": 3,
+          "title": "Prefer `test_emit_sends_new_and_legacy_names`",
+          "body": ""
+        }
+      ],
+      "_raw_comments": []
+    }
+  ]
+}

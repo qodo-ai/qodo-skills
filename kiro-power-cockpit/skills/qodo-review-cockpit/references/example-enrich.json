@@ -1,0 +1,70 @@
+{
+  "story": [
+    {
+      "id": "brief",
+      "kind": "brief",
+      "title": "A larger limit",
+      "lede": "The helper returns two instead of one; caller compatibility remains unverified.",
+      "paragraphs": [
+        {"label": "Why", "text": "This synthetic example demonstrates how to review a changed return value; no live requirement or caller inventory is supplied."},
+        {"label": "What", "text": "The returned integer increases. Whether callers accept the new value is an open review question."},
+        {"label": "How", "text": "One literal in a pure helper changes; its signature stays the same."}
+      ],
+      "contributions": [{"pr": "demo/repo#1", "adds": "Raises the helper's return value."}]
+    },
+    {
+      "id": "flow",
+      "kind": "flow",
+      "title": "One pure helper",
+      "lede": "No request or record crosses components in the supplied change.",
+      "skip": "Only a literal in one pure helper changes. Caller behavior requires separate evidence."
+    },
+    {
+      "id": "caller-choice",
+      "kind": "question",
+      "title": "Check the callers",
+      "lede": "The changed value is visible to every caller.",
+      "ask": "Do callers and their tests accept the new return value?",
+      "options": ["Read the callers before deciding", "Request compatibility tests"]
+    }
+  ],
+  "prs": {
+    "demo/repo#1": {
+      "summary": "The limit helper returns two instead of one. Caller and test evidence is not included in this fixture.",
+      "risk": "Unknown. The local edit is simple, but downstream consequences have not been checked.",
+      "layers": [
+        {"id": "return-value", "title": "The changed return value", "summary": "Read the literal change before judging caller compatibility.", "ranges": [{"path": "src/demo.py", "from": 2, "to": 2, "side": "new"}]}
+      ],
+      "decisions": [
+        {
+          "id": "larger-value",
+          "status": "unplanned",
+          "source": "inferred",
+          "kind": "technical",
+          "text": "Return two from the limit helper",
+          "why": "The diff proves the change, but no supplied plan explains the choice or caller compatibility.",
+          "effects": ["contract"],
+          "notice": "The fixture supplies no observation showing how callers respond.",
+          "ev": [{"path": "src/demo.py", "side": "new", "from": 2, "to": 2}]
+        }
+      ],
+      "quality": {
+        "summary": "No tests or caller code are supplied for this synthetic change.",
+        "tests": [{"path": "src/demo.py", "verdict": "concern", "why": "Add a caller compatibility test before treating the changed return value as safe."}]
+      }
+    }
+  },
+  "behavior": {
+    "headline": "The helper returns a larger integer.",
+    "capabilities": [{"id": "limit", "title": "Read the limit", "summary": "A caller receives two instead of one.", "prs": ["demo/repo#1"]}],
+    "files": [
+      {"pr": "demo/repo#1", "path": "src/demo.py", "headline": "The returned value increases.",
+       "hunks": [{"cap": "limit", "title": "Return value", "lines": [
+         {"k": "~", "kind": "behavior", "text": "The helper returns two instead of one.", "ev": [{"side": "new", "from": 2, "to": 2}]}
+       ]}]}
+    ]
+  },
+  "context": {
+    "sources": [{"url": "https://github.com/demo/repo/pull/1", "title": "Synthetic return-value fixture", "kind": "pr", "summary": "A fixture changes the return literal from one to two; caller and specification evidence are intentionally absent.", "prs": ["demo/repo#1"]}]
+  }
+}
