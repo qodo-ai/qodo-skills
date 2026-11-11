@@ -238,6 +238,14 @@ const rchip = (lv, extra = "") => `<span class="rchip rlv ${rtone(lv)}">${esc(RW
 const RVIEW = { blast: "Blast", door: "Door & deploy", domains: "Domains", parts: "Parts", workflows: "Workflows" };
 const AXN = { radius: "Blast radius", complexity: "Complexity", damage: "Damage" };   // the names Risk assessment uses
 let RSEL = null, RHOVER = null, RFOC = null;   // the PRs shown on the chart (null: all of them) and the one under the pointer
+const RDET = {};   // each PR's levels and reasons, for the details panel
+const sent1 = (t) => { const m = String(t || "").match(/^.*?[.!?](?=\s|$)/s); return (m ? m[0] : String(t || "")).trim(); };   // a reason's first sentence
+const rSideHtml = () => { const d = RHOVER && RDET[RHOVER];
+  if (!d) return `<p class="pms-h">Hover a pull request</p><p class="muted">Its overall risk and a line on each factor show here.</p>`;
+  return `<p class="pms-h">#${esc(d.num)} <span class="muted">${esc(d.repo)}</span></p><p class="rsd-t">${esc(d.sub)}</p>
+    <div class="rsd-sum">${rchip(d.risk)}<span>Decided by <b>${esc(d.worst.component)}</b>, its riskiest scenario.</span></div>
+    <ul class="rsd-f">${RAXES.map((k) => `<li><span class="rnp"><span class="rni">${fic(k)}</span>${AXN[k]}</span><i class="rsdot ${rtone(d.factors[k])}"></i><b>${esc(RW(d.factors[k]))}</b><p title="${esc(d.why[k])}">${md(d.why[k])}</p></li>`).join("")}</ul>`; };
+const rSide = () => document.querySelectorAll(".rside").forEach((sd) => (sd.innerHTML = rSideHtml()));
 function riskRadar() {   // each PR as a shape on three bare axes: its highest level per factor across its failure scenarios; the legend turns PRs on and off
   const cx = 150, cy = 110, r = 72, VB = [64, 4, 204, 168], TIP = 1.18;   // a tight frame: the triangle and its labels, little else
   const pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 3, rr = r * v / 3; return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)]; };
@@ -245,6 +253,9 @@ function riskRadar() {   // each PR as a shape on three bare axes: its highest l
   const ser = prs().map((p) => [p, RK.scenarios.filter((x) => (x.prs || []).includes(p.key))]).filter(([, scs]) => scs.length)
     .map(([p, scs]) => ({ i: p.key, c: rtone(top(scs.map((x) => x.risk))), repo: String(p.repo || "").split("/").pop(), num: p.number, sub: strip(p.title), factors: Object.fromEntries(RAXES.map((k) => [k, top(scs.map((x) => x.factors[k].level))])) }));
   if (!ser.length) return "";
+  ser.forEach((sc) => { const scs = RK.scenarios.filter((x) => (x.prs || []).includes(sc.i)), rk = (x) => [val(x.risk), val(x.factors.damage.level), val(x.factors.radius.level), val(x.factors.complexity.level)];
+    const worst = scs.reduce((a, x) => (rk(x).join() > rk(a).join() ? x : a)), by = (k) => scs.find((x) => x.factors[k].level === sc.factors[k]) || worst;   // what decides the PR, and the scenario behind each factor's level
+    RDET[sc.i] = { ...sc, risk: top(scs.map((x) => x.risk)), worst, why: Object.fromEntries(RAXES.map((k) => [k, sent1(by(k).factors[k].why)])) }; });
   const sel = RSEL || new Set(ser.map((x) => x.i)), focus = RHOVER || (sel.size === 1 ? [...sel][0] : null);
   const at = (x, y) => `left:${((100 * (x - VB[0])) / VB[2]).toFixed(2)}%;top:${((100 * (y - VB[1])) / VB[3]).toFixed(2)}%`;
   let h = `<defs><pattern id="rhatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" class="rhl"/></pattern></defs>`;
@@ -258,8 +269,8 @@ function riskRadar() {   // each PR as a shape on three bare axes: its highest l
   const pills = ser.map((sc) => RAXES.map((k, i) => { const [x, y] = pt(i, val(sc.factors[k])); return `<span class="rvp rt-${sc.c}${sc.i === focus ? " on" : ""}" data-s="${esc(sc.i)}" style="${at(x, y)}"><i class="rsdot ${rtone(sc.factors[k])}"></i>${esc(RW(sc.factors[k]))}</span>`; }).join("")).join("");   // the level on each corner
   const labs = RAXES.map((k, i) => { const [x, y] = pt(i, 3 * TIP); return `<div class="rlab ${i === 0 ? "top" : "bot"}" style="${at(x, y)}"><span class="rnp"><span class="rni">${fic(k)}</span>${AXN[k]}</span></div>`; }).join("");
   const leg = ser.map((sc) => `<button class="rser rt-${sc.c}" data-rser="${esc(sc.i)}" aria-pressed="${sel.has(sc.i)}" title="${esc(sc.sub)}"><i class="rsw" aria-hidden="true"></i><span class="rsl"><b>#${esc(sc.num)}</b><span class="rsr">${esc(sc.repo)}</span></span></button>`).join("");
-  return `<div class="rgraph${focus ? " has-hi" : ""}"><div class="rleg" role="group" aria-label="Pull requests"><p class="rleg-h">Pull requests</p>${leg}</div>
-    <div class="rchart"><svg class="radar" viewBox="${VB.join(" ")}" style="--ro:${cx - VB[0]}px ${cy - VB[1]}px" role="img" aria-label="Merge Risk factors per PR">${h}</svg>${pills}${labs}</div></div>`;
+  return `<div class="rgraph side${focus ? " has-hi" : ""}"><div class="rleg" role="group" aria-label="Pull requests"><p class="rleg-h">Pull requests</p>${leg}</div>
+    <div class="rchart"><svg class="radar" viewBox="${VB.join(" ")}" style="--ro:${cx - VB[0]}px ${cy - VB[1]}px" role="img" aria-label="Merge Risk factors per PR">${h}</svg>${pills}${labs}</div><aside class="rside pmside" aria-live="polite">${rSideHtml()}</aside></div>`;
 }
 function rApply() {   // the legend's PRs on the chart: the ones turned on, the one under the pointer in front with its levels
   document.querySelectorAll(".rgraph").forEach((g) => {
@@ -270,7 +281,7 @@ function rApply() {   // the legend's PRs on the chart: the ones turned on, the 
       if (k !== f) return x.classList.remove("hi");
       if (!x.classList.contains("hi")) { x.parentNode.appendChild(x); requestAnimationFrame(() => requestAnimationFrame(() => x.classList.toggle("hi", x.dataset.s === RFOC))); } });   // on top, then marked, so it thickens instead of jumping
     g.querySelectorAll(".rvp").forEach((v) => v.classList.toggle("on", v.dataset.s === f));
-  });
+  }); rSide();
 }
 let RHOV = false;
 document.addEventListener("mouseover", (e) => { const b = e.target.closest && e.target.closest("[data-rser]"); if (b) { if (RHOVER !== b.dataset.rser) { RHOVER = b.dataset.rser; rApply(); } RHOV = true; return; }
@@ -386,9 +397,8 @@ const rOn = () => !!(RK && RK.scenarios.length);
 const rCard = (h) => h ? `<section class="card impact risk">${h}</section>` : "";
 function bRiskSum() {   // the level, what would go wrong and the chart of each factor's highest level
   if (!rOn()) return bRisk();
-  const levels = S.rhelp && RK.meanings ? `<div class="rlevels" role="note">${["low", "medium", "high", "unknown"].map((l) => `<p><b class="rlvl ${rtone(l)}">${esc(RW(l))}</b> ${esc(RK.meanings[l])}.</p>`).join("")}<p class="muted">The level comes from the riskiest scenario, through two fixed tables (Go deeper, How it was decided).</p></div>` : "";
   const range = RK.range ? `<p class="muted">Could be ${esc(RW(RK.range[0]))}–${esc(RW(RK.range[1]))}.</p>` : "";
-  return rCard(levels + range + `<div class="rwide">${riskRadar()}</div>`);
+  return rCard(range + `<div class="rwide">${riskRadar()}</div>`);
 }
 const bRiskText = () => (rOn() && RK.headline ? rCard(riskHeadline(true)) : "");   // what would go wrong, in a widget of its own
 const bRiskAxis = (w) => rOn() ? rCard(riskAxis(RFX[w])) : "";
@@ -608,20 +618,21 @@ function dRefs(d) {   // where the human instruction lives: the decision's own l
 function decSub() { const ds = allDecisions().filter((d) => DATTN.includes(d.status)); if (!ds.length) return ""; const R = drec(), n = (s) => ds.filter((d) => d.status === s).length, ok = ds.filter((d) => R.calls[d.pr + "|" + d.id] === "accept").length;
   const c = (tone, t) => chip(tone ? pkDot([tone, t]) : esc(t), "pkn");   // the header's counts as chips, as Package contents has them
   return [n("unplanned") && c("bad", `${n("unplanned")} unplanned`), n("changed") && c("warn", `${n("changed")} deviation${n("changed") === 1 ? "" : "s"}`), c("", `${ok} of ${ds.length} accepted`)].filter(Boolean).join(""); }
-function decCard(d, R) {
-  const uid = d.pr + "|" + d.id, call = R.calls[uid], ok = call === "accept", dir = (R.dirs || {})[uid] || "", open = DOPEN[uid] ?? false, [pl, tone] = DPLAN[d.status], k = dKind(d);
-  const u = ALLU.find((x) => x.decisions.some((y) => y.pr === d.pr && y.id === d.id)), refs = dRefs(d);
+function decRow(d, R) {   // a row per decision, as Package contents has them; a click opens its full text and the answer
+  const uid = d.pr + "|" + d.id, call = R.calls[uid], ok = call === "accept", dir = (R.dirs || {})[uid] || "", open = DOPEN[uid] ?? false, [pl, tone] = DPLAN[d.status], k = dKind(d), refs = dRefs(d);
   const said = d.plan ? md(d.plan) : "The human instructions say nothing about this.";
-  return `<details class="dcard${ok ? " ok" : ""}" data-dk="${esc(uid)}" data-qa="ad:${esc(uid)}"${open ? " open" : ""}><summary><span class="dnum">${d.n}</span><b class="dtitle">${md(d.text)}</b>
-    <span class="dchips"><span class="dst ${tone}">${esc(pl)}</span><span class="dkind ${k}">${k === "product" ? "Behavior" : "Technical"}</span>${ok ? `<span class="dok">✓ Accepted</span>` : call === "fix" ? `<span class="dfix">Revision asked</span>` : ""}</span><span class="chev" aria-hidden="true"></span></summary>
-    <div class="dbody"><section class="dsec"><h4>Human instruction</h4><p>${said}</p>${DSRC[d.source] ? `<p class="dfrom">From ${esc(DSRC[d.source])}</p>` : ""}
+  const rp = /^[^/]+\/([^#]+)#(\d+)$/.exec(String(d.pr || "")), pu = (C.prs.find((x) => x.key === d.pr) || {}).url;   // the repo and the PR number, each in its own column
+  const ans = ok ? pkDot(["ok", "Accepted"]) : call === "fix" ? pkDot(["warn", "Revision asked"]) : '<span class="pkd">Open</span>';
+  const row = `<tr class="pkt-r dtr${ok ? " ok" : ""}" data-dtog="${esc(uid)}" data-qa="ad:${esc(uid)}" aria-expanded="${open}" tabindex="0"><td><div class="pkt-n"><span class="pkt-cv" aria-hidden="true"></span><span class="dnum">${d.n}</span><b class="dtitle" title="${esc(d.text)}">${md(d.text)}</b></div></td>
+    <td>${pkDot([{ high: "bad", medium: "warn" }[tone] || "ok", pl])}</td><td><span class="dkind ${k}">${k === "product" ? "Behavior" : "Technical"}</span></td><td><span class="pkd">${esc(rp ? rp[1] : "")}</span></td><td>${rp ? (pu ? `<a class="dpr" href="${esc(pu)}" target="_blank" rel="noopener" title="Open on GitHub">#${esc(rp[2])}</a>` : `#${esc(rp[2])}`) : esc(d.pr)}</td><td>${ans}</td></tr>`;
+  if (!open) return `<tbody>${row}</tbody>`;
+  return `<tbody>${row}<tr class="dtx"><td colspan="6"><div class="dbody"><section class="dsec"><h4>Human instruction</h4><p>${said}</p>${DSRC[d.source] ? `<p class="dfrom">From ${esc(DSRC[d.source])}</p>` : ""}
         ${refs.length ? `<div class="drefs">${refs.map((r) => `<a class="dref" href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.url)}">${esc(r.title || r.url)}</a>`).join("")}</div>` : ""}</section>
-      <section class="dsec"><h4>Agent decision</h4>${d.why ? `<p>${md(d.why)}</p>` : ""}${d.pattern ? `<p class="muted">${md(d.pattern)}</p>` : ""}${(d.effects || []).length ? `<p class="gap">Won't fail, behaves differently: ${esc(d.effects.join(", "))}</p>` : ""}${d.notice ? `<p class="dfrom">How we'd notice: ${md(d.notice)}</p>` : ""}
-        ${u ? `<button class="ulink" data-goto="${esc(u.id)}">Read its code: walkthrough step ${esc(unitNo(u))} →</button>` : ""}</section>
+      <section class="dsec"><h4>Agent decision</h4>${d.why ? `<p>${md(d.why)}</p>` : ""}${d.pattern ? `<p class="muted">${md(d.pattern)}</p>` : ""}${(d.effects || []).length ? `<p class="gap">Won't fail, behaves differently: ${esc(d.effects.join(", "))}</p>` : ""}${d.notice ? `<p class="dfrom">How we'd notice: ${md(d.notice)}</p>` : ""}</section>
       ${DREV[uid] ? `<div class="drev"><label class="dsec"><h4>New direction</h4><textarea data-drevt="${esc(uid)}" rows="3" placeholder="What should the agent do instead?">${esc(dir)}</textarea></label>
         <div class="drev-b">${call === "fix" ? `<button class="btn" data-drev="${esc(uid)}|withdraw" style="margin-right:auto">Withdraw the revision</button>` : ""}<button class="btn" data-drev="${esc(uid)}|cancel">Cancel</button><button class="btn pri" data-drev="${esc(uid)}|send">Revise decision</button></div></div>`
       : `${call === "fix" && dir ? `<div class="dsec ddir"><h4>Your new direction</h4><p>${esc(dir)}</p></div>` : ""}
-      <div class="dact"><span class="muted">${esc(shortPr(d.pr))}</span><button class="btn pri" data-dcall="${esc(uid)}|accept" aria-pressed="${ok}">${ok ? "✓ Accepted" : "Accept"}</button><button class="btn" data-drev="${esc(uid)}|open" aria-pressed="${call === "fix"}">${call === "fix" ? "Edit the direction" : "Revise decision"}</button></div>`}</div></details>`;
+      <div class="dact"><button class="btn pri" data-dcall="${esc(uid)}|accept" aria-pressed="${ok}">${ok ? "✓ Accepted" : "Accept"}</button><button class="btn" data-drev="${esc(uid)}|open" aria-pressed="${call === "fix"}">${call === "fix" ? "Edit the direction" : "Revise decision"}</button></div>`}</div></td></tr></tbody>`;
 }
 function bDecisions() {   // the decisions review belongs on the overview
   const all = allDecisions(); if (!all.length) return "";
@@ -632,15 +643,17 @@ function bDecisions() {   // the decisions review belongs on the overview
   const plans = [["attention", "Unplanned and deviations", cnt((d) => DATTN.includes(d.status))], ["all", "Any plan state", all.length]].concat(Object.keys(DSHOW).filter((st) => cnt((d) => d.status === st)).map((st) => [st, DSHOW[st], cnt((d) => d.status === st)]));
   const ds = all.filter((d) => (DF.kind === "all" || dKind(d) === DF.kind) && dPlanOn(d));
   const sel = ddrop("plan", "Against the plan", DF.plan, plans);   // the plan filter as a dropdown, to keep the row short
-  return `<div class="dfilts">${seg("kind", "Decision type", kinds)}${sel}<span class="dall"><button class="btn sm" data-dall="open">Expand all</button><button class="btn sm" data-dall="close">Collapse all</button></span></div><div class="dlist">${ds.map((d) => decCard(d, R)).join("") || `<p class="muted">No decision matches these filters.</p>`}</div>`;
+  return `<div class="dfilts">${seg("kind", "Decision type", kinds)}${sel}${(() => { const on = ds.some((d) => DOPEN[d.pr + "|" + d.id]), t = on ? "Collapse all" : "Expand all"; return ds.length ? `<button class="btn sm trall" data-dall="${on ? "close" : "open"}" aria-expanded="${on}" aria-label="${t}" title="${t}">${svg(BARICON[on ? "collapse" : "expand"])}</button>` : ""; })()}</div>${ds.length ? `<div class="tscroll pkt-w"><table class="pkt-tab dtab"><thead><tr><th>Decision</th><th>Against the plan</th><th>Type</th><th>Repo</th><th>PR</th><th>Answer</th></tr></thead>${ds.map((d) => decRow(d, R)).join("")}</table></div>` : `<p class="muted">No decision matches these filters.</p>`}`;
 }
-document.addEventListener("toggle", (e) => { const d = e.target; if (d.classList && d.classList.contains("dcard")) DOPEN[d.dataset.dk] = d.open; }, true);
+document.addEventListener("keydown", (e) => { const r = e.target.closest && e.target.closest("[data-dtog]"); if (r && (e.key === "Enter" || e.key === " ") && e.target === r) { e.preventDefault(); r.click(); } });
 document.addEventListener("click", (e) => {
   const x = e.target.closest && e.target.closest("[data-dall]");   // the decisions in view, all at once
-  if (x) { document.querySelectorAll(".dcard").forEach((d) => (DOPEN[d.dataset.dk] = x.dataset.dall === "open")); return keepScroll(() => {}); }
+  if (x) { document.querySelectorAll("[data-dtog]").forEach((d) => (DOPEN[d.dataset.dtog] = x.dataset.dall === "open")); return keepScroll(() => {}); }
+  const tr = e.target.closest && e.target.closest("[data-dtog]");   // a row opens or closes its detail; its links still work
+  if (tr && !e.target.closest("a, button")) { DOPEN[tr.dataset.dtog] = !DOPEN[tr.dataset.dtog]; return keepScroll(() => {}); }
   const f = e.target.closest && e.target.closest("[data-dfilt]");
   if (f) { const [k, v] = f.dataset.dfilt.split(":"); DF[k] = v; store.set(DFKEY, DF); return keepScroll(() => {}); }
-  const c = e.target.closest && e.target.closest(".dcard [data-dcall]");
+  const c = e.target.closest && e.target.closest(".dtx [data-dcall]");
   if (c) DOPEN[c.dataset.dcall.slice(0, c.dataset.dcall.lastIndexOf("|"))] = false;   // an answer folds an accepted decision, or reopens one
   const r = e.target.closest && e.target.closest("[data-drev]"); if (!r) return;
   e.preventDefault();
@@ -1440,7 +1453,8 @@ function headActions() {
   return `<div class="vw"><button type="button" class="hbtn" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Page view" title="Page view: how this page's widgets open">${EYE}</button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
 
     + `<div class="theme" role="group" aria-label="Theme">${[["light", "Light", HICON.sun], ["dark", "Dark", HICON.moon]].map(([k, n, i]) => `<button type="button" data-theme-set="${k}" aria-pressed="${themeNow() === k}" aria-label="${n} mode" title="${n} mode">${i}</button>`).join("")}</div>`
-    + `<div class="vw"><button type="button" class="hbtn" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}</button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`;   // Share sits on the far right
+    + `<div class="vw"><button type="button" class="hbtn" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}</button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
+    + `<button type="button" class="hbtn" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>`;   // Share, then More on the far right
 }
 if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; keepScroll(() => {}); drawHead(); }).catch(() => {});
 const OVERVIEW = ["prs", "brief", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"];
@@ -2012,7 +2026,7 @@ const BLOCKS = {   // kept in step with BLOCKS in cockpit/recipes.py
   flow: { label: "Flow", what: "How it works: plain answers, then one request followed hop by hop with what each hop carries", render: bFlow },
   plan: { label: "Code map", what: "The reading-plan bar, with Map · Tree", render: bPlan, sub: () => `${C.prs.reduce((a, p) => a + ((p.attention.summary || {}).total || 0), 0).toLocaleString()} changed lines` },
   risk: { label: "Merge Risk", what: "One level from each failure scenario's blast radius, potential damage and complexity through two tables: what would go wrong, the deciding scenario, how it was decided, review effort and the auto-approval preview; then Quality and plan alignment", render: bRisk, sub: () => (RK && RK.scenarios.length ? rchip(RK.level) : ""), act: () => (RK && RK.scenarios.length ? riskHelp() : "") },
-  rsum: { label: "Risk assessment", what: "Merge Risk's level, what would go wrong, and a chart of each factor's highest level", render: bRiskSum, sub: () => (rOn() ? rchip(RK.level) : ""), act: () => (rOn() ? riskHelp() : "") },
+  rsum: { label: "Risk assessment", what: "Merge Risk's level, what would go wrong, and a chart of each factor's highest level", render: bRiskSum, sub: () => (rOn() ? rchip(RK.level) : "") },
   rtext: { label: "Risk summary", what: "What would go wrong, in a sentence, and why Merge Risk is at its level", render: bRiskText },
   rblast: { label: "Blast radius", what: "How far a fault can reach, scenario by scenario, with the evidence", render: () => bRiskAxis("rblast"), sub: () => (rOn() ? rchip(RK.picture.radius) : "") },
   rcplx: { label: "Complexity", what: "How hard each scenario is to get right, with the evidence", render: () => bRiskAxis("rcplx"), sub: () => (rOn() ? rchip(RK.picture.complexity) : "") },
@@ -2021,8 +2035,8 @@ const BLOCKS = {   // kept in step with BLOCKS in cockpit/recipes.py
   impact: { label: "Merge danger", what: "One-way or two-way door, the deploy order, what the change reaches (blast radius), what could go wrong and how we'd notice, changes per domain, and the findings and tests behind it", render: bImpact },
   starts: { label: "Start here", what: "The one to three things to look at first", render: bStarts, sub: () => { const n = Math.min(((NOTICE && NOTICE.items) || []).length, 3); return n ? `${n} thing${n === 1 ? "" : "s"} to look at first` : ""; } },
   scope: { label: "Scope", what: "Scope against the spec, in one line", render: bScope, sub: () => (SCOPE && SCOPE.title ? md(SCOPE.title) : "") },
-  system: { label: "System", what: "The contracts the package changes: the map, then each contract with its code on both sides", render: () => (C.system ? `<div id="cm-root"></div>` : ""), after: () => {
-    const el = document.getElementById("cm-root"), sec = el && el.closest("details");   // in a closed section the map has nothing to measure: draw it when it opens
+  system: { label: "System", what: "The contracts the package changes: the map, then each contract with its code on both sides", render: () => (C.system ? `<div id="cm-root"></div>` : ""), after: (root) => {   // root: the full-screen dialog, whose copy shares the page's id
+    const el = (root && root.querySelector ? root.querySelector("#cm-root") : null) || document.getElementById("cm-root"), sec = el && el.closest("details");   // in a closed section the map has nothing to measure: draw it when it opens
     if (!el) return;
     if (sec && !sec.open) sec.addEventListener("toggle", () => { if (sec.open) CM.mount(el, C); }, { once: true }); else CM.mount(el, C); } },
   contracts: { label: "Contracts", what: "The contracts the package changes, or those between the PRs", render: () => contractsHtml(),
@@ -2145,29 +2159,48 @@ SICON.merge = '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path
 SICON.ovw = '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>';
 const sico = (b) => `<svg class="sico" viewBox="0 0 24 24" aria-hidden="true">${SICON[b] || SICON.brief}</svg>`;
 const wname = (w, p = typeof curPage === "function" ? curPage() : null) => ((p && p.names) || {})[w] || (BLOCKS[w] && BLOCKS[w].label) || (WIDGETS[w] || [w])[0];   // a widget's name on this page: the one given here, else its own
-const blockSec = ([b, h]) => { const B = BLOCKS[b] || {}; return { id: b, label: wname(b), icon: b, sub: B.sub ? B.sub() : "", act: B.act ? B.act() : "", html: h }; };
+const blockSec = ([b, h]) => { const B = BLOCKS[b] || {}; return { id: b, label: wname(b), icon: b, sub: B.sub ? B.sub() : "", html: h }; };   // no widget controls in the header: its right side holds the layout's
 /* full screen: any widget opens in a large modal, like the gallery; it redraws with the page while open */
 const MAXICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/></svg>';
 const wfullBtn = (s) => BLOCKS[s.id] ? `<button type="button" class="wfull" data-wfull="${esc(s.id)}" aria-label="Open ${esc(s.label)} full screen" title="Full screen">${MAXICON}</button>` : "";
 let WFULL = null;   // the widget open full screen
 function wfullDraw() {
   let m = document.getElementById("wfm");
-  if (!WFULL || !BLOCKS[WFULL]) { WFULL = null; return m && m.remove(); }
-  const B = BLOCKS[WFULL], fresh = !m, body = m && m.querySelector(".wfm-b"), top = body ? body.scrollTop : 0;
+  if (!WFULL || (!BLOCKS[WFULL] && WFULL !== WDONE)) { WFULL = null; const was = m && m.dataset.w; if (m) m.remove(); if (was === "system" && BLOCKS.system) BLOCKS.system.after(); return; }   // closing System hands the map back to the page's copy
+  const B = BLOCKS[WFULL], fresh = !m, body = m && m.querySelector(".wfm-b"), top = body && m.dataset.w === WFULL ? body.scrollTop : 0;   // a new widget starts at its top
+  const seq = wseq(), done = WFULL === WDONE, at = done ? seq.length : wpos(seq), nav = seq.length && at >= 0 ? `<span class="wfm-nav"><button type="button" class="wz-ic" data-wfstep="-1" aria-label="Previous widget" title="Previous widget (←)"${at ? "" : " disabled"}>${svg('<path d="m15 18-6-6 6-6"/>')}</button><span class="wfm-n">${done ? "Done" : `${at + 1} of ${seq.length}`}</span><button type="button" class="wz-ic" data-wfstep="1" aria-label="${at === seq.length - 1 ? "Finish" : "Next widget"}" title="${at === seq.length - 1 ? "Finish" : "Next widget (→)"}"${done ? " disabled" : ""}>${svg('<path d="m9 18 6-6-6-6"/>')}</button></span>` : "";
   if (!m) { m = document.createElement("div"); m.id = "wfm"; m.className = "lmod"; document.body.appendChild(m); }
-  m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="${esc(wname(WFULL))}"><div class="lmod-h wfm-h"><span class="stile">${sico(WFULL)}</span><b>${esc(wname(WFULL))}</b>${B.sub ? `<span class="ssub">${B.sub()}</span>` : ""}<button type="button" class="wz-ic" data-wfm-close aria-label="Close full screen" title="Close (Esc)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div><div class="wfm-b sbody">${widgetHtml(WFULL)}</div></div>`;
-  if (B.after) B.after();   // a widget's own setup (Finding review fills its frames here)
-  m.querySelector(".wfm-b").scrollTop = top; if (fresh) m.querySelector("[data-wfm-close]").focus();
+  m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="${done ? "All done" : esc(wname(WFULL))}"><div class="lmod-h wfm-h"><span class="stile">${done ? svg('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>', "sico") : sico(WFULL)}</span><b>${done ? "All done" : esc(wname(WFULL))}</b>${B && B.sub ? `<span class="ssub">${B.sub()}</span>` : ""}${nav}<button type="button" class="wz-ic" data-wfm-close aria-label="Close full screen" title="Close (Esc)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div><div class="wfm-b sbody">${done ? wdoneHtml(seq) : widgetHtml(WFULL)}</div></div>`;
+  if (B && B.after) B.after(m);   // a widget's own setup (Finding review fills its frames here), in this dialog
+  if (m.dataset.w === "system" && WFULL !== "system" && BLOCKS.system) BLOCKS.system.after();   // stepping off System hands the map back to the page's copy
+  m.querySelector(".wfm-b").scrollTop = top; m.dataset.w = WFULL; if (fresh) m.querySelector("[data-wfm-close]").focus();
+}
+const WDONE = "_done";   // full screen's last step, after every widget
+const wdoneHtml = (seq) => `<div class="wfm-done"><span class="wfm-done-i">${svg('<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>')}</span><h3>All done</h3><p class="muted">You've been through all ${seq.length} widgets in this review, page by page.</p>
+  <div class="wfm-done-a"><button type="button" class="btn" data-wfstart>Start again</button><button type="button" class="btn" data-wfm-close>Close</button></div></div>`;
+const wseq = () => LAYOUT.pages.flatMap((p) => p.widgets.filter((w) => BLOCKS[w]).map((w) => [w, p.id]));   // every widget on every page, top to bottom: a widget on two pages counts twice
+let WFPAGE = null;   // the page of the open full-screen widget, so a widget on two pages keeps its place
+const wpos = (seq) => { const i = seq.findIndex(([w, p]) => w === WFULL && p === WFPAGE); return i >= 0 ? i : seq.findIndex(([w]) => w === WFULL); };
+function wfStep(dir) {   // full screen: the previous or next widget; past the last one, All done
+  const seq = wseq(), at = WFULL === WDONE ? seq.length : wpos(seq), n = at + dir;
+  if (n === seq.length) { WFULL = WDONE; return wfullDraw(); }   // past the last widget: the All done step
+  if (n < 0 || n > seq.length || at < 0) return;
+  WFULL = seq[n][0]; WFPAGE = seq[n][1]; if (S.tab !== seq[n][1]) { S.tab = seq[n][1]; save(); try { history.replaceState(null, "", "#" + S.tab); } catch (_) {} render(); drawHead(); } else wfullDraw();   // closing lands on its page
+  const b = document.querySelector(`#wfm [data-wfstep="${dir}"]`); if (b && !b.disabled) b.focus();
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-wfull]");
-  if (b) { e.preventDefault(); e.stopPropagation(); WFULL = b.dataset.wfull; return wfullDraw(); }
+  if (b) { e.preventDefault(); e.stopPropagation(); WFULL = b.dataset.wfull; WFPAGE = S.tab; return wfullDraw(); }   // the copy on this page
+  const st = WFULL && e.target.closest && e.target.closest("[data-wfstep]"); if (st) { e.preventDefault(); e.stopPropagation(); return wfStep(+st.dataset.wfstep); }
+  if (WFULL && e.target.closest && e.target.closest("[data-wfstart]")) { e.preventDefault(); e.stopPropagation(); WFULL = WDONE; const first = wseq()[0]; if (!first) return; WFULL = first[0]; WFPAGE = first[1]; S.tab = first[1]; save(); try { history.replaceState(null, "", "#" + S.tab); } catch (_) {} render(); drawHead(); return; }   // All done › Start again: the first widget
   if (WFULL && (e.target.id === "wfm" || (e.target.closest && e.target.closest("[data-wfm-close]")))) { WFULL = null; wfullDraw(); }
 }, true);
 document.addEventListener("keydown", (e) => { if (WFULL && e.key === "Escape") { e.stopPropagation(); WFULL = null; wfullDraw(); } }, true);
-const soloHtml = (s) => `<div class="rpart" id="blk-${s.id}"><div class="sec solo"><div class="ssum"><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${s.act ? `<span class="sact">${s.act}</span>` : ""}${wfullBtn(s)}</div><div class="sbody">${s.html}</div></div></div>`;   // a widget that doesn't fold: a page's only one, or every one in Always open
+document.addEventListener("keydown", (e) => { if (!WFULL || !/^Arrow(Left|Right)$/.test(e.key) || (e.target.closest && e.target.closest("input, textarea, select, [contenteditable], [role=tab], [role=tablist], [role=radiogroup], .bv, .wtab, .cm"))) return;   // ← → step through widgets in full screen; tabs, segmented controls and the Contract Map keep their own arrows
+  e.preventDefault(); e.stopPropagation(); wfStep(e.key === "ArrowRight" ? 1 : -1); }, true);
+const soloHtml = (s) => `<div class="rpart" id="blk-${s.id}"><div class="sec solo"><div class="ssum"><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}</div><div class="sbody">${s.html}</div></div></div>`;   // a widget that doesn't fold: a page's only one, or every one in Always open
 function secHtml(s, cur, first) {   // the Overview's card: icon, title, a summary chip, folded until opened; every page uses it
-  return `<div class="rpart" id="blk-${s.id}"><details class="sec" data-sec="${esc(s.id)}"${secOpen(s.id, cur, first) ? " open" : ""}><summary><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${s.act ? `<span class="sact">${s.act}</span>` : ""}${wfullBtn(s)}<span class="chev" aria-hidden="true"></span></summary><div class="sbody">${s.html}</div></details></div>`;
+  return `<div class="rpart" id="blk-${s.id}"><details class="sec" data-sec="${esc(s.id)}"${secOpen(s.id, cur, first) ? " open" : ""}><summary><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}<span class="chev" aria-hidden="true"></span></summary><div class="sbody">${s.html}</div></details></div>`;
 }
 const sid = (s) => String(s).replace(/[^A-Za-z0-9]+/g, "-");
 const chip = (t, tone = "") => `<span class="chip${tone ? " " + tone : ""}">${t}</span>`;
@@ -2239,8 +2272,7 @@ function navHtml(c, parts) {
     const b = `<button type="button" class="nv-p"${on ? ` aria-current="page"${subs.length ? ` data-nvx aria-expanded="${NVOPEN}"` : ""}` : ` data-tab="${esc(id)}"`}${MINI ? ` title="${esc(t)}"` : ""}>${sico(ic || NVICON[id] || id)}<span class="nv-l">${esc(t)}</span></button>${cv}`;
     return (EDIT || cv ? `<div class="nv-r">${EDIT ? `<button class="wgrip" data-grip="p:${i}" aria-label="Drag the ${esc(t)} page to reorder, or use the arrow keys" title="Drag to reorder">${GRIP}</button>` : ""}${b}${EDIT ? `<button class="nv-x" data-ly="page-rm" data-lyv="${esc(id)}" aria-label="Delete the ${esc(t)} page" title="Delete page"${TABS.length < 2 ? " disabled" : ""}>${LYICON.bin}</button>` : ""}</div>` : b)
       + (subs.length && NVOPEN ? `<ol class="nv-s">${subs.map((s) => `<li><a href="#blk-${s.id}" data-toc="${esc(s.id)}" title="${esc(s.label)}">${s.iconHtml || sico(s.navIcon || s.icon)}<span>${esc(s.nav || s.label)}</span></a></li>`).join("")}</ol>` : "");
-  }).join("") + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button>`
-    : `<button type="button" class="nv-p nv-mb" data-nvmore aria-haspopup="menu" aria-expanded="false"${MINI ? ' title="More"' : ""}>${LYICON.more}<span class="nv-l">More</span></button>`);
+  }).join("") + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button>` : "");
 }
 const LYICON = {   // the layout editor's icons: more options, a page, a widget, editing
   more: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>',
@@ -2253,11 +2285,11 @@ const LYICON = {   // the layout editor's icons: more options, a page, a widget,
   reset: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
   tpl: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/></svg>',
   edit: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2 2 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>' };
-function nvMore(btn) {   // the … menu opens beside its nav item (fixed, so the nav's scroll doesn't clip it)
+function nvMore(btn) {   // the ⋮ menu opens under its header button, right-aligned (fixed, so nothing clips it)
   let m = document.querySelector(".nv-mm"); if (m && !m.hidden) { m.hidden = true; btn.setAttribute("aria-expanded", "false"); return; }
   if (!m) { m = document.createElement("div"); m.className = "nv-mm hmenu"; m.setAttribute("role", "menu"); document.body.appendChild(m); }
   m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Marketplace</span></button><button class="hsrow" role="menuitem" data-ly="tpl">${LYICON.tpl}<span>Layout wizard</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="mine">${LYICON.page}<span>My layouts</span></button><button class="hsrow" role="menuitem" data-ly="my-new">${LYICON.save}<span>Add to my layouts</span></button><div class="hsep"></div>${stylesMenu()}`;
-  const r = btn.getBoundingClientRect(); m.style.left = r.right + 8 + "px"; m.hidden = false; m.style.top = Math.max(8, Math.min(r.top, innerHeight - m.offsetHeight - 8)) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
+  const r = btn.getBoundingClientRect(); m.hidden = false; m.style.top = r.bottom + 6 + "px"; m.style.left = Math.max(8, r.right - m.offsetWidth) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-nvmore]"); if (b) return nvMore(b);
@@ -2396,8 +2428,9 @@ function render() {
   $("#tabs").innerHTML = navHtml(c, parts);
   $("#panel").innerHTML = EDIT ? editHtml() : S.pr !== "all" && !S.pr.length ? `<p class="lempty">No PRs are selected. Pick one or more in the PR filter, or tick <b>Select all</b>.</p>` : !blocks.length ? `<p class="lempty">This page has no widgets yet. Click <b>Edit</b> to add some.</p>` : VMODE === "tabs" ? wtabsHtml(parts) : FOLD ? `<div class="scol">${parts.map((p) => VMODE === "open" ? soloHtml(p) : secHtml(p, SECT[S.tab], parts[0].id)).join("")}</div>`
     : parts.map(soloHtml).join("");
-  document.documentElement.style.setProperty("--hh", headH() + "px"); tocMark(); accFit(); psecFit(); caMark(); pmEyeFit(); unlinkWidgets(); if (WFULL) wfullDraw();   // a full-screen widget follows the page's changes
+  document.documentElement.style.setProperty("--hh", headH() + "px"); tocMark(); accFit(); psecFit(); caMark(); pmEyeFit(); unlinkWidgets();   // a full-screen widget follows the page's changes
   if (!EDIT) blocks.forEach((b) => BLOCKS[b] && BLOCKS[b].after && BLOCKS[b].after());   // parts may be a page's own sections now
+  if (WFULL) wfullDraw();   // after the page's own setup, so a full-screen widget (the Contract Map) keeps its mount
   if (!EDIT && blocks.some((b) => BLOCKS[b] && BLOCKS[b].mermaid)) loadMermaid();
   if (ASK.open) ctxMark(true);   // the redraw replaced the outlined element
   saveBar();
