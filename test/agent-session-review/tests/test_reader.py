@@ -77,6 +77,10 @@ class ReaderTests(unittest.TestCase):
         self.assertEqual(hits[2][0][0], 'Hop by hop'); self.assertIn('dropped_findings', hits[2][0][1])   # by the widget's text, with a snippet
         self.assertTrue(self.source.index('rd-find') < self.source.index('function rdFoot('))   # Find is in the header; the steps are in the footer
         self.assertIn('!(e.target.matches && e.target.matches(".rd-q"))', self.source)   # Escape in Find doesn't close Reader
+        self.assertIn('id="rd-opt-${k}"', self.source); self.assertIn('q.setAttribute("aria-activedescendant", opts[RDFI].id)', self.source)   # the highlighted match is announced
+        self.assertIn('if (find && find.v) { const q = m.querySelector(".rd-q"); q.value = find.v; rdFindDraw(q);', self.source)   # a redraw keeps a search in progress
+        html = (util.ROOT / 'app/styles/package.html').read_text()
+        self.assertNotIn('.rd-pgt, .rd-find{display:none}', html)   # phones keep Find
 
     def test_expand_opens_reader_in_stepper_and_scrolling_never_moves_the_focus(self):
         self.assertIn('READER = "step"; WFULL = b.dataset.wfull;', self.source)

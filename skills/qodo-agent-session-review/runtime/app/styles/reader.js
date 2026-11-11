@@ -49,11 +49,12 @@ function rdClose() { const m = document.getElementById("rdm"); READER = READER =
 function rdDraw() {   // Scroll: every widget, one after another; it redraws with the page and keeps its place
   const seq = wseq(); let m = document.getElementById("rdm");
   if (READER !== "scroll" || !seq.length) return rdClose();
-  const fresh = !m, top = m ? m.querySelector(".rd-b").scrollTop : 0;
+  const fresh = !m, top = m ? m.querySelector(".rd-b").scrollTop : 0, oq = m && m.querySelector(".rd-q"), find = oq && { v: oq.value, focus: document.activeElement === oq, at: oq.selectionStart };   // a search in progress survives the redraw
   if (!m) { m = document.createElement("div"); m.id = "rdm"; m.className = "lmod"; document.body.appendChild(m); }
   m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="Reader">${rdHead(false)}
     <div class="rd-b${RDPG ? "" : " rd-nopg"}">${rdBody(seq, (i) => ` data-rdfocus="${i}" role="button" tabindex="0" title="Focus this widget"`)}</div>${rdFoot(false)}</div>`;
   rdAfter(m, seq); m.querySelector(".rd-b").scrollTop = top;
+  if (find && find.v) { const q = m.querySelector(".rd-q"); q.value = find.v; rdFindDraw(q); if (find.focus) { q.focus(); q.setSelectionRange(find.at, find.at); } }
   rdFocus(RDAT, false); if (fresh) m.querySelector("[data-rdclose]").focus();
 }
 function rdFocus(i, scroll = true) {   // one widget in focus: marked, counted in the header, and brought to the top
@@ -106,20 +107,21 @@ function rdFind(q) {
 }
 function rdFindDraw(inp) {   // the suggestions under the box
   const box = inp.parentNode.querySelector(".rd-res"), hits = rdFind(inp.value); RDFI = 0;
-  box.innerHTML = hits.length ? hits.map((h, k) => `<button type="button" class="rd-r${k ? "" : " on"}" role="option" aria-selected="${!k}" data-rdgo="${h.i}"><span class="stile">${sico(h.w)}</span><span class="rd-rt"><b>${esc(h.name)}</b><small>${esc(h.page)}${h.snip ? ` · ${esc(h.snip)}` : ""}</small></span></button>`).join("") : `<p class="rd-none">No widget matches</p>`;
+  box.innerHTML = hits.length ? hits.map((h, k) => `<button type="button" class="rd-r${k ? "" : " on"}" role="option" id="rd-opt-${k}" aria-selected="${!k}" data-rdgo="${h.i}"><span class="stile">${sico(h.w)}</span><span class="rd-rt"><b>${esc(h.name)}</b><small>${esc(h.page)}${h.snip ? ` · ${esc(h.snip)}` : ""}</small></span></button>`).join("") : `<p class="rd-none">No widget matches</p>`;
   box.hidden = !inp.value.trim(); inp.setAttribute("aria-expanded", String(!box.hidden));
+  if (hits.length && !box.hidden) inp.setAttribute("aria-activedescendant", "rd-opt-0"); else inp.removeAttribute("aria-activedescendant");   // the highlighted match, for screen readers
 }
 let RDFI = 0;   // the highlighted suggestion
 function rdGo(i) {   // to a widget, in either mode
   if (READER === "scroll") rdFocus(i);
   else { const n = wseq().length, at = WFULL === WDONE ? n : wpos(wseq()); if (i !== at) wfStep(i - at); }
-  const q = document.querySelector("#rdm .rd-q, #wfm .rd-q"); if (q) { q.value = ""; q.blur(); const b = q.parentNode.querySelector(".rd-res"); b.hidden = true; q.setAttribute("aria-expanded", "false"); }
+  const q = document.querySelector("#rdm .rd-q, #wfm .rd-q"); if (q) { q.value = ""; q.blur(); const b = q.parentNode.querySelector(".rd-res"); b.hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); }
 }
 document.addEventListener("input", (e) => { if (e.target.matches && e.target.matches(".rd-q")) rdFindDraw(e.target); });
 document.addEventListener("keydown", (e) => { const q = e.target.matches && e.target.matches(".rd-q") ? e.target : null; if (!q) return;
   const box = q.parentNode.querySelector(".rd-res"), opts = [...box.querySelectorAll(".rd-r")];
-  if (e.key === "Escape") { e.preventDefault(); if (!box.hidden) { box.hidden = true; q.setAttribute("aria-expanded", "false"); } else if (q.value) q.value = ""; else q.blur(); return; }   // closes the suggestions, not Reader
-  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && opts.length) { e.preventDefault(); RDFI = (RDFI + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length; opts.forEach((o, k) => { o.classList.toggle("on", k === RDFI); o.setAttribute("aria-selected", String(k === RDFI)); }); opts[RDFI].scrollIntoView({ block: "nearest" }); return; }
+  if (e.key === "Escape") { e.preventDefault(); if (!box.hidden) { box.hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); } else if (q.value) q.value = ""; else q.blur(); return; }   // closes the suggestions, not Reader
+  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && opts.length) { e.preventDefault(); RDFI = (RDFI + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length; opts.forEach((o, k) => { o.classList.toggle("on", k === RDFI); o.setAttribute("aria-selected", String(k === RDFI)); }); q.setAttribute("aria-activedescendant", opts[RDFI].id); opts[RDFI].scrollIntoView({ block: "nearest" }); return; }
   if (e.key === "Enter" && opts.length) { e.preventDefault(); rdGo(+opts[RDFI].dataset.rdgo); } });
 document.addEventListener("click", (e) => { const g = e.target.closest && e.target.closest("[data-rdgo]"); if (g) { e.preventDefault(); e.stopPropagation(); return rdGo(+g.dataset.rdgo); }
   if (!(e.target.closest && e.target.closest(".rd-find"))) document.querySelectorAll(".rd-res:not([hidden])").forEach((b) => { b.hidden = true; }); }, true);
