@@ -1,7 +1,7 @@
 # Component ownership and delivery
 
 Agent Session Review's canonical engine/UI lives in this repository at `skills/qodo-agent-session-review/runtime/`.
-Edit it directly and include its tests in the same PR. The standalone Agent Session Review repository is historical
+Edit it directly and include its tests in the same PR. The standalone Cockpit repository (`qodo-ai/pr-review-cockpit`) is the historical
 origin, not a build, installation or maintenance dependency. No source checkout, importer, runtime
 commit pin or second-repository PR is required. Installed resources remain immutable; updates use
 the existing skills distribution and preserve external reviewer sessions/config.

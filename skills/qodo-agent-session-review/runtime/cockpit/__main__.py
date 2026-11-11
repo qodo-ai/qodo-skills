@@ -125,7 +125,7 @@ def main(argv=None):
     sa.add_argument("--replace", action="store_true", help="overwrite a saved style with the same id (default: save as a new one)")
     ssub.add_parser("blocks", help="the blocks a recipe can arrange")
     mg = sub.add_parser("migrate", help="copy this checkout's sessions, memory and config to a data home")
-    mg.add_argument("--to", help="the data home (default ~/.qodo/agent-session-review)")
+    mg.add_argument("--to", help="the data home (default: selected data home, including retained earlier data)")
     a = ap.parse_args(argv)
     # This maintained distribution is the local-only product, including direct module invocations.
     if a.product or (Path(__file__).resolve().parents[2] / 'SKILL.md').is_file():
