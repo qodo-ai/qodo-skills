@@ -39,7 +39,7 @@ LABELS = {"brief": "Brief", "flow": "How it works", "plan": "Reading plan", "ris
           "other": "Other work", "prs": "Pull requests", "stories": "Stories", "arch": "Architecture", "changes": "Changes",
           "findings": "Quality", "walk": "Review walkthrough", "review": "Your review", "system": "System"}   # a tab with no name takes its first block's
 # Work Package's own blocks (app/styles/package.html): a recipe may name them; Focus skips what it can't draw
-PACKAGE_BLOCKS = {"verdict": "Verdict: the bottom line, whether the package is ready to merge, with its Merge Risk and open findings",
+PACKAGE_BLOCKS = {"verdict": "Verdict: the bottom line, whether the package is ready to merge, and what still blocks it",
                   "prstable": "Package table: a row per repo that opens to a row per PR, with merge, open findings, CI and lines",
                   "assets": "Product assets: links to the feature's PRD, tickets, overview deck and prototype",
                   "summary": "Product summary: the feature in one line",

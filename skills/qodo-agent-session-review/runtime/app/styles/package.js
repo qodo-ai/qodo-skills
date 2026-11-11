@@ -2046,7 +2046,7 @@ const BLOCKS = {   // kept in step with BLOCKS in cockpit/recipes.py
     sub: () => { const Y = C.system; if (!Y) return ""; const k = Y.counts, n = Y.contracts.filter((c) => c.change !== "unchanged").length;
       return [`${n} contract${n === 1 ? "" : "s"}`, k.missing && `${k.missing} missing`, k.mismatches && `${k.mismatches} mismatch${k.mismatches === 1 ? "" : "es"}`, k.collisions && `${k.collisions} colliding`, k.one_way && `${k.one_way} one-way`].filter(Boolean).join(" · "); } },
   other: { label: "Other work", what: "Other work on the same code", render: () => otherWorkHtml(), sub: () => (OW.length ? owHead() : "") },
-  verdict: { label: "Verdict", what: "The bottom line: whether the package is ready to merge, with its Merge Risk and open findings", render: bVerdict },
+  verdict: { label: "Verdict", what: "The bottom line: whether the package is ready to merge, and what still blocks it", render: bVerdict },
   decisions: { label: "Agent decisions", what: "Each behavior or technical decision the code makes, set against its human instruction: accept it or ask for a correction", render: bDecisions, sub: decSub },
   issues: { label: "Quality & Issue findings", what: "What the reviewers, scanners and CI found and how it was tested, then how the code kept to the plan", render: bIssues, sub: issuesSub },
   prs: { label: "Package contents", what: "Each PR by repo: its state, issues and size, and how the PRs stack", render: () => bPrs(), sub: () => pkgSub() },
@@ -2331,12 +2331,12 @@ const reviewCoverageKnown = (p) => !C.product || (LIVE[p.key] ? LIVE[p.key].revi
 const awaitingReview = (p) => { const L = LIVE[p.key];
   if (!reviewCoverageKnown(p)) return null;
   return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length; };
-const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], showRisk: true, ci: true, conflicts: true, review: true, comments: true };
+const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], ci: true, conflicts: true, review: true, comments: true };
 let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
 const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
 const vrBlocks = (f) => VR.sev.length === 3 || VR.sev.includes(vrSev(f));   // All: every open finding, whatever its severity
 function bVerdict() {   // the bottom line: does the package meet every merge threshold (product mode: the risk review's recommendation), then the numbers behind it
-  const ps = prs(), fs = KIT.openFindings({ ...C, prs: ps }), lv = RK ? RK.level : "", LV = ["low", "medium", "high"], P = !!C.product, A = RK && RK.approval;
+  const ps = prs(), fs = KIT.openFindings({ ...C, prs: ps }), P = !!C.product, A = RK && RK.approval;
   const ciKnown = !P || !productCiUnknown(ps), rvKnown = ps.every(reviewCoverageKnown);   // product mode: incomplete evidence is unknown, never a pass
   const ci = ps.filter((p) => ((LIVE[p.key] && LIVE[p.key].checks) || p.checks || []).some((c) => CI_BAD.includes(String(c.state || c.conclusion || "").toUpperCase()))), live = Object.keys(LIVE).length > 0;
   const cf = live ? ps.filter((p) => (LIVE[p.key] || {}).merge_state === "DIRTY") : [], aw = ps.filter(awaitingReview), cm = ps.reduce((a, p) => a + (vdN(p) > 0 ? vdN(p) : 0), 0), bf = fs.filter(vrBlocks);
@@ -2349,17 +2349,15 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
       : ok ? ["ok", "Risk review checks pass", "This is a code-review recommendation, not merge readiness. CI and discussion evidence are shown separately."]
       : ["no", "Risk review needs attention", "Address the risk and code-review findings. CI and discussion readiness are assessed separately."]
     : why.length ? ["no", "Not ready to merge", why.join(" · ")] : ["ok", "Ready to merge", "Every merge threshold is met."];
-  const showRisk = P || VR.showRisk, gate = (on) => P || on;   // product mode has no merge thresholds, so no row is switched off
+  const gate = (on) => P || on;   // product mode has no merge thresholds, so no row is switched off
   const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
-  return `<div class="vd ${st[0]}${showRisk ? "" : " norisk"}"><div class="vd-st"${P ? ` title="${esc((A && A.reasons || []).join(" "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
-    <div class="vd-m">${showRisk ? `<div class="vd-t"><span class="vd-k">Merge Risk</span><b class="vd-lv ${esc(lv)}">${lv ? esc(RW(lv)) : "Not assessed"}</b>
-      <span class="vd-meter" role="img" aria-label="${esc(lv || "unknown")} of low, medium, high">${LV.map((k, i) => `<i class="${lv && i <= LV.indexOf(lv) ? esc(lv) : ""}"></i>`).join("")}</span></div>` : ""}
+  return `<div class="vd ${st[0]}"><div class="vd-st"${P ? ` title="${esc((A && A.reasons || []).join(" "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
     <div class="vd-t${gate(VR.sev.length) ? "" : " off"}"${gate(VR.sev.length) ? "" : offT}><span class="vd-k">Open findings</span><b class="vd-n${(P ? fs : bf).length ? " block" : " none"}">${fs.length}${vdOf(KIT.allFindings({ ...C, prs: ps }).length)}</b>
       <span class="vd-sev">${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
     ${vdPrs("PRs failing CI", ci, ciKnown, ps.length, "high", "/checks", !gate(VR.ci), P)}
     ${vdPrs("PRs with merge conflicts", cf, live, ps.length, "high", "", !gate(VR.conflicts))}
     ${vdPrs("PRs awaiting human review", aw, rvKnown, ps.length, "medium", "", !gate(VR.review), P)}
-    ${vdThreads(ps, !gate(VR.comments))}</div></div>`;
+    ${vdThreads(ps, !gate(VR.comments))}</div>`;
 }
 const WRENCH = '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
 const VRZERO = [["ci", "PRs failing CI"], ["conflicts", "PRs with merge conflicts"], ["review", "PRs awaiting human review"], ["comments", "Unresolved comments"]];
@@ -2368,8 +2366,7 @@ function vrPaneHtml() {   // Customize › Verdict settings: the merge threshold
   return `<p class="pms-h">Merge thresholds</p><p class="muted vr-p">What has to be true before Verdict says Ready to merge.</p>
     <p class="smod-k">Open findings</p><div class="vr-sev" role="group" aria-label="Open findings that must be resolved">${[["high", "High"], ["medium", "Medium"], ["low", "Low"]].map(([k, t]) => `<button type="button" class="vr-c" data-vrsev="${k}" aria-pressed="${VR.sev.includes(k)}">${t}</button>`).join("")}</div>
     <p class="muted vr-p">${!VR.sev.length ? "Findings don't block a merge." : all ? "Every open finding must be resolved." : `Open ${VR.sev.join(" and ").replace(/ and (?=.* and )/, ", ")} findings must be resolved.`}</p>
-    <p class="smod-k smod-k2">Require zero</p><div class="vr-z">${VRZERO.map(([k, t]) => sw(k, t)).join("")}</div>
-    <p class="smod-k smod-k2">Display</p>${sw("showRisk", "Show Merge Risk", "The Merge Risk level and its meter, first in the widget")}`;
+    <p class="smod-k smod-k2">Require zero</p><div class="vr-z">${VRZERO.map(([k, t]) => sw(k, t)).join("")}</div>`;
 }
 document.addEventListener("click", (e) => {
   const c = e.target.closest && e.target.closest("[data-vrsev]"), t = !c && e.target.closest && e.target.closest("[data-vr]"); if (!c && !t) return;
@@ -3150,7 +3147,7 @@ SICON.system = '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="
 SICON.scope = '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>';   // a checked clipboard
 SICON.impact = '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1a2 2 0 0 1 2.485 1.94z"/>';   // a door: one-way or two-way
 const WIDGETS = {   // every widget the page can draw, in gallery order: name and what it's for
-  verdict: ["Verdict", "The bottom line: is the package ready to merge, with its Merge Risk and open findings"],
+  verdict: ["Verdict", "The bottom line: is the package ready to merge, and what still blocks it"],
   prs: ["Package contents", "Each PR by repo, its state and size, and how the PRs stack"],
   prstable: ["Package table", "A row per repo, opening to a row per PR: merge, open findings, CI and lines"],
   assets: ["Product assets", "Links to the feature's PRD, tickets, overview deck and prototype"],
