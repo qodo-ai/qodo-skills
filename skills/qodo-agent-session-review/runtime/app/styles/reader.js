@@ -49,12 +49,13 @@ function rdClose() { const m = document.getElementById("rdm"); READER = READER =
 function rdDraw() {   // Scroll: every widget, one after another; it redraws with the page and keeps its place
   const seq = wseq(); let m = document.getElementById("rdm");
   if (READER !== "scroll" || !seq.length) return rdClose();
-  const fresh = !m, top = m ? m.querySelector(".rd-b").scrollTop : 0, oq = m && m.querySelector(".rd-q"), find = oq && { v: oq.value, focus: document.activeElement === oq, at: oq.selectionStart };   // a search in progress survives the redraw
+  const fresh = !m, top = m ? m.querySelector(".rd-b").scrollTop : 0, oq = m && m.querySelector(".rd-q"), find = oq && { v: oq.value, focus: document.activeElement === oq, at: oq.selectionStart, open: !oq.parentNode.querySelector(".rd-res").hidden };   // a search in progress survives the redraw
   if (!m) { m = document.createElement("div"); m.id = "rdm"; m.className = "lmod"; document.body.appendChild(m); }
   m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="Reader">${rdHead(false)}
     <div class="rd-b${RDPG ? "" : " rd-nopg"}">${rdBody(seq, (i) => ` data-rdfocus="${i}" role="button" tabindex="0" title="Focus this widget"`)}</div>${rdFoot(false)}</div>`;
   rdAfter(m, seq); m.querySelector(".rd-b").scrollTop = top;
-  if (find && find.v) { const q = m.querySelector(".rd-q"); q.value = find.v; rdFindDraw(q); if (find.focus) { q.focus(); q.setSelectionRange(find.at, find.at); } }
+  if (find && find.v) { const q = m.querySelector(".rd-q"); q.value = find.v; rdFindDraw(q); if (!find.open) { q.parentNode.querySelector(".rd-res").hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); }   // dismissed suggestions stay dismissed
+    if (find.focus) { q.focus(); q.setSelectionRange(find.at, find.at); } }
   rdFocus(RDAT, false); if (fresh) m.querySelector("[data-rdclose]").focus();
 }
 function rdFocus(i, scroll = true) {   // one widget in focus: marked, counted in the header, and brought to the top

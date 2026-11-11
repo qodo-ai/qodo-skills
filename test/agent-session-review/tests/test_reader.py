@@ -81,6 +81,8 @@ class ReaderTests(unittest.TestCase):
         self.assertIn('if (find && find.v) { const q = m.querySelector(".rd-q"); q.value = find.v; rdFindDraw(q);', self.source)   # a redraw keeps a search in progress
         html = (util.ROOT / 'app/styles/package.html').read_text()
         self.assertNotIn('.rd-pgt, .rd-find{display:none}', html)   # phones keep Find
+        self.assertIn('.rd-q{max-width:min(150px, 40vw)}', html)   # and close stays on screen
+        self.assertIn('if (!find.open) {', self.source)   # dismissed suggestions stay dismissed after a redraw
 
     def test_expand_opens_reader_in_stepper_and_scrolling_never_moves_the_focus(self):
         self.assertIn('READER = "step"; WFULL = b.dataset.wfull;', self.source)
