@@ -127,7 +127,8 @@ main.wrap{margin-left:0}   /* the contents and the review start where the header
   .nv-mini .snav-foot{padding:10px 8px; flex-direction:column; gap:6px} .nv-mini .snav-set{width:100%} .nv-mini .snav-rf{justify-content:center; padding:8px 0}
 }
 @media (max-width:900px){ .snav-tg{display:none} }
-.snav-wp{flex:none; display:flex; flex-direction:column; align-items:flex-start; gap:2px; margin:12px 10px 0; padding:10px 12px; border-radius:10px; background:var(--sunk)}   /* the package picker, set apart above the pages by its tint alone */
+.snav-wp{flex:none; display:flex; flex-direction:column; align-items:flex-start; gap:2px; margin:12px 10px 0; padding:10px 12px; border-radius:10px; background:var(--sunk)} .snav-wp:has(.wpk:not([hidden])){cursor:pointer}
+.snav-wp:has(.wpk:not([hidden])):hover, .snav-wp:has([data-wpk][aria-expanded="true"]){background:color-mix(in srgb, var(--ink) 9%, var(--surface))} .snav-wp .wpk-m{cursor:default}   /* the whole box is the switcher */   /* the package picker, set apart above the pages by its tint alone */
 .snav-wp .wpk-b:hover, .snav-wp .wpk-b[aria-expanded="true"]{background:none; border-color:transparent} .snav-wp .wpk-m{top:calc(100% + 18px); left:-12px}   /* the menu opens below the grey box, with a gap, its left edge on the box's */   /* its hover shows on the tint */
 .snav-wp h1{margin:0; font-size:12px; font-weight:500; letter-spacing:.04em; text-transform:uppercase; color:var(--faint)}
 .snav-wp .fname{max-width:100%; font-size:15px; font-weight:600; color:var(--ink)} .snav-wp .fname::before{content:none}   /* the header's slash doesn't belong in the nav */
@@ -156,7 +157,7 @@ main.wrap{margin-left:0}   /* the contents and the review start where the header
 .nv-s .sico{flex:none; width:15px; height:15px; color:var(--faint)} .nv-s a.on .sico, .nv-s a:hover .sico{color:currentColor}
 body:not(.nv-none) main.wrap, body:not(.nv-none) header.top{margin-left:var(--nvw)}
 header.top{z-index:40} .hrow{padding-block:12px}
-.ptl-s{margin:0 8px; color:var(--faint)} .ptl-c{color:var(--ink)}
+.ptl-s{margin:0 8px; color:var(--faint)} .ptl-c{color:var(--ink)} .ptl-w{color:var(--ink); font-weight:600}
 .ptl{flex:1 1 auto; min-width:0; margin:0; font-size:14px; font-weight:500; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 @media (max-width:900px){ .snav{position:static; width:auto; border-right:0; border-bottom:1px solid var(--line)} .snav-menu{flex-direction:row; flex-wrap:wrap; overflow:visible} .nv-s{display:none} body:not(.nv-none) main.wrap, body:not(.nv-none) header.top{margin-left:0} }
 .hrow{display:flex; align-items:center; gap:14px; padding-block:12px 6px}
@@ -256,11 +257,36 @@ main{padding-block:28px 120px}
 .pbar button.on{filter:brightness(1.2) saturate(1.1)}
 .ptools{display:flex; flex-wrap:wrap; gap:10px; margin:2px 0 12px} .ptools .pviews{margin-top:0}
 .pbar.psecs{height:30px; border-radius:8px; gap:2px; background:none} .pbar .psec{display:flex; align-items:center; min-width:4px; box-shadow:none; overflow:hidden; border-radius:3px}
+.pbar .psec{transition:opacity .15s} .pbar .psec.dim{opacity:.3} .pbar .psec.dim:hover{opacity:.6} .pbar .psec.on{box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--ink) 55%, transparent)}   /* a picked section filters the views */
+.seglist.segf{display:flex; align-items:center; flex-wrap:wrap; gap:8px}
+.wks-head{position:sticky; top:var(--hh, 0px); z-index:3; margin:-16px -18px 0; padding:12px 18px 10px; border-bottom:1px solid var(--line); background:var(--surface)} .accb .wks-head{top:-16px} .accb .wks-nav{bottom:-18px}   /* inside a scrolling widget both bars cover its padding, so nothing shows past them */
+@media (max-width:640px){ .wks-head{margin:-14px -14px 0; padding-left:14px; padding-right:14px} .accb .wks-head{top:-14px} .accb .wks-nav{bottom:-14px} }
+.wks-top{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:8px} .wks-n{font-size:15px}
+.wks-dots{display:flex; gap:3px; height:10px; margin-bottom:4px} .wks-d{flex:1 1 0; min-width:6px; padding:0; border:0; border-radius:3px; background:color-mix(in srgb, var(--ink) 16%, transparent); cursor:pointer}
+.wks-d.h{background:color-mix(in srgb, var(--ok) 35%, var(--sunk))} .wks-d.d{background:var(--ok); box-shadow:none} .wks-d.on{box-shadow:0 0 0 2px var(--accent); background:var(--accent)} .wks-d:hover{filter:brightness(1.2)}
+.wks-card{margin-top:12px} .wks-card.done .wks-h{border-color:color-mix(in srgb, var(--ok) 45%, var(--line))}   /* no frame round the step: a header box, then its parts flat beneath */
+.wks-h{display:flex; align-items:flex-start; gap:12px; padding:14px 16px; border:1px solid var(--accent-line); border-radius:10px; background:color-mix(in srgb, var(--accent) 9%, transparent)}   /* a docs-style callout: what this step is about */
+.wks-ic{flex:none; display:grid; place-items:center; width:30px; height:30px; border-radius:8px; background:color-mix(in srgb, var(--accent) 18%, transparent); color:var(--accent-text)} .wks-ic svg{width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}
+.wks-k{display:block; margin-bottom:2px; font:600 11px/1.4 var(--f-body); letter-spacing:.06em; text-transform:uppercase; color:var(--accent-text)} .wks-h .un{flex:none; font-weight:600; color:var(--muted); padding-top:2px} .wks-t{flex:1; min-width:0; max-width:62ch; margin-right:auto} .wks-h .r{margin-left:32px} .wks-t h3{margin:0; font-size:16px} .wks-t .us{margin:4px 0 0; color:var(--muted); font-size:14px}
+.wks-h .r{flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:4px; text-align:right} .tag.tierc{border:0; padding:2px 8px; border-radius:999px; font:600 11.5px/1.5 var(--f-body)} .tag.tierc.t-deep{background:var(--deep); color:var(--on-deep)} .tag.tierc.t-review{background:var(--review); color:var(--on-review)} .tag.tierc.t-skim{background:var(--skim); color:var(--on-heat)} .tag.tierc.t-skip{background:var(--skip); color:var(--on-skip)}   /* the heat map's tier colours */
+.wks-card .blk.bt-deep{border-color:color-mix(in srgb, var(--deep) 55%, var(--line))} .wks-card .blk.bt-review{border-color:color-mix(in srgb, var(--review) 45%, var(--line))} .wks-card .blk.bt-skim{border-color:color-mix(in srgb, var(--skim) 35%, var(--line))} .wks-card > .body{display:flex; flex-direction:column; gap:10px; padding:0; margin-top:12px} .wks-card .blk, .wks-card .udec{background:color-mix(in srgb, var(--ink) 3%, transparent)}   /* lighter than the widget, a gap between files */
+.wks-nav{position:sticky; bottom:0; z-index:3; display:flex; justify-content:space-between; align-items:center; gap:10px; margin:12px -18px -18px; padding:12px 18px; border-top:1px solid var(--line); border-radius:0 0 10px 10px; background:var(--surface)}   /* the widget's footer, pinned while you read */
+.wks-pn{display:flex; gap:10px}
+.wz-home{display:flex; align-items:flex-start; gap:10px; margin-top:14px; cursor:pointer} .wz-home input{margin-top:3px} .wz-home > span{display:flex; flex-direction:column; gap:2px} .wz-home .muted{font-size:13px}
+.wfm-b > .wks{flex:1 0 auto; display:flex; flex-direction:column} .wfm-b .wks-card{flex:1 0 auto}   /* full screen: the stepper fills the window, its footer at the bottom */
+.wfm-b .wks-head{top:-20px; margin:-20px -24px 0; padding:12px 24px 10px; background:var(--dlg, var(--surface))} .wfm-b .wks-nav{bottom:-28px; margin:12px -24px -28px; padding:12px 24px; border-radius:0; background:var(--dlg, var(--surface))}   /* the dialog's own colour */ @media (max-width:640px){ .wks-nav{margin-left:-14px; margin-right:-14px; margin-bottom:-14px; padding-left:14px; padding-right:14px} }
+.wk-route{margin:12px 0 16px; border:1px solid var(--line); border-radius:10px; background:var(--surface)} .wk-route > summary{display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; list-style:none} .wk-route > summary::-webkit-details-marker{display:none}
+.wk-route > summary .muted{font-size:13px} .wk-route[open] > summary{border-bottom:1px solid var(--line)} .wk-route[open] > summary .chev{transform:rotate(45deg)} .wk-route > .route, .wk-route > p, .wk-route > .route-list{margin:10px 14px 14px}   /* Review walkthrough's reading route */
+.nolink{cursor:default !important} .nolink:hover{filter:none; text-decoration:none}   /* a former jump to another widget, now just its words */
+.ca-ttl{margin:18px 0 8px; font-size:14px; font-weight:600} .ca-file{border:1.5px dashed var(--line-strong); border-radius:12px; background:var(--sunk)} .ca-none{padding:14px} .ca-file.ca-flash{animation:caFlash 1.4s ease-out} @keyframes caFlash{0%,20%{background-color:color-mix(in srgb, var(--accent) 22%, var(--sunk)); border-color:var(--accent); box-shadow:inset 0 0 0 2px var(--accent)} 100%{background-color:var(--sunk); box-shadow:inset 0 0 0 0 transparent}}   /* an inner glow and tint: nothing to clip at the widget's edge */
+@media (prefers-reduced-motion:reduce){ .ca-file.ca-flash{animation:none} } .ca-none p{margin:0; font-size:14px} .ca-file > summary{display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; list-style:none} .ca-file > summary::-webkit-details-marker{display:none}
+.ca-file > summary code{font:600 13px var(--f-mono); color:var(--ink)} .ca-file[open] > summary .chev{transform:rotate(45deg)} .ca-file[open] > summary{border-bottom:1px solid var(--line)} .ca-b{padding:10px 14px}
+.wsub.wbox{margin:0 0 16px; padding:12px 14px 14px; border:1.5px dashed var(--line-strong); border-radius:12px; background:var(--sunk)} .wsub.wbox > h3{margin-top:0}   /* like a subflow's box in Execution paths */
+.pm-c.ca-on{outline:2px solid var(--accent); outline-offset:-2px; z-index:2} .tr-f.ca-on{background:var(--accent-soft)}   /* the file whose changes are open below */
 .pbar .psec:first-child{border-top-left-radius:8px; border-bottom-left-radius:8px} .pbar .psec:last-child{border-top-right-radius:8px; border-bottom-right-radius:8px}
 .psec span{padding:0 10px; font:600 12.5px/1 var(--f-body); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--on-heat)}
 .psec.t-deep span{color:var(--on-deep)} .psec.t-skip span{color:var(--on-skip)} .psec[class*="ty-"] span{color:var(--accent-ink)} .psec.ty-generated span, .psec.ty-config span{color:var(--on-heat)}
-.tip .tip-hs, .tip .tip-ps{font-family:var(--f-body)} .tip-fl{list-style:none; margin:10px 0 0; padding:10px 0 0; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:3px}
-.tip-fl li{display:flex; justify-content:space-between; gap:14px; font:12px var(--f-mono)} .tip-fl li span:first-child{overflow:hidden; text-overflow:ellipsis; white-space:nowrap} .tip-fl .n{color:var(--muted)}
+.tip .tip-hs, .tip .tip-ps{font-family:var(--f-body)}
 .seglist{margin-top:8px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-size:13.5px} .seglist ul{list-style:none; margin:6px 0 0; padding:0; display:flex; flex-direction:column; gap:2px; max-height:220px; overflow:auto} .seglist .dfile{font:12.5px var(--f-mono)}
 .pmap-tog{border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font:500 13px/1 var(--f-body); cursor:pointer; padding:5px 10px; margin-left:10px; border-radius:6px; vertical-align:2px}
 .tools{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px}
@@ -324,22 +350,25 @@ main{padding-block:28px 120px}
 .fonly{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 12px; font-size:14px; color:var(--muted)}
 .pmap-tog:hover{background:var(--sunk); border-color:var(--accent-line)}
 .pmap-tog[aria-expanded="true"]{background:var(--sunk)}
-.ptree{margin-top:12px; border:1px solid var(--line); border-radius:10px; padding:6px 0; font:14px/1.45 var(--f-body)}
+.ptree{margin-top:12px; font:14px/1.45 var(--f-body)}
+.ptree > .tr-repo{margin:0 0 12px; padding:4px 0; border:1.5px dashed var(--line-strong); border-radius:12px; background:var(--sunk); overflow:hidden}   /* each repo in its own box, like Execution paths' subflows */
+.ptree .tr-repo .tr-f:hover, .ptree .tr-repo .tr-f:focus-visible, .ptree .tr-repo .tr-row:hover{background:color-mix(in srgb, var(--ink) 5%, var(--sunk))} .ptree .tr-repo .mbar{background:color-mix(in srgb, var(--ink) 8%, transparent)}
 .ptree summary, .tr-f, .tr-row{display:flex; align-items:center; gap:10px; width:100%; box-sizing:border-box; padding:7px 14px 7px calc(14px + var(--d) * 22px); border:0; background:none; color:var(--ink); font:inherit; text-align:left; cursor:pointer; list-style:none}
 .ptree summary::-webkit-details-marker{display:none}
 .ptree summary::before{content:"▸"; flex:none; width:10px; color:var(--faint); font-size:11px; transition:transform .12s} .tr-d[open] > summary::before{transform:rotate(90deg)}
 .tr-f::before, .tr-row::before{content:""; flex:none; width:10px}
 .tr-row{cursor:default} .tr-row .tr-n{display:flex; min-width:0; color:var(--ink)} .tr-row .tr-n b{flex:none; font-weight:600}
 .tr-pre{min-width:0; overflow:hidden; text-overflow:ellipsis; color:var(--muted)}   /* the merged parents give way first, so the folder's own name stays whole */
-.tr-f .tr-n{font:13.5px var(--f-mono)} .ptools .trall{margin-left:auto; align-self:center}
+.tr-f .tr-n{flex:0 1 auto; font:13.5px var(--f-mono)} .tr-f .tr-eye{margin-right:auto} .tr-eye{display:inline-flex; align-items:center; justify-content:center; flex:none; width:24px; height:24px; border-radius:6px; color:var(--muted); opacity:0; transition:opacity .12s}
+.tr-eye svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round} .tr-f:hover .tr-eye, .tr-f:focus-visible .tr-eye, .pm-c:hover .tr-eye, .pm-c.on .tr-eye{opacity:1} .pm-c .pm-eye[hidden]{display:none} .pm-c .pm-eye{position:absolute; bottom:3px; right:3px; background:color-mix(in srgb, var(--surface) 80%, transparent); color:var(--ink)}   /* the map's eye, in the cell's corner */ .tr-eye:hover{background:color-mix(in srgb, var(--ink) 10%, transparent); color:var(--ink)}   /* on hover: jump to the file's changes */ .ptools .trall{align-self:center; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0} .ptools .trall svg{width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}   /* Execution paths' expand / collapse icon, right after the other buttons */
 .tr-tog{cursor:pointer} .tr-tog::before{content:"▸"; color:var(--faint); font-size:11px; transition:transform .12s} .tr-tog[aria-expanded="true"]::before{transform:rotate(90deg)}
 .tr-tog:hover{background:var(--sunk)} .tr-c{flex:none; font:13px var(--f-body); color:var(--faint)}
 .fic{flex:none; width:16px; height:16px; display:block}
 .ptree summary:hover, .tr-f:hover, .tr-f:focus-visible{background:var(--sunk)}
 .tr-n{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .tr-d > summary .tr-n{color:var(--muted)}
-.tr-repo > summary{font:600 14.5px var(--f-body)} .tr-repo > summary .tr-n{color:var(--ink)}
-.tr-repo > summary svg{width:15px; height:15px; flex:none; color:var(--muted); fill:none; stroke:currentColor; stroke-width:1.4}
+.tr-repoh{font:600 14.5px var(--f-body)} .tr-repoh .tr-n{color:var(--ink)}
+.tr-repoh > svg{width:15px; height:15px; flex:none; color:var(--muted); fill:none; stroke:currentColor; stroke-width:1.4}
 .ptree .mbar{display:flex; flex:none; width:110px; height:7px; border-radius:3px; overflow:hidden; background:var(--sunk)}
 .ptree .n{flex:none; width:52px; text-align:right; color:var(--muted); font-size:13.5px; font-variant-numeric:tabular-nums}
 .tr-pr{flex:none; font-size:11.5px; color:var(--accent-text)}
@@ -347,11 +376,11 @@ main{padding-block:28px 120px}
 @media (max-width:560px){ .ptree .mbar{width:48px} .ptree summary, .tr-f, .tr-row{padding-left:calc(8px + var(--d) * 12px)} }
 .pmap{position:relative; width:100%; aspect-ratio:1000/520; margin-top:12px; border-radius:12px; overflow:hidden; background:var(--sunk)}
 .pm-g{position:absolute; box-sizing:border-box; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface)}
-.pm-gl{position:absolute; top:5px; left:8px; right:8px; display:flex; align-items:center; gap:5px; font:500 12px/16px var(--f-mono); color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pm-gl{position:absolute; z-index:3; box-sizing:border-box; display:flex; align-items:center; gap:5px; padding:1px 6px; border-radius:6px; background:color-mix(in srgb, var(--surface) 82%, transparent); font:500 12px/16px var(--f-mono); color:var(--ink); white-space:nowrap; overflow:hidden; pointer-events:none}   /* over the files, never taking their room; clicks pass through */
 .pm-c{position:absolute; box-sizing:border-box; border:2px solid var(--surface); border-radius:8px; padding:0; cursor:pointer; overflow:hidden}
 .pm-c.must{box-shadow:inset 0 0 0 2px var(--ink)}
 .pm-c:hover,.pm-c:focus-visible,.pm-c.on{outline:2px solid var(--ring); outline-offset:-2px; z-index:2}
-.plan{container-type:inline-size} .pmapw{display:grid; grid-template-columns:minmax(0,1fr) 250px; gap:12px; margin-top:12px} .pmapw .pmap{margin-top:0}
+.plan{container-type:inline-size} .pmapw{display:grid; grid-template-columns:minmax(0,1fr) 250px; gap:12px; margin-top:12px} .pmapw.noside{grid-template-columns:minmax(0,1fr)} .pmside-tog[aria-pressed="true"]{color:var(--accent-text)} .tip-kh{margin:10px 0 0; font-size:12px; color:var(--faint)} .tip-kh + .tip-key{margin-top:4px} .pmapw .pmap{margin-top:0}
 .pmside{box-sizing:border-box; height:0; min-height:100%; overflow:auto; padding:14px; border:1px solid var(--line); border-radius:12px; font-size:13px; line-height:1.45}   /* as tall as the map; longer details scroll */
 .pmside .pms-h{margin:0 0 4px; font-weight:600} .pmside > p.muted{margin:0}
 .pms-scale{display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:14px; font-size:12px; color:var(--muted)} .pms-scale i{grid-column:1 / -1; height:8px; border-radius:4px; background:linear-gradient(to right, var(--skip), var(--skim), var(--review), var(--deep))} .pms-scale span:last-child{text-align:right}
@@ -394,12 +423,14 @@ main{padding-block:28px 120px}
 .route-list .fs span.deep{background:var(--deep); color:var(--accent-ink)}
 .pmap-list .mbar{display:flex; height:6px; border-radius:3px; overflow:hidden; background:var(--sunk)}
 .pmap-list .nm{font-family:var(--f-mono); font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.tip{position:fixed; z-index:60; width:max-content; max-width:min(340px, calc(100vw - 16px)); padding:12px 14px; background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); border-radius:12px; box-shadow:var(--shadow); font-size:13px; line-height:1.45; pointer-events:none}
+.tip{position:fixed; z-index:90; width:max-content; max-width:min(340px, calc(100vw - 16px)); padding:12px 14px; background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); border-radius:12px; box-shadow:var(--shadow); font-size:13px; line-height:1.45; pointer-events:none}
 .tip-h{font:600 13px/1.35 var(--f-mono); overflow-wrap:anywhere}
 .tip-p{margin-top:2px; font:12px/1.35 var(--f-mono); color:var(--faint); overflow-wrap:anywhere}
 .tip-bar{display:flex; height:6px; margin-top:10px; border-radius:3px; overflow:hidden; background:var(--sunk)}
 .tip-leg{margin-top:5px; font-size:12px; color:var(--muted)}
-.tip-g{display:grid; grid-template-columns:max-content 1fr; gap:3px 14px; margin:10px 0 0} .tip-g dt{font-size:12px; color:var(--faint)} .tip-g dd{margin:0}
+.tip-key{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:4px} .tip-key li{display:flex; align-items:center; gap:8px; font-size:12.5px}
+.tip-key i{flex:none; width:10px; height:10px; border-radius:3px} .tip-key .n{margin-left:auto; padding-left:14px; color:var(--muted); font-variant-numeric:tabular-nums}
+.tip-g{display:grid; grid-template-columns:max-content 1fr; gap:3px 14px; margin:10px 0 0} .tip-g:first-child{margin-top:0} .tip-g dt{font-size:12px; color:var(--faint)} .tip-g dd{margin:0}
 .tip-w{margin-top:10px; padding-top:10px; border-top:1px solid var(--line)} .tip-w > span{font:600 10.5px/1 var(--f-body); letter-spacing:.08em; text-transform:uppercase; color:var(--faint)}
 .tip-w ul{margin:6px 0 0; padding-left:16px; color:var(--muted)} .tip-w li{margin:2px 0}
 .tip-f{margin-top:10px; font-size:12.5px; font-weight:500; color:var(--accent-text)}
@@ -618,7 +649,7 @@ body.tab-system main.wrap, body.wide main.wrap{max-width:1480px}   /* the System
 .toc a{display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:6px; color:var(--muted); text-decoration:none}
 .toc a:hover{background:var(--sunk); color:var(--ink)}
 .toc a.on{color:var(--accent-text); background:var(--accent-soft); font-weight:600}
-.sico{width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+.sico{width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round} .sico.sico-gh{fill:currentColor; stroke:none}   /* the GitHub mark is filled */
 .toc a .sico{color:var(--faint)} .toc a:hover .sico, .toc a.on .sico{color:var(--accent-text)}
 .stile{width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex:none; background:color-mix(in srgb, var(--ink) 7%, var(--surface)); color:var(--muted)}   /* widget icons in grey */
 .stile .sico{width:17px; height:17px}
@@ -687,7 +718,7 @@ details.sec[open] > summary .chev{transform:rotate(45deg)}
 .pchip.ok{color:var(--ok)}
 .pkt-w{border:1px solid var(--line); border-radius:10px} .pkt-tab{width:100%; border-collapse:collapse; font-size:13.5px}
 .pkt-tab th > span{display:inline-flex; align-items:center; gap:6px} .pkt-hi{width:14px; height:14px; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; color:var(--faint)}
-.pkt-tab th{padding:10px 14px; text-align:left; font-weight:500; font-size:12.5px; color:var(--muted); background:var(--whead); border-bottom:1px solid var(--line); white-space:nowrap} .pkt-tab .r{text-align:right}
+.pkt-tab th{padding:10px 14px; text-align:left; font-weight:500; font-size:12.5px; color:var(--muted); background:var(--whead); border-bottom:1px solid var(--line); white-space:nowrap} .pkt-tab th:not(:first-child), .pkt-tab td:not(:first-child){text-align:center}   /* names left, facts centred */
 .pkt-tab td{padding:12px 14px; border-top:1px solid var(--line); vertical-align:middle; white-space:nowrap} .pkt-tab tbody:first-of-type tr:first-child td{border-top:0}
 .pkt-tab td:first-child, .pkt-tab th:first-child{width:100%; white-space:normal} .pkt-t{flex-wrap:wrap; row-gap:0}   /* the names take the room and wrap; the facts stay on one line */
 .pkt-r{cursor:pointer} .pkt-r:hover td{background:color-mix(in srgb, var(--ink) 3%, var(--surface))} .pkt-r:focus-visible{outline:2px solid var(--ring); outline-offset:-2px}
@@ -697,7 +728,7 @@ details.sec[open] > summary .chev{transform:rotate(45deg)}
 .pkt-cv{flex:none; width:7px; height:7px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:rotate(-45deg); transition:transform .15s} .pkt-r[aria-expanded="true"] .pkt-cv{transform:rotate(45deg)}
 .pkt-ar{color:var(--faint)} .pkt-n .pkst{width:24px; height:24px} .pkt-n .pkst svg{width:14px; height:14px}
 .pkd{display:inline-flex; align-items:center; gap:6px; color:var(--muted)} .pkd.bad::before, .pkd.warn::before, .pkd.ok::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--tag-high)} .pkd.warn::before{background:var(--tag-med)} .pkd.ok::before{background:var(--ok)}
-.pkd.bad, .pkd.warn, .pkd.ok{color:var(--ink)} .pkln{font-variant-numeric:tabular-nums; color:var(--ink)}
+.pkd.bad, .pkd.warn, .pkd.ok{color:var(--ink)} .pkln{display:inline-flex; align-items:center; gap:5px; font-variant-numeric:tabular-nums; color:var(--ink)}
 .pklc{gap:5px} .pklc .sico{width:12px; height:12px; flex:none; fill:none; stroke:currentColor; stroke-width:2}   /* the lines chip's diff icon */
 .pklane .pkb .on{color:var(--ink)}   /* Package contents in greys; the PR's merge status icon keeps its colour */
 .pklane .pchip, .pklane .pchip.bad, .pklane .pchip.warn, .pklane .pchip.info, .pklane .pchip.ok{color:var(--muted); background:var(--surface); border-color:var(--line)}
@@ -1003,7 +1034,7 @@ textarea.out{width:100%; min-height:180px; font:12.5px var(--f-mono); border:1px
 .qci li{display:flex; flex-wrap:wrap; gap:4px 8px; align-items:baseline} .qci li > span:first-child{font-weight:700; width:14px}
 .qci li.bad > span:first-child{color:var(--bad)} .qci li.wait > span:first-child{color:var(--warn)} .qci li.ok > span:first-child{color:var(--ok)} .qci a{color:inherit}
 .next{display:flex; justify-content:flex-end}
-#toast{position:fixed; bottom:calc(20px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%); z-index:50; background:var(--ink); color:var(--bg); padding:8px 16px; border-radius:999px; font-size:14px}
+#toast{position:fixed; bottom:calc(20px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%); z-index:50; background:var(--ink); color:var(--bg); padding:8px 16px; border-radius:999px; font-size:14px} body:not(.nv-none) #toast{left:calc(50% + var(--nvw, 0px) / 2)} @media (max-width:900px){ body:not(.nv-none) #toast{left:50%} }   /* centred on the content panel, not the window */
 
 /* ---------- layout: View and Edit, widget cards, the widget gallery and the page form ---------- */
 .ptl-ed{display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; margin-left:6px; vertical-align:middle; border:0; border-radius:6px; background:none; color:var(--muted); cursor:pointer} .ptl-ed:hover{background:var(--sunk); color:var(--ink)}
@@ -1168,6 +1199,7 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .prdd-x.on{border-color:var(--accent-fill); background:var(--accent-fill)} .prdd-x svg{width:12px; height:12px; fill:none; stroke:var(--accent-ink); stroke-width:3; stroke-linecap:round; stroke-linejoin:round}
 .prdd-o[aria-selected="true"]{background:none; color:var(--ink)} .prdd-o[aria-selected="true"]:hover{background:var(--sunk)}
 .prdd-none{margin:6px 10px; font-size:13px; color:var(--muted)}
+.bwf .prdd-m{left:0; right:auto; width:240px} .bwf-n{margin-left:auto; padding-left:10px; font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums}   /* Code changes' filter: files, then parts */
 
 .nv-r:has(> .nv-cvb){border-radius:8px} .nv-r:has(> .nv-cvb):has(> .nv-p[aria-current="page"]){background:color-mix(in srgb, var(--ink) 8%, var(--surface))} .nv-r:has(> .nv-cvb) > .nv-p[aria-current="page"]{background:none}
 .nv-r:has(> .nv-cvb) > .nv-cvb{height:28px; margin-right:4px}   /* the sub-menu arrow sits inside the page's row, its own click target */
@@ -1189,7 +1221,8 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .nv-mm .hsub{right:auto; left:calc(100% + 10px); top:auto; bottom:-6px} .nv-mm .hsub::after{left:auto; right:100%; width:12px}   /* Review styles opens to the right, away from the nav */
 .snav-rf{font-size:14px; padding:7px 12px; border:1px solid var(--line-strong); background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.05); color:var(--ink)} .snav-rf:hover{border-color:var(--accent-line)} .snav-rf[aria-disabled="true"]{color:var(--muted); box-shadow:none}   /* reads as a button, not a nav row */
 .snav-rf svg{width:18px; height:18px} .snav-foot .htip .ft-h{display:flex; flex-direction:column; gap:1px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--line)} .ft-h span{font-size:11.5px; color:var(--faint)} .ft-h b{font-size:15px; font-weight:600; color:var(--ink)}   /* when the data was fetched: the time leads, its label quiet */
-.srv{display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:8px 0 0; padding:8px 0 0; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted)} .srv span{flex:1}
+.srv{display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:10px 0 0; padding:7px 10px; border-radius:8px; background:var(--sunk); font-size:12.5px; color:var(--muted)} .srv span{flex:1}
+.srv:has(.srv-dot.up){background:color-mix(in srgb, var(--ok) 12%, var(--surface))} .srv:has(.srv-dot.down){background:color-mix(in srgb, var(--bad) 12%, var(--surface))}   /* a tinted panel, green when up, red when down */
 .srv em{flex-basis:100%; font-style:normal; font-size:12px; color:var(--bad)} .srv-dot{flex:none; width:8px; height:8px; border-radius:50%; background:var(--faint)} .srv-dot.up{background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent)} .srv-dot.down{background:var(--bad)}
 .snav-rf.srv-down{position:relative} .snav-rf.srv-down::after{content:""; position:absolute; top:3px; right:3px; width:7px; height:7px; border-radius:50%; background:var(--bad)}   /* the server check: in the refresh menu, and a red dot on the button when down */
 .ft-r{gap:6px; align-items:center; margin-top:6px; color:var(--ink); font-weight:500} .snav-foot .htip .ft-r:first-child{margin-top:0} .snav-foot .htip .ft-r svg{width:12px; height:12px; fill:currentColor} .snav-foot .htip .ft-r ~ li:not(.ft-r){padding-left:18px}

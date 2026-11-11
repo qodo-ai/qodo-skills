@@ -1,5 +1,7 @@
 (() => {
 const { esc, md, cases, caseIds, base, TIERS, TIER_NAME, minutes, codeHtml, store, sevRank } = KIT;
+document.addEventListener("click", (e) => { const a = e.target.closest && e.target.closest("a[href]");   // every link off this page (GitHub, Qodo, docs) opens in a new tab
+  if (a && /^https?:$/.test(a.protocol) && a.origin !== location.origin) { a.target = "_blank"; a.rel = "noopener noreferrer"; } }, true);
 const C = cases[caseIds[0]];
 const $ = (s) => document.querySelector(s);
 const SKEY = "focus:" + C.session;
@@ -72,6 +74,38 @@ function planSegs(list) {
   });
   return segs;
 }
+let CASEL = null;   // the file picked in Code map' map or tree: its Code changes open under the widget
+function caFileHtml() {
+  if (!CASEL) return `<h4 class="ca-ttl">Code changes</h4><div class="ca-file ca-none"><p class="muted">Pick a file in the map or the tree, or click its eye, to see its code changes here.</p></div>`;   // nothing picked yet
+  const f = BWF.find((x) => x.pr === CASEL.pr && x.path === CASEL.path);
+  const body = f ? bwFileHtml(f).replace(/ id="[^"]*"/g, "") : `<p class="muted">No code changes were written for this file. They come with the execution paths, from the code-review-master skill.</p>`;   // no ids: Code changes may share the page
+  return `<h4 class="ca-ttl">Code changes</h4><details class="ca-file"${CASEL.open === false ? "" : " open"}><summary><code>${esc(base(CASEL.path))}</code>${C.prs.length > 1 ? `<span class="muted">${esc(shortPr(CASEL.pr))}</span>` : ""}<span class="chev" aria-hidden="true"></span></summary><div class="ca-b">${body}</div></details>`;
+}
+function caPick(x) {   // pick a file: its changes open (again) under the widget, the file marked where it was picked
+  if (!x || !x.p || !x.path) return;
+  CASEL = { pr: x.p.key, path: x.path, open: true };   // a new pick opens it; collapsing it holds until the next pick
+  document.querySelectorAll(".ca-slot").forEach((sl) => { sl.innerHTML = caFileHtml(); const d = sl.querySelector("details.bw-f"); if (d) d.open = true;
+  });   // the page stays where it is
+  caMark(); caTogSync();
+}
+document.addEventListener("toggle", (e) => { if (CASEL && e.target.classList && e.target.classList.contains("ca-file")) { CASEL.open = e.target.open; caTogSync(); } }, true);
+const caTogHtml = () => { const on = !!CASEL && CASEL.open !== false, t = !CASEL ? "Pick a file to see its code changes" : on ? "Collapse the code changes" : "Expand the code changes";   // Map's toggle: the code changes only
+  return `<button class="btn sm trall" data-cachg aria-expanded="${on}" aria-label="${t}" title="${t}"${CASEL ? "" : " disabled"}>${svg(BARICON[on ? "collapse" : "expand"])}</button>`; };
+const caTogSync = () => document.querySelectorAll("[data-cachg]").forEach((b) => (b.outerHTML = caTogHtml()));
+document.addEventListener("click", (e) => { const eye = e.target.closest && e.target.closest("[data-caeye]"); if (!eye) return;   // a Tree file's eye: pick it and go to its changes below
+  e.preventDefault(); e.stopPropagation(); hideTip(); caPick(SEGS[+eye.closest("[data-seg]").dataset.seg]);
+  const c = eye.closest(".plan") && eye.closest(".plan").querySelector(".ca-file"); if (!c) return;
+  const beh = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  let sc = c.parentElement; while (sc && sc !== document.body && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight)) sc = sc.parentElement;   // a widget that scrolls on its own, else the page
+  const box = sc && sc !== document.body, at = (c.previousElementSibling && c.previousElementSibling.classList.contains("ca-ttl") ? c.previousElementSibling : c).getBoundingClientRect().top, d = box ? at - sc.getBoundingClientRect().top - 12 : at - headH() - 12;   // land on the Code changes title
+  (box ? sc : window).scrollBy({ top: d, behavior: Math.abs(d) > 1200 ? "auto" : beh });   // a long way jumps; a short one glides
+  c.classList.remove("ca-flash"); void c.offsetWidth; c.classList.add("ca-flash"); }, true);   // then the box pulses, so the eye lands somewhere you can see
+const pmEyeFit = () => document.querySelectorAll(".pm-c .pm-eye").forEach((e) => { const r = e.parentElement.getBoundingClientRect(); e.hidden = r.width < 44 || r.height < 44; });   // the map's eye only where the cell has room for it
+window.addEventListener("resize", () => { clearTimeout(pmEyeFit.t); pmEyeFit.t = setTimeout(pmEyeFit, 150); });
+const caMark = () => document.querySelectorAll(".plan [data-seg]").forEach((el) => { const x = SEGS[+el.dataset.seg]; el.classList.toggle("ca-on", !!CASEL && !!x && !x.sect && x.p && x.p.key === CASEL.pr && x.path === CASEL.path); });
+const segFilter = () => { const m = /^(t|ty):(.+)$/.exec(String(S.segList || "")); return !m || (m[1] === "ty") !== byType() ? null : m[1] === "t" ? { tier: m[2] } : { ty: m[2] }; };   // a bar section picked as the filter
+const planOnly = (list, sf) => !sf ? list : list.map((p) => ({ ...p, files: (p.files || []).filter((f) => (sf.ty ? typeOf(f) === sf.ty : (f.tiers || {})[sf.tier]))
+  .map((f) => (sf.tier ? { ...f, tiers: { [sf.tier]: f.tiers[sf.tier] } } : f)) }));   // a tier keeps only its own lines; a type keeps its files whole
 function planBar(list, opts = {}) {   // one continuous section per tier (or type), labelled with its share; hover lists the files
   const partial = list.some((p) => p.product && p.attention.coverage?.complete !== true);
   const files = planFiles(list), tot = files.reduce((a, x) => a + x.v, 0) || 1;
@@ -80,19 +114,20 @@ function planBar(list, opts = {}) {   // one continuous section per tier (or typ
     const mix = {}; mine.forEach(([x, n]) => mixOf(x, n).forEach(([k, v]) => (mix[k] = (mix[k] || 0) + v)));
     const pct = Math.round((100 * lines) / tot), id = SEGS.push({ sect: true, key, label, cls, lines, pct, mix, jump: { tier: "skim" },
       files: mine.map(([x, n]) => ({ path: x.f.path, pr: x.p.key, lines: n })).sort((a, b) => b.lines - a.lines) }) - 1;
-    return `<button class="psec ${cls}" style="flex:${lines} 1 0" data-seg="${id}" aria-label="${esc(`${label}: ${pct}%${partial ? " of observed subset" : ""}, ${lines} lines in ${mine.length} files`)}"><span data-short="${pct}%">${esc(label)} ${pct}%</span></button>`; };
+    return `<button class="psec ${cls}${S.segList ? (S.segList === key ? " on" : " dim") : ""}" style="flex:${lines} 1 0" data-seg="${id}" aria-pressed="${S.segList === key}" aria-label="${esc(`${label}: ${pct}%${partial ? " of observed subset" : ""}, ${lines} lines in ${mine.length} files`)}"><span data-short="${pct}%">${esc(label)} ${pct}%</span></button>`; };
   const segs = byType() ? FTYPES.map(([ty, label]) => sect("ty:" + ty, label, "ty-" + ty, (x) => (x.ty === ty ? x.v : 0), (x) => TIERS.filter((k) => x.t[k]).map((k) => ["t-" + k, x.t[k]]))).join("")
     : TIERS.map((t) => sect("t:" + t, t === "deep" ? "Must read" : TIER_NAME[t], "t-" + t, (x) => x.t[t] || 0, (x, n) => [["ty-" + x.ty, n]])).join("");
   const open = opts.map !== false;   // the map is always shown, and follows Group by
   const grp = `<span class="pviews" role="group" aria-label="Group by">${[["tier", "Importance"], ["type", "Type"]].map(([k, t]) => `<button class="pv" data-pgroup="${k}" aria-pressed="${(byType() ? "type" : "tier") === k}">${t}</button>`).join("")}</span>`;
-  return `<div class="plan"><div class="sub chead"><span><b class="ctitle">Code reading</b><span class="muted n psum">${tot.toLocaleString()} ${partial ? "observed changed lines" : "changed lines"}</span></span></div>
-    ${partial ? `<p class="muted" role="note">Coverage incomplete: this reading plan covers only the observed patch subset. Percentages describe that subset; omitted changed lines are unknown.</p>` : ""}
-    <div class="ptools">${open ? planViewTabs() : ""}${grp}${open && pview() === "tree" ? `<button class="pmap-tog trall" data-trall aria-expanded="${S.trAll !== false}">${S.trAll !== false ? "Collapse all" : "Expand all"}</button>` : ""}</div>
+  return `<div class="plan"><div class="sub chead"><span><b class="ctitle">Code map</b><span class="muted n psum">${tot.toLocaleString()} ${partial ? "observed changed lines" : "changed lines"}</span></span></div>
+    ${partial ? `<p class="muted" role="note">Coverage incomplete: this code map covers only the observed patch subset. Percentages describe that subset; omitted changed lines are unknown.</p>` : ""}
+    <div class="ptools">${open ? planViewTabs() : ""}${grp}${open && pview() === "tree" ? (() => { const on = S.trAll !== false, t = on ? "Collapse all" : "Expand all"; return `<button class="btn sm trall" data-trall aria-expanded="${on}" aria-label="${t}" title="${t}">${svg(BARICON[on ? "collapse" : "expand"])}</button>`; })() : open ? caTogHtml() + `<button class="btn sm trall pmside-tog" data-pmside aria-pressed="${!PMHIDE}" aria-label="${PMHIDE ? "Show" : "Hide"} the file details panel" title="${PMHIDE ? "Show" : "Hide"} the file details panel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></svg></button>` : ""}</div>
     <div class="pbar psecs" role="group" aria-label="Reading plan, one section per ${byType() ? "file type" : "tier"}">${segs}</div>
-    <div class="segslot">${segList()}</div>${open ? planVisual(list, planSegs(list)) : ""}</div>`;
+    <div class="segslot">${segList()}</div>${open ? (() => { const sf = segFilter(), l = planOnly(list, sf); return planVisual(l, planSegs(l)); })() : ""}${open ? `<div class="ca-slot">${caFileHtml()}</div>` : ""}</div>`;
 }
 function segList(x = SEGS.find((y) => (y.sect ? y.key : y.more && y.tier) === S.segList)) {   // a tier's "N more files" under the bar: pinned by a click, shown on hover; each opens its code
   if (!x) return "";
+  if (x.sect) return `<div class="seglist segf"><b>Showing only ${esc(x.label.toLowerCase())}</b> <span class="muted">${x.files.length} file${x.files.length === 1 ? "" : "s"}, ${x.lines.toLocaleString()} lines</span> <button class="btn sm" data-seglist="">Clear filter</button></div>`;   // the bar section filters the views below
   const name = x.sect ? x.label.toLowerCase() : x.gname || (x.tier === "deep" ? "must-read" : TIER_NAME[x.tier].toLowerCase()), n = x.sect ? x.files.length : x.more;
   return `<div class="seglist"><b>${n}${x.sect ? "" : " more"} ${name} file${n === 1 ? "" : "s"}</b> <button class="btn sm" data-seglist="">Close</button><ul>${x.files.map((f) =>
     `<li><button class="dfile" data-dpath="${esc(f.path)}" data-dpr="${esc(f.pr || "")}" title="Open its code">${esc(f.path)}</button> <span class="muted n">${f.lines.toLocaleString()}${C.prs.length > 1 && f.pr ? " · " + esc(shortPr(f.pr)) : ""}</span></li>`).join("")}</ul></div>`;
@@ -131,12 +166,12 @@ const psecFit = () => document.querySelectorAll(".psec span[data-short]").forEac
   if (t.scrollWidth > t.clientWidth) t.textContent = t.dataset.short; if (t.scrollWidth > t.clientWidth) t.textContent = ""; });   // the label, else its share, else nothing
 let psecT = 0; window.addEventListener("resize", () => { clearTimeout(psecT); psecT = setTimeout(psecFit, 120); });   // wider again: the full labels come back
 document.addEventListener("toggle", () => requestAnimationFrame(psecFit), true);   // a widget opened after the page drew
-const pview = () => (["route", "tree"].includes(S.pview) ? S.pview : "map");
+const pview = () => (S.pview === "tree" ? "tree" : "map");   // Route moved into Review walkthrough
 function planViewTabs() {
   const tab = (id, t, help) => `<button class="pv" data-pview="${id}" aria-pressed="${pview() === id}" title="${help}">${t}</button>`;
-  return `<span class="pviews" role="group" aria-label="Plan view">${tab("map", "Map", "Folders and files, sized by changed lines")}${tab("tree", "Tree", "The project's structure: repo, folders, files")}${tab("route", "Route", "The walkthrough's units in reading order, against the files they read")}</span>`;
+  return `<span class="pviews" role="group" aria-label="Plan view">${tab("map", "Map", "Folders and files, sized by changed lines")}${tab("tree", "Tree", "The project's structure: repo, folders, files")}</span>`;
 }
-const planVisual = (list, segs) => (pview() === "route" ? planRoute(list) : pview() === "tree" ? planTree(list, segs) : planMap(list, segs));
+const planVisual = (list, segs) => (pview() === "tree" ? planTree(list, segs) : planMap(list, segs));
 function planBlast(note = true) {
   if (!IMPACT.length) return `<p class="muted" style="font-size:14px;margin:10px 0 0">No changed source to map.</p>`;
   // at most 3 reached boxes per changed part, the rest folded into "+N more": the picture stays glanceable (the card lists all)
@@ -530,7 +565,7 @@ const HEADSUP = (C.notices || []).filter((n) => n.state === "open" && DRCALLS["n
 const DORDER = { unplanned: 0, changed: 1, missing: 2 };
 const agentDecisions = () => C.prs.flatMap((p) => (p.decisions || []).filter((d) => DST[d.status]).map((d) => ({ ...d, pr: p.key })))
   .sort((a, b) => DORDER[a.status] - DORDER[b.status]);   // what reviewers miss first: the choices nobody planned
-/* the Coding agent decisions widget: numbered, each set against its human instruction, filtered by kind and by the plan,
+/* the Agent decisions widget: numbered, each set against its human instruction, filtered by kind and by the plan,
    answered Accept (which folds it) or Correct */
 DCALLS.fix = ["Revise decision", "blocking", "Please revise this decision"];
 const DREV = {};   // decisions whose new-direction box is open
@@ -617,7 +652,7 @@ document.addEventListener("click", (e) => {
   if (!text) return t && t.focus();   // a revision says what to do instead
   delete DREV[uid]; DOPEN[uid] = false; keepScroll(() => answerDecision(d, "fix", text));
 }, true);
-function decisionsLine(title = "Coding agent decisions", planOnly = false) {
+function decisionsLine(title = "Agent decisions", planOnly = false) {
   const ds = planOnly ? DECS.filter((d) => d.source && d.source !== "inferred") : DECS;   // plan alignment: only decisions set against a real plan; heads-ups stay
   if (!ds.length && !HEADSUP.length) return "";
   const n = (st) => ds.filter((d) => d.status === st).length, open = !!S.open.dec;
@@ -684,12 +719,13 @@ function bImpact() {   // merge danger: the findings and tests rows are its evid
   return `<section class="card impact">${head}<div class="isw">${sw}<span class="muted">${help}</span></div>${body}${v === "blast" || v === "parts" || v === "workflows" ? `<p class="inote">${esc(impactNote())}</p>` : ""}</section>`;
 }
 /* the route: one row per walkthrough unit, in reading order; one column per file, in order of first use */
-function planRoute(list) {
-  const keys = new Set(list.map((p) => p.key)), us = ALLU.filter((u) => keys.has(u.p.key));
+function planRoute(list) {   // Review walkthrough's reading route: its units in reading order, against the files each one reads
+  const bl = (u) => u.blocks;
+  const keys = new Set(list.map((p) => p.key)), us = ALLU.filter((u) => keys.has(u.p.key) && bl(u).length);
   if (!us.length) return `<p class="muted" style="font-size:14px;margin:10px 0 0">Nothing to read closely.</p>`;
   const cols = [], at = {};
-  us.forEach((u) => u.blocks.forEach((b) => { const k = u.p.key + "|" + b.path; if (!(k in at)) { at[k] = cols.length; cols.push({ k, p: u.p, path: b.path }); } }));
-  const lines = (u, c) => u.blocks.filter((b) => b.path === c.path && u.p.key === c.p.key);
+  us.forEach((u) => bl(u).forEach((b) => { const k = u.p.key + "|" + b.path; if (!(k in at)) { at[k] = cols.length; cols.push({ k, p: u.p, path: b.path }); } }));
+  const lines = (u, c) => bl(u).filter((b) => b.path === c.path && u.p.key === c.p.key);
   const title = (u) => md(u.title).replace(/<\/?a\b[^>]*>/g, "");   // inside a button a link can't be followed: keep its text
   const cellOf = (u, c) => { const bs = lines(u, c); if (!bs.length) return ""; const n = bs.reduce((a, b) => a + b.lines, 0), deep = bs.some((b) => b.tier === "deep"), done = bs.every((b) => S.read[bkey(u.p, b)]);
     return `<button class="rc${deep ? " deep" : ""}${done ? " done" : ""}" data-goto-block="${esc(u.id)}" data-bid="${esc((bs.find((b) => b.tier === "deep") || bs[0]).id)}" title="${esc(`${unitNo(u)} ${u.title}: ${c.path}, ${n} line${n === 1 ? "" : "s"}${deep ? ", must read" : ""}${done ? ", read" : ""}`)}">${n}</button>`; };
@@ -727,14 +763,13 @@ function planTree(list, segs) {   // the project's structure: repo, then folders
   const addTo = (n, x) => { n.v += x.v; TIERS.forEach((k) => (n.t[k] = (n.t[k] || 0) + (x.t[k] || 0))); n.ty[x.ty] = (n.ty[x.ty] || 0) + x.v; };
   const mbar = (n) => `<span class="mbar" aria-hidden="true">${byType() ? FTYPES.map(([k]) => n.ty[k] ? `<i class="ty-${k}" style="flex:${n.ty[k]}"></i>` : "").join("") : TIERS.map((k) => n.t[k] ? `<i class="t-${k}" style="flex:${n.t[k]}"></i>` : "").join("")}</span>`;
   const n2 = (v) => `<span class="n">${v.toLocaleString()}</span>`;
-  return `<div class="ptree" role="group" aria-label="Code reading by repo, folder and file">${[...new Set(files.map((x) => x.p.repo))].map((repo) => {
+  return `<div class="ptree" role="group" aria-label="Code map by repo, folder and file">${[...new Set(files.map((x) => x.p.repo))].map((repo) => {
     const mine = files.filter((x) => x.p.repo === repo), multi = new Set(mine.map((x) => x.p.key)).size > 1, root = node();
     mine.forEach((x) => { addTo(root, x); let n = root; x.f.path.split("/").slice(0, -1).forEach((d) => { n = n.dirs[d] = n.dirs[d] || node(); addTo(n, x); }); n.files.push(x); });
-    const file = (x, depth) => `<button class="tr-f" style="--d:${depth}" data-seg="${SEGS.push(fileSegOf(x, segs)) - 1}" aria-label="${esc(`${x.f.path}: ${x.v} lines`)}">${fileIcon(x.f.path)}<span class="tr-n">${esc(base(x.f.path))}</span>${x.t.deep ? `<i class="tr-must" title="Has must-read lines"></i>` : ""}${multi ? `<span class="tr-pr">#${esc(x.p.number)}</span>` : ""}${mbar({ t: x.t, ty: { [x.ty]: x.v } })}${n2(x.v)}</button>`;
+    const file = (x, depth) => `<button class="tr-f" style="--d:${depth}" data-seg="${SEGS.push(fileSegOf(x, segs)) - 1}" aria-label="${esc(`${x.f.path}: ${x.v} lines`)}">${fileIcon(x.f.path)}<span class="tr-n">${esc(base(x.f.path))}</span>${x.t.deep ? `<i class="tr-must" title="Has must-read lines"></i>` : ""}<span class="tr-eye" data-caeye role="button" title="Show its code changes" aria-label="Show the code changes of ${esc(base(x.f.path))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg></span>${multi ? `<span class="tr-pr">#${esc(x.p.number)}</span>` : ""}${mbar({ t: x.t, ty: { [x.ty]: x.v } })}${n2(x.v)}</button>`;
     const kids = (n, path, depth) => Object.entries(n.dirs).sort((a, b) => b[1].v - a[1].v).map(([d, c]) => folder(c, d, `${path}/${d}`, depth)).join("")
       + n.files.slice().sort((a, b) => b.v - a.v).map((x) => file(x, depth)).join("");
     const subs = (n, path, depth, pre = "") => Object.entries(n.dirs).sort((a, b) => b[1].v - a[1].v).map(([d, c]) => folder(c, d, `${path}/${d}`, depth, pre)).join("");
-    const fold = (id, cls, depth, label, n) => `<details class="tr-d${cls}" data-open="${esc(id)}"${S.open[id] ?? true ? " open" : ""}><summary style="--d:${depth}">${label}${mbar(n)}${n2(n.v)}</summary>`;
     const folder = (n, name, path, depth, pre = "") => {
       if (!n.files.length) return subs(n, path, depth, `${pre}${name}/`);   // no files here: its folders carry its name, one row each
       const id = "tr:" + path, on = trOpen(id), nf = n.files.length;
@@ -742,8 +777,9 @@ function planTree(list, segs) {   // the project's structure: repo, then folders
       return `<button class="tr-row tr-tog" style="--d:${depth}" data-trf="${esc(id)}" aria-expanded="${on}">${label}<span class="tr-c">${nf} file${nf === 1 ? "" : "s"}</span>${mbar(n)}${n2(n.v)}</button>`
         + (on ? n.files.slice().sort((a, b) => b.v - a.v).map((x) => file(x, depth + 1)).join("") : "") + subs(n, path, depth + 1);
     };
-    return fold("tr:" + repo, " tr-repo", 0, `${REPOICON}<span class="tr-n">${esc(repo)}</span>`, root) + kids(root, repo, 1) + "</details>";
-  }).join("")}</div><p class="muted" style="font-size:12.5px;margin:6px 0 0">Numbers are changed lines; bars are ${byType() ? "the file types" : "the tiers"}; a dot marks files with must-read lines.</p>`;
+    const on = trOpen("trr:" + repo), body = on ? kids(root, repo, 1) : "";   // the repo's row opens or closes its whole box; Collapse all closes every box
+    return `<div class="tr-repo${on ? "" : " shut"}"><button class="tr-row tr-tog tr-repoh" style="--d:0" data-trrepo="${esc(repo)}" aria-expanded="${on}">${REPOICON}<span class="tr-n">${esc(repo)}</span>${mbar(root)}${n2(root.v)}</button>${body}</div>`;
+  }).join("")}</div>`;
 }
 const MW = 1000, MH = 520;   // the map's own coordinates; drawn in percent, so it scales with the card
 function planMap(list, segs) {
@@ -768,16 +804,17 @@ function planMap(list, segs) {
   const heat = (t, v) => { const sc = Math.min(2.999, (3 * (t.deep || 0) + 2 * (t.review || 0) + (t.skim || 0)) / v), H = ["skip", "skim", "review", "deep"], i = Math.floor(sc);   // how much of the file needs reading, on the bar's scale
     return `color-mix(in oklab, var(--${H[i + 1]}) ${Math.round((sc - i) * 100)}%, var(--${H[i]}))`; };
   const pct = (r) => `left:${(100 * r.x) / MW}%;top:${(100 * r.y) / MH}%;width:${(100 * r.w) / MW}%;height:${(100 * r.h) / MH}%`;
-  let h = "";
+  let h = "", lab = "";   // folder names float over their files, drawn last so no cell covers them
   squarify(gs, 0, 0, MW, MH).forEach((G) => {
-    const g = G.it, label = G.w > 110 && G.h > 56, top = label ? 26 : 3;
-    h += `<div class="pm-g" style="${pct(G)}">${label ? `<span class="pm-gl" title="${esc(g.g)}"><span class="pm-gn">/${esc(g.lab)}</span><span class="n">${g.v.toLocaleString()}</span></span>` : ""}</div>`;
-    squarify(g.files.slice().sort((a, b) => b.v - a.v), G.x + 3, G.y + top, G.w - 6, G.h - top - 3).forEach((c) => {
+    const g = G.it;
+    h += `<div class="pm-g" style="${pct(G)}"></div>`;
+    if (G.w > 110 && G.h > 40) lab += `<span class="pm-gl" style="left:${(100 * (G.x + 11)) / MW}%;top:${(100 * (G.y + 11)) / MH}%;max-width:${(100 * (G.w - 22)) / MW}%"><span class="pm-gn">${esc(g.lab)}</span></span>`;
+    squarify(g.files.slice().sort((a, b) => b.v - a.v), G.x + 3, G.y + 3, G.w - 6, G.h - 6).forEach((c) => {
       const x = c.it, id = segOf(x);   // the file's name shows on hover
-      h += `<button class="pm-c" style="${pct(c)};background:${byType() ? `var(--ty-${x.ty})` : heat(x.t, x.v)}" data-seg="${id}" aria-label="${esc(`${x.f.path}: ${x.v} lines`)}"></button>`;
+      h += `<button class="pm-c" style="${pct(c)};background:${byType() ? `var(--ty-${x.ty})` : heat(x.t, x.v)}" data-seg="${id}" aria-label="${esc(`${x.f.path}: ${x.v} lines`)}">${c.w >= 48 && c.h >= 56 ? `<span class="tr-eye pm-eye" data-caeye role="button" title="Show its code changes" aria-label="Show the code changes of ${esc(base(x.f.path))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg></span>` : ""}</button>`;
     });
   });
-  return `<div class="pmapw"><div class="pmap" role="group" aria-label="Reading plan by folder and file">${h}</div><aside class="pmside" aria-live="polite">${PMIDLE()}</aside></div><p class="muted" style="font-size:12.5px;margin:6px 0 0">Area is changed lines; ${byType() ? "colors are file types" : "color is how much of the file needs reading, from yellow (skip) to red (must read)"}.</p>`;
+  return `<div class="pmapw${PMHIDE ? " noside" : ""}"><div class="pmap" role="group" aria-label="Reading plan by folder and file">${h}${lab}</div>${PMHIDE ? "" : `<aside class="pmside" aria-live="polite">${PMIDLE()}</aside>`}</div><p class="muted" style="font-size:12.5px;margin:6px 0 0">Area is changed lines; ${byType() ? "colors are file types" : "color is how much of the file needs reading, from yellow (skip) to red (must read)"}.</p>`;
 }
 /* the biggest reasons first, each one line, then how many more: a file the agent triaged in twelve places reads as three */
 function whyOf(x, n = 3) {
@@ -791,39 +828,42 @@ function whyOf(x, n = 3) {
 let tip;
 let TIPEL = null, PINNED = false, tipT = 0;   // the segment the tooltip is pinned to; a click keeps it open
 function placeTip(el) {   // under its segment when there's room, else above, else inside the visible top of a tall map cell
-  const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
-  let top = r.bottom + 8;
+  const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight, nm = el.classList.contains("tr-f") && (el.querySelector(".fic") || el.querySelector(".tr-n")), lx = nm ? nm.getBoundingClientRect().left : r.left;   // a Tree file: under its icon
+  let top = r.bottom + (nm ? 4 : 8);
   if (top + th > innerHeight - 8) top = r.top - th - 8;
   if (top < 8) top = Math.min(Math.max(r.top, headH()) + 10, innerHeight - th - 8);
-  tip.style.left = `${Math.max(8, Math.min(r.left + (el.classList.contains("pm-c") ? 8 : 0), innerWidth - tw - 8))}px`; tip.style.top = `${Math.max(8, top)}px`;
+  tip.style.left = `${Math.max(8, Math.min(lx + (el.classList.contains("pm-c") ? 8 : 0), innerWidth - tw - 8))}px`; tip.style.top = `${Math.max(8, top)}px`;
 }
-function tipHtml(x, id, act) {   // the file, then its numbers, why it reads the way it does, and where to go from it
-  if (x.sect) { const mix = Object.entries(x.mix).sort((a, b) => b[1] - a[1]), N = 8;
-    const nm = (k) => k.startsWith("ty-") ? TYPE_NAME[k.slice(3)] : k === "t-deep" ? "Must read" : TIER_NAME[k.slice(2)];
-    return `<div class="tip-h tip-hs">${esc(x.label)} · ${x.pct}%</div><div class="tip-p tip-ps">${x.lines.toLocaleString()} lines in ${x.files.length} file${x.files.length === 1 ? "" : "s"}</div>`
-      + `<div class="tip-bar">${mix.map(([k, v]) => `<i class="${k}" style="flex:${v}"></i>`).join("")}</div><div class="tip-leg">${mix.map(([k, v]) => `${esc(nm(k))} ${Math.round((100 * v) / x.lines)}%`).join(" · ")}</div>`
-      + `<ul class="tip-fl">${x.files.slice(0, N).map((f) => `<li><span>${esc(base(f.path))}</span><span class="n">${f.lines.toLocaleString()}</span></li>`).join("")}</ul>`
-      + (x.files.length > N ? `<div class="tip-f">${x.files.length - N} more: click to list them all</div>` : ""); }
-  const i = segInfo(x), path = x.more ? "" : String(x.path || ""), dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
+const tipKey = (mix, total) => { const nm = (k) => k.startsWith("ty-") ? TYPE_NAME[k.slice(3)] : k === "t-deep" ? "Must read" : TIER_NAME[k.slice(2)];
+  return `<ul class="tip-key">${mix.sort((a, b) => b[1] - a[1]).map(([k, v]) => { const pc = Math.round((100 * v) / (total || 1)); return `<li><i class="${k}"></i><span>${esc(nm(k))}</span><span class="n">${pc || "<1"}%</span></li>`; }).join("")}</ul>`; };   // a key: colour, name, share
+function tipHtml(x) {   // one tooltip everywhere: a name, its lines, then a key of the other grouping (types by importance, importance by type)
+  if (x.sect) return `<div class="tip-h tip-hs">${esc(x.label)} · ${x.pct}%</div><div class="tip-p tip-ps">${x.lines.toLocaleString()} lines in ${x.files.length} file${x.files.length === 1 ? "" : "s"}</div>` + tipKey(Object.entries(x.mix), x.lines);
+  const path = x.more ? "" : String(x.path || ""), dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
+  const t = x.t || (TIERS.includes(x.tier) ? { [x.tier]: x.lines } : {}), ty = x.ty || (x.p && path ? typeOf((x.p.files || []).find((f) => f.path === path)) : "logic");
+  const mix = byType() ? TIERS.filter((k) => t[k]).map((k) => ["t-" + k, t[k]]) : [["ty-" + ty, x.lines]];
+  return `<div class="tip-h tip-hs">${esc(x.more ? segInfo(x).title : base(path))}</div><div class="tip-p tip-ps">${x.lines.toLocaleString()} line${x.lines === 1 ? "" : "s"}${dir ? ` in ${esc(dir)}` : ""}${x.p && C.prs.length > 1 ? ` · ${esc(shortPr(x.p.key))}` : ""}</div>` + tipKey(mix, x.lines);
+}
+function sideHtml(x) {   // the map's side panel: the file, its tiers, its numbers and why it reads the way it does
+  const i = segInfo(x), path = String(x.path || ""), dir = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
   const agent = x.src && [...x.src].some((v) => /agent/.test(v || "")), t = x.t || (TIERS.includes(x.tier) ? { [x.tier]: x.lines } : null);
   const ty = x.ty || (x.p && path ? typeOf((x.p.files || []).find((f) => f.path === path)) : "");
   const rows = [["Lines", x.lines.toLocaleString()], ty && ["Type", TYPE_NAME[ty]], x.p && C.prs.length > 1 && ["PR", shortPr(x.p.key)], agent && ["Triage", "by the agent"]].filter(Boolean);
-  return `<div class="tip-h">${esc(x.more ? i.title : base(path))}</div>${dir ? `<div class="tip-p">${esc(dir)}</div>` : ""}`
+  return `<div class="tip-h">${esc(base(path))}</div>${dir ? `<div class="tip-p">${esc(dir)}</div>` : ""}`
     + (t ? `<div class="tip-bar">${TIERS.map((k) => t[k] ? `<i class="t-${k}" style="flex:${t[k]}"></i>` : "").join("")}</div><div class="tip-leg">${esc(tierMix(t))}</div>` : "")
     + `<dl class="tip-g">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`
-    + (i.why.length ? `<div class="tip-w"><span>Why</span><ul>${i.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>` : "")
-    + (act ? `<button class="tip-go" data-tipgo="${id}">File walkthrough${i.hint ? `<span>${esc(i.hint)}</span>` : ""}<i aria-hidden="true">→</i></button>` : i.hint ? `<div class="tip-f">${esc(i.hint)} →</div>` : "");
+    + `<div class="tip-kh">${byType() ? "By importance" : "By type"}</div>${tipKey(byType() ? TIERS.filter((k) => (t || {})[k]).map((k) => ["t-" + k, t[k]]) : [["ty-" + (ty || "logic"), x.lines]], x.lines)}`   // the tooltip's key, as everywhere else
+    + (i.why.length ? `<div class="tip-w"><span>Why</span><ul>${i.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>` : "");
 }
+let PMHIDE = !!store.get("cockpit:map-panel-hidden", false);   // the map's details panel hidden, in this browser
 const PMIDLE = () => `<p class="pms-h">Hover a file</p><p class="muted">Its lines, how much of it to read and why show here. Click a file to keep it.</p>${byType() ? "" : `<div class="pms-scale"><i></i><span>Skip</span><span>Must read</span></div>`}`;
-const pmSide = (el) => el && el.classList.contains("pm-c") && el.closest(".pmapw") ? el.closest(".pmapw").querySelector(".pmside") : null;   // the map's details panel, beside it
+const pmSide = (el) => el && el.classList.contains("pm-c") && el.closest(".pmapw:not(.noside)") ? el.closest(".pmapw").querySelector(".pmside") : null;   // the map's details panel, beside it
 function showTip(el, ev) {
   const x = SEGS[+el.dataset.seg]; if (!x) return;
   const side = pmSide(el);
-  if (side) { clearTimeout(tipT); if (tip) tip.hidden = true; document.querySelectorAll(".pm-c.on").forEach((c) => c.classList.remove("on")); el.classList.add("on"); TIPEL = el;
-    side.innerHTML = tipHtml(x, el.dataset.seg, true); side.classList.add("has"); return; }
+  if (side) { clearTimeout(tipT); if (tip) tip.hidden = true; TIPEL = el; if (!PINNED) { document.querySelectorAll(".pm-c.on").forEach((c) => c.classList.remove("on")); el.classList.add("on"); side.innerHTML = sideHtml(x); side.classList.add("has"); } return; }   // the map shows it in its panel, not a tooltip; a hidden panel falls back to the tooltip   // the map's file details, beside it; the tooltip shows too
   tip = tip || Object.assign(document.body.appendChild(document.createElement("div")), { className: "tip", role: "tooltip" });
-  const act = el.classList.contains("pm-c"); clearTimeout(tipT); TIPEL = el;
-  tip.innerHTML = tipHtml(x, el.dataset.seg, act); tip.classList.toggle("act", act); tip.hidden = false; placeTip(el);
+  clearTimeout(tipT); TIPEL = el;
+  tip.innerHTML = tipHtml(x); tip.hidden = false; placeTip(el);   // Tree's files show what the map shows
 }
 const hideTip = () => { clearTimeout(tipT); if (tip) tip.hidden = true; TIPEL = null; PINNED = false;
   document.querySelectorAll(".pm-c.on").forEach((c) => c.classList.remove("on")); document.querySelectorAll(".pmside.has").forEach((sd) => { sd.innerHTML = PMIDLE(); sd.classList.remove("has"); }); };
@@ -841,7 +881,7 @@ document.addEventListener("mouseover", (e) => {
   if (el || !(e.target.closest && e.target.closest(".plan"))) unpreviewSegs();   // another segment, or out of the card; the legend and hint on the way to the list keep it
   if (e.target.closest && e.target.closest(".tip")) return clearTimeout(tipT);   // on the tooltip: it stays
   if (!el && e.target.closest && e.target.closest(".pmapw")) return clearTimeout(tipT);   // between files or on the panel: the last file stays
-  if (PINNED) return;   // a clicked file keeps its tooltip until you click elsewhere
+  if (PINNED && !el) return;   // a clicked map file keeps the side panel until you click elsewhere; tooltips still show
   el ? showTip(el, e) : TIPEL && TIPEL.classList.contains("pm-c") ? hideSoon() : hideTip();
 });
 document.addEventListener("focusin", (e) => { if (e.target.closest && e.target.closest(".tip")) return; const el = e.target.closest && e.target.closest("[data-seg]"); el ? showTip(el) : PINNED ? null : hideTip(); });
@@ -1112,23 +1152,22 @@ function pkCells(p) {   // one PR's merge, findings, CI and size, each a word wi
   return { merge, ci, ciUnknown, qualityUnknown:productEvidenceUnknown([p]), open, bad, wait, passed, checks: ch.length, add: p.add || 0, del: p.del || 0 };
 }
 const pkDot = ([tone, t]) => `<span class="pkd${tone ? " " + tone : ""}">${esc(t)}</span>`;
-const pkNum = (a, d) => `<span class="pkln" title="${a.toLocaleString()} added, ${d.toLocaleString()} removed">${(a + d).toLocaleString()}</span>`;
+const pkNum = (a, d) => `<span class="pkln" title="${a.toLocaleString()} added, ${d.toLocaleString()} removed"><svg class="pkt-hi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v14"/><path d="M5 10h14"/><path d="M5 21h14"/></svg>${(a + d).toLocaleString()}</span>`;   // the ± of the Lines header
 function pkTable(groups) {   // a repo per row, opening to a row per PR in merge order
   const ic = (d) => `<svg class="pkt-hi" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`, th = (i, t, cls = "") => `<th${cls ? ` class="${cls}"` : ""}><span>${ic(i)}${t}</span></th>`;   // the first and last columns carry an icon
-  const head = `<thead><tr>${th('<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/>', "Pull requests")}<th>Merge</th><th>Open findings</th><th>CI</th>${th('<path d="M12 3v14"/><path d="M5 10h14"/><path d="M5 21h14"/>', "Lines", "r")}</tr></thead>`;
+  const head = `<thead><tr>${th('<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v12"/>', "Pull requests")}<th>Merge</th><th>Open findings</th><th>CI</th>${th('<path d="M12 3v14"/><path d="M5 10h14"/><path d="M5 21h14"/>', "Lines")}</tr></thead>`;
   const body = groups.map((g) => { const cs = g.ps.map(pkCells), key = "pkt:" + g.repo, open = !!S.open[key];
     const conf = cs.filter((c) => c.merge[1] === "Conflicts").length, ready = cs.filter((c) => c.merge[0] === "ok").length;
     const fail = cs.filter((c) => c.bad).length, run = cs.filter((c) => c.wait).length, found = cs.reduce((a, c) => a + c.open, 0), [a, d] = pkgLines(g.ps);
-    const merge = conf ? ["bad", `${conf} with conflicts`] : ready === cs.length ? ["ok", "All ready"] : ["warn", `${ready} of ${cs.length} ready`];
-    const ci = cs.some((c) => c.ciUnknown) ? ["", "Unknown"] : fail ? ["bad", `${fail} PR${fail === 1 ? "" : "s"} failing`] : run ? ["warn", `${run} running`]
-      : cs.every((c) => c.checks && c.passed === c.checks) ? ["ok", "All passed"] : cs.some((c) => c.passed) ? ["ok", "Passed, some skipped or missing"] : ["", "No passing checks"];
+    const merge = conf ? ["bad", `${conf} conflict${conf === 1 ? "" : "s"}`] : ready === cs.length ? ["ok", "All ready"] : ["warn", `${ready} of ${cs.length} ready`];
+    const ci = cs.some((c) => c.ciUnknown) ? ["", "Unknown"] : fail ? ["bad", `${fail} failing`] : run ? ["warn", `${run} running`] : cs.every((c) => !c.checks) ? ["", "No checks"] : ["ok", "Passed"];   // nothing failing or running is a pass
     const sub = [pl(g.ps.length, "PR"), g.stacks ? pl(g.stacks, "stack") : ""].filter(Boolean).join(" · ");
     const repoRow = `<tr class="pkt-r" data-pktog="${esc(key)}" aria-expanded="${open}" tabindex="0"><td><div class="pkt-n"><span class="pkt-cv" aria-hidden="true"></span>${g.href ? `<a class="pkgh" href="${esc(g.href)}" target="_blank" rel="noopener" title="Open ${esc(g.repo)} on GitHub" aria-label="Open ${esc(g.repo)} on GitHub">${GHICON}</a>` : `<span class="pkgh">${GHICON}</span>`}<span><b>${esc(g.repo)}</b><em>${esc(sub)}</em></span></div></td>
-      <td>${pkDot(merge)}</td><td>${found ? pkDot(["warn", String(found)]) : cs.some((c) => c.qualityUnknown) ? pkDot(['','Unknown']) : '<span class="pkd">None</span>'}</td><td>${pkDot(ci)}</td><td class="r">${pkNum(a, d)}</td></tr>`;
+      <td>${pkDot(merge)}</td><td>${found ? pkDot(["warn", String(found)]) : cs.some((c) => c.qualityUnknown) ? pkDot(['','Unknown']) : '<span class="pkd">None</span>'}</td><td>${pkDot(ci)}</td><td>${pkNum(a, d)}</td></tr>`;
     const kids = open ? g.rows.map(([p, how]) => { const c = pkCells(p), s = prState(p);
       return `<tr class="pkt-c"><td><div class="pkt-n"><span class="pkt-ar" aria-hidden="true">↳</span><span class="pkst ${s}" title="${esc(STATE_NAME[s])}"><svg viewBox="0 0 16 16" role="img" aria-label="${esc(STATE_NAME[s])}">${PRICON[s || "open"]}</svg></span>
         <span><span class="pkt-t">${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="Open on GitHub">${esc(strip(p.title))}</a>` : esc(strip(p.title))}<span class="num">#${esc(p.number)}</span></span><em>${[how, p.author].filter(Boolean).map(esc).join(" · ")}</em></span></div></td>
-        <td>${pkDot(c.merge)}</td><td>${c.open ? pkDot(["warn", String(c.open)]) : c.qualityUnknown ? pkDot(['','Unknown']) : '<span class="pkd">None</span>'}</td><td>${pkDot(c.ci)}</td><td class="r">${pkNum(c.add, c.del)}</td></tr>`; }).join("") : "";
+        <td>${pkDot(c.merge)}</td><td>${c.open ? pkDot(["warn", String(c.open)]) : c.qualityUnknown ? pkDot(['','Unknown']) : '<span class="pkd">None</span>'}</td><td>${pkDot(c.ci)}</td><td>${pkNum(c.add, c.del)}</td></tr>`; }).join("") : "";
     return `<tbody>${repoRow}${kids}</tbody>`; }).join("");
   return `<div class="tscroll pkt-w"><table class="pkt-tab">${head}${body}</table></div>`;
 }
@@ -1190,7 +1229,7 @@ function wpkDraw() {
   const me = WPKS.find((s) => s.id === KIT.host.session);
   box.innerHTML = `<button type="button" class="wpk-b" data-wpk aria-haspopup="menu" aria-expanded="false" aria-label="${esc(me ? me.title : C.title)}: switch work package"><span>${esc(me ? me.title : C.title)}</span>${HICON.chev}</button>`
     + `<div class="wpk-m" role="menu" aria-label="Work packages" hidden><div class="wpk-top"><div class="wpk-h"><span>Work packages on this machine</span><button type="button" class="wz-ic" data-wpk-manage aria-label="Manage work packages" title="Manage work packages">${MICON.gear}</button></div><input class="wpk-q" type="search" placeholder="Search work packages" aria-label="Search work packages" autocomplete="off"></div>${WPKS.map(item).join("")}<p class="wpk-none" hidden>No work package matches.</p></div>`;
-  box.hidden = false; $("#ttl").hidden = true;
+  box.hidden = false; $("#ttl").hidden = true; crumb();   // a renamed package's name reaches the header too
 }
 function wpkFilter(v) {   // the search box: keep packages whose name or PRs contain every word typed
   const words = v.toLowerCase().split(/\s+/).filter(Boolean), m = $("#wpk .wpk-m"); let n = 0;
@@ -1215,7 +1254,7 @@ async function wpkGo(id) {   // the server keeps the pick until it restarts; thi
 document.addEventListener("click", (e) => {
   const go = e.target.closest && e.target.closest("[data-wpk-go]"); if (go) return wpkGo(go.dataset.wpkGo);
   if (e.target.closest && e.target.closest("[data-wpk-manage]")) { wpkClose(); return lDialog({ kind: "wpks" }); }
-  const b = e.target.closest && e.target.closest("[data-wpk]"), m = $("#wpk .wpk-m");
+  const box = e.target.closest && e.target.closest(".snav-wp"), b = e.target.closest && (e.target.closest("[data-wpk]") || (box && !e.target.closest(".wpk-m") ? box.querySelector("[data-wpk]") : null)), m = $("#wpk .wpk-m");   // anywhere on the grey box opens it
   if (b && m) { const open = m.hidden; m.hidden = !open; b.setAttribute("aria-expanded", String(open)); if (open) { const q = m.querySelector(".wpk-q"); q.value = ""; wpkFilter(""); q.focus(); } return; }
   if (!(e.target.closest && e.target.closest(".wpk-m"))) wpkClose();
 });
@@ -1240,7 +1279,7 @@ function freshHtml() {   // the side nav's foot: refresh, with how long ago the 
   const moved = C.prs.some((p) => (LIVE[p.key] || {}).moved), live = KIT.served && !C.demo;
   return `<span class="hago snav-ago">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : ""}</span><span class="tipw"><button class="snav-fd snav-rf ck-ricon${moved ? " moved" : ""}"${live ? ` data-ck="refresh"` : ` aria-disabled="true"`} aria-label="Refresh the review">${HICON.refresh}</button><span class="htip" role="tooltip">${freshTip()}</span></span>${folderBtn()}<button type="button" class="snav-fd snav-set" data-settings-open aria-haspopup="dialog" aria-label="Settings" title="Settings">${MICON.gear}</button>`;   // refresh (how long ago), the data folder, Settings
 }
-const folderBtn = () => KIT.served ? `<span class="tipw ft-fw"><button class="snav-fd" data-reveal aria-label="Open the data folder">${MICON.folder}</button><span class="htip" role="tooltip"><b>${/Mac/.test(navigator.platform) ? "Open the data folder in Finder" : "Open the data folder"}</b><p>This review's session folder: its data, execution walkthrough and triage pages (sessions/${esc(KIT.host.session || "")})</p></span></span>` : "";   // beside the refresh: where its data lives
+const folderBtn = () => KIT.served ? `<span class="tipw ft-fw"><button class="snav-fd" data-reveal aria-label="Open the data folder">${MICON.folder}</button><span class="htip" role="tooltip"><b>${/Mac/.test(navigator.platform) ? "Open the data folder in Finder" : "Open the data folder"}</b><p>This review's session folder: its data, execution paths and triage pages (sessions/${esc(KIT.host.session || "")})</p></span></span>` : "";   // beside the refresh: where its data lives
 const drawHead = () => { $("#cknav").innerHTML = headActions(); $("#snavfoot").innerHTML = freshHtml(); };   // the header's buttons and the nav's refresh, drawn together
 setInterval(() => { const h = document.querySelector(".hago"); if (h && C.reviewed_at) h.textContent = agoText(C.reviewed_at); }, 60000);   // the label keeps up as time passes
 function freshTip() {
@@ -1359,7 +1398,7 @@ const VMDESC = { open: ["Always open", "No folding: the page's widgets read as o
 function setVmode(v) {   // a new mode: folds opened or closed by hand start over, on every page
   VMODE = v; viewSet("mode", VMODE); ACCORD = VMODE === "accordion";
   [SECT, OPN, WOPEN, DOPEN, S.open].forEach((o) => Object.keys(o).forEach((k) => delete o[k])); if (typeof BW !== "undefined") Object.keys(BW.open).forEach((k) => delete BW.open[k]);
-  save(); keepScroll(() => {}); const m = document.querySelector(".vw-m"); if (!m) return;
+  opnSave(); save(); keepScroll(() => {}); const m = document.querySelector(".vw-m"); if (!m) return;
   m.querySelectorAll("[data-vmode]").forEach((x) => { const on = x.dataset.vmode === v; x.classList.toggle("on", on); x.setAttribute("aria-checked", String(on)); });
   const cur = m.querySelector(".vw-cur"); if (cur) cur.textContent = VMDESC[v][0];
 }
@@ -1541,10 +1580,10 @@ function blockHtml(p, b, inUnit) {
   const fs = p.findings.filter((f) => isOpen(f) && findingOnCurrentCode(f, b) && f.path === b.path && f.line >= b.from - 3 && f.line <= b.to + 3);
   const why = (b.why || []).join(", ") || (b.reason === "code" ? "" : b.reason) || "";
   const sub = inUnit ? why : [C.prs.length > 1 ? shortPr(p.key) : "", layer ? layer.title : "", why].filter(Boolean).join(" · ");
-  return `<details class="blk${done ? " done" : ""}" data-open="${esc(id)}"${(S.open[id] ?? EXPAND) ? " open" : ""}><summary>
+  return `<details class="blk${done ? " done" : ""}${inUnit && TIERS.includes(b.tier) ? " bt-" + b.tier : ""}" data-open="${esc(id)}"${(S.open[id] ?? EXPAND) ? " open" : ""}><summary>
     <button class="chk" data-read="${esc(bkey(p, b))}" aria-pressed="${!!done}" aria-label="Read">${done ? "✓" : ""}</button>
     <span class="p">${esc(b.path)}:${b.from}–${b.to}</span>
-    <span class="r">${b.tier === "deep" ? `<span class="tag must">must read</span>` : ""}${owAt(p, b).slice(0, 2).map((h) => `<span class="tag also" title="${esc(owName(h) + ": " + OWHOW[h.closeness] + ", " + (OWSTATE[h.state] || h.state || ""))}">also ${esc(owShort(h))}</span>`).join("")}${fs.map((f) => `<span class="sev ${esc(f.severity)}">${esc(f.severity)}</span>`).slice(0, 2).join("")}<span class="muted n" style="font-size:13px">${b.lines} line${b.lines === 1 ? "" : "s"}</span></span>
+    <span class="r">${inUnit && TIERS.includes(b.tier) ? `<span class="tag tierc t-${b.tier}">${b.tier === "deep" ? "Must read" : TIER_NAME[b.tier]}</span>` : b.tier === "deep" ? `<span class="tag must">must read</span>` : ""}${inUnit ? "" : owAt(p, b).slice(0, 2).map((h) => `<span class="tag also" title="${esc(owName(h) + ": " + OWHOW[h.closeness] + ", " + (OWSTATE[h.state] || h.state || ""))}">also ${esc(owShort(h))}</span>`).join("")}${inUnit ? "" : fs.map((f) => `<span class="sev ${esc(f.severity)}">${esc(f.severity)}</span>`).slice(0, 2).join("")}<span class="muted n" style="font-size:13px">${b.lines} line${b.lines === 1 ? "" : "s"}</span></span>
     ${sub ? `<span class="w">${esc(sub)}</span>` : ""}</summary>
     <div class="body">${!inUnit && layer && layer.summary ? `<p class="muted" style="margin:0;font-size:14.5px">${md(layer.summary)}</p>` : ""}
       ${p.code[b.id] ? codeHtml(p.code[b.id], { path: b.path }) : `<p class="muted">No code kept for this block.</p>`}
@@ -1627,9 +1666,27 @@ function streamHtml(p, nx, solo) {
     <span class="st0"><b><span class="n">${esc(shortPr(p.key))}</span> ${esc(strip(p.title))}</b>${ADDS[p.key] ? `<span class="us">${md(ADDS[p.key])}</span>` : ""}</span>
     <span class="r">${top && (top.severity === "high" || top.severity === "critical") ? `<span class="sev ${esc(top.severity)}">${esc(top.severity)}</span>` : ""}<span class="muted n">${us.length ? `${done}/${us.length} units${done < us.length ? " · " + fmtMin(Math.max(1, left(us))) : ""}` : "nothing to read"}</span></span></summary>${body}</details>`;
 }
-function walkHead() {   // the walkthrough's progress strip, above its sections
-  return vPlan().split("</section>")[0] + "</section>";
+function walkStepper() {   // Review walkthrough as a stepper: one unit at a time, Previous and Done, next; the strip of steps and the route jump to any unit
+  const us = ALLU.filter((u) => prOn(u.p.key));
+  if (!us.length) return `<p class="muted">Nothing to read closely.</p>`;
+  const cur = us.find((u) => u.id === S.wkstep) || nextUnit() || us[0], i = us.indexOf(cur), prev = us[i - 1], last = i === us.length - 1;
+  const done = us.filter(isDone).length, mleft = left(us), cdone = isDone(cur), plain = (t) => String(t || "").replace(/[`*_]/g, "");
+  const dots = us.map((u, j) => `<button type="button" class="wks-d${isDone(u) ? " d" : nRead(u) ? " h" : ""}${j === i ? " on" : ""}" style="flex:${Math.max(1, u.lines)}" data-wkgo="${esc(u.id)}" title="${esc(`${unitNo(u)} ${plain(u.title)}`)}" aria-label="${esc(`Step ${j + 1}: ${plain(u.title)}${isDone(u) ? ", read" : ""}`)}"${j === i ? ' aria-current="step"' : ""}></button>`).join("");
+  const tags = prMany() ? `<span class="tag">${esc(shortPr(cur.p.key))}</span>` : "";   // the PR, then size and time, on two lines
+  const route = `<details class="wk-route" data-wkroute${S.open.wkroute ? " open" : ""}><summary><b>Reading route</b><span class="muted">Every unit against the files it reads; click a cell to go to that step</span><span class="chev" aria-hidden="true"></span></summary>${planRoute(ORDER.filter((p) => prOn(p.key)))}</details>`;
+  return `<div class="wks"><div class="wks-head"><div class="wks-top"><b class="wks-n">Step ${i + 1} of ${us.length}</b><span class="muted">${done} of ${us.length} read${done < us.length ? ` · ${fmtMin(Math.max(1, mleft))} left` : ""}</span></div>
+    <div class="wks-dots" role="group" aria-label="Steps">${dots}</div></div>${route}
+    <article class="wks-card${cdone ? " done" : ""}"><header class="wks-h"><span class="wks-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><div class="wks-t"><span class="wks-k">Overview · step ${unitNo(cur)}</span><h3>${md(cur.title)}</h3>${cur.summary ? `<p class="us">${md(cur.summary)}</p>` : ""}</div><span class="r">${tags}<span class="muted n">${cur.blocks.length} chunk${cur.blocks.length === 1 ? "" : "s"} · ${cdone ? "read" : fmtMin(Math.max(1, left([cur])))}</span></span></header>
+      <div class="body">${FROMNOTE && FROMNOTE.uid === cur.id ? `<p class="fromnote"><span class="lbl">From Start here</span><b>${md(FROMNOTE.title)}</b> ${md(FROMNOTE.text)}</p>` : ""}${cur.decisions.map(udecHtml).join("")}${cur.blocks.map((b) => blockHtml(cur.p, b, true)).join("")}</div></article>
+    <nav class="wks-nav" aria-label="Steps"><button type="button" class="btn" data-wkgo="${esc(us[0].id)}"${i ? "" : " disabled"}>Start again</button>
+      <span class="wks-pn"><button type="button" class="btn" data-wkgo="${prev ? esc(prev.id) : ""}"${prev ? "" : " disabled"}>← Previous</button>
+      <button type="button" class="btn pri" data-wkdone="${esc(cur.id)}">${last ? "Done" : "Next →"}</button></span></nav></div>`;   // Start again goes to step 1 and keeps what's read; Next marks the step read as it moves on
 }
+function wkTop() {   // after a step changes, bring the stepper's top back into view if it scrolled off
+  const el = document.querySelector(".wks"); if (!el) return; const top = el.getBoundingClientRect().top;
+  if (top < headH() || top > innerHeight) window.scrollTo({ top: top + scrollY - headH() - 12, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+document.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches("details[data-wkroute]")) S.open.wkroute = e.target.open; }, true);
 function vPlan() {
   const list = ORDER.filter((p) => prOn(p.key)), us = list.flatMap((p) => UNITS[p.key]);
   const done = us.filter(isDone).length, nx = nextUnit();
@@ -1645,9 +1702,9 @@ function openUnit(u, bid) {
   if (!prOn(u.p.key)) S.pr = [u.p.key];
   S.open["s:" + u.p.key] = true; S.open["u:" + u.id] = true;
   if (bid) S.open["b:" + u.p.key + "|" + bid] = true;
-  S.tab = "walk"; SECT.walk = "wk-" + sid(u.p.key); save();   // the unit's PR card opens with it
-  try { history.replaceState(null, "", "#walk"); } catch (_) {}
-  render();
+  S.wkstep = u.id; const pg = pageOf("walk") || S.tab; S.tab = pg; save();   // the stepper shows that unit
+  try { history.replaceState(null, "", "#" + pg); } catch (_) {}
+  render(); if (!bid) wkTop();
   const el = document.querySelector(`[data-open="${CSS.escape(bid ? "b:" + u.p.key + "|" + bid : "u:" + u.id)}"]`);
   if (el) { el.scrollIntoView({ block: bid ? "center" : "start" }); el.querySelector("summary").focus({ preventScroll: true }); }
 }
@@ -1953,7 +2010,7 @@ const BLOCKS = {   // kept in step with BLOCKS in cockpit/recipes.py
   bhop: { label: "Hop by hop", what: "One request followed across systems: what each hop carries, returns and does on failure", render: () => { const x = behPart("hop"); return x && x.body ? behBody(`<p class="bhop-t">${x.title}</p>${x.body}`) : ""; }, sub: () => behSub("hop") },
   bwhy: { label: "Why it's being built", what: "The problem the change solves, with its sources", render: () => behOn() ? behBody(behWhy()) : "" },
   flow: { label: "Flow", what: "How it works: plain answers, then one request followed hop by hop with what each hop carries", render: bFlow },
-  plan: { label: "Code reading", what: "The reading-plan bar, with Map · Route", render: bPlan, sub: () => `${C.prs.reduce((a, p) => a + ((p.attention.summary || {}).total || 0), 0).toLocaleString()} changed lines` },
+  plan: { label: "Code map", what: "The reading-plan bar, with Map · Tree", render: bPlan, sub: () => `${C.prs.reduce((a, p) => a + ((p.attention.summary || {}).total || 0), 0).toLocaleString()} changed lines` },
   risk: { label: "Merge Risk", what: "One level from each failure scenario's blast radius, potential damage and complexity through two tables: what would go wrong, the deciding scenario, how it was decided, review effort and the auto-approval preview; then Quality and plan alignment", render: bRisk, sub: () => (RK && RK.scenarios.length ? rchip(RK.level) : ""), act: () => (RK && RK.scenarios.length ? riskHelp() : "") },
   rsum: { label: "Risk assessment", what: "Merge Risk's level, what would go wrong, and a chart of each factor's highest level", render: bRiskSum, sub: () => (rOn() ? rchip(RK.level) : ""), act: () => (rOn() ? riskHelp() : "") },
   rtext: { label: "Risk summary", what: "What would go wrong, in a sentence, and why Merge Risk is at its level", render: bRiskText },
@@ -1973,7 +2030,7 @@ const BLOCKS = {   // kept in step with BLOCKS in cockpit/recipes.py
       return [`${n} contract${n === 1 ? "" : "s"}`, k.missing && `${k.missing} missing`, k.mismatches && `${k.mismatches} mismatch${k.mismatches === 1 ? "" : "es"}`, k.collisions && `${k.collisions} colliding`, k.one_way && `${k.one_way} one-way`].filter(Boolean).join(" · "); } },
   other: { label: "Other work", what: "Other work on the same code", render: () => otherWorkHtml(), sub: () => (OW.length ? owHead() : "") },
   verdict: { label: "Verdict", what: "The bottom line: whether the package is ready to merge, with its Merge Risk and open findings", render: bVerdict },
-  decisions: { label: "Coding agent decisions", what: "Each behavior or technical decision the code makes, set against its human instruction: accept it or ask for a correction", render: bDecisions, sub: decSub },
+  decisions: { label: "Agent decisions", what: "Each behavior or technical decision the code makes, set against its human instruction: accept it or ask for a correction", render: bDecisions, sub: decSub },
   issues: { label: "Quality & Issue findings", what: "What the reviewers, scanners and CI found and how it was tested, then how the code kept to the plan", render: bIssues, sub: issuesSub },
   prs: { label: "Package contents", what: "Each PR by repo: its state, issues and size, and how the PRs stack", render: () => bPrs(), sub: () => pkgSub() },
   prstable: { label: "Package table", what: "The package as a table: a row per repo that opens to a row per PR, with merge, findings, CI and lines", render: () => bPrs(true), sub: () => pkgSub() },
@@ -1981,7 +2038,7 @@ const BLOCKS = {   // kept in step with BLOCKS in cockpit/recipes.py
   arch: { label: "Architecture", what: "The lenses and diagrams", render: () => vArch(), mermaid: true, secs: sArch },
   changes: { label: "Changes", what: "The behavior diff, file by file", render: () => vChanges(), prsel: true, secs: sChanges },
   findings: { label: "Quality", what: "Tests (weakened, untested, added), CI checks, and findings by severity", render: () => vQuality(), prsel: true, secs: sQuality },
-  walk: { label: "Review walkthrough", what: "The review walkthrough, unit by unit", render: () => vPlan(), prsel: true, secs: sWalk, head: walkHead },
+  walk: { label: "Review walkthrough", what: "The review as a stepper: one unit at a time, with its reading route", render: walkStepper, prsel: true },
   review: { label: "Your review", what: "Decisions, verdict, notes to copy", render: () => vReview(), secs: sReview },
 };
 const ACCENTS = { purple: "#7968FA", blue: "#3B82F6", green: "#10A37F", amber: "#D88A12", rose: "#E0457B" };
@@ -2054,7 +2111,9 @@ let ASKON = store.get(ASKKEY, false) === true;   // Ask Qodo shown on every page
 const askApply = () => { document.body.classList.toggle("ask-off", !ASKON); if (!ASKON && typeof ASK !== "undefined" && ASK.open) askHide(); };
 let SECS = false;   // the tab holds several blocks: each is a titled section, one open at a time, listed in the contents
 const SECT = {};   // tab -> the block whose section is open; every section starts folded
-const OPN = {};   // tab -> the sections opened by hand, when several may be open and none start open
+const OPNKEY = "cockpit:manual-open:" + C.session;   // Manual mode's open widgets, kept in this browser per work package so a refresh keeps them
+const OPN = Object.fromEntries(Object.entries(store.get(OPNKEY, {}) || {}).map(([k, v]) => [k, new Set(Array.isArray(v) ? v : [])]));   // tab -> the sections opened by hand
+const opnSave = () => store.set(OPNKEY, Object.fromEntries(Object.entries(OPN).filter(([, v]) => v.size).map(([k, v]) => [k, [...v]])));
 const accOn = () => ACCORD;   // one widget open at a time
 function secOpen(id, cur, first) {   // does this section start open on this draw
   if (ACCORD) return id === (cur === undefined ? first : cur);   // the first widget starts open
@@ -2179,7 +2238,7 @@ function navHtml(c, parts) {
     const cv = subs.length ? `<button type="button" class="nv-cvb" data-nvx aria-expanded="${NVOPEN}" aria-label="${NVOPEN ? "Hide" : "Show"} the sections of ${esc(t)}"><span class="nv-chev" aria-hidden="true"></span></button>` : "";
     const b = `<button type="button" class="nv-p"${on ? ` aria-current="page"${subs.length ? ` data-nvx aria-expanded="${NVOPEN}"` : ""}` : ` data-tab="${esc(id)}"`}${MINI ? ` title="${esc(t)}"` : ""}>${sico(ic || NVICON[id] || id)}<span class="nv-l">${esc(t)}</span></button>${cv}`;
     return (EDIT || cv ? `<div class="nv-r">${EDIT ? `<button class="wgrip" data-grip="p:${i}" aria-label="Drag the ${esc(t)} page to reorder, or use the arrow keys" title="Drag to reorder">${GRIP}</button>` : ""}${b}${EDIT ? `<button class="nv-x" data-ly="page-rm" data-lyv="${esc(id)}" aria-label="Delete the ${esc(t)} page" title="Delete page"${TABS.length < 2 ? " disabled" : ""}>${LYICON.bin}</button>` : ""}</div>` : b)
-      + (subs.length && NVOPEN ? `<ol class="nv-s">${subs.map((s) => `<li><a href="#blk-${s.id}" data-toc="${esc(s.id)}" title="${esc(s.label)}">${sico(s.navIcon || s.icon)}<span>${esc(s.nav || s.label)}</span></a></li>`).join("")}</ol>` : "");
+      + (subs.length && NVOPEN ? `<ol class="nv-s">${subs.map((s) => `<li><a href="#blk-${s.id}" data-toc="${esc(s.id)}" title="${esc(s.label)}">${s.iconHtml || sico(s.navIcon || s.icon)}<span>${esc(s.nav || s.label)}</span></a></li>`).join("")}</ol>` : "");
   }).join("") + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button>`
     : `<button type="button" class="nv-p nv-mb" data-nvmore aria-haspopup="menu" aria-expanded="false"${MINI ? ' title="More"' : ""}>${LYICON.more}<span class="nv-l">More</span></button>`);
 }
@@ -2249,10 +2308,11 @@ function bVerdict() {   // the bottom line: can the package merge as it is, then
     ${vdPrs("PRs awaiting human review", ps.filter(awaitingReview), ps.every(reviewCoverageKnown), "medium", "", !!C.product)}
     ${vdThreads(ps)}</div></div>`;
 }
-function crumb() {   // the header names the page, then the open section
+function crumb() {   // the header names the page, then the open section; with the side menu collapsed, the work package first
+  const nm = document.body.classList.contains("nv-mini") ? (WPKS.find((s) => s.id === KIT.host.session) || {}).title || C.title : "";
   const pg = (TABS.find((x) => x[0] === S.tab) || TABS[0])[1], cur = SECT[S.tab], d = (cur && document.querySelector(`#panel details.sec[open][data-sec="${cur}"] > summary h2`)) || document.querySelector('#panel .wtab[aria-selected="true"] span');
   const ed = EDIT ? `<button class="ptl-ed" data-ly="page-edit" aria-label="Rename the page or change its icon" title="Rename page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>` : "";
-  $("#ptl").innerHTML = `${esc(pg)}${ed}${d ? `<span class="ptl-s" aria-hidden="true">›</span><span class="ptl-c">${esc(d.textContent)}</span>` : ""}`;
+  $("#ptl").innerHTML = `${nm ? `<span class="ptl-w">${esc(nm)}</span><span class="ptl-s" aria-hidden="true">›</span>` : ""}${esc(pg)}${ed}${d ? `<span class="ptl-s" aria-hidden="true">›</span><span class="ptl-c">${esc(d.textContent)}</span>` : ""}`;
 }
 const WTAB = {};   // Tabs: each page's chosen widget
 function wtabsHtml(parts) {   // one tab per widget; only the chosen one's content, with no frame, header or fold around it
@@ -2267,7 +2327,7 @@ function tocMark() {   // the contents mark the open section
 }
 function openSec(d) {   // accordion: opening one section folds the others, and keeps its title in view
   if (accOn()) document.querySelectorAll("details.sec[open]").forEach((o) => { if (o !== d) o.open = false; });
-  else (OPN[S.tab] = OPN[S.tab] || new Set()).add(d.dataset.sec);
+  else { (OPN[S.tab] = OPN[S.tab] || new Set()).add(d.dataset.sec); opnSave(); }
   d.open = true; SECT[S.tab] = d.dataset.sec; tocMark();
   accFit();   // accordion: every title stays on screen, the open one scrolls inside
 }   // opening a widget by its title leaves the page where it is; the nav's link scrolls to it
@@ -2289,19 +2349,37 @@ addEventListener("resize", () => document.documentElement.style.setProperty("--h
 document.addEventListener("toggle", (e) => { const d = e.target; if (!d.classList || !d.classList.contains("sec")) return;
   const byHand = d.dataset.hand === "1"; delete d.dataset.hand;
   if (d.open && SECT[S.tab] !== d.dataset.sec && (byHand || ACCORD)) openSec(d);   // a redraw re-opens the same one: leave the scroll alone
-  else { if (!d.open && OPN[S.tab]) OPN[S.tab].delete(d.dataset.sec);
+  else { if (!d.open && OPN[S.tab]) { OPN[S.tab].delete(d.dataset.sec); opnSave(); }
     if (!d.open && SECT[S.tab] === d.dataset.sec) SECT[S.tab] = null; tocMark(); if (!d.open) accFit(); } }, true);
 document.addEventListener("click", (e) => {
   if (e.target.closest && e.target.closest("[data-nvx]")) { NVOPEN = !NVOPEN; return keepScroll(() => {}); }
   const a = e.target.closest && e.target.closest("[data-toc]"); if (!a) return;
   e.preventDefault();
-  if (VMODE === "tabs" && document.querySelector(`.wtab[data-wtab="${a.dataset.toc}"]`)) { WTAB[S.tab] = a.dataset.toc; return keepScroll(() => {}); }   // Tabs: the sub-menu picks the tab
+  const toTop = (el) => { if (!el || document.body.classList.contains("accord")) return;   // not in Accordion, which keeps every title on screen
+    [el, ...el.querySelectorAll("*")].forEach((x) => { if (x.scrollTop) x.scrollTop = 0; });   // the widget at the top of the page, its own content from the start
+    const p = $("#panel"), gap = parseFloat(getComputedStyle(el).scrollMarginTop) || 0, to = () => el.getBoundingClientRect().top + scrollY - gap;
+    for (let i = 0; i < 3; i++) { const short = to() - (document.documentElement.scrollHeight - innerHeight); if (short < 1) break;   // a low widget gets room below the content to reach the top
+      p.style.paddingBottom = `${(parseFloat(p.style.paddingBottom) || 0) + short}px`; PADTAB = S.tab; }
+    window.scrollTo({ top: to(), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); };   // a gentle scroll, unless the reader asked for less motion
+  if (VMODE === "tabs" && document.querySelector(`.wtab[data-wtab="${a.dataset.toc}"]`)) { WTAB[S.tab] = a.dataset.toc; render(); return toTop(document.querySelector(".wtabs-w") || document.getElementById("blk-" + a.dataset.toc)); }   // Tabs: the sub-menu picks the tab
   const d = document.querySelector(`details.sec[data-sec="${a.dataset.toc}"]`);
-  if (!d) { const r = document.getElementById("blk-" + a.dataset.toc); return r && r.scrollIntoView({ block: "start" }); }   // Always open: no folds, just go there
-  openSec(d); if (!ACCORD) d.closest(".rpart").scrollIntoView({ block: "start" });
+  if (!d) return toTop(document.getElementById("blk-" + a.dataset.toc));   // Always open: no folds, just go there
+  openSec(d); requestAnimationFrame(() => toTop(d.closest(".rpart") || d));   // every mode, Accordion too: after the fold has opened
 });
+/* a widget never links to another: a layout may not hold it. Each control that opens another widget becomes plain text after a render */
+const XNAV = [["[data-goto], [data-goto-block], [data-done], .start[data-start]", "walk"], ["[data-fsrc]", "findings"], [".dfile[data-dpath], .bn.bch, [data-owgo], [data-pr], [data-place]", "changes"],
+  ["[data-scope]", "stories"], ["[data-cmopen]", "system"], ['[data-bw="step"]', "builder"], ["[data-tab]", null]];   // [what it is, the widget it opens]
+const XDROP = ".ulink, .qmore";   // jumps whose words only make sense as a link
+function unlinkWidgets() {
+  document.querySelectorAll("#panel .rpart").forEach((part) => { const w = part.id.slice(4);
+    part.querySelectorAll(XDROP).forEach((el) => el.remove());
+    XNAV.forEach(([sel, to]) => part.querySelectorAll(sel).forEach((el) => { if (to === w) return;
+      const x = document.createElement(el.tagName === "BUTTON" || el.tagName === "A" ? "span" : el.tagName.toLowerCase());
+      x.className = `${el.className} nolink`.trim(); x.innerHTML = el.innerHTML; if (el.title) x.title = el.title; el.replaceWith(x); })); });
+}
+var PADTAB = null;   // the page whose bottom room a sub-menu jump added
 function render() {
-  miniApply();
+  miniApply(); if (PADTAB && PADTAB !== S.tab) { $("#panel").style.paddingBottom = ""; PADTAB = null; }   // a new page drops it
   $("#ttl").textContent = C.title;
   applyRecipe(); S.tab = resolveTab(S.tab); viewSync();
   const c = counts(), blocks = curBlocks();
@@ -2318,7 +2396,7 @@ function render() {
   $("#tabs").innerHTML = navHtml(c, parts);
   $("#panel").innerHTML = EDIT ? editHtml() : S.pr !== "all" && !S.pr.length ? `<p class="lempty">No PRs are selected. Pick one or more in the PR filter, or tick <b>Select all</b>.</p>` : !blocks.length ? `<p class="lempty">This page has no widgets yet. Click <b>Edit</b> to add some.</p>` : VMODE === "tabs" ? wtabsHtml(parts) : FOLD ? `<div class="scol">${parts.map((p) => VMODE === "open" ? soloHtml(p) : secHtml(p, SECT[S.tab], parts[0].id)).join("")}</div>`
     : parts.map(soloHtml).join("");
-  document.documentElement.style.setProperty("--hh", headH() + "px"); tocMark(); accFit(); psecFit(); if (WFULL) wfullDraw();   // a full-screen widget follows the page's changes
+  document.documentElement.style.setProperty("--hh", headH() + "px"); tocMark(); accFit(); psecFit(); caMark(); pmEyeFit(); unlinkWidgets(); if (WFULL) wfullDraw();   // a full-screen widget follows the page's changes
   if (!EDIT) blocks.forEach((b) => BLOCKS[b] && BLOCKS[b].after && BLOCKS[b].after());   // parts may be a page's own sections now
   if (!EDIT && blocks.some((b) => BLOCKS[b] && BLOCKS[b].mermaid)) loadMermaid();
   if (ASK.open) ctxMark(true);   // the redraw replaced the outlined element
@@ -2375,12 +2453,14 @@ document.addEventListener("click", (e) => {
   if (d.tab) return go(d.tab);
   if (d.pgroup) return keepScroll(() => { S.pgroup = d.pgroup; S.segList = null; save(); });
   if (d.trf) return keepScroll(() => { S.open[d.trf] = !trOpen(d.trf); });   // a tree folder shows or hides its files
-  if (d.trall !== undefined) return keepScroll(() => { S.trAll = S.trAll === false; Object.keys(S.open).filter((k) => k.startsWith("tr:") && !k.slice(3).match(/^[^/]+\/[^/]+$/)).forEach((k) => delete S.open[k]); save(); });   // folders, not repos
+  if (d.trrepo !== undefined) { const k = "trr:" + d.trrepo; return keepScroll(() => { S.open[k] = !trOpen(k); }); }   // a repo's row opens or closes its box
+  if (d.pmside !== undefined) { PMHIDE = !PMHIDE; store.set("cockpit:map-panel-hidden", PMHIDE); hideTip(); return keepScroll(() => {}); }   // the map's details panel, shown or hidden
+  if (d.cachg !== undefined) { if (!CASEL) return; CASEL.open = CASEL.open === false; const c = document.querySelector(".ca-file"); if (c) c.open = CASEL.open; return caTogSync(); }   // Map: fold or unfold the picked file's changes
+  if (d.trall !== undefined) return keepScroll(() => { S.trAll = S.trAll === false; if (CASEL) CASEL.open = S.trAll; Object.keys(S.open).filter((k) => k.startsWith("tr:") || k.startsWith("trr:")).forEach((k) => delete S.open[k]); save(); });   // every repo box, folder and the picked file's changes follow it
   if (d.fsrc !== undefined) return go("findings", { fsrc: d.fsrc || null, pr: "all" }), qscroll("findings");   // the row counts every PR
-  if (d.qsec) {
-    if (!hasQuality()) return keepScroll(() => { S.open.chk = true; S.open.tgaps = true; save(); });   // a recipe without Quality: the row's own details
-    if (!d.qall && curBlocks().includes("findings")) return qscroll(d.qsec);   // Quality's own controls keep the PR you picked
-    return go("findings", { pr: "all" }), qscroll(d.qsec);   // an overview count covers every PR, even on a shared tab
+  if (d.qsec) {   // inside Quality it scrolls to the part; anywhere else it opens the row's own details, never another widget
+    if (t.closest("#blk-findings")) return qscroll(d.qsec);
+    return keepScroll(() => { S.open.chk = true; S.open.tgaps = true; save(); });
   }
   if (d.pview) return keepScroll(() => { S.pview = d.pview; save(); });
   if (d.iview) return keepScroll(() => { S.iview = d.iview; save(); });
@@ -2394,7 +2474,8 @@ document.addEventListener("click", (e) => {
   if (d.bview) return pickBview(d.bview);
   if (d.gotoBlock) { e.preventDefault(); const u = ALLU.find((x) => x.id === d.gotoBlock); return u ? openUnit(u, d.bid) : go("walk"); }   // unit ids hold "|"
   if (d.seglist !== undefined) return keepScroll(() => { S.segList = null; });
-  if (d.seg !== undefined && t.classList.contains("pm-c")) { PINNED = false; showTip(t); PINNED = true; return; }
+  if (d.seg !== undefined && t.classList.contains("pm-c")) { PINNED = false; showTip(t); PINNED = true; return caPick(SEGS[+d.seg]); }   // a map file: the side panel keeps it, its changes open below
+  if (d.seg !== undefined && t.classList.contains("tr-f")) { hideTip(); return caPick(SEGS[+d.seg]); }   // a tree file: its changes open under the widget
   if (d.tipgo !== undefined) { const x = SEGS[+d.tipgo]; hideTip(); if (!x) return; const u = x.jump.block && unitOf(x.jump.pr, x.jump.block); return u ? openUnit(u, x.jump.block) : go("walk"); }
   if (d.seg !== undefined) {
     const x = SEGS[+d.seg]; hideTip(); if (!x) return;
@@ -2410,6 +2491,9 @@ document.addEventListener("click", (e) => {
   if (d.dcall) { e.preventDefault(); const j = d.dcall.lastIndexOf("|"), uid = d.dcall.slice(0, j), k = d.dcall.slice(j + 1), dd = C.prs.flatMap((p) => (p.decisions || []).map((x) => ({ ...x, pr: p.key }))).find((x) => x.pr + "|" + x.id === uid);
     return dd && keepScroll(() => answerDecision(dd, k)); }
   if (d.unit) { e.preventDefault(); const u = ALLU.find((x) => x.id === d.unit), all = isDone(u); return keepScroll(() => { u.blocks.forEach((b) => { const k = bkey(u.p, b); if (all) delete S.read[k]; else S.read[k] = true; }); save(); }); }
+  if (d.wkgo !== undefined) { if (!d.wkgo) return; S.wkstep = d.wkgo; render(); return wkTop(); }   // a step in the strip, or Previous
+  if (d.wkdone) { const us = ALLU.filter((u) => prOn(u.p.key)), u = us.find((x) => x.id === d.wkdone), nx = u && us[us.indexOf(u) + 1];
+    if (u) u.blocks.forEach((b) => (S.read[bkey(u.p, b)] = true)); if (nx) S.wkstep = nx.id; save(); render(); return nx && wkTop(); }   // marks it read, then the next step
   if (d.done) {
     const u = ALLU.find((x) => x.id === d.done); u.blocks.forEach((b) => (S.read[bkey(u.p, b)] = true)); S.open["u:" + u.id] = false;
     const nx = nextUnit(u); if (nx && nx.p !== u.p && prMany()) S.open["s:" + u.p.key] = false;
@@ -2968,6 +3052,7 @@ window.addEventListener("ck:recipe", (e) => { RECIPE = findRecipe(e.detail) || F
 {{WALKTHROUGH}}
 /* ---------- layout: the pages and their widgets; Edit adds, removes and orders them, saved in this browser ---------- */
 SICON.builder = '<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>';   // a route: how the code runs, start to end
+SICON.codechg = '<path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M3 5a2 2 0 0 0 2 2h3"/><path d="M3 3v13a2 2 0 0 0 2 2h3"/>';   // a folder tree: every changed file and part
 SICON.verdict = '<path d="m14.5 12.5-8 8a2.12 2.12 0 1 1-3-3l8-8"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/>';   // a gavel
 SICON.assets = '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>';   // a link
 SICON.summary = '<path d="M17 6.1H3"/><path d="M21 12.1H3"/><path d="M15.1 18H3"/>';   // lines of text
@@ -2984,6 +3069,14 @@ SICON.rdmg = '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2
 SICON.rcplx = '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="12" r="3"/><path d="M6 9v6"/><path d="M6 10c0 2 3 2 9 2"/>';
 SICON.rdeep = '<path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>';
 SICON.triage = '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>';
+SICON.walk = '<path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/>';   // numbered steps: the walkthrough's stepper; each widget has its own icon
+SICON.contracts = '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>';   // a plug: where parts connect
+SICON.rtext = '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2"/><path d="M12 13h.01"/>';   // a warning in a speech bubble
+SICON.bcon = '<path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m5 12-3 3 3 3"/><path d="m9 18 3-3-3-3"/>';   // a code file: the contract as written
+SICON.bhop = '<circle cx="12" cy="4.5" r="2.5"/><path d="m10.2 6.3-3.9 3.9"/><circle cx="4.5" cy="12" r="2.5"/><path d="M7 12h10"/><circle cx="19.5" cy="12" r="2.5"/><path d="m13.8 17.7 3.9-3.9"/><circle cx="12" cy="19.5" r="2.5"/>';   // waypoints
+SICON.system = '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>';   // a network of components
+SICON.scope = '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>';   // a checked clipboard
+SICON.impact = '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1a2 2 0 0 1 2.485 1.94z"/>';   // a door: one-way or two-way
 const WIDGETS = {   // every widget the page can draw, in gallery order: name and what it's for
   verdict: ["Verdict", "The bottom line: is the package ready to merge, with its Merge Risk and open findings"],
   prs: ["Package contents", "Each PR by repo, its state and size, and how the PRs stack"],
@@ -3003,10 +3096,11 @@ const WIDGETS = {   // every widget the page can draw, in gallery order: name an
   rdmg: ["Damage", "How bad a fault is where it lands, scenario by scenario"],
   rdeep: ["Go deeper", "Rollback, how it was decided, review effort, auto-approval and reviewers"],
   issues: ["Quality & Issue findings", "What reviewers, scanners and CI found, and how it was tested"],
-  plan: ["Code reading", "A heat map of the changed lines: what to deep-read, read, skim or skip"],
-  builder: ["Execution walkthrough", "How the code runs: each flow from a user action, API call or webhook through the changed code, and every changed file and method"],
+  plan: ["Code map", "A heat map of the changed lines: what to deep-read, read, skim or skip"],
+  builder: ["Execution paths", "How the code runs: each flow from a user action, API call or webhook through the changed code"],
+  codechg: ["Code changes", "Every changed file and each method, class or section it touches, with what each one is for"],
   triage: ["Finding review", "Each PR's Qodo findings, triaged into fix, skip or your call"],
-  decisions: ["Coding agent decisions", "Each behavior or technical decision set against its human instruction, to accept or correct"],
+  decisions: ["Agent decisions", "Each behavior or technical decision set against its human instruction, to accept or correct"],
   starts: ["Start here", "The one to three things to look at first"],
   scope: ["Scope", "What the plan asked for, per PR, and what's done"],
   flow: ["How it works", "One request followed hop by hop through the change"],
@@ -3018,7 +3112,7 @@ const WIDGETS = {   // every widget the page can draw, in gallery order: name an
   arch: ["Architecture", "Lenses and diagrams of how it's built"],
   changes: ["Changes", "The behaviour diff, file by file"],
   findings: ["Quality", "Tests, CI checks and findings by severity"],
-  walk: ["Review walkthrough", "The review unit by unit, in reading order"],
+  walk: ["Review walkthrough", "The review unit by unit, in reading order, with a route of the files each unit reads"],
   review: ["Your review", "Your decisions, verdicts and notes, ready to publish"] };
 const kR = (x, y, w, h, k, r = 2) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" class="${k}"/>`;
 const kL = (x, y, w, k = "k1") => kR(x, y, w, 4, k);
@@ -3049,7 +3143,8 @@ const SKETCH = {   // a low-fidelity picture of each widget on a 160×90 grid
   risk: () => kC(56, 46, 36, "k0") + kC(56, 46, 24, "kas") + kC(56, 46, 12, "kf") + `<polygon points="56,16 86,62 30,58" class="kat"/>` + rows(3, (i) => kR(104, 22 + i * 18, 48, 10, ["kb", "kw", "k1"][i], 5)),
   issues: () => rows(4, (i) => kC(16, 16 + i * 19, 4, ["kb", "kw", "kw", "k1"][i]) + kL(26, 14 + i * 19, 86 - i * 8) + kR(124, 12 + i * 19, 28, 8, "k1", 4)),
   plan: () => rows(60, (i) => kR(10 + (i % 12) * 12, 10 + Math.floor(i / 12) * 14, 10, 10, ["ka", "kas", "kas", "k1", "k0", "k0", "k0"][Math.floor(Math.abs(Math.sin(i * 12.9898) * 43758.5453)) % 7], 2)),
-  builder: () => rows(6, (i) => { const d = [0, 1, 1, 2, 0, 1][i], y = 9 + i * 13; return kR(8 + d * 12, y, 7, 7, "ka", 1) + kL(19 + d * 12, y + 1.5, 64 - d * 10) + kR(124, y + 1.5, 12, 4, "ko") + kR(138, y + 1.5, 8, 4, "kb"); }),
+  builder: () => kR(8, 6, 64, 12, "kas", 6) + kL(14, 10, 44, "ka") + kP("M20 18 V82") + rows(4, (i) => kC(20, 28 + i * 15, 4, i % 2 ? "k1" : "ka") + kL(30, 26 + i * 15, [76, 96, 64, 86][i]) + kR(128, 26 + i * 15, 18, 5, i % 2 ? "kb" : "ko")),   // a flow: the trigger, then its steps
+  codechg: () => rows(6, (i) => { const d = [0, 1, 1, 2, 0, 1][i], y = 9 + i * 13; return kR(8 + d * 12, y, 7, 7, "ka", 1) + kL(19 + d * 12, y + 1.5, 64 - d * 10) + kR(124, y + 1.5, 12, 4, "ko") + kR(138, y + 1.5, 8, 4, "kb"); }),
   triage: () => rows(2, (i) => kR(8, 8 + i * 40, 144, 34, "kf", 4) + kR(14, 14 + i * 40, 22, 8, i ? "kw" : "kb", 4) + kR(40, 14 + i * 40, 30, 8, "k1", 4) + kL(14, 28 + i * 40, 96) + kR(120, 27 + i * 40, 26, 8, "ka", 4)),
   decisions: () => rows(3, (i) => kR(8, 6 + i * 27, 144, 23, "kf", 4) + kL(14, 12 + i * 27, 66) + kL(14, 20 + i * 27, 44, "k0") + rows(2, (j) => kR(110 + j * 20, 13 + i * 27, 17, 8, j ? "k1" : "ka", 4))),
   starts: () => rows(3, (i) => kR(8 + i * 49, 12, 45, 66, "kf", 5) + kC(20 + i * 49, 25, 6, "ka") + kL(14 + i * 49, 40, 33) + kL(14 + i * 49, 50, 26) + kL(14 + i * 49, 60, 30)),
@@ -3068,38 +3163,76 @@ const SKETCH = {   // a low-fidelity picture of each widget on a 160×90 grid
 const sketch = (w) => `<svg class="wsk" viewBox="0 0 160 90" aria-hidden="true">${(SKETCH[w] || SKETCH.brief)()}</svg>`;
 const LKEY = "cockpit:package-layout:4";   // :4, the default below; a layout saved under an older key starts over from it
 const BRIEF3 = ["assets", "summary", ...BEH6];   // the Design brief page: assets, summary, then each Go deeper part
-const LDEF = () => ({ pages: [   // the default pages, in order: what anyone opening the style sees until they edit it
+const LDEF = () => ({ pages: [   // the default pages, in order: what anyone opening the style sees until they edit it (Adam's layout, 2026-11-09)
   { id: "prs", label: "Overview", icon: "ovw", names: { prstable: "Package contents" }, widgets: ["verdict", "prstable"] },
   { id: "brief", label: "Requirements", icon: "brief", widgets: BRIEF3.slice() },
-  { id: "coding-agent-decisions", label: "Decisions", icon: "decisions", widgets: ["decisions"] },
-  { id: "risk", label: "Merge Risk", icon: "risk", widgets: RISK5.slice() },
-  { id: "plan", label: "Code reading", icon: "plan", widgets: ["plan"] },
-  { id: "builder", label: "Execution walkthrough", icon: "builder", widgets: ["builder"] },
+  { id: "coding-agent-decisions", label: "Agent Decisions", icon: "decisions", widgets: ["decisions"] },
+  { id: "risk", label: "Merge Risk", icon: "risk", widgets: ["rtext", "rsum", "rblast", "rcplx", "rdmg", "rdeep"] },
+  { id: "plan", label: "Code map", icon: "plan", widgets: ["plan"] },
+  { id: "review-walkthrough", label: "Review walkthrough", icon: "walk", widgets: ["walk"] },
+  { id: "builder", label: "Execution paths", icon: "builder", widgets: ["builder"] },
+  { id: "code-changes", label: "Code changes", icon: "codechg", widgets: ["codechg"] },
   { id: "triage", label: "Finding review", icon: "triage", widgets: ["triage"] },
   { id: "system", label: "System", icon: "ovw", widgets: ["system"] }] });
-const VIEWDEF = { prs: { mode: "open", wide: true, fit: true }, brief: { mode: "open", wide: true }, "coding-agent-decisions": { mode: "open", wide: true }, risk: { mode: "accordion", wide: true },
-  plan: { mode: "open", wide: true }, builder: { mode: "open", wide: true, fit: true }, triage: { mode: "open", wide: true }, system: { mode: "open", wide: true } };   // the default layout's Page view, page by page
-const PICONS = ["verdict", "ovw", "prs", "brief", "plan", "risk", "issues", "decisions", "builder", "triage", "stories", "arch", "changes", "findings", "walk", "review", "contracts", "scope", "starts", "flow", "other", "flask", "ci", "merge"];
+const VIEWDEF = { prs: { mode: "open", wide: true, fit: true }, brief: { mode: "manual", wide: true }, "coding-agent-decisions": { mode: "open", wide: true }, risk: { mode: "accordion", wide: true },
+  plan: { mode: "accordion", wide: true }, "review-walkthrough": { mode: "open", wide: true }, builder: { mode: "open", wide: true, fit: true }, "code-changes": { mode: "open", wide: true, fit: true },
+  triage: { mode: "open", wide: true }, system: { mode: "open", wide: true } };   // the default layout's Page view, page by page
+// more page icons (Lucide strokes), a house first for a home page
+SICON["pg-home"] = '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>';
+SICON["pg-star"] = '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>';
+SICON["pg-flag"] = '<path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/>';
+SICON["pg-bookmark"] = '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>';
+SICON["pg-book"] = '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>';
+SICON["pg-lightbulb"] = '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>';
+SICON["pg-rocket"] = '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>';
+SICON["pg-lock"] = '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
+SICON["pg-bug"] = '<path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/>';
+SICON["pg-zap"] = '<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>';
+SICON["pg-compass"] = '<path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/><circle cx="12" cy="12" r="10"/>';
+SICON["pg-users"] = '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>';
+SICON["pg-calendar"] = '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>';
+SICON["pg-clock"] = '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>';
+SICON["pg-bell"] = '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>';
+SICON["pg-heart"] = '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>';
+SICON["pg-eye"] = '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>';
+SICON["pg-search"] = '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>';
+SICON["pg-code"] = '<path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/>';
+SICON["pg-terminal"] = '<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>';
+SICON["pg-database"] = '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>';
+SICON["pg-package"] = '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>';
+SICON["pg-globe"] = '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>';
+SICON["pg-chart"] = '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>';
+SICON["pg-message"] = '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>';
+SICON["pg-wrench"] = '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>';
+const PICONS = ["verdict", "ovw", "prs", "brief", "plan", "risk", "issues", "decisions", "builder", "codechg", "triage", "stories", "arch", "changes", "findings", "walk", "review", "contracts", "scope", "starts", "flow", "other", "flask", "ci", "merge", "pg-home", "pg-star", "pg-flag", "pg-bookmark", "pg-book", "pg-lightbulb", "pg-rocket", "pg-lock", "pg-bug", "pg-zap", "pg-compass", "pg-users", "pg-calendar", "pg-clock", "pg-bell", "pg-heart", "pg-eye", "pg-search", "pg-code", "pg-terminal", "pg-database", "pg-package", "pg-globe", "pg-chart", "pg-message", "pg-wrench"];
 function cleanLayout(x) {   // what a stored layout may hold: named pages, known widgets, each widget once
   if (!x || !Array.isArray(x.pages)) return null;
   const ids = new Set();
   const pages = x.pages.slice(0, 12).map((p) => { let label = String((p && p.label) || "").trim().slice(0, 32); if (!label) return null;
-    if (label === "Builder walkthrough") label = "Execution walkthrough";   // the page's old default name
+    label = { "Builder walkthrough": "Execution paths", "Execution walkthrough": "Execution paths", "Code paths": "Execution paths", "Code reading": "Code map", "Code analysis": "Code map" }[label] || label;   // the pages' old default names
     let id = rslug(p.id || label); while (ids.has(id)) id += "-2"; ids.add(id);
     const names = Object.fromEntries(Object.entries((p && p.names) || {}).filter(([w, n]) => Object.hasOwn(WIDGETS, w) && typeof n === "string" && n.trim()).map(([w, n]) => [w, n.trim().slice(0, 40)]));   // widget names given on this page
     return { id, label, icon: PICONS.includes(p.icon) ? p.icon : "ovw", ...(Object.keys(names).length ? { names } : {}),
       widgets: (Array.isArray(p.widgets) ? p.widgets : []).flatMap((w) => (w === "brief" ? BRIEF3 : w === "behaviors" ? BEH6 : w === "risk" ? RISK5 : [w])).filter((w, i, ws) => typeof w === "string" && Object.hasOwn(WIDGETS, w) && ws.indexOf(w) === i) }; }).filter((p) => p && p.widgets.length);   // each widget once per page, on as many pages as you like; no page without a widget
-  return pages.length ? { pages } : null;
+  return pages.length ? { pages, ...(x.home && pages.some((p) => p.id === x.home) ? { home: x.home } : {}) } : null;   // home: the page a load opens on
 }
 const RTXT = "cockpit:layout-rtext";   // Risk summary joined after the stored layouts were made: added once, after Risk assessment
 if (!store.get(RTXT, false)) { const L0 = store.get(LKEY, null); if (L0 && Array.isArray(L0.pages) && !L0.pages.some((p) => (p.widgets || []).includes("rtext"))) { L0.pages.forEach((p) => { const i = (p.widgets || []).indexOf("rsum"); if (i >= 0) p.widgets.splice(i + 1, 0, "rtext"); }); store.set(LKEY, L0); } store.set(RTXT, true); }
+const CCHG = "cockpit:layout-codechg";   // Code changes left Execution paths (then Execution walkthrough): added once beside it, on its own page when the walkthrough had one
+if (!store.get(CCHG, false)) { const L0 = store.get(LKEY, null), i = L0 && Array.isArray(L0.pages) && !L0.pages.some((p) => (p.widgets || []).includes("codechg")) ? L0.pages.findIndex((p) => (p.widgets || []).includes("builder")) : -1;
+  if (i >= 0) { const p = L0.pages[i];
+    if (p.widgets.length > 1) p.widgets.splice(p.widgets.indexOf("builder") + 1, 0, "codechg");
+    else { L0.pages.splice(i + 1, 0, { id: "code-changes", label: "Code changes", icon: "codechg", widgets: ["codechg"] }); if (PV[p.id]) { PV["code-changes"] = { ...PV[p.id] }; store.set(PVKEY, PV); } }
+    store.set(LKEY, L0); }
+  store.set(CCHG, true); }
 const WZSEEN = "cockpit:wizard-seen", WZFIRST = !store.get(LKEY, null) && !store.get(WZSEEN, false);   // a first visit: no layout of their own, the wizard not yet shown
 let LAYOUT = cleanLayout(store.get(LKEY, null)) || LDEF(), EDIT = false, LD = null;   // LD: the open dialog (the gallery or the page form)
-const has = (w) => Object.hasOwn(BLOCKS, w);   // Execution walkthrough and Finding review exist only when the session holds their files
+const has = (w) => Object.hasOwn(BLOCKS, w);   // Execution paths and Finding review exist only when the session holds their files
 function layoutRecipe() {   // every page and every widget on it, whether or not this review has data for it: an empty widget says so
   return { ...RISKR, id: "package-layout", tabs: LAYOUT.pages.map((p) => ({ id: p.id, label: p.label, icon: p.icon, blocks: p.widgets.slice() })) };
 }
-const WEMPTY = { builder: "No execution walkthrough was written for this review. Ask the coding agent for one with the code-review-master skill.",
+const WEMPTY = { builder: "No execution paths were written for this review. Ask the coding agent for one with the code-review-master skill.",
+  codechg: "No code changes tree was written for this review. Ask the coding agent for one with the code-review-master skill.",
   triage: "No findings triage was built for these PRs. Ask the coding agent for one with the qodo-findings-triage skill.",
   system: "This review has no system map. It's drawn when the coding agent writes one with the review." };
 const wEmpty = (b) => `<p class="wempty">${esc(WEMPTY[b] || `${(WIDGETS[b] || [b])[0]} has nothing to show for this review yet.`)}</p>`;   // a widget with no data keeps its place and says why
@@ -3107,10 +3240,10 @@ const curPage = () => LAYOUT.pages.find((p) => p.id === S.tab) || LAYOUT.pages[0
 const WOPEN = {};   // folding sections (the walkthrough's flows) opened or closed by hand; otherwise they follow EXPAND
 function widgetHtml(b) {   // a page-sized widget shows its own sections one after another
   const B = BLOCKS[b], ss = B.secs ? B.secs() : [];
-  const h3 = (x, sub = true) => `${x.num ? `<span class="dnum">${x.num}</span>` : sico(x.icon)}${esc(x.label)}${x.after || ""}${sub && x.sub ? ` <span class="ssub">${x.sub}</span>` : ""}`;   // after: a chip that follows the title
+  const h3 = (x, sub = true) => `${x.num ? `<span class="dnum">${x.num}</span>` : x.iconHtml || sico(x.icon)}${esc(x.label)}${x.after || ""}${sub && x.sub ? ` <span class="ssub">${x.sub}</span>` : ""}`;   // after: a chip that follows the title
   return ss.length ? (B.head ? B.head() : "") + ss.map((x) => x.fold
     ? `<details class="wsub wfold" id="blk-${esc(x.id)}" data-wf="${esc(x.id)}"${WOPEN[x.id] ?? EXPAND ? " open" : ""}><summary><h3>${h3(x, false)}</h3>${x.sub ? `<span class="wfsub">${x.sub}</span>` : ""}<span class="chev" aria-hidden="true"></span></summary><div class="wfb">${x.html}</div></details>`
-    : `<div class="wsub"><h3>${h3(x)}</h3>${x.html}</div>`).join("") : B.render();
+    : `<div class="wsub${x.box ? " wbox" : ""}"><h3>${h3(x)}</h3>${x.html}</div>`).join("") : B.render();   // box: the section in its own container
 }
 document.addEventListener("toggle", (e) => { const d = e.target; if (!d.matches || !d.matches("details.wfold")) return;
   WOPEN[d.dataset.wf] = d.open; }, true);
@@ -3131,7 +3264,7 @@ function dialogHtml() {
           <span class="wt-f"><span class="wt-s">${here ? "On this page" : a.length ? `Also on ${esc(a.map((x) => x.label).join(", "))}` : has(w) ? "" : "No data in this review"}</span><button class="btn sm" data-ly="add" data-lyv="${w}"${here ? " disabled" : ""} aria-label="Add ${esc(WIDGETS[w][0])}">${here ? "Added" : "Add"}</button></span></div>`; };
         const ws = Object.keys(WIDGETS), sec = (cls, title, sub, list) => list.length ? `<section class="wgal-sec ${cls}"><p class="wgal-h"><i class="wgal-star" aria-hidden="true">★</i>${title}<span>${sub}</span></p><div class="wgal">${list.map(tile).join("")}</div></section>` : "";
         const fold = (cls, title, sub, list) => list.length ? `<details class="wgal-sec ${cls}" data-wmore${LD.moreOpen || LD.q ? " open" : ""}><summary class="wgal-h">${title}<span>${sub}</span><span class="chev" aria-hidden="true"></span></summary><div class="wgal">${list.map(tile).join("")}</div></details>` : "";   // the rest, folded until opened
-        return sec("pop", "Popular", "In your layout now, plus the System map", ws.filter((w) => pop.has(w))) + fold("more", "More widgets", "Everything else the review can show", ws.filter((w) => !pop.has(w))); })()}
+        return sec("pop", "Popular", "In your layout now, plus the System map and Code changes", ws.filter((w) => pop.has(w))) + fold("more", "More widgets", "Everything else the review can show", ws.filter((w) => !pop.has(w))); })()}
       <div class="lmod-f"><span>${LD.added ? `${pl1(LD.added, "widget")} added to ${esc(p.label)}` : np ? "Pick the new page's first widget" : `Pick the widgets to add to ${esc(p.label)}`}</span><button class="btn pri" data-ly="close">Done</button></div></div>`; }
   if (LD.kind === "tpl") return tplHtml();
   if (LD.kind === "lgal") return lgalHtml();
@@ -3146,7 +3279,8 @@ function dialogHtml() {
     <div class="wz-row"><button class="btn pri" data-ly="w-save">Save</button><button class="btn" data-ly="close">Cancel</button>${(p.names || {})[LD.w] ? `<button class="btn" data-ly="w-reset" style="margin-left:auto">Use its own name</button>` : ""}</div></div>`;
   return `<div class="lmod-c sm" role="dialog" aria-modal="true" aria-label="Edit page"><div class="lmod-h"><b>Edit page</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
     <label class="wz-l">Name<input data-ly-name maxlength="32" value="${esc(LD.name)}" placeholder="e.g. Product review"></label><div class="wz-k">Icon</div>
-    <div class="licons" role="radiogroup" aria-label="Icon">${PICONS.map((i) => `<button class="lic" role="radio" data-ly="icon" data-lyv="${i}" aria-checked="${LD.icon === i}" aria-label="${esc(i)}">${sico(i)}</button>`).join("")}</div>
+    <div class="licons" role="radiogroup" aria-label="Icon">${PICONS.map((i) => `<button class="lic" role="radio" data-ly="icon" data-lyv="${i}" aria-checked="${LD.icon === i}" aria-label="${esc(i.replace(/^pg-/, ""))}" title="${esc(i.replace(/^pg-/, ""))}">${sico(i)}</button>`).join("")}</div>
+    <label class="wz-home"><input type="checkbox" data-ly-home${LD.home ? " checked" : ""}><span><b>Home page</b><span class="muted">The review opens on this page every time it loads</span></span></label>
     <div class="wz-row"><button class="btn pri" data-ly="page-save">Save</button><button class="btn" data-ly="close">Cancel</button></div></div>`;
 }
 document.addEventListener("input", (e) => { if (!(e.target.matches && e.target.matches("[data-wgal-q]"))) return;   // the gallery's search: every word must match the name or what it's for
@@ -3159,7 +3293,7 @@ function lDialog(d) {   // open, redraw or (null) close the dialog; a redraw kee
   if (!d) return el && el.remove();
   if (!el) { el = document.createElement("div"); el.id = "ldlg"; el.className = "lmod"; document.body.appendChild(el); }
   const top = (el.querySelector(".lmod-c") || {}).scrollTop || 0;
-  if (d.kind === "gallery" && !d.pop) d.pop = [...new Set([...LAYOUT.pages.flatMap((x) => x.widgets), "system"])];   // Popular: what the layout used when the gallery opened, so a tile doesn't jump when added
+  if (d.kind === "gallery" && !d.pop) d.pop = [...new Set([...LAYOUT.pages.flatMap((x) => x.widgets), "system", "codechg"])];   // Popular: what the layout used when the gallery opened, so a tile doesn't jump when added
   el.innerHTML = dialogHtml(); const f = el.querySelector("[data-ly-name], [data-wgal-q]");
   if (f && f.matches("[data-wgal-q]") && d.q) { f.value = d.q; f.dispatchEvent(new Event("input", { bubbles: true })); }
   el.querySelector(".lmod-c").scrollTop = top; if (f && document.activeElement !== f) f.focus({ preventScroll: true });
@@ -3184,8 +3318,9 @@ function tplLayout({ who, depth, type }) {   // the pages a template makes: an a
     P("coding-agent-decisions", own ? "Decisions to confirm" : "Decisions", "decisions", ["decisions"]),
     P("risk", "Merge Risk", "risk", deep ? ["rsum", "rtext", "rblast", "rcplx", "rdmg", "rdeep"] : ["rsum", be ? "rblast" : "rdmg"]),
     own ? P("triage", "Findings to fix", "triage", ["triage", deep && "issues"]) : P("issues", "Findings", "issues", ["issues", deep && "triage"]),
-    (deep || !own) && P("plan", "Code reading", "plan", ["plan"]),
-    deep && P("builder", "Execution walkthrough", "builder", ["builder"]),
+    (deep || !own) && P("plan", "Code map", "plan", ["plan"]),
+    deep && P("builder", "Execution paths", "builder", ["builder"]),
+    P("code-changes", "Code changes", "codechg", ["codechg"]),
     !own && P("review", "Your review", "review", ["review"])].filter((x) => x && x.widgets.length) };
 }
 function tplHtml() {
@@ -3198,42 +3333,43 @@ function tplHtml() {
 }
 /* the layout gallery: each review style's parts, in its order, rebuilt from Work Package's widgets */
 const LGAL = [
-  { id: "package", name: "Work Package", from: "This style's default", what: "An overview with the verdict and the PRs, then the requirements, decisions, Merge Risk, code reading, the walkthrough, finding review and the system map", views: VIEWDEF, pages: LDEF().pages },
+  { id: "package", name: "Work Package", from: "This style's default", what: "An overview with the verdict and the PRs, then the requirements, agent decisions, Merge Risk, the code map, the review walkthrough, execution paths, code changes, finding review and the system map", views: VIEWDEF, pages: LDEF().pages },
   { id: "cockpit", name: "Agent Session Review", from: "The Agent Session Review app", what: "The story first, then the reading plan, the walk through the code, the findings and your review", views: { story: { mode: "open" }, plan: { mode: "open" }, findings: { mode: "tabs" } }, pages: [
     { id: "story", label: "Story", icon: "stories", widgets: ["summary", "stories", "flow"] }, { id: "plan", label: "Reading plan", icon: "plan", widgets: ["plan", "starts"] },
-    { id: "walk", label: "Walk", icon: "walk", widgets: ["walk"] }, { id: "findings", label: "Findings", icon: "findings", widgets: ["findings", "triage"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },
+    { id: "walk", label: "Walk", icon: "walk", widgets: ["walk", "codechg"] }, { id: "findings", label: "Findings", icon: "findings", widgets: ["findings", "triage"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },
   { id: "focus", name: "Focus", from: "The Focus style", what: "One calm overview (the brief, how it works, the reading plan, merge danger, where to start), then a page per view", views: { overview: { mode: "manual" } }, pages: [
     { id: "overview", label: "Overview", icon: "ovw", widgets: ["prstable", "summary", "bwhy", "bhv", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"] },
     { id: "stories", label: "Stories", icon: "stories", widgets: ["stories"] }, { id: "arch", label: "Architecture", icon: "arch", widgets: ["arch"] }, { id: "changes", label: "Changes", icon: "changes", widgets: ["changes"] },
+    { id: "code-changes", label: "Code changes", icon: "codechg", widgets: ["codechg"] },
     { id: "findings", label: "Quality", icon: "findings", widgets: ["findings"] }, { id: "walk", label: "Review walkthrough", icon: "walk", widgets: ["walk"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },
   { id: "briefing", name: "Briefing", from: "The Briefing style", what: "The big picture one level at a time: the system, the brief, Merge Risk, then where to start", views: { brief: { mode: "accordion" }, risk: { mode: "accordion" }, start: { mode: "manual" } }, pages: [
     { id: "system", label: "System", icon: "contracts", widgets: ["system"] },
     { id: "brief", label: "Brief", icon: "brief", widgets: ["prstable", "summary", "bwhy", "bhv", "bdif", "bdec", "bcon", "bhop"] },
     { id: "risk", label: "Merge Risk", icon: "risk", widgets: ["rsum", "rtext", "rblast", "rcplx", "rdmg", "rdeep"] },
-    { id: "start", label: "Where to start", icon: "starts", widgets: ["decisions", "issues", "plan", "starts", "scope", "contracts", "other"] },
+    { id: "start", label: "Where to start", icon: "starts", widgets: ["decisions", "issues", "plan", "codechg", "starts", "scope", "contracts", "other"] },
     { id: "findings", label: "Quality", icon: "findings", widgets: ["findings"] }, { id: "walk", label: "Review walkthrough", icon: "walk", widgets: ["walk"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },
   { id: "verdict", name: "Verdict", from: "The Verdict style", what: "The merge decision as four questions: built the right way, what it touches, what could go wrong, can Qodo approve it", views: { way: { mode: "open" }, touches: { mode: "tabs" }, wrong: { mode: "open" }, approve: { mode: "open" } }, pages: [
     { id: "verdict", label: "Verdict", icon: "verdict", widgets: ["verdict"] }, { id: "way", label: "Built the right way?", icon: "decisions", widgets: ["bdec", "decisions"] },
-    { id: "touches", label: "What it touches", icon: "contracts", widgets: ["system", "rblast", "contracts"] }, { id: "wrong", label: "What could go wrong", icon: "risk", widgets: ["rsum", "rtext", "rdmg", "rcplx"] },
+    { id: "touches", label: "What it touches", icon: "contracts", widgets: ["system", "codechg", "rblast", "contracts"] }, { id: "wrong", label: "What could go wrong", icon: "risk", widgets: ["rsum", "rtext", "rdmg", "rcplx"] },
     { id: "approve", label: "Can Qodo approve it?", icon: "ci", widgets: ["rdeep", "issues"] }] },
   { id: "guided", name: "Guided Review", from: "The Guided Review style", what: "Brief, read, decide: a short briefing, a reading plan, then the decisions and your review", views: { brief: { mode: "open" }, read: { mode: "tabs" }, decide: { mode: "open" } }, pages: [
-    { id: "brief", label: "Brief", icon: "brief", widgets: ["summary", "bwhy", "starts"] }, { id: "read", label: "Read", icon: "plan", widgets: ["plan", "walk"] },
+    { id: "brief", label: "Brief", icon: "brief", widgets: ["summary", "bwhy", "starts"] }, { id: "read", label: "Read", icon: "plan", widgets: ["plan", "codechg", "walk"] },
     { id: "decide", label: "Decide", icon: "decisions", widgets: ["decisions", "triage", "review"] }] },
   { id: "behavior", name: "Behavior Diff", from: "The Behavior Diff style", what: "The change as behavior: what it does, what's different and the contracts, then the changes and your review", views: { behavior: { mode: "open" } }, pages: [
-    { id: "behavior", label: "Behavior", icon: "flow", widgets: ["bhv", "bdif", "bcon"] }, { id: "changes", label: "Changes", icon: "changes", widgets: ["changes"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },
+    { id: "behavior", label: "Behavior", icon: "flow", widgets: ["bhv", "bdif", "bcon"] }, { id: "changes", label: "Changes", icon: "changes", widgets: ["changes", "codechg"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },
   { id: "console", name: "Review Console", from: "The Review Console style", what: "The set and its merge lanes, a walkthrough of each PR's layers, then your verdicts and decisions", views: { overview: { mode: "open" }, walk: { mode: "tabs" }, review: { mode: "open" } }, pages: [
-    { id: "overview", label: "Overview", icon: "ovw", widgets: ["prstable", "system"] }, { id: "walk", label: "Walkthrough", icon: "builder", widgets: ["builder", "walk"] },
+    { id: "overview", label: "Overview", icon: "ovw", widgets: ["prstable", "system"] }, { id: "walk", label: "Walkthrough", icon: "builder", widgets: ["builder", "codechg", "walk"] },
     { id: "review", label: "Your review", icon: "review", widgets: ["decisions", "review"] }] },
   { id: "onepage", name: "One-Page Brief", from: "The One-Page Brief style", what: "Everything on one calm page: the point, how it works, the evidence, merge danger and your outcome", views: { brief: { mode: "open" } }, pages: [
-    { id: "brief", label: "One-page brief", icon: "brief", widgets: ["summary", "flow", "issues", "impact", "review"] }] },
+    { id: "brief", label: "One-page brief", icon: "brief", widgets: ["summary", "flow", "codechg", "issues", "impact", "review"] }] },
   { id: "decisions", name: "Decision Review", from: "The Decision Review style", what: "What the agent decided on its own, unplanned first, then the rollout and what to verify", views: { decisions: { mode: "open" }, rollout: { mode: "open" } }, pages: [
-    { id: "decisions", label: "Decisions", icon: "decisions", widgets: ["decisions", "bdec"] }, { id: "rollout", label: "Rollout", icon: "merge", widgets: ["impact", "rdeep"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] }];
+    { id: "decisions", label: "Decisions", icon: "decisions", widgets: ["decisions", "bdec", "codechg"] }, { id: "rollout", label: "Rollout", icon: "merge", widgets: ["impact", "rdeep"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] }];
 const lgMode = (p, views) => ((views || {})[p.id] || {}).mode || (p.widgets.length === 1 ? "open" : "accordion");   // a page's Page view in a template: its own, else one widget open, several as an accordion
 function lgViews(pages, views) { pages.forEach((p) => (PV[p.id] = { wide: false, fit: false, ...((views || {})[p.id] || {}), mode: lgMode(p, views) })); store.set(PVKEY, PV); }   // set for every page, so no older choice leaks in
 const MYKEY = "cockpit:my-layouts";   // your saved layouts, kept with the app settings so every review has them
 if (!Array.isArray(store.get(MYKEY, null))) store.set(MYKEY, [{ id: "dana", name: "Dana's layout", from: "Dana's own layout", what: "Two pages: the scope (product, PRs, the verdict and Merge Risk) as tabs, then one review page with the reading, walkthrough, findings, decisions and the system",
     pages: [{ id: "verdict", label: "Scope", icon: "ovw", names: { verdict: "Merge overview", prstable: "Package contents", summary: "Product overview" }, widgets: ["summary", "prstable", "verdict", "rsum"] },
-      { id: "code-reading", label: "Review", icon: "plan", widgets: ["plan", "builder", "triage", "rsum", "decisions", "system", "arch"] }],
+      { id: "code-reading", label: "Review", icon: "plan", widgets: ["plan", "builder", "codechg", "triage", "rsum", "decisions", "system", "arch"] }],
     views: { verdict: { mode: "tabs" }, "code-reading": { mode: "accordion", fit: true, wide: false } } }]);   // the first time: Dana's layout to start from
 const myLayouts = () => (store.get(MYKEY, []) || []).filter((g) => g && g.id && g.name && cleanLayout(g)).map((g) => ({ ...g, mine: true, pages: cleanLayout(g).pages,
   from: g.from || (g.saved ? `Saved ${new Date(g.saved).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : "Saved"), what: g.what || "Your pages, widgets and Page views, as you saved them" }));
@@ -3341,7 +3477,7 @@ document.addEventListener("click", (e) => {
     const had = (store.get(MYKEY, []) || []).some((g) => g && g.name === name); mySave(name); lDialog(LD.back ? { kind: "mine" } : null); return toast(had ? `Updated in My layouts: ${name}` : `Added to My layouts: ${name}`); }
   if (a === "my-rm") { const g = myLayouts().find((x) => x.id === v); store.set(MYKEY, (store.get(MYKEY, []) || []).filter((x) => x && x.id !== v)); LD.rm = null; lDialog(LD); return toast(`Deleted ${g ? g.name : "the layout"}`); }
   if (a === "page-new") return lDialog({ kind: "gallery", newPage: true });
-  if (a === "page-edit") return lDialog({ kind: "page", page: p.id, name: p.label, icon: p.icon });
+  if (a === "page-edit") return lDialog({ kind: "page", page: p.id, name: p.label, icon: p.icon, home: LAYOUT.home === p.id });
   if (a === "w-edit") return lDialog({ kind: "wname", w: v, name: wname(v) });
   if (a === "w-save" || a === "w-reset") { const n = a === "w-save" ? document.querySelector("[data-ly-name]").value.trim().slice(0, 40) : "", own = (BLOCKS[LD.w] && BLOCKS[LD.w].label) || WIDGETS[LD.w][0];
     p.names = { ...(p.names || {}) }; if (n && n !== own) p.names[LD.w] = n; else delete p.names[LD.w]; if (!Object.keys(p.names).length) delete p.names;   // an empty name, or its own, goes back to its own
@@ -3350,6 +3486,7 @@ document.addEventListener("click", (e) => {
   if (a === "page-rm") { LAYOUT.pages = LAYOUT.pages.filter((x) => x.id !== v); return lDraw(); }
   if (a === "page-save") { const f = document.querySelector("[data-ly-name]"), name = f.value.trim().slice(0, 32); if (!name) return f.focus();
     Object.assign(LAYOUT.pages.find((x) => x.id === LD.page), { label: name, icon: LD.icon });
+    const hm = document.querySelector("[data-ly-home]"); if (hm && hm.checked) LAYOUT.home = LD.page; else if (LAYOUT.home === LD.page) delete LAYOUT.home;   // one home page at most
     lDialog(null); return lDraw(); }
 });
 let DRAG = null;   // what a handle is dragging: its list, index and element, the slot it would land in, and the copy under the pointer
@@ -3395,11 +3532,13 @@ document.addEventListener("keydown", (e) => { if (!LD) return;
   if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); lDialog(null); }
   else if (e.key === "Enter" && e.target.matches && e.target.matches("[data-ly-name]")) { e.preventDefault(); document.querySelector('[data-ly="page-save"], [data-ly="w-save"], [data-ly="my-save"], [data-ly="wpk-ren-save"], [data-ly="mine-ren-save"]').click(); } }, true);
 RECIPE = layoutRecipe(); TABS = tabsOf(RECIPE);
-const h0 = ((location.hash || "").slice(1) || "").replace(/^plan$/, "walk");
-if (S.tab === "plan") S.tab = "walk";
+const hasPlan = TABS.some(([id]) => id === "plan");   // Code map's page is "plan" here; only older styles fold a "plan" tab into the walkthrough
+const h0 = ((location.hash || "").slice(1) || "").replace(/^plan$/, hasPlan ? "plan" : "walk");
+if (S.tab === "plan" && !hasPlan) S.tab = "walk";
 if (/^style-/.test(h0)) { const r = findRecipe(h0.slice(6)); if (r) { RECIPE = r; store.set(KIT.ACTIVE, r.id); } }   // a link from another style's menu
 else if (TABS.some(([id]) => id === h0) || Object.hasOwn(BLOCKS, h0)) S.tab = h0;   // render() finds the tab holding a block
 else if (C.system && /^[cn]-/.test(h0)) S.tab = "system";   // a link to one contract or part opens the Contract Map (#system opens the tab)
+if (LAYOUT.home && TABS.some(([id]) => id === LAYOUT.home) && !/^style-/.test(h0) && !(C.system && /^[cn]-/.test(h0))) { S.tab = LAYOUT.home; save(); try { history.replaceState(null, "", "#" + LAYOUT.home); } catch (_) {} }   // a home page wins on every load
 render();
 drawHead();
 qaTog();   // a page load starts with the chat minimized, in the corner it was last left in

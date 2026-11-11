@@ -56,9 +56,9 @@ PACKAGE_BLOCKS = {"verdict": "Verdict: the bottom line, whether the package is r
                   "rcplx": "Complexity: how hard each scenario is to get right, with the evidence",
                   "rdmg": "Damage: how bad a fault is where it lands, scenario by scenario, with the evidence",
                   "rdeep": "Go deeper: how to roll back, how Merge Risk was decided, review effort, auto-approval and who should review",
-                  "decisions": "Coding agent decisions: what the code decided against the plan, unplanned first, each with its code and an answer",
+                  "decisions": "Agent decisions: what the code decided against the plan, unplanned first, each with its code and an answer",
                   "issues": "Quality and issue findings: what the reviewers, scanners and CI found, and how it was tested"}
-PACKAGE_LABELS = {"verdict": "Verdict", "prstable": "Package table", "assets": "Product assets", "summary": "Product summary", "behaviors": "Behaviors", "bhv": "Primary behaviors", "bdif": "What's different", "bdec": "Key decisions", "bcon": "Contract changes", "bhop": "Hop by hop", "bwhy": "Why it's being built", "rsum": "Risk assessment", "rtext": "Risk summary", "rblast": "Blast radius", "rcplx": "Complexity", "rdmg": "Damage", "rdeep": "Go deeper", "decisions": "Coding agent decisions", "issues": "Quality & Issue findings"}   # a tab with no name, in Work Package
+PACKAGE_LABELS = {"verdict": "Verdict", "prstable": "Package table", "assets": "Product assets", "summary": "Product summary", "behaviors": "Behaviors", "bhv": "Primary behaviors", "bdif": "What's different", "bdec": "Key decisions", "bcon": "Contract changes", "bhop": "Hop by hop", "bwhy": "Why it's being built", "rsum": "Risk assessment", "rtext": "Risk summary", "rblast": "Blast radius", "rcplx": "Complexity", "rdmg": "Damage", "rdeep": "Go deeper", "decisions": "Agent decisions", "issues": "Quality & Issue findings"}   # a tab with no name, in Work Package
 LAYOUTS = ("tabs", "page")
 DENSITIES = ("calm", "compact")
 ACCENTS = ("purple", "blue", "green", "amber", "rose")

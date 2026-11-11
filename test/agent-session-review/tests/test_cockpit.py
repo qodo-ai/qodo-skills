@@ -1875,7 +1875,7 @@ class StyleTests(unittest.TestCase):
                 self.assertEqual(r.returncode, 0, f"{st} script {j}: {r.stderr[:400]}")
 
     def test_package_walkthrough_pages_need_their_files(self):
-        """Execution walkthrough and Finding review appear only when the session holds builder.json or triage/."""
+        """Execution paths, Code changes and Finding review appear only when the session holds builder.json or triage/."""
         from cockpit.styles import render
         from cockpit.walkthrough import check_files
         self.assertNotIn('id="wt-data"', render("package", self.sdir))
@@ -1886,6 +1886,7 @@ class StyleTests(unittest.TestCase):
         html = render("package", self.sdir)
         self.assertIn('id="wt-data"', html)
         self.assertIn("BLOCKS.builder = ", html)
+        self.assertIn("BLOCKS.codechg = ", html)   # the tree is its own widget, Code changes
         b, tri, warn = check_files(self.sdir, self.data())
         self.assertEqual(b["files"][0]["uid"], "bwf-qodo-ai-shop-demo-101-src-cache-price-cache-py")
         self.assertEqual(tri[0]["counts"]["open"], 0)

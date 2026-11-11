@@ -1,9 +1,9 @@
-/* ---------- Execution walkthrough and Finding review: the session's builder.json and triage/ pages (cockpit/walkthrough.py) ---------- */
+/* ---------- Execution paths, Code changes and Finding review: the session's builder.json and triage/ pages (cockpit/walkthrough.py) ---------- */
 const CRM = (() => { try { return JSON.parse(document.getElementById("wt-data").textContent); } catch (_) { return {}; } })();
 const BWF = ((CRM.builder || {}).files) || [], BWFL = ((CRM.builder || {}).flows) || [], TRI = CRM.triage || [];
 const BWKEY = "crm:" + C.session;
-const BW = Object.assign({ mode: "flow", hide: [], kinds: [], flat: false }, store.get(BWKEY, {}), { q: "", open: {}, dirs: true });   // flat: no nesting (flows unindented, files unfoldered); dirs: folders open by default
-const bwSave = () => store.set(BWKEY, { mode: BW.mode, hide: BW.hide, kinds: BW.kinds, flat: BW.flat });
+const BW = Object.assign({ hide: [], kinds: [], flat: false, fflat: false }, store.get(BWKEY, {}), { q: "", open: {}, dirs: true });   // flat: no nesting (flows unindented, files unfoldered); dirs: folders open by default
+const bwSave = () => store.set(BWKEY, { hide: BW.hide, kinds: BW.kinds, flat: BW.flat, fflat: BW.fflat });   // flat: Code changes, fflat: the flows; Execution paths shows the flows; Code changes, the tree
 const ROLE = { source: "Source", test: "Tests", config: "Config", docs: "Docs", migration: "Migrations", generated: "Generated" };
 const HIDEABLE = ["test", "config", "docs", "migration", "generated"];
 const KIND = { function: "function", method: "method", class: "class", component: "component", hook: "hook", type: "type", enum: "enum", const: "const", section: "section", module: "top level" };
@@ -47,14 +47,13 @@ const bwRef = (uid) => { for (const f of BWF) { const m = f.methods.find((x) => 
 const flowsOf = (m) => BWFL.flatMap((fl) => fl.steps.map((s, i) => [fl, s, i]).filter(([, s]) => s.ref === m.uid));
 
 function bwMethodHtml(f, m) {
-  const ch = CHG[m.change] || CHG.modified, fl = flowsOf(m);
+  const ch = CHG[m.change] || CHG.modified;
   return `<details class="bw-m" data-bwk="${esc(m.uid)}" id="${esc(m.uid)}"${BW.open[m.uid] ?? EXPAND ? " open" : ""}><summary>
     ${kindChip(m.kind)}
     <span class="bw-mn"><span class="bw-nr"><code>${esc(mName(m))}</code><span class="bw-tag ${ch[1]}">${ch[0]}</span></span>${m.purpose ? `<span class="bw-mp">${md(m.purpose)}</span>` : ""}</span>
     <span class="bw-mr">${diffstat(m.add || 0, m.del || 0)}</span></summary>
     <div class="bw-mb">${(m.code || []).map((b) => codeHtml(b, { path: f.path })).join("") || `<p class="muted" style="margin:0">No changed lines kept for this ${esc(KIND[m.kind] || "part")}.</p>`}
-      <div class="bw-act">${m.start ? `<span>${esc(f.path)}:${m.start}${m.end && m.end !== m.start ? "–" + m.end : ""}</span>` : ""}<button class="lnk" data-bw="changes" data-bwv="${esc(f.uid)}">Open in Changes</button>
-        ${fl.map(([x, s, i]) => `<button class="lnk" data-bw="step" data-bwv="${esc(x.id + "|" + i)}">Step ${s.n} of “${esc(x.title)}”</button>`).join("")}</div></div></details>`;
+      ${m.start ? `<div class="bw-act"><span>${esc(f.path)}:${m.start}${m.end && m.end !== m.start ? "–" + m.end : ""}</span></div>` : ""}</div></details>`;   // no links out: a widget can't count on another being in the layout
 }
 const BARICON = {   // the bar's toggles, Lucide strokes
   tree: '<path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M3 5a2 2 0 0 0 2 2h3"/><path d="M3 3v13a2 2 0 0 0 2 2h3"/>',
@@ -62,18 +61,18 @@ const BARICON = {   // the bar's toggles, Lucide strokes
   nested: '<path d="M21 12h-8"/><path d="M21 6H8"/><path d="M21 18h-8"/><path d="M3 6v4c0 1.1.9 2 2 2h3"/><path d="M3 10v6c0 1.1.9 2 2 2h3"/>',
   flat: '<path d="M21 6H3"/><path d="M21 12H3"/><path d="M21 18H3"/>',
   expand: '<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>', collapse: '<path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/>' };
-const bwAllBtn = () => svg(BARICON[bwAnyOpen() ? "collapse" : "expand"]);   // icon only; the button's label says which
-function bwAnyOpen() {   // is anything open, so the toggle reads Collapse all
-  if (BW.mode === "flow") return bwFlows().some((fl) => WOPEN["bf-" + sid(fl.id)] ?? EXPAND);
+const bwAllBtn = (tree) => svg(BARICON[bwAnyOpen(tree) ? "collapse" : "expand"]);   // icon only; the button's label says which
+function bwAnyOpen(tree) {   // is anything open, so the toggle reads Collapse all
+  if (!tree) return bwFlows().some((fl) => WOPEN["bf-" + sid(fl.id)] ?? EXPAND);
   return bwFiles().some((f) => BW.open[f.uid] ?? EXPAND) || (!BW.flat && BW.dirs && BWF.some((f) => f.path.includes("/")));
 }
-function bwDirTree(files) {   // Nested: a PR's files under their folders, a folder holding one folder merged into it
+function bwDirTree(files) {   // Nested: a PR's files under their folders; a folder with no files of its own joins the folders under it, one row each
   const root = { dirs: {}, files: [] }, count = (n) => n.files.length + Object.values(n.dirs).reduce((a, c) => a + count(c), 0);
   files.forEach((f) => { const segs = f.path.split("/"); segs.pop(); let n = root; segs.forEach((x) => (n = n.dirs[x] = n.dirs[x] || { dirs: {}, files: [] })); n.files.push(f); });
-  const draw = (n, path) => Object.entries(n.dirs).map(([name, c]) => { let nm = name, p = path + name + "/";
-    while (!c.files.length && Object.keys(c.dirs).length === 1) { const [k, v] = Object.entries(c.dirs)[0]; nm += "/" + k; p += k + "/"; c = v; }
+  const draw = (n, path, pre = "") => Object.entries(n.dirs).map(([name, c]) => { const p = path + name + "/";
+    if (!c.files.length) return draw(c, p, pre + name + "/");   // no files here: its folders carry its name, its parents muted
     const key = "dir:" + p, open = BW.open[key] ?? (BW.dirs || EXPAND);
-    return `<details class="bw-dir" data-bwk="${esc(key)}"${open || BW.q.trim() ? " open" : ""}><summary>${folderIcon(nm, open)}<span class="bw-dn">${esc(nm)}/</span><span class="bw-cnt">${pl1(count(c), "file")}</span></summary>
+    return `<details class="bw-dir" data-bwk="${esc(key)}"${open || BW.q.trim() ? " open" : ""}><summary>${folderIcon(name, open)}<span class="bw-dn">${pre ? `<span class="bw-pre">${esc(pre)}</span>` : ""}${esc(name)}/</span><span class="bw-cnt">${pl1(count(c), "file")}</span></summary>
       <div class="bw-dk">${draw(c, p)}${c.files.map(bwFileHtml).join("")}</div></details>`; }).join("");
   return `<div class="bw-fs bw-tree">${draw(root, "")}${root.files.map(bwFileHtml).join("")}</div>`;
 }
@@ -155,8 +154,7 @@ function bwSteps(fl) {   // each top-level step and everything under it is a sub
 function bwStepHtml(s, i, arr, fl, top = false) {
   if (s.boundary) { const prev = arr.slice(0, i).reverse().find((x) => !x.boundary), next = arr.slice(i + 1).find((x) => !x.boundary);
     return s.merged ? "" : bwVia({ kind: s.kind || "event", label: s.label || "Hands off", detail: s.boundary }, prev ? prev.depth : s.depth, prev && prev.name, (/data|cache/.test(s.kind) && bwTok(s.boundary)) || (next && next.name), bwGuides(arr, i, true)); }   // a read or write lands on its table
-  const chg = s.in_diff ? (s.ref ? `<button type="button" class="bf-tag in bf-go" data-bw="goto" data-bwv="${esc(s.ref)}" title="Open in the tree">${s.change === "added" ? "New" : "Changed"}</button>`   // the chip opens the change in the tree
-      : `<span class="bf-tag in">${s.change === "added" ? "New" : "Changed"}</span>`)
+  const chg = s.in_diff ? `<span class="bf-tag in">${s.change === "added" ? "New" : "Changed"}</span>`   // a label, not a link to Code changes
     : `<span class="bf-tag out"${s.file_changed ? ` title="In a file this package changes"` : ""}>Existing code</span>`;
   const hit = s.in_diff && s.ref && bwRef(s.ref);
   const ok = (hit && hit[1].kind) || s.okind;
@@ -193,7 +191,7 @@ function bwFlowHtml(fl) {
   const t = TRIG[(fl.trigger || {}).kind] || TRIG.event, tr = fl.trigger || {}, o = fl.outcome || {};
   // the start and the end share one layout: the kicker with its icon after it, then the line, all from the left
   const card = (cls, icon, kick, label, more) => `<div class="bf-end ${cls}"><div><span class="bf-k">${kick}${svg(icon)}</span><div class="bf-lr"><span class="bf-l">${md(label || "")}</span>${more}</div></div></div>`;
-  return `<div class="bf${BW.flat ? " bf-flat" : ""}">${card("bf-start", t[1], `Starts with · ${esc(t[0])}`, tr.label, "")}
+  return `<div class="bf${BW.fflat ? " bf-flat" : ""}">${card("bf-start", t[1], `Starts with · ${esc(t[0])}`, tr.label, "")}
     <ol class="bf-steps">${bwSteps(fl)}</ol>
     ${card("bf-stop", ENDICON, "Ends with", o.label, "")}</div>`;
 }
@@ -202,34 +200,36 @@ const KINDWHAT = { component: "A UI component: it renders markup", hook: "A Reac
 const bwKey = (tree) => `${tree ? "" : `<span class="bf-kh">Changes</span>
   <span class="bf-kr"><span class="bf-tag in">Changed</span>Code this package changes</span><span class="bf-kr"><span class="bf-tag in">New</span>Code this package adds</span><span class="bf-kr"><span class="bf-tag out">Existing code</span>Code the flow runs through, unchanged</span>
   `}<span class="bf-kh">Kinds</span>${Object.keys(KINDWHAT).map((k) => `<span class="bf-kr bf-kk"><span class="bw-k k-${esc(k)}">${esc(KIND[k] || k)}</span>${KINDWHAT[k]}</span>`).join("")}`;   // the Key: what the chips mean, then the kinds of code
-function bwHead() {
-  const tree = BW.mode !== "flow", here = BWF.filter(bwVisible);
+function bwHead(tree) {   // tree: Code changes; else Execution paths' flows
+  const here = BWF.filter(bwVisible);
   const roles = HIDEABLE.filter((r) => here.some((f) => f.role === r));
   const parts = here.filter((f) => !BW.hide.includes(f.role)).flatMap((f) => f.methods), kinds = Object.keys(BWKG).filter((g) => parts.some((m) => bwKind(m) === g));
-  const chips = (a, list, on, label, n, what) => `<div class="bw-flt"><span class="muted">${label}</span>${list.map((k) => `<button class="bw-chip" data-bw="${a}" data-bwv="${k}" aria-pressed="${on.includes(k)}" title="${on.includes(k) ? "Show" : "Hide"} ${esc(what(k))}">${esc(a === "hide" ? ROLE[k] : BWKG[k][0])}<span>${n(k)}</span></button>`).join("")}</div>`;
-  // one bar in both modes: the view, the layout, expand or collapse everything, the Key; Tree adds its filter below
-  return `<div class="bw-head"><div class="bw-bar"><div class="pviews" role="group" aria-label="View"><button class="pv" data-bw="mode" data-bwv="flow" aria-pressed="${!tree}">${svg(BARICON.flow)}Flow</button><button class="pv" data-bw="mode" data-bwv="tree" aria-pressed="${tree}">${svg(BARICON.tree)}Tree</button></div>
-    <div class="pviews" role="group" aria-label="Layout"><button class="pv" data-bw="flat" data-bwv="0" aria-pressed="${!BW.flat}" title="${tree ? "Files under their folders" : "Steps indented by call depth"}">${svg(BARICON.nested)}Nested</button><button class="pv" data-bw="flat" data-bwv="1" aria-pressed="${BW.flat}" title="${tree ? "One list of files" : "Every step at the left edge"}">${svg(BARICON.flat)}Flat</button></div>
-    <button class="btn sm bw-all" data-bw="all" aria-label="${bwAnyOpen() ? "Collapse all" : "Expand all"}" title="${bwAnyOpen() ? "Collapse all" : "Expand all"}">${bwAllBtn()}</button>
-    <span class="bf-keyw"><button type="button" class="btn sm bf-keyb" aria-describedby="bf-keyp">Key</button><span class="bf-keyp" id="bf-keyp" role="tooltip">${bwKey(tree)}</span></span></div>
-    ${tree ? `<input class="bw-q" type="search" placeholder="Filter files and methods" aria-label="Filter files and methods" value="${esc(BW.q)}">` : ""}
-    ${tree && (roles.length || kinds.length > 1) ? `<div class="bw-flts">${roles.length ? chips("hide", roles, BW.hide, "Exclude files", (r) => here.filter((f) => f.role === r).length, (r) => ROLE[r].toLowerCase() + " files") : ""}
-      ${kinds.length > 1 ? chips("kind", kinds, BW.kinds, "Exclude parts", (g) => parts.filter((m) => bwKind(m) === g).length, (g) => BWKG[g][0].toLowerCase() + " changes") : ""}</div>` : ""}
+  const box = (on) => `<span class="prdd-x${on ? " on" : ""}" aria-hidden="true">${on ? '<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' : ""}</span>`;
+  const opt = (a, k, label, n, off) => `<button type="button" class="prdd-o" role="option" aria-selected="${!off}" data-bw="${a}" data-bwv="${k}">${box(!off)}<span class="prdd-t">${esc(label)}</span><span class="bwf-n">${n}</span></button>`;
+  const hid = BW.hide.filter((r) => roles.includes(r)).length + BW.kinds.filter((g) => kinds.includes(g)).length, tip = `Filter files and parts${hid ? ` · ${hid} hidden` : ""}`;
+  const filt = tree && (roles.length || kinds.length > 1) ? `<span class="prdd bwf"><button type="button" class="prdd-b${hid ? " on" : ""}" data-bwf aria-haspopup="listbox" aria-expanded="${!!BW.fopen}" title="${tip}" aria-label="${tip}"><svg class="prdd-fi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>${hid ? `<span class="prdd-c">${hid}</span>` : ""}</button>
+    <div class="prdd-m bwf-m"${BW.fopen ? "" : " hidden"}><div class="prdd-l" role="listbox" aria-multiselectable="true" aria-label="Files and parts">${roles.length ? `<div class="prdd-g">Files</div>${roles.map((r) => opt("hide", r, ROLE[r], here.filter((f) => f.role === r).length, BW.hide.includes(r))).join("")}` : ""}
+      ${roles.length && kinds.length > 1 ? `<div class="prdd-sep" role="separator"></div>` : ""}${kinds.length > 1 ? `<div class="prdd-g">Parts</div>${kinds.map((g) => opt("kind", g, BWKG[g][0], parts.filter((m) => bwKind(m) === g).length, BW.kinds.includes(g))).join("")}` : ""}</div></div></span>` : "";   // ticked shows, unticked hides; several at once
+  // one bar in both widgets: the layout, then expand or collapse everything; the flows end with the Key, Code changes with its filter menu and search
+  return `<div class="bw-head"><div class="bw-bar"><div class="pviews" role="group" aria-label="Layout"><button class="pv" data-bw="flat" data-bwv="${tree ? "t" : "f"}0" aria-pressed="${!(tree ? BW.flat : BW.fflat)}" title="${tree ? "Files under their folders" : "Steps indented by call depth"}">${svg(BARICON.nested)}Nested</button><button class="pv" data-bw="flat" data-bwv="${tree ? "t" : "f"}1" aria-pressed="${!!(tree ? BW.flat : BW.fflat)}" title="${tree ? "One list of files" : "Every step at the left edge"}">${svg(BARICON.flat)}Flat</button></div>
+    ${filt}<button class="btn sm bw-all" data-bw="all" data-bwv="${tree ? "tree" : "flow"}" aria-label="${bwAnyOpen(tree) ? "Collapse all" : "Expand all"}" title="${bwAnyOpen(tree) ? "Collapse all" : "Expand all"}">${bwAllBtn(tree)}</button>
+    ${tree ? `<input class="bw-q" type="search" placeholder="Filter files and methods" aria-label="Filter files and methods" value="${esc(BW.q)}">`   // Code changes: the search at the far right, no Key
+      : `<span class="bf-keyw"><button type="button" class="btn sm bf-keyb" aria-describedby="bf-keyp">Key</button><span class="bf-keyp" id="bf-keyp" role="tooltip">${bwKey(false)}</span></span>`}</div>
     ${tree ? `<p class="muted bw-lede">Every changed file and each method, class or section it touches, with what each one is for. Open a method for its changed lines.</p>` : ""}</div>`;
 }
-function sBuilder() {
+function sBuilder(tree) {
   if (!CRM.builder) return [];
   let out;
-  if (BW.mode === "flow") out = bwFlows().map((fl, k) => { const st = fl.steps.filter((s) => !s.boundary), n = st.filter((s) => s.in_diff).length;
+  if (!tree) out = bwFlows().map((fl, k) => { const st = fl.steps.filter((s) => !s.boundary), n = st.filter((s) => s.in_diff).length;
     return { id: "bf-" + sid(fl.id), label: fl.title, icon: "flow", num: k + 1, after: bwSetup(fl), sub: `<span class="bf-repo">${GHICON}${pl1(new Set(st.map(repoOf).filter(Boolean)).size, "repo")}</span><span class="bf-tag ${n ? "in" : "out"}">${pl1(n, "change")}</span>`, fold: true, html: bwFlowHtml(fl) }; });
   else { const fs = bwFiles(); out = [...new Set(fs.map((f) => f.pr))].map((k) => { const p = C.prs.find((x) => x.key === k), mine = fs.filter((f) => f.pr === k);
-    return { id: "bw-" + sid(k), label: `${shortPr(k)} ${strip(p ? p.title : "")}`, nav: shortPr(k), navIcon: "merge", icon: "builder",
+    return { id: "bw-" + sid(k), label: `${shortPr(k)} ${strip(p ? p.title : "")}`, nav: shortPr(k), box: true, iconHtml: GHICON.replace("<svg ", '<svg class="sico sico-gh" '),   // each PR in its own box, under the GitHub mark
       sub: chip(`${pl1(mine.length, "file")} · ${pl1(mine.reduce((a, f) => a + bwParts(f).length, 0), "part")}`), html: BW.flat ? `<div class="bw-fs">${mine.map(bwFileHtml).join("")}</div>` : bwDirTree(mine) }; }); }
   if (out.length === 1 && SECT[S.tab] === undefined) SECT[S.tab] = out[0].id;   // one section: open it
   return out;
 }
-const bwEmpty = () => !CRM.builder ? `<p class="muted">The execution walkthrough hasn't been written for this review. Ask the coding agent for one with the code-review-master skill.</p>`
-  : `${bwHead()}<p class="muted">${BW.mode === "flow" ? "No flows were written for these PRs." : "Everything is hidden by the filters above."}</p>`;
+const bwEmpty = (tree) => !CRM.builder ? `<p class="muted">The execution paths haven't been written for this review. Ask the coding agent for one with the code-review-master skill.</p>`
+  : `${bwHead(tree)}<p class="muted">${tree ? "Everything is hidden by the filters above." : "No flows were written for these PRs."}</p>`;
 
 /* Finding review: every PR's triaged Qodo findings as one review: summary, fix estimates, each finding with its code and an action, one prompt for the agent */
 const TCLOSED = { implemented: ["Resolved", "ok"], full_implementation: ["Resolved", "ok"], dismissed: ["Dismissed", ""], outdated: ["Outdated", "warn"], detected_after_merge: ["After merge", ""] };
@@ -372,25 +372,19 @@ document.addEventListener("click", (e) => {
   if (b.dataset.tfilt) { TV.filter = b.dataset.tfilt; return keepScroll(() => {}); }
   if (b.dataset.tall) { TV.all = b.dataset.tall === "open"; Object.keys(TV.open).filter((k) => !k.startsWith("_")).forEach((k) => delete TV.open[k]); return keepScroll(() => {}); }
 }, true);
-BLOCKS.builder = { label: "Execution walkthrough", what: "How the code runs: the flows from a user action or API call through the changed code (Flow), and every changed file and method with its purpose (Tree)", render: bwEmpty, prsel: true, secs: sBuilder, head: bwHead,
+BLOCKS.builder = { label: "Execution paths", what: "How the code runs: each flow from a user action, API call or webhook through the changed code", render: () => bwEmpty(false), prsel: true, secs: () => sBuilder(false), head: () => bwHead(false) };
+BLOCKS.codechg = { label: "Code changes", what: "Every changed file and each method, class or section it touches, with what each one is for", render: () => bwEmpty(true), prsel: true, secs: () => sBuilder(true), head: () => bwHead(true),
   after: () => { const q = document.querySelector(".bw-q"); if (q && BW.refocus) { q.focus(); q.setSelectionRange(BW.caret, BW.caret); BW.refocus = false; } } };
 BLOCKS.triage = { label: "Finding review", what: "Every PR's triaged Qodo findings as one review: the summary, fix estimates, each finding with its code and an action, and one prompt for the agent", render: bTriage, prsel: true, sub: triHeadSub };
 const _counts = counts;
-counts = () => { PCOUNT.builder = BW.mode === "flow" ? ["flow", "flows"] : ["changed part", "changed parts"];
-  return Object.assign(_counts(), { builder: BW.mode === "flow" ? bwFlows().length : bwFiles().reduce((a, f) => a + bwParts(f).length, 0), triage: TRI.filter((t) => prOn(t.pr)).reduce((a, t) => a + ((t.counts || {}).open || 0), 0) }); };
+PCOUNT.builder = ["flow", "flows"]; PCOUNT.codechg = ["changed part", "changed parts"];
+counts = () => {
+  return Object.assign(_counts(), { builder: bwFlows().length, codechg: bwFiles().reduce((a, f) => a + bwParts(f).length, 0), triage: TRI.filter((t) => prOn(t.pr)).reduce((a, t) => a + ((t.counts || {}).open || 0), 0) }); };
 
 const bwFlash = (el) => { if (!el) return; el.classList.remove("bw-flash"); void el.offsetWidth; el.classList.add("bw-flash"); };
-function bwGoto(uid) {   // a step in a flow, or a link, opens its method in the tree
-  const f = BWF.find((x) => x.uid === uid || x.methods.some((m) => m.uid === uid)); if (!f) return;
-  const m = f.methods.find((x) => x.uid === uid);
-  BW.mode = "tree"; BW.q = ""; BW.hide = BW.hide.filter((r) => r !== f.role); if (m) BW.kinds = BW.kinds.filter((g) => g !== bwKind(m)); bwSave();
-  BW.open[f.uid] = true; if (uid !== f.uid) BW.open[uid] = true;
-  if (!prOn(f.pr)) S.pr = "all";
-  SECT.builder = "bw-" + sid(f.pr); go("builder");
-  const el = document.getElementById(uid); if (el) { el.scrollIntoView({ block: "center" }); bwFlash(el.querySelector("summary") || el); }
-}
+const pageOf = (w) => (LAYOUT.pages.find((p) => p.widgets.includes(w)) || {}).id;   // the page that holds a widget, for its open section
 document.addEventListener("toggle", (e) => { const d = e.target; if (d.dataset && d.dataset.bwk) BW.open[d.dataset.bwk] = d.open;
-  if (d.matches && d.matches("details.wfold, details.bw-f, details.bw-dir")) { const b = document.querySelector(".bw-all"); if (b) { const t = bwAnyOpen() ? "Collapse all" : "Expand all"; b.innerHTML = bwAllBtn(); b.title = t; b.setAttribute("aria-label", t); } } }, true);
+  if (d.matches && d.matches("details.wfold, details.bw-f, details.bw-dir")) document.querySelectorAll(".bw-all").forEach((b) => { const tr = b.dataset.bwv === "tree", t = bwAnyOpen(tr) ? "Collapse all" : "Expand all"; b.innerHTML = bwAllBtn(tr); b.title = t; b.setAttribute("aria-label", t); }); }, true);
 document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("summary .bf-setb")) e.preventDefault(); });   // the State chip only shows its tooltip
 document.addEventListener("input", (e) => { if (!e.target.classList || !e.target.classList.contains("bw-q")) return;
   BW.q = e.target.value; BW.caret = e.target.selectionStart ?? BW.q.length; clearTimeout(BW.t);
@@ -398,18 +392,22 @@ document.addEventListener("input", (e) => { if (!e.target.classList || !e.target
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-bw]"); if (!b) return;
   const a = b.dataset.bw, v = b.dataset.bwv;
-  if (a === "mode") return keepScroll(() => { BW.mode = v; bwSave(); });
-  if (a === "flat") return keepScroll(() => { BW.flat = v === "1"; bwSave(); });
+  if (a === "flat") return keepScroll(() => { BW[v[0] === "t" ? "flat" : "fflat"] = v[1] === "1"; bwSave(); });   // each widget keeps its own layout
 
-  if (a === "hide") return keepScroll(() => { BW.hide = BW.hide.includes(v) ? BW.hide.filter((r) => r !== v) : BW.hide.concat(v); bwSave(); });
-  if (a === "kind") return keepScroll(() => { BW.kinds = BW.kinds.includes(v) ? BW.kinds.filter((g) => g !== v) : BW.kinds.concat(v); bwSave(); });
-  if (a === "all") { const on = !bwAnyOpen();   // Expand all or Collapse all, by what is open now
-    if (BW.mode === "flow") { bwFlows().forEach((fl) => (WOPEN["bf-" + sid(fl.id)] = on)); if (!on) Object.keys(BW.open).forEach((k) => /^(st|fs):/.test(k) && delete BW.open[k]); }
+  if (a === "hide" || a === "kind") { const k = a === "hide" ? "hide" : "kinds"; keepScroll(() => { BW[k] = BW[k].includes(v) ? BW[k].filter((r) => r !== v) : BW[k].concat(v); bwSave(); });
+    const o = document.querySelector(`.bwf-m [data-bw="${a}"][data-bwv="${v}"]`); return o && o.focus(); }   // the menu stays open on the option just ticked
+  if (a === "all") { const tree = v === "tree", on = !bwAnyOpen(tree);   // Expand all or Collapse all, by what is open now
+    if (!tree) { bwFlows().forEach((fl) => (WOPEN["bf-" + sid(fl.id)] = on)); if (!on) Object.keys(BW.open).forEach((k) => /^(st|fs):/.test(k) && delete BW.open[k]); }
     else { bwFiles().forEach((f) => (BW.open[f.uid] = on)); Object.keys(BW.open).forEach((k) => k.startsWith("dir:") && delete BW.open[k]); BW.dirs = on; }
     return keepScroll(() => {}); }
-  if (a === "goto") { e.preventDefault(); return bwGoto(v); }   // a button in a step's summary mustn't also fold the step
-  if (a === "changes") { const f = BWF.find((x) => x.uid === v); return f && go("changes", { pr: "all", file: f.pr + "|" + f.path }); }
   if (a === "step") { const j = v.lastIndexOf("|"), id = v.slice(0, j), i = v.slice(j + 1);
-    const fid = "bf-" + sid(id); BW.mode = "flow"; bwSave(); WOPEN[fid] = BW.open[`st:${id}:${i}`] = true; SECT.builder = fid; go("builder");
+    const fid = "bf-" + sid(id), pg = pageOf("builder"); WOPEN[fid] = BW.open[`st:${id}:${i}`] = true; if (pg) SECT[pg] = fid; go("builder");
     const el = document.getElementById(`bfs-${id}-${i}`); if (el) { el.scrollIntoView({ block: "center" }); bwFlash(el.querySelector(".bf-b")); } }
 });
+
+const bwfShut = () => { if (!BW.fopen) return; BW.fopen = false; document.querySelectorAll(".bwf-m").forEach((m) => (m.hidden = true)); document.querySelectorAll("[data-bwf]").forEach((b) => b.setAttribute("aria-expanded", "false")); };
+document.addEventListener("click", (e) => {   // Code changes' filter menu: its button opens it, a click outside closes it
+  const b = e.target.closest && e.target.closest("[data-bwf]");
+  if (b) { const was = BW.fopen; bwfShut(); if (!was) { BW.fopen = true; const m = b.nextElementSibling; m.hidden = false; b.setAttribute("aria-expanded", "true"); const o = m.querySelector(".prdd-o"); if (o) o.focus(); } return; }
+  if (!(e.target.closest && e.target.closest(".bwf-m"))) bwfShut(); });
+document.addEventListener("keydown", (e) => { if (e.key !== "Escape" || !BW.fopen) return; e.stopPropagation(); bwfShut(); const b = document.querySelector("[data-bwf]"); if (b) b.focus(); }, true);

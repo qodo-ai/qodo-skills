@@ -1,4 +1,4 @@
-"""Execution walkthrough and Finding review: two Work Package pages from files the skill writes into the session.
+"""Execution paths, Code changes and Finding review: two Work Package pages from files the skill writes into the session.
 
   <session>/builder.json   every changed file and the methods, classes or sections it touches, each with a one-line
                            purpose (Tree), plus flows from a page load, API call or webhook through the calls (Flow)
@@ -335,7 +335,7 @@ def triage_page(page: str, spec: dict, raw: dict | None = None, name: str = "", 
 
 
 def check_files(sdir: Path, data: dict, builder: Path | None = None, triage_dir: Path | None = None) -> tuple[dict | None, list[dict], list[str]]:
-    """The checked execution walkthrough and triage pages, from the given files or the session's own, with warnings."""
+    """The checked execution paths and triage pages, from the given files or the session's own, with warnings."""
     warn: list[str] = []
     builder = builder or sdir / "builder.json"
     triage_dir = triage_dir or sdir / "triage"
