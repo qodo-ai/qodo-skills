@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { kiroRoot } from './package-projections.mjs';
+import { kiroRoot, providerPackages } from './package-projections.mjs';
 import { stampSkillProvenance } from './skill-provenance.mjs';
 import { codexListingInterface, validateCodexPortalManifest } from './codex-portal-contract.mjs';
 
@@ -339,7 +339,7 @@ for (const path of legacyAtomicRoots) {
 writeJson('.agents/plugins/marketplace.json', {
   name: 'qodo',
   interface: { displayName: 'Qodo' },
-  plugins: catalog.installPackages.map((value) => ({
+  plugins: providerPackages(catalog).map((value) => ({
     name: value.name,
     source: { source: 'local', path: `./codex-packages/${value.name}` },
     policy: { installation: 'AVAILABLE', authentication: 'ON_USE' },
@@ -351,7 +351,7 @@ writeJson('.claude-plugin/marketplace.json', {
   name: 'qodo',
   owner: author,
   metadata: { description: pkg.description, version: pkg.version },
-  plugins: catalog.installPackages.map((value) => ({
+  plugins: providerPackages(catalog).map((value) => ({
     name: (provider('claude').listings.find((entry) => entry.package === value.name)?.id ?? value.name),
     source: `./packages/${value.name}`,
     description: value.description,

@@ -308,6 +308,18 @@ function archiveFiles(archive) {
   return files;
 }
 
+test('unlisted beta packages stay out of repository marketplace indexes', () => {
+  const catalog = JSON.parse(readFileSync(join(root, 'distribution/catalog.json')));
+  const listed = catalog.installPackages.filter((pkg) => pkg.providerListed !== false).map((pkg) => pkg.name).sort();
+  for (const path of ['.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json']) {
+    const marketplace = JSON.parse(readFileSync(join(root, path)));
+    assert.deepEqual(marketplace.plugins.map((plugin) => plugin.name).sort(), listed, path);
+    assert(!marketplace.plugins.some((plugin) => plugin.name === 'qodo-cockpit'), path);
+  }
+  assert(catalog.installPackages.some((pkg) => pkg.name === 'qodo-cockpit' && pkg.default === false));
+  assert(existsSync(join(canonical, 'SKILL.md')), 'explicit skills installation retains the canonical package');
+});
+
 test('optional hosts retain maintained runtime while legacy managed packages remain unchanged', (t) => {
   const manifest = verifyRuntime();
   const readme = readFileSync(join(root, 'kiro-power-cockpit/README.md'), 'utf8');
