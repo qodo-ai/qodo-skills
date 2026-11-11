@@ -12,8 +12,8 @@ const sha = 'a'.repeat(40);
 test('all canonical resources and component terms survive the standalone catalog', () => {
   const before = readFileSync(join(root, 'distribution/qodo-cli-managed-bundle.json'));
   const bundle = buildRepositoryCatalog(root, sha);
-  const cockpit = bundle.skills.find((skill) => skill.name === 'qodo-review-cockpit');
-  assert.equal(cockpit.package, 'qodo-cockpit');
+  const cockpit = bundle.skills.find((skill) => skill.name === 'qodo-agent-session-review');
+  assert.equal(cockpit.package, 'qodo-agent-session-review');
   assert.ok(cockpit.files.length > 90);
   assert.ok(cockpit.files.some((file) => file.path === 'runtime/LICENSE'));
   for (const skill of bundle.skills) for (const file of skill.files) {
@@ -22,7 +22,7 @@ test('all canonical resources and component terms survive the standalone catalog
     assert.equal(file.executable, Boolean(statSync(join(root, 'skills', skill.name, file.path)).mode & 0o111));
     assert.equal(file.sha256, createHash('sha256').update(source).digest('hex'));
   }
-  const flags = bundle.installPackages.find((pkg) => pkg.name === 'qodo-cockpit');
+  const flags = bundle.installPackages.find((pkg) => pkg.name === 'qodo-agent-session-review');
   assert.equal(flags.default, false); assert.equal(flags.managed, false); assert.equal(flags.providerListed, false);
   assert.deepEqual(readFileSync(join(root, 'distribution/qodo-cli-managed-bundle.json')), before);
 });

@@ -15,6 +15,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { kiroRoot } from './package-projections.mjs';
+import { activeSkillRenames, declaredSkillRenames } from './skill-renames.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -129,7 +130,8 @@ export function releaseTransaction(repositoryRoot, options = {}) {
   const packageCatalog = join(repositoryRoot, 'distribution/catalog.json');
   const optionalRoots = existsSync(packageCatalog)
     ? JSON.parse(readFileSync(packageCatalog, 'utf8')).installPackages.map((pkg) => kiroRoot(pkg.name)) : [];
-  const mutationPaths = [...new Set([...releaseMutationPaths, ...optionalRoots])];
+  const retiredRoots = declaredSkillRenames(repositoryRoot).map(({ fromPackage }) => kiroRoot(fromPackage));
+  const mutationPaths = [...new Set([...releaseMutationPaths, ...optionalRoots, ...retiredRoots])];
   const copy = options.copy ?? cpSync;
   const remove = options.remove ?? rmSync;
   for (const relativePath of mutationPaths) {
@@ -277,6 +279,7 @@ export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD
     }
   }
   const headSkills = new Set((headCatalog.skills ?? []).map((skill) => skill.name));
+  const renames = hasHead ? activeSkillRenames(repositoryRoot, headCatalog, catalog) : [];
   for (const [name, bump] of options.skills) {
     if (bump === 'initial' && headSkills.has(name)) {
       throw new Error(`${name}=initial is only valid for a skill absent from the ${baseCommit === 'HEAD' ? 'HEAD' : 'release base'} catalog`);
@@ -311,6 +314,7 @@ export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD
       runtimeProtocolVersion: catalog.runtime.protocolVersion,
       minimumCliVersion: catalog.runtime.minimumCliVersion,
       skills: changes,
+      ...(renames.length ? { renames } : {}),
     });
 
     execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'sync-adapters.mjs')], {

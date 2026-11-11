@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { kiroRoot, providerPackages } from './package-projections.mjs';
 import { stampSkillProvenance } from './skill-provenance.mjs';
 import { codexListingInterface, validateCodexPortalManifest } from './codex-portal-contract.mjs';
+import { declaredSkillRenames } from './skill-renames.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const check = process.argv.includes('--check');
@@ -21,6 +22,16 @@ const catalog = JSON.parse(readFileSync(join(root, 'distribution', 'catalog.json
 const marketplaces = JSON.parse(readFileSync(join(root, 'distribution', 'marketplaces.json'), 'utf8'));
 const codexSubmissions = JSON.parse(readFileSync(join(root, 'distribution', 'codex-submissions.json'), 'utf8'));
 const pkg = catalog.package;
+// Only retire generated roots named by an explicit rename record. Runtime data
+// and client installations are outside this repository-generation operation.
+for (const { fromPackage, toPackage } of declaredSkillRenames(root)) {
+  if (fromPackage === toPackage || catalog.installPackages.some((entry) => entry.name === fromPackage)) continue;
+  for (const path of ['packages', 'codex-packages', 'antigravity-plugins'].map((base) => `${base}/${fromPackage}`)
+    .concat(kiroRoot(fromPackage))) {
+    if (!check) rmSync(join(root, path), { recursive: true, force: true });
+    else if (existsSync(join(root, path))) stale.push(path);
+  }
+}
 const author = {
   name: 'Qodo',
   email: 'support@qodo.ai',

@@ -21,7 +21,7 @@ const deliverySections = new Map([
   ['qodo-review', 'Present the review result'],
   ['qodo-review-resolver', 'Present the review state'],
   ['qodo-review-notes', 'Report the result'],
-  ['qodo-review-cockpit', 'Present the review result'],
+  ['qodo-agent-session-review', 'Present the review result'],
 ]);
 const forbiddenRuntimeBypass = new RegExp([
   ['QODO', '_', 'API', '_KEY'].join(''), '|',
@@ -450,7 +450,7 @@ for (const change of Array.isArray(release.skills) ? release.skills : []) {
 for (const file of walk(root)) {
   const path = relative(root, file);
   // The component validator below enforces its explicit existing-file exception and new-file limit.
-  if (/\.(md|mjs|json|ya?ml)$/.test(path) && !path.split('\\').join('/').includes('skills/qodo-review-cockpit/runtime/')) {
+  if (/\.(md|mjs|json|ya?ml)$/.test(path) && !path.split('\\').join('/').includes('skills/qodo-agent-session-review/runtime/')) {
     const text = readFileSync(file, 'utf8');
     const lines = text.endsWith('\n') ? text.slice(0, -1).split('\n').length : text.split('\n').length;
     if (lines > 500) fail(`${path}: ${lines} lines exceeds the 500-line limit`);
@@ -463,8 +463,8 @@ for (const file of walk(root)) {
   }
 }
 
-if (existsSync(join(skillsRoot, 'qodo-review-cockpit'))) {
-  try { const {verifyRuntime} = await import('./cockpit-runtime.mjs'); verifyRuntime(); } catch (error) { fail(`Cockpit component: ${error.message}`); }
+if (existsSync(join(skillsRoot, 'qodo-agent-session-review'))) {
+  try { const {verifyRuntime} = await import('./agent-session-review-runtime.mjs'); verifyRuntime(); } catch (error) { fail(`Agent Session Review component: ${error.message}`); }
 }
 
 try {

@@ -1,8 +1,9 @@
 /** Collect unreleased canonical changes without changing contributor branches. */
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { prepareRelease } from './prepare-release.mjs';
+import { activeSkillRenames } from './skill-renames.mjs';
 
 export function git(root, ...args) {
   return execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
@@ -30,7 +31,7 @@ const packaging = [
   /^scripts\/(?:audit-release-protections|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 
-function assertSourceVersions(root, prior, catalog) {
+function assertSourceVersions(root, prior, catalog, renames) {
   if (catalog.package.version !== prior.package.version) throw new Error('Source changes must leave package versions to the release PR.');
   const manifest = readJson(root, 'package.json');
   const lock = readJson(root, 'package-lock.json');
@@ -55,18 +56,25 @@ function assertSourceVersions(root, prior, catalog) {
     }
     oldSkills.delete(skill.name);
   }
+  for (const rename of renames) oldSkills.delete(rename.from);
   if (oldSkills.size) throw new Error(`Skill removal needs a supported immutable removal record: ${[...oldSkills.keys()].join(', ')}`);
 }
 
 export function planSkillRelease(root, baseline = releaseBaseline(root)) {
   const prior = catalogAt(root, baseline);
   const catalog = readJson(root, 'distribution/catalog.json');
+  const renames = activeSkillRenames(root, prior, catalog);
   const paths = git(root, 'diff', '--name-only', '--no-renames', '-z', baseline, 'HEAD').split('\0').filter(Boolean);
-  const forbidden = paths.filter((path) => generated.test(path) || path.startsWith('releases/'));
+  // The old canonical UI metadata is deleted with the source folder; the
+  // release generates the new file from the new canonical catalog entry.
+  const retiredMetadata = new Set(renames.map(({ from }) => `skills/${from}/agents/openai.yaml`)
+    .filter((path) => !existsSync(join(root, path))));
+  const forbidden = paths.filter((path) => (generated.test(path) && !retiredMetadata.has(path)) || path.startsWith('releases/'));
   if (forbidden.length) throw new Error(`Generated files and release records belong in the release PR: ${forbidden.join(', ')}`);
-  assertSourceVersions(root, prior, catalog);
+  assertSourceVersions(root, prior, catalog, renames);
   const oldSkills = new Map(prior.skills.map((skill) => [skill.name, skill]));
   const changedNames = new Set(paths.flatMap((path) => path.match(/^skills\/([^/]+)\//)?.[1] ?? []));
+  for (const rename of renames) changedNames.delete(rename.from);
   for (const skill of catalog.skills) {
     if (JSON.stringify(skill) !== JSON.stringify(oldSkills.get(skill.name))) changedNames.add(skill.name);
   }

@@ -1,0 +1,1145 @@
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..110,400..800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a route. A sticky bar carries the three stages (Brief, Read, Decide) as stops on one line; under it the active stage fills the page. Brief is a stepped stage; Read is a plan strip over a workbench shaped by the work package, with a code drawer; Decide is a rail plus one card, then the review. */
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --sunk:#E8ECF0; --ink:#121820; --muted:#556172; --faint:#8893A1; --line:#D5DBE2;
+  --accent:#0E7268; --accent-ink:#FFFFFF; --accent-soft:#DCEEEB; --hl:#FFF0B8;
+  --deep:#A3241C; --review:#E0A526; --skim:#5B8DB8; --skip:#C3CBD4;
+  --add-bg:#E5F3E8; --del-bg:#FBE8E5; --add:#1D6A33; --del:#9B2C22;
+  --ok:#2A7643; --warn:#9A5B00; --bad:#A3241C;
+  --shadow:0 1px 2px rgba(18,24,32,.06), 0 8px 24px rgba(18,24,32,.07);
+  --f-display:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0D1216; --surface:#141B21; --sunk:#1A232B; --ink:#E3E9EF; --muted:#97A4B2; --faint:#6A7785; --line:#25303A;
+  --accent:#3DB4A6; --accent-ink:#05201C; --accent-soft:#12302C; --hl:#3B3212;
+  --deep:#D9483B; --review:#F2B950; --skim:#6E9BCB; --skip:#4A5361;
+  --add-bg:#12281A; --del-bg:#321819; --add:#7DD19A; --del:#F09A8F;
+  --ok:#5EC27F; --warn:#E8A33A; --bad:#E5685B; --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0D1216; --surface:#141B21; --sunk:#1A232B; --ink:#E3E9EF; --muted:#97A4B2; --faint:#6A7785; --line:#25303A;
+  --accent:#3DB4A6; --accent-ink:#05201C; --accent-soft:#12302C; --hl:#3B3212;
+  --deep:#D9483B; --review:#F2B950; --skim:#6E9BCB; --skip:#4A5361;
+  --add-bg:#12281A; --del-bg:#321819; --add:#7DD19A; --del:#F09A8F;
+  --ok:#5EC27F; --warn:#E8A33A; --bad:#E5685B; --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35); color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg); color:var(--ink); font:16px/1.55 var(--f-body); margin:0}
+a{color:var(--accent)}
+button{font:inherit; color:inherit}
+code{font:.86em var(--f-mono); background:var(--sunk); padding:.08em .35em; border-radius:4px}
+h1,h2,h3,h4{font-family:var(--f-display); font-stretch:88%; text-wrap:balance; margin:0; line-height:1.15; letter-spacing:-.01em}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.lbl{font:600 11px/1.2 var(--f-mono); letter-spacing:.09em; text-transform:uppercase; color:var(--faint)}
+.muted{color:var(--muted)}
+.wrap{max-width:1240px; margin:0 auto; padding-inline:20px}
+
+/* ---------- route bar ---------- */
+.bar{position:sticky; top:env(safe-area-inset-top,0px); z-index:30; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex; align-items:center; gap:18px; padding-block:10px; flex-wrap:wrap}
+.brand{display:flex; flex-direction:column; min-width:0}
+.brand .lbl{color:var(--accent)}
+.brand b{font:700 17px/1.2 var(--f-display); font-stretch:85%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.route{flex:1; display:flex; align-items:center; gap:0; min-width:280px; justify-content:center}
+.stop{display:flex; align-items:center; gap:10px; background:none; border:0; padding:6px 10px; border-radius:10px; cursor:pointer; text-align:left}
+.stop:hover{background:var(--sunk)}
+.stop .dot{width:26px; height:26px; border-radius:50%; border:2px solid var(--line); display:grid; place-items:center; font:700 12px var(--f-mono); color:var(--muted); background:var(--surface); flex:none}
+.stop .t{display:flex; flex-direction:column; line-height:1.15}
+.stop .t b{font:700 15px var(--f-display); font-stretch:90%}
+.stop .t span{font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.stop[aria-current="step"] .dot{border-color:var(--accent); background:var(--accent); color:var(--accent-ink)}
+.stop.done .dot{border-color:var(--accent); color:var(--accent)}
+.leg{flex:0 1 56px; height:2px; background:var(--line); min-width:16px}
+.leg.on{background:var(--accent)}
+.tools{display:flex; gap:8px}
+.ghost{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:6px 11px; cursor:pointer; font-size:14px}
+.ghost:hover{border-color:var(--faint)}
+.primary{background:var(--accent); color:var(--accent-ink); border:0; border-radius:9px; padding:9px 16px; font-weight:700; cursor:pointer}
+.primary:hover{filter:brightness(1.06)}
+main{padding-block:26px 80px}
+
+/* ---------- tier bits ---------- */
+.tb{display:flex; height:8px; border-radius:4px; overflow:hidden; background:var(--sunk); min-width:40px}
+.tb i{display:block; height:100%}
+.t-deep{background:var(--deep)} .t-review{background:var(--review)} .t-skim{background:var(--skim)} .t-skip{background:var(--skip)}
+.td{width:9px; height:9px; border-radius:2px; display:inline-block; flex:none}
+.chip{display:inline-flex; align-items:center; gap:5px; font:600 12px/1 var(--f-body); padding:4px 8px; border-radius:999px; background:var(--sunk); color:var(--muted); white-space:nowrap}
+.chip.high{background:color-mix(in srgb, var(--bad) 16%, transparent); color:var(--bad)}
+.chip.medium{background:color-mix(in srgb, var(--review) 22%, transparent); color:var(--warn)}
+.chip.ok{background:color-mix(in srgb, var(--ok) 16%, transparent); color:var(--ok)}
+.chip.acc{background:var(--accent-soft); color:var(--accent)}
+
+/* ---------- code ---------- */
+.code{font:12.5px/1.55 var(--f-mono); background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:auto; max-height:520px}
+.cl{display:grid; grid-template-columns:48px 18px 1fr; white-space:pre; min-width:max-content}
+.cl .ln{color:var(--faint); text-align:right; padding-right:8px; user-select:none}
+.cl .sg{color:var(--faint); user-select:none}
+.cl.add{background:var(--add-bg)} .cl.add .sg{color:var(--add)}
+.cl.del{background:var(--del-bg)} .cl.del .sg{color:var(--del)}
+.cl.hl{box-shadow:inset 3px 0 0 var(--deep); background:var(--hl)}
+.cl.cut .tx{color:var(--faint); font-style:italic}
+.shape{font:12.5px/1.6 var(--f-mono); background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; overflow:auto; white-space:pre; margin:0}
+.shape .a{color:var(--add)} .shape .d{color:var(--del)}
+.mbox{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px; overflow:auto}
+.mbox pre{font:12px var(--f-mono); color:var(--muted); white-space:pre-wrap; margin:0}
+.mbox svg{max-width:100%; height:auto}
+
+/* ---------- BRIEF ---------- */
+.brief{display:grid; grid-template-columns:220px 1fr; gap:28px; align-items:start}
+.toc{position:sticky; top:96px; display:grid; gap:2px}
+.toc button{display:grid; grid-template-columns:22px 1fr; gap:8px; text-align:left; background:none; border:0; padding:7px 8px; border-radius:8px; cursor:pointer; color:var(--muted); font-size:14px; line-height:1.3}
+.toc button span:first-child{font:600 11px/1.6 var(--f-mono); color:var(--faint)}
+.toc button[aria-current="true"]{background:var(--surface); color:var(--ink); box-shadow:var(--shadow)}
+.toc button[aria-current="true"] span:first-child{color:var(--accent)}
+.screen{background:var(--surface); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); padding:34px 38px; min-height:540px; display:flex; flex-direction:column; gap:18px; min-width:0}
+.screen h2{font-size:clamp(26px, 3.2vw, 38px)}
+.screen .lede{font-size:18.5px; color:var(--muted); max-width:68ch; margin:0}
+.screen .sfoot{margin-top:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding-top:14px; border-top:1px solid var(--line)}
+.screen .sfoot .sp{flex:1}
+.prog{display:flex; gap:4px} .prog i{width:22px; height:4px; border-radius:2px; background:var(--line)} .prog i.on{background:var(--accent)}
+.say{font-size:13.5px; color:var(--muted); font-style:italic; max-width:60ch}
+.facts{display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px}
+.fact{border:1px solid var(--line); border-radius:12px; padding:12px 14px}
+.fact b{display:block; font:700 26px/1.1 var(--f-display); font-variant-numeric:tabular-nums}
+.fact span{font-size:13px; color:var(--muted)}
+.prlist{display:grid; gap:6px}
+.prrow{display:grid; grid-template-columns:72px minmax(0,1fr) 120px auto; gap:12px; align-items:center; font-size:14.5px; padding:6px 0; border-bottom:1px dashed var(--line)}
+.prrow .n{font:600 13px var(--f-mono); color:var(--muted)}
+.prrow .ti{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.notice{display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px}
+.ncard{border:1px solid var(--line); border-top:4px solid var(--accent); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px}
+.ncard.risk{border-top-color:var(--deep)} .ncard.decision{border-top-color:var(--review)}
+.ncard h3{font-size:19px}
+.ncard p{margin:0; color:var(--muted); font-size:15px}
+.ncard button{align-self:flex-start; margin-top:auto}
+.paras{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px 24px}
+.paras p{margin:0; font-size:15.5px} .paras b{display:block; font:700 13px var(--f-display); letter-spacing:.04em; text-transform:uppercase; color:var(--accent); margin-bottom:2px}
+.contrib{display:grid; gap:4px; font-size:14.5px}
+.contrib div{display:grid; grid-template-columns:72px 1fr; gap:10px}
+.contrib span{font:600 13px var(--f-mono); color:var(--muted)}
+.tabs{display:flex; gap:6px; flex-wrap:wrap}
+.tabs button{border:1px solid var(--line); background:var(--surface); border-radius:999px; padding:5px 12px; cursor:pointer; font-size:14px}
+.tabs button[aria-pressed="true"]{background:var(--ink); color:var(--surface); border-color:var(--ink)}
+.journey{display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; counter-reset:j}
+.jstep{border:1px solid var(--line); border-radius:12px; padding:12px; font-size:14.5px; position:relative}
+.jstep::before{counter-increment:j; content:counter(j); font:700 12px var(--f-mono); color:var(--accent)}
+.jstep .a{font-weight:700; display:block}
+.jstep.new{border-color:color-mix(in srgb, var(--accent) 50%, var(--line))}
+.moment{display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:20px; align-items:start}
+.side{display:grid; gap:10px; font-size:15px}
+.side .card{border:1px solid var(--line); border-radius:12px; padding:12px 14px}
+.fnd{border-left:3px solid var(--review); padding:8px 12px; background:var(--sunk); border-radius:0 8px 8px 0; font-size:14px}
+.fnd.high,.fnd.critical{border-left-color:var(--deep)} .fnd.low{border-left-color:var(--skim)}
+.fnd b{display:block}
+.fnd p{margin:4px 0 0; color:var(--muted)}
+.gallery{display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:18px; align-items:start}
+.shot{margin:0; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--sunk)}
+.shot img{display:block; width:100%; height:auto}
+.shot figcaption{padding:12px 14px; font-size:14.5px; background:var(--surface); border-top:1px solid var(--line)}
+.shot figcaption b{display:block; font-family:var(--f-display); font-size:17px}
+.thumbs{display:grid; gap:8px}
+.pshot{display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}
+.pshot figcaption{border-top:0; border-left:1px solid var(--line)}
+.thumbs button{display:grid; grid-template-columns:76px 1fr; gap:8px; align-items:center; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:5px; cursor:pointer; font-size:13px; line-height:1.25}
+.thumbs button[aria-pressed="true"]{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+.thumbs img{width:76px; height:48px; object-fit:cover; object-position:top; border-radius:6px; display:block}
+.qs{display:grid; gap:12px}
+.q{border:1px solid var(--line); border-radius:12px; padding:14px 16px}
+.q h3{font-size:19px} .q p{margin:6px 0; color:var(--muted)}
+.opts{display:flex; gap:8px; flex-wrap:wrap; margin-top:8px}
+.opts button{border:1px solid var(--line); border-radius:9px; background:var(--surface); padding:7px 12px; cursor:pointer; font-size:14px}
+.opts button[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:700}
+.rt{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:14px}
+.rt .card{border:1px solid var(--line); border-radius:12px; padding:14px}
+
+/* ---------- READ ---------- */
+.strip{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px 18px; display:grid; gap:12px; box-shadow:var(--shadow)}
+.strip .row{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+.strip .big{flex:1; min-width:260px}
+.strip .big b{font:700 18px var(--f-display); font-stretch:90%}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden}
+.seg button{border:0; background:var(--surface); padding:6px 11px; cursor:pointer; font-size:13.5px; border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink); color:var(--surface)}
+.cutbar{position:relative; display:flex; height:14px; border-radius:7px; overflow:hidden; background:var(--sunk)}
+.cutbar i{display:block; height:100%}
+.cutbar i.out{opacity:.25}
+.cutmark{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--ink)}
+.risknote{font-size:14.5px; flex:1; min-width:260px}
+.risknote.bad{color:var(--bad)} .risknote.ok{color:var(--ok)}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:13px; color:var(--muted)}
+.legend span{display:inline-flex; gap:6px; align-items:center; font-variant-numeric:tabular-nums}
+.layoutbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:22px 0 14px}
+.layoutbar h2{font-size:24px; margin-right:auto}
+.why{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:16px; font-size:14px}
+.why ul{list-style:none; margin:8px 0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:4px 18px}
+.why li{display:flex; justify-content:space-between; gap:10px; border-bottom:1px dotted var(--line); padding:2px 0}
+.why .hit{color:var(--accent); font-weight:700} .why .miss{color:var(--faint)}
+.sect{margin-top:26px}
+.sect > h3{font-size:19px; margin-bottom:8px}
+.sub{color:var(--muted); margin:0 0 10px; max-width:75ch}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px}
+.blks{display:grid; gap:6px}
+.blk{display:grid; grid-template-columns:12px minmax(0,1fr) auto; gap:4px 10px; align-items:center; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 12px; cursor:pointer; width:100%}
+.blk:hover{border-color:var(--faint)}
+.blk .p{font:12.5px var(--f-mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.blk .n{font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.blk .w{grid-column:2 / 4; font-size:13px; color:var(--muted)}
+.blk .mk{font-size:12px; font-weight:700}
+.blk.m-read{border-color:color-mix(in srgb, var(--ok) 45%, var(--line))} .blk.m-read .mk{color:var(--ok)}
+.blk.m-flag{border-color:var(--deep)} .blk.m-flag .mk{color:var(--deep)}
+.stackgrid{display:grid; grid-template-columns:300px minmax(0,1fr); gap:22px; align-items:start}
+.rail{display:flex; flex-direction:column-reverse; gap:6px; position:sticky; top:96px}
+.rail .base{font:12px var(--f-mono); color:var(--faint); padding:4px 10px}
+.rl{display:grid; grid-template-columns:22px minmax(0,1fr); gap:8px; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 10px; cursor:pointer}
+.rl[aria-current="true"]{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+.rl .o{font:700 12px var(--f-mono); color:var(--faint); padding-top:2px}
+.rl .t{font-size:13.5px; line-height:1.3; display:block}
+.rl .m{display:flex; gap:6px; align-items:center; margin-top:5px; flex-wrap:wrap}
+.rl .cov{font:600 11px var(--f-mono); color:var(--muted)}
+.prhead h2{font-size:24px; margin:4px 0 6px}
+.meta{display:flex; gap:10px; flex-wrap:wrap; align-items:center; font-size:13.5px; color:var(--muted); margin-bottom:8px}
+.two{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:18px}
+.seam{display:flex; justify-content:space-between; gap:8px; font-size:13px; padding:5px 0; border-bottom:1px dashed var(--line)}
+.seam .p{font-family:var(--f-mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.seam button{border:1px solid var(--line); background:none; border-radius:999px; padding:1px 7px; font-size:12px; cursor:pointer}
+.cols{display:grid; grid-template-columns:repeat(var(--n), minmax(0,1fr)); gap:16px}
+.col{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px}
+.col .role{font:600 11px var(--f-mono); letter-spacing:.09em; text-transform:uppercase; color:var(--accent)}
+.col h3{font-size:20px; margin:4px 0 10px}
+.col .pr{border-top:1px solid var(--line); padding-top:12px; margin-top:12px}
+.col h4{font-size:16px; margin-bottom:6px}
+.layer{font-size:14px; margin:6px 0} .layer p{margin:2px 0 0; color:var(--muted)}
+.fix{display:grid; gap:0}
+.step{display:grid; grid-template-columns:120px minmax(0,1fr); gap:18px; padding:20px 0; border-top:1px solid var(--line)}
+.step > .k{font:700 13px var(--f-display); letter-spacing:.08em; text-transform:uppercase; color:var(--accent); padding-top:4px}
+.step h3{font-size:21px; margin-bottom:6px}
+.step p{margin:0 0 8px; max-width:75ch}
+.inline{margin:12px 0}
+.inline .cap{display:flex; justify-content:space-between; gap:10px; font:12px var(--f-mono); color:var(--muted); margin-bottom:5px; flex-wrap:wrap}
+details.rest{margin-top:22px; border:1px solid var(--line); border-radius:12px; background:var(--surface)}
+details.rest summary{padding:12px 16px; cursor:pointer; font-weight:700}
+details.rest > div{padding:0 16px 16px}
+.tree{list-style:none; margin:0; padding:0; font:12.5px var(--f-mono)}
+.tree li{display:grid; grid-template-columns:minmax(0,1fr) 90px 50px; gap:10px; align-items:center; padding:2px 0}
+.tree li .p{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.tree li.dir{display:block; color:var(--faint); margin-top:6px}
+.tree .c{text-align:right; color:var(--muted)}
+.scope{border-collapse:collapse; font-size:14px; width:100%}
+.scope th,.scope td{border-bottom:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top}
+.scope th{font:600 12px var(--f-mono); color:var(--muted)}
+.st{font:600 11px var(--f-mono); padding:2px 6px; border-radius:4px; background:var(--sunk)}
+.st.done{background:color-mix(in srgb, var(--ok) 18%, transparent); color:var(--ok)}
+.st.partial{background:color-mix(in srgb, var(--review) 25%, transparent); color:var(--warn)}
+.st.missing{background:color-mix(in srgb, var(--bad) 16%, transparent); color:var(--bad)}
+.tw{overflow-x:auto}
+.route-list{display:grid; gap:4px; margin-top:6px}
+.rstop{display:grid; grid-template-columns:54px 12px minmax(0,1fr) 64px 70px; gap:10px; align-items:center; background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:7px 12px; cursor:pointer; text-align:left; width:100%; font-size:14px}
+.rstop .tm{font:600 12px var(--f-mono); color:var(--faint)}
+.rstop .p{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.rstop .mn{font:12px var(--f-mono); color:var(--muted); text-align:right}
+.rstop .mk{font-size:12px; font-weight:700; text-align:right}
+.rstop.m-read .mk{color:var(--ok)} .rstop.m-flag .mk{color:var(--deep)}
+.cutline{display:flex; align-items:center; gap:10px; font:600 12px var(--f-mono); color:var(--bad); margin:8px 0}
+.cutline::before,.cutline::after{content:""; flex:1; border-top:2px dashed var(--bad)}
+.map{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:12px}
+.map svg{display:block; width:100%; height:auto}
+.map text{font-family:var(--f-body); fill:var(--ink)}
+.map .mnode{cursor:pointer}
+.map .mnode:hover rect.bg{stroke:var(--ink)}
+
+/* ---------- drawer ---------- */
+.drawer{position:fixed; top:0; right:0; bottom:0; width:min(760px, 100%); background:var(--bg); border-left:1px solid var(--line); box-shadow:-10px 0 40px rgba(0,0,0,.18); z-index:50; display:flex; flex-direction:column}
+.drawer header{padding:14px 18px; border-bottom:1px solid var(--line); background:var(--surface); display:grid; gap:4px; padding-top:calc(14px + env(safe-area-inset-top,0px))}
+.drawer header .row{display:flex; gap:8px; align-items:center}
+.drawer header h3{font-size:19px}
+.drawer .pth{font:12.5px var(--f-mono); color:var(--muted); word-break:break-all}
+.drawer .body{overflow:auto; padding:16px 18px 30px; display:grid; gap:12px; align-content:start}
+.drawer .acts{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:12px 18px; border-top:1px solid var(--line); background:var(--surface); padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+.mbtn{border:1px solid var(--line); background:var(--surface); border-radius:9px; padding:7px 12px; cursor:pointer; font-size:14px}
+.mbtn[aria-pressed="true"].read{background:color-mix(in srgb, var(--ok) 16%, transparent); border-color:var(--ok); color:var(--ok); font-weight:700}
+.mbtn[aria-pressed="true"].flag{background:color-mix(in srgb, var(--bad) 14%, transparent); border-color:var(--bad); color:var(--bad); font-weight:700}
+textarea{width:100%; min-height:70px; font:14px/1.45 var(--f-body); background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:9px; padding:8px 10px; resize:vertical}
+kbd{font:600 11px var(--f-mono); border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:1px 5px; background:var(--surface); color:var(--muted)}
+
+/* ---------- DECIDE ---------- */
+.decide{display:grid; grid-template-columns:280px minmax(0,1fr); gap:22px; align-items:start}
+.qrail{position:sticky; top:96px; display:grid; gap:4px; max-height:calc(100vh - 120px); overflow:auto; padding-right:4px}
+.qg{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 8px; text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 10px; cursor:pointer; font-size:13.5px}
+.qg[aria-current="true"]{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+.qg .c{font:600 12px var(--f-mono); color:var(--muted)}
+.qg .tb{grid-column:1 / 3; height:5px}
+.v-ok{color:var(--ok)} .v-rc{color:var(--bad)} .v-c{color:var(--warn)} .v-open{color:var(--muted)}
+.dcard{background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:24px 26px; display:grid; gap:14px; min-width:0}
+.dcard .top{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.dcard h2{font-size:clamp(22px, 2.4vw, 28px)}
+.dcard .claim{font-size:17px; color:var(--muted); margin:0; max-width:72ch}
+.ev{display:grid; gap:10px}
+.ev .evt{font:600 12px var(--f-mono); color:var(--muted); margin-bottom:4px}
+.actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center; border-top:1px solid var(--line); padding-top:14px}
+.act{border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:9px 14px; cursor:pointer; font-size:14.5px; display:inline-flex; gap:8px; align-items:center}
+.act[data-a="a"][aria-pressed="true"]{background:color-mix(in srgb, var(--ok) 16%, transparent); border-color:var(--ok); color:var(--ok); font-weight:700}
+.act[data-a="q"][aria-pressed="true"]{background:color-mix(in srgb, var(--review) 22%, transparent); border-color:var(--review); color:var(--warn); font-weight:700}
+.act[data-a="b"][aria-pressed="true"]{background:color-mix(in srgb, var(--bad) 14%, transparent); border-color:var(--bad); color:var(--bad); font-weight:700}
+.act[data-a="d"][aria-pressed="true"]{background:var(--sunk); font-weight:700}
+.pre{font-size:13.5px; color:var(--ok); display:flex; gap:6px; align-items:center}
+.pre.flag{color:var(--bad)}
+.nav{display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap}
+.review{display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:22px; align-items:start}
+.rdoc{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:26px 30px; box-shadow:var(--shadow); min-width:0}
+.rdoc h2{font-size:28px; margin-bottom:6px}
+.rdoc h3{font-size:19px; margin:22px 0 6px; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
+.rdoc ul{margin:6px 0; padding-left:20px} .rdoc li{margin:3px 0}
+.receipt{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px 20px; position:sticky; top:96px; display:grid; gap:12px; font-size:14.5px}
+.receipt h3{font-size:18px}
+.receipt .ln{display:flex; justify-content:space-between; gap:10px; border-bottom:1px dashed var(--line); padding:3px 0; font-variant-numeric:tabular-nums}
+.receipt .warn{color:var(--bad)}
+#mdout{width:100%; min-height:200px; font:12px/1.5 var(--f-mono)}
+
+/* ---------- help + toast ---------- */
+.sheet{position:fixed; inset:0; background:rgba(8,12,16,.45); z-index:60; display:grid; place-items:center; padding:16px}
+.sheet > div{background:var(--surface); border-radius:16px; padding:22px 26px; max-width:620px; width:100%; max-height:90vh; overflow:auto; box-shadow:var(--shadow)}
+.sheet h3{font-size:20px; margin-bottom:10px}
+.sheet table{width:100%; border-collapse:collapse; font-size:14.5px}
+.sheet td{padding:5px 6px; border-bottom:1px solid var(--line); vertical-align:top}
+.sheet td:first-child{white-space:nowrap; width:120px}
+.sheet th{text-align:left; font:600 11px var(--f-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--accent); padding:14px 6px 4px}
+#toast{position:fixed; left:50%; bottom:calc(22px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); background:var(--ink); color:var(--surface); padding:9px 16px; border-radius:10px; z-index:70; font-size:14px}
+
+@media (max-width:980px){
+  .brief,.stackgrid,.decide,.review,.moment,.gallery,.pshot{grid-template-columns:minmax(0,1fr)}
+  .pshot figcaption{border-left:0; border-top:1px solid var(--line)}
+  .toc{position:static; display:flex; overflow-x:auto; gap:4px}
+  .toc button{white-space:nowrap; grid-template-columns:auto auto}
+  .rail,.qrail,.receipt{position:static}
+  .rail{flex-direction:column-reverse}
+  .qrail{max-height:none}
+  .cols{grid-template-columns:minmax(0,1fr)}
+  .screen{padding:22px 18px; min-height:0}
+  .step{grid-template-columns:minmax(0,1fr); gap:6px}
+  .prrow{grid-template-columns:60px minmax(0,1fr)} .prrow .tb,.prrow .chip{display:none}
+  .rstop{grid-template-columns:44px 12px minmax(0,1fr) 54px}
+  .rstop .mn{display:none}
+  .thumbs{grid-template-columns:repeat(auto-fill, minmax(150px,1fr))}
+  .route{order:3; flex-basis:100%; justify-content:flex-start; overflow-x:auto}
+}
+@media (max-width:560px){ .stop .t span{display:none} .leg{flex-basis:16px} .wrap{padding-inline:16px} }
+@media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important; scroll-behavior:auto!important} }
+</style>
+
+<div class="bar"><div class="wrap">
+  <div class="brand"><span class="lbl">Guided review</span><b id="case-title"></b></div>
+  <nav class="route" id="route" aria-label="Review stages"></nav>
+  <div class="tools"><span id="cknav"></span><button class="ghost" id="help-btn" aria-label="Keyboard shortcuts">?</button></div>
+</div></div>
+<main class="wrap" id="main"></main>
+<aside class="drawer" id="drawer" hidden aria-label="Code"></aside>
+<div class="sheet" id="help" hidden></div>
+<div id="toast" hidden role="status"></div>
+
+{{DATA}}
+<script>
+{{KIT}}
+</script>
+<script>
+(() => {
+const { esc, md, cases, short, repoShort, base, TIERS, TIER_NAME, codeHtml, store } = KIT;
+const C = cases[KIT.caseIds[0]];
+const $ = (s, r = document) => r.querySelector(s);
+const SKEY = "guided:" + C.session;
+const S = Object.assign({ stage: "brief", bi: 0, marks: {}, dec: {}, budget: 30, recipe: null, sel: null, route: false, map: false, why: false, cur: 0, shot: 0, picks: {} }, store.get(SKEY, {}));
+const save = () => store.set(SKEY, S);
+const isOpen = (f) => !f.status || f.status === "open";
+const prBy = (k) => C.prs.find((p) => p.key === k);
+const mkey = (p, b) => p.key + "|" + b.id;
+const plain = (s) => String(s || "").replace(/[`*_]/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+const pct = (x) => Math.round(x * 100) + "%";
+const RATE = { deep: 8, review: 25, skim: 120, skip: Infinity };
+const fmtMin = (m) => { m = Math.round(m); const h = Math.floor(m / 60); return h ? `${h}h ${String(m % 60).padStart(2, "0")}m` : `${m} min`; };
+const strip = (t) => String(t || "").replace(/^feat:\s*(feat\([^)]*\):\s*)?/i, "").replace(/^fix:\s*/i, "");
+const toast = (m) => { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2400); };
+const sevRank = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+const isHigh = (f) => f.severity === "high" || f.severity === "critical";
+
+/* ---------- shared data views ---------- */
+function stackOrder() {
+  const seen = [], add = (k) => { if (!seen.includes(k) && prBy(k)) seen.push(k); };
+  (C.stacks || []).forEach((s) => s.forEach(add));
+  C.prs.forEach((p) => add(p.key));
+  return seen.map(prBy);
+}
+const ORDER = stackOrder();
+function findingsOn(p, b) {
+  return p.findings.filter((f) => isOpen(f) && f.path === b.path && f.line != null && f.line >= b.from - 3 && f.line <= b.to + 3);
+}
+function codeForRange(p, path, from, to, beatId) {
+  if (beatId && p.code["beat:" + beatId]) return p.code["beat:" + beatId];
+  const b = p.attention.blocks.find((x) => x.path === path && p.code[x.id] && x.from <= (to || from) && x.to >= from);
+  return b ? p.code[b.id] : null;
+}
+function tierBar(sum, w) {
+  const tot = sum ? TIERS.reduce((a, t) => a + (sum[t] || 0), 0) : 0;
+  if (!tot) return `<div class="tb" style="width:${w || 100}px"></div>`;
+  return `<div class="tb" style="width:${w || 100}px" title="${TIERS.map((t) => `${TIER_NAME[t]} ${sum[t] || 0}`).join(" · ")}">${TIERS.map((t) => `<i class="t-${t}" style="width:${(100 * (sum[t] || 0)) / tot}%"></i>`).join("")}</div>`;
+}
+const fileSum = (f) => ({ ...f.tiers });
+function findingChip(p) {
+  const o = p.findings.filter(isOpen), h = o.filter(isHigh).length;
+  if (!o.length) return `<span class="chip ok">no open findings</span>`;
+  return `<span class="chip ${h ? "high" : "medium"}">${o.length} open${h ? ` · ${h} high` : ""}</span>`;
+}
+function shapeHtml(text) {
+  return `<pre class="shape">${String(text || "").split("\n").map((l) => /^\+/.test(l) ? `<span class="a">${esc(l)}</span>` : /^-/.test(l) ? `<span class="d">${esc(l)}</span>` : esc(l)).join("\n")}</pre>`;
+}
+function fndHtml(f, n = 320) {
+  const body = f.body || "";
+  return `<div class="fnd ${esc(f.severity)}"><b>${esc(f.severity)} · ${md(f.title)}</b><p>${f.path ? `<code>${esc(base(f.path))}:${f.line ?? ""}</code> ` : ""}${md(body.slice(0, n))}${body.length > n ? "…" : ""}${KIT.localTag(f)}${f.stance ? ` <span class="chip">agent: ${esc(f.stance)}</span>` : ""}</p></div>`;
+}
+const totals = KIT.totals(C);
+const openAll = KIT.openFindings(C);
+const allBlocks = C.prs.flatMap((p) => p.attention.blocks.map((b) => ({ p, b })));
+const readable = allBlocks.filter(({ b }) => b.tier === "deep" || b.tier === "review");
+const deepAll = allBlocks.filter(({ b }) => b.tier === "deep");
+const hasDeep = deepAll.length > 0;
+function focusBlocks(p, n) {
+  const pick = (t) => p.attention.blocks.filter((b) => b.tier === t && p.code[b.id]).sort((a, b) => (b.score || 0) - (a.score || 0));
+  const d = pick("deep");
+  return (d.length ? d : pick("review")).slice(0, n);
+}
+const markOf = (p, b) => S.marks[mkey(p, b)] || null;
+function blockBtn(p, b, extra) {
+  const m = markOf(p, b), why = (b.why || []).join(", ") || b.reason || "";
+  return `<button class="blk ${m ? "m-" + m.m : ""}" data-blk="${esc(b.id)}" data-pr="${esc(p.key)}"><span class="td t-${b.tier}" aria-hidden="true"></span><span class="p">${esc(b.path)}:${b.from}–${b.to}</span><span class="n">${b.lines} lines${m ? ` · <span class="mk">${m.m === "read" ? "✓ read" : "⚑ flagged"}</span>` : ""}</span>${why || extra ? `<span class="w">${esc(TIER_NAME[b.tier])}${why ? " · " + esc(why) : ""}${extra ? " · " + extra : ""}</span>` : ""}</button>`;
+}
+
+/* ---------- classifier (from v3.4) ---------- */
+const UI_RE = /\.(tsx?|jsx?|css|scss|html|vue|svelte)$/;
+const RECIPES = {
+  stack: { name: "Stack", line: "Many PRs in one repo. Read the stack bottom-up, one PR at a time, and watch the seams where PRs touch the same files." },
+  contract: { name: "Contract", line: "PRs across repos. Each repo is one side of a contract; the journey runs across them." },
+  fix: { name: "Fix", line: "One focused change. Problem, the code that decides it, the tests that prove it, the risk; the rest stays folded." },
+  product: { name: "Product", line: "A change people will see. What it looks like first, then the code behind each screen." },
+};
+function signals() {
+  const repos = [...new Set(C.prs.map((p) => p.repo))];
+  const total = C.prs.reduce((a, p) => a + p.add + p.del, 0);
+  let ui = 0, tests = 0, mig = 0;
+  C.prs.forEach((p) => p.files.forEach((f) => { const n = f.add + f.del; if (UI_RE.test(f.path)) ui += n; if (f.role === "test") tests += n; if (f.role === "migration") mig++; }));
+  return { prs: C.prs.length, repos: repos.length, repoNames: repos, total, uiShare: total ? ui / total : 0, testShare: total ? tests / total : 0, migrations: mig,
+    media: (C.media || []).length, highs: openAll.filter(isHigh).length, deep: totals.deep || 0, journey: C.story.some((b) => b.kind === "journey") };
+}
+const RULES = [
+  { id: "contract", test: (s) => s.repos > 1, text: (s) => `${s.repos} repos (needs 2 or more)` },
+  { id: "stack", test: (s) => s.prs >= 4, text: (s) => `${s.prs} PRs in one repo (needs 4 or more)` },
+  { id: "product", test: (s) => s.media > 0 || s.uiShare >= 0.15, text: (s) => s.media ? `${s.media} product screenshots, UI ${pct(s.uiShare)} of lines` : `UI files ${pct(s.uiShare)} of lines (needs 15%)` },
+  { id: "fix", test: () => true, text: () => "otherwise" },
+];
+const SIG = signals();
+const AUTO = RULES.find((r) => r.test(SIG)).id;
+const recipe = () => S.recipe || AUTO;
+
+/* ---------- time box (from v3.7) ---------- */
+const sevW = { critical: 400, high: 300, medium: 150, low: 40 };
+function buildStops() {
+  const out = [];
+  C.prs.forEach((p) => {
+    const open = p.findings.filter(isOpen), placed = new Set();
+    const mustIdx = new Map((p.attention.must_read || []).map((id, i) => [id, i]));
+    p.attention.blocks.forEach((b) => {
+      if (b.tier !== "deep" && b.tier !== "review") return;
+      const fs = open.filter((f) => f.path === b.path && f.line != null && f.line >= b.from && f.line <= b.to);
+      fs.forEach((f) => placed.add(f.id));
+      const mi = mustIdx.has(b.id) ? mustIdx.get(b.id) : 999;
+      const pri = (b.tier === "deep" ? 5000 : 0) + (b.score || 0) * 10 + fs.reduce((a, f) => a + (sevW[f.severity] || 20), 0) + Math.max(0, 200 - mi);
+      out.push({ id: mkey(p, b), kind: "block", p, b, tier: b.tier, min: Math.max(0.5, b.lines / RATE[b.tier]), pri, findings: fs });
+    });
+    const sk = (p.attention.summary || {}).skim || 0;
+    const loose = open.filter((f) => !placed.has(f.id));
+    if (sk || loose.length) out.push({ id: p.key + "|skim", kind: "skim", p, tier: "skim", min: Math.max(0.5, sk / RATE.skim + loose.length * 0.5), pri: 60 + loose.reduce((a, f) => a + (sevW[f.severity] || 20) / 10, 0), findings: loose, lines: sk });
+  });
+  return out.sort((a, b) => b.pri - a.pri);
+}
+const STOPS = buildStops();
+const fullMin = STOPS.reduce((a, s) => a + s.min, 0);
+function cut(budget) {
+  const fits = [], out = []; let used = 0;
+  for (const s of STOPS) { if (!budget || used + s.min <= budget + 0.01) { fits.push(s); used += s.min; } else out.push(s); }
+  return { fits, out, used };
+}
+
+/* ---------- route bar ---------- */
+const STAGES = [["brief", "Brief"], ["read", "Read"], ["decide", "Decide"]];
+function coverage() {
+  const r = readable.filter(({ p, b }) => markOf(p, b));
+  const mins = r.reduce((a, { b }) => a + b.lines / RATE[b.tier], 0), all = readable.reduce((a, { b }) => a + b.lines / RATE[b.tier], 0);
+  return { n: r.length, of: readable.length, share: all ? mins / all : 0, deepRead: deepAll.filter(({ p, b }) => markOf(p, b)).length };
+}
+function renderRoute() {
+  const cov = coverage(), Q = queue(), done = Q.filter((q) => eff(q)).length;
+  const sub = { brief: `${S.bi + 1} of ${SCREENS.length}`, read: `${pct(cov.share)} covered`, decide: `${done} of ${Q.length} decided` };
+  const idx = STAGES.findIndex(([k]) => k === S.stage);
+  $("#route").innerHTML = STAGES.map(([k, n], i) => `${i ? `<span class="leg ${i <= idx ? "on" : ""}"></span>` : ""}<button class="stop ${i < idx ? "done" : ""}" data-stage="${k}" ${k === S.stage ? 'aria-current="step"' : ""}><span class="dot">${i + 1}</span><span class="t"><b>${n}</b><span>${sub[k]}</span></span></button>`).join("");
+}
+
+/* =========================================================== BRIEF */
+function pickMoments() {
+  const out = [], seen = [];
+  const overl = (path, from, to) => seen.some((s) => s.path === path && s.from <= to && s.to >= from);
+  const add = (m) => { if (!m.block || overl(m.path, m.from, m.to)) return; seen.push(m); out.push(m); };
+  const sessionCode = C.story.filter((b) => b.kind === "code");
+  sessionCode.forEach((bt) => { const p = bt.pr ? prBy(bt.pr) : C.prs.find((q) => q.files.some((f) => f.path === bt.path)); if (!p) return;
+    add({ p, title: bt.title, lede: bt.lede, path: bt.path, from: bt.from, to: bt.to, block: codeForRange(p, bt.path, bt.from, bt.to, bt.id), notes: bt.notes || [], hl: (bt.notes || []).map((n) => n.line) }); });
+  ORDER.forEach((p) => (p.story || []).filter((b) => b.kind === "code").forEach((bt) => add({ p, title: bt.title, lede: bt.lede, path: bt.path, from: bt.from, to: bt.to, block: codeForRange(p, bt.path, bt.from, bt.to, bt.id), notes: bt.notes || [], hl: (bt.notes || []).map((n) => n.line) })));
+  const blocks = (hasDeep ? deepAll : readable).filter(({ p, b }) => p.code[b.id]).sort((a, b) => (b.b.score || 0) - (a.b.score || 0));
+  const perPr = new Set();
+  blocks.forEach(({ p, b }) => { if (out.length >= 3 || perPr.has(p.key)) return; const fs = findingsOn(p, b); const layer = (p.layers || [])[b.layer];
+    perPr.add(p.key);
+    add({ p, b, title: layer ? layer.title : `${base(b.path)} ${b.from}–${b.to}`, lede: (b.why || []).length ? `Marked for ${TIER_NAME[b.tier].toLowerCase()}: ${(b.why || []).join(", ")}.` : "", path: b.path, from: b.from, to: b.to, block: p.code[b.id], notes: [], hl: fs.map((f) => f.line), findings: fs, layer }); });
+  return out.slice(0, 3);
+}
+const MOMENTS = pickMoments();
+const NOTICE = C.story.find((b) => b.kind === "notice");
+const BRIEF = C.story.find((b) => b.kind === "brief");
+const VIEWS = C.story.find((b) => b.kind === "views");
+const JOURNEY = C.story.find((b) => b.kind === "journey");
+const QUESTIONS = C.story.filter((b) => b.kind === "question").concat(ORDER.flatMap((p) => (p.story || []).filter((b) => b.kind === "question").map((b) => ({ ...b, pr: p.key }))));
+const MEDIA = C.media || [];
+
+function buildScreens() {
+  const sc = [];
+  const prs = C.prs.length;
+  sc.push({ id: "open", label: "The change", say: `${C.title}. ${plain(BRIEF ? BRIEF.lede : C.blurb)} ${prs > 1 ? `${prs} pull requests,` : "One pull request,"} ${(totals.total || 0).toLocaleString()} changed lines; about ${fmtMin(fullMin)} to read it all.`, html: screenOpen });
+  if (NOTICE) sc.push({ id: "notice", label: "What to notice", say: `${plain(NOTICE.lede || "What to notice first.")} ${(NOTICE.items || []).map((i, n) => `${n + 1}: ${plain(i.title)}.`).join(" ")}`, html: screenNotice });
+  if (BRIEF) sc.push({ id: "built", label: "What's built", say: (BRIEF.paragraphs || []).slice(0, 2).map((x) => plain(x.text)).join(" "), html: screenBuilt });
+  if (MEDIA.length) sc.push({ id: "product", label: "What it looks like", say: `What it looks like. ${MEDIA.map((m) => plain(m.title)).join(". ")}.`, html: screenProduct });
+  if (VIEWS && (VIEWS.views || []).length) sc.push({ id: "lens", label: "The system", say: `${plain(VIEWS.views[0].question || VIEWS.title)} ${plain(VIEWS.views[0].lede)}`, html: screenLens });
+  if (JOURNEY && sc.length + MOMENTS.length + 2 < 9) sc.push({ id: "journey", label: JOURNEY.title, say: `${plain(JOURNEY.title)}. ${plain(JOURNEY.lede)}`, html: screenJourney });
+  const room = 9 - sc.length - 2;
+  MOMENTS.slice(0, Math.max(1, room)).forEach((m, i) => sc.push({ id: "m" + i, label: m.title, say: `Read closely: ${plain(m.title)}. ${plain(m.lede)} In ${base(m.path)}, lines ${m.from} to ${m.to}.`, html: () => screenMoment(m, i) }));
+  if (QUESTIONS.length) sc.push({ id: "decide", label: "Decisions", say: `You'll be asked to decide: ${QUESTIONS.slice(0, 3).map((q) => plain(q.title)).join("; ")}.`, html: screenDecisions });
+  sc.push({ id: "plan", label: "Your route", say: `Your route. The layout is ${RECIPES[AUTO].name}: ${plain(RECIPES[AUTO].line)} ${hasDeep ? `${deepAll.length} blocks are marked for deep read.` : ""} Start reading when you're ready.`, html: screenPlan });
+  return sc.slice(0, 9);
+}
+const SCREENS = buildScreens();
+function screenOpen() {
+  const tot = totals.total || 0;
+  const rows = ORDER.map((p) => `<div class="prrow"><span class="n">${esc(short(p.key))}</span><span class="ti" title="${esc(p.title)}">${md(strip(p.title))}</span>${tierBar(p.attention.summary, 120)}${findingChip(p)}</div>`).join("");
+  return `<span class="lbl">${esc(C.blurb)}</span><h2>${md(BRIEF ? BRIEF.title : C.title)}</h2><p class="lede">${md(BRIEF ? BRIEF.lede : "")}</p>
+    <div class="facts">
+      <div class="fact"><b>${C.prs.length}</b><span>pull request${C.prs.length > 1 ? "s" : ""} · ${SIG.repos} repo${SIG.repos > 1 ? "s" : ""}</span></div>
+      <div class="fact"><b>${tot.toLocaleString()}</b><span>changed lines</span></div>
+      <div class="fact"><b style="color:var(--deep)">${(totals.deep || 0).toLocaleString()}</b><span>to deep-read (${tot ? pct((totals.deep || 0) / tot) : "0%"})</span></div>
+      <div class="fact"><b>${openAll.length}</b><span>open findings · ${openAll.filter(isHigh).length} high</span></div>
+      <div class="fact"><b>${fmtMin(fullMin)}</b><span>to read it all at plan rates</span></div>
+    </div>
+    ${C.prs.length > 1 ? `<div class="prlist">${rows}</div>` : `<div class="card" style="font-size:15px">${md(C.prs[0].summary || "")}</div>`}`;
+}
+function screenNotice() {
+  return `<span class="lbl">What to notice first</span><h2>${md(NOTICE.lede || NOTICE.title)}</h2>
+    <div class="notice">${(NOTICE.items || []).map((it, i) => `<div class="ncard ${esc(it.tone || "")}"><span class="lbl">${i + 1} · ${esc(it.tone || "note")}${it.pr ? " · " + esc(short(it.pr)) : ""}</span><h3>${md(it.title)}</h3><p>${md(it.text)}</p>${jumpFor(it)}</div>`).join("")}</div>`;
+}
+function jumpFor(it) {
+  const mi = MOMENTS.findIndex((m) => (it.pr ? m.p.key === it.pr : true) && it.beat && (C.story.find((b) => b.id === it.beat) || {}).path === m.path);
+  if (mi >= 0) return `<button class="ghost" data-goto-screen="m${mi}">See the code →</button>`;
+  const q = QUESTIONS.find((x) => x.id === it.beat);
+  if (q) return `<button class="ghost" data-goto-screen="decide">See the decision →</button>`;
+  if (it.pr) return `<button class="ghost" data-goto-pr="${esc(it.pr)}">Open ${esc(short(it.pr))} in Read →</button>`;
+  return "";
+}
+function screenBuilt() {
+  const con = BRIEF.contributions || [];
+  return `<span class="lbl">What's built</span><h2>${md(BRIEF.title)}</h2>
+    <div class="paras">${(BRIEF.paragraphs || []).map((x) => `<p><b>${esc(x.label)}</b>${md(x.text)}</p>`).join("")}</div>
+    ${con.length ? `<div><span class="lbl">What each PR adds</span><div class="contrib" style="margin-top:8px">${con.map((c) => `<div><span>${esc(short(c.pr))}</span><span style="font:inherit;color:var(--ink)">${md(c.adds)}</span></div>`).join("")}</div></div>` : ""}`;
+}
+function screenProduct() {
+  const m = MEDIA[Math.min(S.shot, MEDIA.length - 1)];
+  return `<span class="lbl">What it looks like · real screenshots of the running app</span><h2>${md(m.title)}</h2>
+    <div class="gallery"><figure class="shot"><img src="${esc(m.src)}" alt="${esc(m.title)}"><figcaption>${md(m.caption)}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${codeBehind(m).map(({ p, b }) => `<button class="ghost" data-blk="${esc(b.id)}" data-pr="${esc(p.key)}" style="font-size:12.5px">${esc(base(b.path))} ${b.from}–${b.to}</button>`).join("")}</div></figcaption></figure>
+    <div class="thumbs">${MEDIA.map((x, i) => `<button data-shot="${i}" aria-pressed="${i === S.shot}"><img src="${esc(x.src)}" alt=""><span>${esc(x.title)}</span></button>`).join("")}</div></div>`;
+}
+function codeBehind(m) {
+  const set = new Set(m.paths || []);
+  return readable.filter(({ p, b }) => set.has(b.path) && p.code[b.id]).sort((a, b) => (a.b.tier === "deep" ? -1 : 0) - (b.b.tier === "deep" ? -1 : 0) || (b.b.score || 0) - (a.b.score || 0)).slice(0, 4);
+}
+function lensBox(views, active) {
+  return `<div data-lens><div class="tabs" role="tablist">${views.map((v, i) => `<button data-lens-btn="${i}" aria-pressed="${i === active}">${esc(v.label)}</button>`).join("")}</div>
+    ${views.map((v, i) => `<div data-lens-pane="${i}" ${i === active ? "" : "hidden"} style="margin-top:12px"><p class="muted" style="margin:0 0 10px"><b style="color:var(--ink)">${md(v.question || "")}</b> ${md(v.lede || "")}</p>${v.mermaid ? (i === active ? KIT.mermaidBox(v.mermaid) : KIT.mermaidBox(v.mermaid).replace("data-mermaid=", "data-mlazy=")) : v.shape ? shapeHtml(v.shape.text) : ""}</div>`).join("")}</div>`;
+}
+function screenLens() {
+  return `<span class="lbl">The system · ${esc(VIEWS.title)}</span><h2>${md(VIEWS.lede || VIEWS.title)}</h2>${lensBox(VIEWS.views.slice(0, 4), 0)}`;
+}
+function screenJourney() {
+  return `<span class="lbl">The journey</span><h2>${md(JOURNEY.title)}</h2><p class="lede">${md(JOURNEY.lede || "")}</p>
+    <div class="journey">${(JOURNEY.steps || []).map((s) => `<div class="jstep ${esc(s.status || "")}"><span class="a">${esc(s.actor || "")}</span>${md(s.text)}<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">${(s.prs || []).map((k) => `<span class="chip">${esc(short(k))}</span>`).join("")}${s.status ? `<span class="chip ${s.status === "new" ? "acc" : ""}">${esc(s.status)}</span>` : ""}</div></div>`).join("")}</div>`;
+}
+function screenMoment(m, i) {
+  const layer = m.layer || (m.b ? (m.p.layers || [])[m.b.layer] : null);
+  const fs = m.findings || m.p.findings.filter((f) => isOpen(f) && f.path === m.path && f.line >= m.from - 3 && f.line <= m.to + 3);
+  return `<span class="lbl">Read closely · ${i + 1} of ${MOMENTS.length} · ${esc(short(m.p.key))}</span><h2>${md(m.title)}</h2>${m.lede ? `<p class="lede">${md(m.lede)}</p>` : ""}
+    <div class="moment"><div class="inline" style="margin:0"><div class="cap"><span>${esc(m.path)}:${m.from}–${m.to}</span><a href="${esc(m.p.url)}/files" target="_blank" rel="noopener">on GitHub ↗</a></div>${codeHtml(m.block, { hl: m.hl })}</div>
+    <div class="side">${(m.notes || []).map((n) => `<div class="card"><span class="lbl">line ${n.line}</span><div>${md(n.text)}</div></div>`).join("")}
+      ${layer ? `<div class="card"><span class="lbl">In the walk</span><b style="display:block">${md(layer.title)}</b><span class="muted" style="font-size:14px">${md(layer.summary || "")}</span></div>` : ""}
+      ${fs.slice(0, 3).map((f) => fndHtml(f, 220)).join("")}</div></div>`;
+}
+function screenDecisions() {
+  return `<span class="lbl">Decisions you'll make</span><h2>${QUESTIONS.length === 1 ? "One call is yours" : `${QUESTIONS.length} calls are yours`}</h2><p class="lede">You can pick now; the choice carries into Decide and into your review.</p>
+    <div class="qs">${QUESTIONS.map((q) => `<div class="q"><span class="lbl">${q.pr ? esc(short(q.pr)) : "Across the set"}</span><h3>${md(q.title)}</h3><p>${md(q.lede || "")}</p>${q.ask ? `<p style="color:var(--ink)"><b>${md(q.ask)}</b></p>` : ""}<div class="opts">${(q.options || []).map((o, oi) => `<button data-pick="${esc(qid(q))}" data-oi="${oi}" aria-pressed="${pickOf(q) === oi}">${esc(o)}</button>`).join("")}</div></div>`).join("")}</div>`;
+}
+function screenPlan() {
+  const r = recipe(), c30 = cut(30);
+  const highsOut = c30.out.flatMap((s) => s.findings).filter(isHigh);
+  return `<span class="lbl">Your route</span><h2>Read in the ${RECIPES[r].name} layout</h2><p class="lede">${md(RECIPES[r].line)}</p>
+    <div class="rt">
+      <div class="card"><span class="lbl">The plan</span>${tierBar(totals, 220)}<div class="legend" style="margin-top:8px">${TIERS.map((t) => `<span><i class="td t-${t}"></i>${TIER_NAME[t]} ${(totals[t] || 0).toLocaleString()}</span>`).join("")}</div></div>
+      <div class="card"><span class="lbl">Time</span><div style="font:700 22px var(--f-display)">${fmtMin(fullMin)}</div><span class="muted" style="font-size:14px">for every stop. In 30 minutes you'd cover ${c30.fits.filter((s) => s.tier === "deep").length} of ${deepAll.length} deep reads${highsOut.length ? `, leaving ${highsOut.length} high finding${highsOut.length > 1 ? "s" : ""} unread` : ""}.</span></div>
+      <div class="card"><span class="lbl">Why this layout</span><div style="font-size:14.5px">${esc(RULES.find((x) => x.id === AUTO).text(SIG))}</div></div>
+    </div>`;
+}
+function renderBrief() {
+  const s = SCREENS[S.bi] || SCREENS[0];
+  const main = $("#main");
+  main.innerHTML = `<div class="brief">
+    <nav class="toc" aria-label="Briefing">${SCREENS.map((x, i) => `<button data-bi="${i}" aria-current="${i === S.bi}"><span>${String(i + 1).padStart(2, "0")}</span><span>${md(x.label)}</span></button>`).join("")}</nav>
+    <section class="screen" aria-live="polite">${s.html()}
+      <div class="sfoot"><div class="prog">${SCREENS.map((_, i) => `<i class="${i <= S.bi ? "on" : ""}"></i>`).join("")}</div><span class="sp"></span>
+        <button class="ghost" id="play">${playing ? "■ Stop" : "▶ Play"}${speechOK ? "" : " (silent)"}</button>
+        <button class="ghost" data-bstep="-1" ${S.bi ? "" : "disabled"}>← Back</button>
+        ${S.bi < SCREENS.length - 1 ? `<button class="primary" data-bstep="1">Next →</button>` : `<button class="primary" data-stage="read">Start reading →</button>`}</div>
+      <div class="say" aria-hidden="true">${esc(s.say)}</div>
+    </section></div>`;
+  KIT.mermaid(main);
+}
+/* narration */
+const speechOK = typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined";
+let playing = false, playTimer = null;
+function speak(text, done) {
+  if (!speechOK) { playTimer = setTimeout(done, Math.max(4000, text.split(/\s+/).length * 330)); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = speechSynthesis.getVoices().find((x) => /en[-_]US/i.test(x.lang) && /Samantha|Ava|Allison|Google US/i.test(x.name)) || speechSynthesis.getVoices().find((x) => /^en/i.test(x.lang));
+    if (v) u.voice = v;
+    u.rate = 1.05; u.onend = () => { if (playing) playTimer = setTimeout(done, 500); }; u.onerror = () => { if (playing) playTimer = setTimeout(done, 500); };
+    speechSynthesis.speak(u);
+  } catch (_) { playTimer = setTimeout(done, 5000); }
+}
+function playStep() {
+  if (!playing) return;
+  speak(SCREENS[S.bi].say, () => { if (!playing) return; if (S.bi < SCREENS.length - 1) { S.bi++; save(); render(); playStep(); } else stopPlay(); });
+}
+function startPlay() { playing = true; render(); playStep(); }
+function stopPlay() { playing = false; clearTimeout(playTimer); try { speechSynthesis.cancel(); } catch (_) {} render(); }
+
+/* =========================================================== READ */
+function renderRead() {
+  const r = recipe(), c = cut(S.budget), cov = coverage();
+  const outHigh = c.out.flatMap((s) => s.findings).filter(isHigh);
+  const unreadHigh = (S.budget ? c.out : []).length ? outHigh : [];
+  const seg = (list, faded) => TIERS.filter((t) => t !== "skip").map((t) => { const m = list.filter((s) => s.tier === t).reduce((a, s) => a + s.min, 0); return m ? `<i class="t-${t}${faded ? " out" : ""}" style="flex:${m}" title="${TIER_NAME[t]}: ${Math.round(m)} min"></i>` : ""; }).join("");
+  const fitDeep = c.fits.filter((s) => s.tier === "deep").length;
+  const budgets = [15, 30, 60, 0];
+  const files = [...new Set(unreadHigh.map((f) => base(f.path || "")))].filter(Boolean);
+  const showMap = SIG.prs >= 4 || moduleCount() >= 12;
+  $("#main").innerHTML = `
+  <section class="strip" aria-label="Reading plan">
+    <div class="row"><div class="big"><b>${(totals.deep || 0).toLocaleString()} lines to deep-read, ${(totals.review || 0).toLocaleString()} to read</b> <span class="muted">of ${(totals.total || 0).toLocaleString()} changed · ${(totals.skim || 0).toLocaleString()} skim, ${(totals.skip || 0).toLocaleString()} skip</span></div>
+      <span class="lbl">Time box</span><div class="seg" role="group" aria-label="Time box">${budgets.map((b) => `<button data-budget="${b}" aria-pressed="${S.budget === b}">${b ? b + " min" : "All"}</button>`).join("")}</div></div>
+    <div class="cutbar">${seg(c.fits)}${seg(c.out, true)}${S.budget && c.out.length ? `<span class="cutmark" style="left:${(100 * c.used) / fullMin}%"></span>` : ""}</div>
+    <div class="row" style="justify-content:space-between">
+      <div class="risknote ${unreadHigh.length ? "bad" : "ok"}">${S.budget ? `<b>${c.fits.length} of ${STOPS.length} stops fit in ${S.budget} min</b>${hasDeep ? `, ${fitDeep} of ${deepAll.length} deep reads.` : "."} ${c.out.length ? (unreadHigh.length ? `Left unread: ${unreadHigh.length} high finding${unreadHigh.length > 1 ? "s" : ""} in ${files.map((f) => `<code>${esc(f)}</code>`).join(", ")}.` : "Nothing high is left outside the box.") : "Everything fits."} <span class="muted">Full plan ${fmtMin(fullMin)}.</span>` : `<b>All ${STOPS.length} stops, ${fmtMin(fullMin)}.</b>`}</div>
+      <div class="legend"><span>${cov.n} of ${cov.of} blocks marked · ${pct(cov.share)} of reading time</span>${hasDeep ? `<span>${cov.deepRead} of ${deepAll.length} deep reads done</span>` : ""}</div></div>
+    <div class="row"><button class="ghost" id="route-btn" aria-expanded="${S.route}">${S.route ? "Hide" : "Show"} the route in order</button>${showMap ? `<button class="ghost" id="map-btn" aria-expanded="${S.map}">${S.map ? "Hide" : "Show"} the module map</button>` : ""}</div>
+    ${S.route ? routeHtml(c) : ""}
+    ${S.map && showMap ? mapHtml() : ""}
+  </section>
+  <div class="layoutbar"><h2>${RECIPES[r].name} layout</h2><span class="lbl">Layout</span><div class="seg" role="group" aria-label="Layout">${Object.entries(RECIPES).map(([id, x]) => `<button data-recipe="${id}" aria-pressed="${id === r}">${x.name}${id === AUTO ? " ·auto" : ""}</button>`).join("")}</div><button class="ghost" id="why-btn" aria-expanded="${S.why}">Why this layout</button></div>
+  ${S.why ? whyHtml() : ""}
+  <p class="sub">${md(RECIPES[r].line)}</p>
+  <div id="work">${({ stack: wStack, contract: wContract, fix: wFix, product: wProduct })[r]()}</div>
+  <div class="layoutbar" style="justify-content:flex-end"><button class="primary" data-stage="decide">Decide →</button></div>`;
+  KIT.mermaid($("#main"));
+}
+function routeHtml(c) {
+  let t = 0;
+  const row = (s) => { const at = t; t += s.min; const m = s.kind === "block" ? markOf(s.p, s.b) : null;
+    const label = s.kind === "block" ? `${esc(s.b.path)}:${s.b.from}–${s.b.to}` : `Skim pass · ${(s.lines || 0).toLocaleString()} lines${s.findings.length ? ` · ${s.findings.length} loose finding${s.findings.length > 1 ? "s" : ""}` : ""}`;
+    return `<button class="rstop ${m ? "m-" + m.m : ""}" ${s.kind === "block" ? `data-blk="${esc(s.b.id)}" data-pr="${esc(s.p.key)}"` : `data-goto-pr="${esc(s.p.key)}"`}><span class="tm">+${Math.round(at)}′</span><span class="td t-${s.tier}"></span><span class="p">${C.prs.length > 1 ? esc(short(s.p.key)) + " · " : ""}${label}${s.findings.some(isHigh) ? ` <span class="chip high">high</span>` : ""}</span><span class="mn">${s.min < 1 ? "<1" : Math.round(s.min)} min</span><span class="mk">${m ? (m.m === "read" ? "✓" : "⚑") : ""}</span></button>`; };
+  const fits = c.fits.map(row).join("");
+  const out = c.out.slice(0, 40).map(row).join("");
+  return `<div class="route-list">${fits}${c.out.length ? `<div class="cutline">${S.budget} min · ${c.out.length} stops outside the box</div>${out}${c.out.length > 40 ? `<p class="muted" style="font-size:13px">and ${c.out.length - 40} more</p>` : ""}` : ""}</div>`;
+}
+function whyHtml() {
+  const s = SIG; let fired = false;
+  const sigs = [["PRs", s.prs], ["Repos", s.repos], ["Changed lines", s.total.toLocaleString()], ["UI share", pct(s.uiShare)], ["Test share", pct(s.testShare)], ["Migrations", s.migrations], ["Screenshots", s.media], ["Deep-read lines", s.deep], ["Open high findings", s.highs], ["Journey beat", s.journey ? "yes" : "no"]];
+  return `<div class="why"><b>The page picked ${RECIPES[AUTO].name} from the shape of this change.</b> First rule that matches wins; you can switch any time.
+    <ul>${sigs.map(([k, v]) => `<li><span>${k}</span><b>${esc(v)}</b></li>`).join("")}</ul>
+    ${RULES.map((r) => { const ok = !fired && r.test(s); if (ok) fired = true; return `<div class="${ok ? "hit" : "miss"}">${ok ? "▸" : "·"} ${RECIPES[r.id].name}: ${esc(r.text(s))}</div>`; }).join("")}</div>`;
+}
+/* --- module map (from v3.5, squarified) --- */
+function modules() {
+  const files = C.prs.flatMap((p) => p.files.map((f) => ({ ...f, p })));
+  const norm = (path) => path.split("/").filter((s) => !/^(tests?|__tests__|unit|integration|e2e|spec)$/i.test(s));
+  let depth = 4, groups;
+  for (; depth >= 1; depth--) {
+    groups = {};
+    files.forEach((f) => { const parts = norm(f.path); const k = parts.slice(0, Math.min(depth, parts.length - 1)).join("/") || "."; (groups[k] = groups[k] || []).push(f); });
+    if (Object.keys(groups).length <= 24) break;
+  }
+  return Object.entries(groups).map(([k, fs]) => { const t = { deep: 0, review: 0, skim: 0, skip: 0 }; fs.forEach((f) => TIERS.forEach((x) => (t[x] += (f.tiers || {})[x] || 0)));
+    const paths = new Set(fs.map((f) => f.path)); const fnd = C.prs.flatMap((p) => p.findings.filter((x) => isOpen(x) && paths.has(x.path)));
+    return { k, fs, t, n: fs.reduce((a, f) => a + f.add + f.del, 0), fnd, prs: [...new Set(fs.map((f) => f.p.key))] }; }).filter((m) => m.n > 0).sort((a, b) => b.n - a.n);
+}
+let MODS = null;
+const moduleCount = () => (MODS = MODS || modules()).length;
+function squarify(items, x, y, w, h) {
+  const out = [], total = items.reduce((a, i) => a + i.v, 0); if (!total) return out;
+  const scale = (w * h) / total; let rest = items.map((i) => ({ ...i, a: i.v * scale }));
+  while (rest.length) {
+    const short = Math.min(w, h); let row = [], best = Infinity;
+    for (const it of rest) { const r = row.concat(it), s = r.reduce((a, i) => a + i.a, 0), mx = Math.max(...r.map((i) => i.a)), mn = Math.min(...r.map((i) => i.a)); const worst = Math.max((short * short * mx) / (s * s), (s * s) / (short * short * mn)); if (worst > best) break; best = worst; row = r; }
+    const s = row.reduce((a, i) => a + i.a, 0), thick = s / short; let off = 0;
+    row.forEach((i) => { const len = i.a / thick; out.push(w >= h ? { ...i, x, y: y + off, w: thick, h: len } : { ...i, x: x + off, y, w: len, h: thick }); off += len; });
+    if (w >= h) { x += thick; w -= thick; } else { y += thick; h -= thick; }
+    rest = rest.slice(row.length);
+  }
+  return out;
+}
+function mapHtml() {
+  const W = 1000, H = SIG.prs >= 4 ? 440 : 340, mods = MODS || modules();
+  const rects = squarify(mods.map((m, i) => ({ v: m.n, i })), 0, 0, W, H);
+  const cells = rects.map((r) => { const m = mods[r.i], tot = TIERS.reduce((a, t) => a + m.t[t], 0) || 1; let bx = r.x + 3;
+    const band = TIERS.map((t) => { const bw = ((r.w - 6) * m.t[t]) / tot; const s = bw > 0 ? `<rect x="${bx}" y="${r.y + r.h - 9}" width="${bw}" height="6" fill="var(--${t})"/>` : ""; bx += bw; return s; }).join("");
+    const hi = m.fnd.some(isHigh), label = m.k.split("/").slice(-2).join("/");
+    const fits = r.w > 70 && r.h > 34;
+    return `<g class="mnode" data-mod="${r.i}" tabindex="0" role="button" aria-label="${esc(m.k)}, ${m.n} lines, ${m.fnd.length} open findings"><title>${esc(m.k)} · ${m.n} lines · ${m.fnd.length} open findings</title>
+      <rect class="bg" x="${r.x + 1.5}" y="${r.y + 1.5}" width="${Math.max(0, r.w - 3)}" height="${Math.max(0, r.h - 3)}" rx="6" fill="var(--sunk)" stroke="var(--line)"/>${band}
+      ${fits ? `<text x="${r.x + 9}" y="${r.y + 20}" font-size="13" font-weight="600">${esc(label.length > r.w / 7.4 ? "…" + label.slice(-Math.floor(r.w / 7.4)) : label)}</text><text x="${r.x + 9}" y="${r.y + 36}" font-size="11.5" fill="var(--muted)" style="fill:var(--muted)">${m.n.toLocaleString()} lines</text>` : ""}
+      ${m.fnd.length && r.w > 30 && r.h > 24 ? `<circle cx="${r.x + r.w - 15}" cy="${r.y + 15}" r="10" fill="${hi ? "var(--deep)" : "var(--review)"}"/><text x="${r.x + r.w - 15}" y="${r.y + 19}" font-size="11" text-anchor="middle" font-weight="700" style="fill:var(--surface)">${m.fnd.length}</text>` : ""}</g>`; }).join("");
+  return `<div class="map"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Module map: area is changed lines, the bottom band is the tier mix, badges count open findings">${cells}</svg><div class="legend" style="margin-top:6px"><span>Area: changed lines</span><span>Band: tier mix</span><span><i class="td" style="background:var(--deep);border-radius:50%"></i>open findings (red if high)</span><span>Tests fold into the module they test</span></div></div>`;
+}
+function openModule(i) {
+  const m = MODS[i];
+  const blocks = readable.filter(({ b }) => m.fs.some((f) => f.path === b.path)).sort((a, b) => (a.b.tier === "deep" ? -1 : 1) - (b.b.tier === "deep" ? -1 : 1) || (b.b.score || 0) - (a.b.score || 0));
+  openDrawer(`<span class="lbl">Module · ${m.n.toLocaleString()} lines · ${m.prs.map(short).join(" ")}</span><h3>${esc(m.k)}</h3>`,
+    `${m.fnd.slice(0, 6).map((f) => fndHtml(f, 200)).join("")}<div class="blks">${blocks.slice(0, 20).map(({ p, b }) => blockBtn(p, b)).join("") || `<p class="muted">Nothing to read here: all skim or skip.</p>`}</div>
+     <ul class="tree">${m.fs.map((f) => `<li><span class="p" title="${esc(f.path)}">${esc(f.path)}</span>${tierBar(fileSum(f), 90)}<span class="c">+${f.add}</span></li>`).join("")}</ul>`, "");
+}
+
+/* --- recipes (from v3.4, with marks) --- */
+function decisionsHtml(qs) {
+  if (!qs.length) return "";
+  return `<section class="sect"><h3>Decisions for you</h3><div class="qs">${qs.map((q) => `<div class="q"><span class="lbl">${q.pr ? esc(short(q.pr)) : "Across the set"}</span><h3 style="font-size:17px">${md(q.title)}</h3><p>${md(q.lede || "")}</p>${q.ask ? `<p style="color:var(--ink)"><b>${md(q.ask)}</b></p>` : ""}<div class="opts">${(q.options || []).map((o, oi) => `<button data-pick="${esc(qid(q))}" data-oi="${oi}" aria-pressed="${pickOf(q) === oi}">${esc(o)}</button>`).join("")}</div></div>`).join("")}</div></section>`;
+}
+function scopeHtml() {
+  const s = C.story.find((b) => b.kind === "scope"); if (!s) return "";
+  const prs = s.prs || C.prs.map((p) => p.key);
+  return `<section class="sect"><h3>${md(s.title)}</h3><p class="sub">${md(s.lede || "")}</p><div class="tw"><table class="scope"><thead><tr><th>${esc(s.item_label || "Item")}</th>${prs.map((k) => `<th>${esc(short(k))}</th>`).join("")}</tr></thead><tbody>
+    ${(s.items || []).map((it) => `<tr><td>${md(it.text)}</td>${prs.map((k) => { const v = (it.by || {})[k]; return `<td>${v ? `<span class="st ${esc(v)}">${esc(v)}</span>` : ""}</td>`; }).join("")}</tr>`).join("")}</tbody></table></div></section>`;
+}
+function seamsFor(p) {
+  const mine = new Set(p.files.map((f) => f.path)), by = {};
+  C.prs.forEach((q) => { if (q.key !== p.key) q.files.forEach((f) => { if (mine.has(f.path)) (by[f.path] = by[f.path] || []).push(q.key); }); });
+  return Object.entries(by).sort((a, b) => b[1].length - a[1].length);
+}
+function prCov(p) {
+  const bs = p.attention.blocks.filter((b) => b.tier === "deep" || b.tier === "review");
+  return { n: bs.filter((b) => markOf(p, b)).length, of: bs.length };
+}
+function beatCards(p) {
+  return (p.story || []).filter((b) => b.kind === "shape" || b.kind === "callout" || b.kind === "code").slice(0, 2).map((b) => `<div class="card" style="margin-bottom:10px"><b style="font-family:var(--f-display);font-size:17px">${md(b.title)}</b><p class="muted" style="margin:4px 0 8px">${md(b.lede || "")}</p>${b.kind === "shape" && b.text ? shapeHtml(b.text) : b.kind === "code" ? momentCode(p, b) : b.text ? `<p style="margin:0">${md(b.text)}</p>` : ""}</div>`).join("");
+}
+function momentCode(p, bt) {
+  const blk = codeForRange(p, bt.path, bt.from, bt.to, bt.id);
+  return blk ? `<div class="inline" style="margin:0"><div class="cap"><span>${esc(bt.path)}:${bt.from}–${bt.to}</span></div>${codeHtml(blk, { hl: (bt.notes || []).map((n) => n.line) })}${(bt.notes || []).map((n) => `<p style="margin:6px 0 0;font-size:14px"><code>:${n.line}</code> ${md(n.text)}</p>`).join("")}</div>` : `<code>${esc(bt.path)}:${bt.from}–${bt.to}</code>`;
+}
+function wStack() {
+  const sel = prBy(S.sel) || ORDER[0];
+  const parentOf = {};
+  (C.stacks || []).forEach((s) => s.forEach((k, i) => { if (i) parentOf[k] = parentOf[k] || s[i - 1]; }));
+  const rail = ORDER.map((q, i) => { const cv = prCov(q);
+    return `<button class="rl" data-sel="${esc(q.key)}" aria-current="${q.key === sel.key}"><span class="o">${i + 1}</span><span><span class="t"><b>${esc(short(q.key))}</b> ${md(strip(q.title))}</span><span class="m">${tierBar(q.attention.summary, 80)}${findingChip(q)}<span class="cov">${cv.n}/${cv.of}</span></span>${parentOf[q.key] && ORDER[i - 1] && parentOf[q.key] !== ORDER[i - 1].key ? `<span class="muted" style="font-size:12px">on ${esc(short(parentOf[q.key]))}</span>` : ""}</span></button>`; }).join("");
+  const seams = seamsFor(sel), p = sel;
+  return `<div class="stackgrid"><nav class="rail" aria-label="Stack, base at the bottom"><div class="base">base · ${esc(ORDER[0].base)}</div>${rail}</nav>
+    <div><div class="prhead"><span class="lbl">PR ${ORDER.indexOf(p) + 1} of ${ORDER.length} · read bottom-up</span><h2>${md(strip(p.title))}</h2>
+      <div class="meta"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.key)}</a><span>${esc(p.author)}</span><span>+${p.add} −${p.del}</span>${tierBar(p.attention.summary, 150)}${findingChip(p)}</div>
+      <p style="margin:0 0 6px">${md(p.summary || "")}</p><p class="muted" style="margin:0">${md(p.risk || "")}</p></div>
+      <div class="sect">${beatCards(p)}</div>
+      <div class="two sect"><div><h3 style="font-size:17px;margin-bottom:8px">Read these first</h3><div class="blks">${focusBlocks(p, 8).map((b) => blockBtn(p, b)).join("") || `<p class="muted">Nothing to read closely here.</p>`}</div></div>
+        <div><h3 style="font-size:17px;margin-bottom:8px">Seams with other PRs</h3>${seams.length ? seams.slice(0, 10).map(([path, os]) => `<div class="seam"><span class="p" title="${esc(path)}">${esc(path)}</span><span>${os.map((o) => `<button data-sel="${esc(o)}">${esc(short(o))}</button>`).join(" ")}</span></div>`).join("") + (seams.length > 10 ? `<p class="muted" style="font-size:13px">and ${seams.length - 10} more shared files</p>` : "") : `<p class="muted">No file shared with another PR in the set.</p>`}</div></div>
+      ${(p.layers || []).length ? `<div class="sect"><h3 style="font-size:17px;margin-bottom:8px">The walk through this PR</h3><ol style="margin:0;padding-left:20px">${p.layers.map((l, li) => { const bs = p.attention.blocks.filter((b) => b.layer === li && (b.tier === "deep" || b.tier === "review")); return `<li style="margin-bottom:8px"><b>${md(l.title)}</b> <span class="muted">${md(l.summary || "")}</span>${bs.length ? `<div class="blks" style="margin-top:6px">${bs.slice(0, 4).map((b) => blockBtn(p, b)).join("")}${bs.length > 4 ? `<span class="muted" style="font-size:13px">and ${bs.length - 4} more blocks in this step</span>` : ""}</div>` : ""}</li>`; }).join("")}</ol></div>` : ""}
+    </div></div>
+    ${C.story.filter((b) => b.kind === "callout" || b.kind === "shape").map((b) => `<section class="sect"><div class="card" style="border-left:4px solid var(--deep)"><span class="lbl">Across the stack</span><h3 style="font-size:19px;margin:4px 0">${md(b.title)}</h3><p class="muted" style="margin:0 0 8px">${md(b.lede || "")}</p>${b.kind === "shape" ? shapeHtml(b.text) : `<p style="margin:0">${md(b.text || "")}</p>`}</div></section>`).join("")}
+    ${scopeHtml()}${decisionsHtml(QUESTIONS.filter((q) => !q.pr || q.pr === p.key))}`;
+}
+function wContract() {
+  const repos = [...new Set(C.prs.map((p) => p.repo))];
+  const isUI = (r) => { const fs = C.prs.filter((p) => p.repo === r).flatMap((p) => p.files); const ui = fs.filter((f) => UI_RE.test(f.path)).reduce((a, f) => a + f.add + f.del, 0), all = fs.reduce((a, f) => a + f.add + f.del, 0); return all && ui / all > 0.5; };
+  repos.sort((a, b) => isUI(a) - isUI(b));
+  const seam = C.story.find((b) => b.kind === "code");
+  const seamP = seam && (seam.pr ? prBy(seam.pr) : C.prs.find((q) => q.files.some((f) => f.path === seam.path)));
+  return `${JOURNEY ? `<section class="sect" style="margin-top:0"><h3>${md(JOURNEY.title)}</h3><p class="sub">${md(JOURNEY.lede || "")}</p><div class="journey">${JOURNEY.steps.map((s) => `<div class="jstep ${esc(s.status || "")}"><span class="a">${esc(s.actor || "")}</span>${md(s.text)}<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">${(s.prs || []).map((k) => `<span class="chip">${esc(short(k))} ${esc(repoShort(k))}</span>`).join("")}</div></div>`).join("")}</div></section>` : ""}
+    <section class="sect"><h3>Each side of the contract</h3><p class="sub">Backend on the left, the UI that calls it on the right. What one side promises, the other relies on.</p>
+    <div class="cols" style="--n:${repos.length}">${repos.map((r) => `<div class="col"><span class="role">${isUI(r) ? "Consumer · UI" : "Producer · backend"}</span><h3>${esc(r.split("/")[1])}</h3>
+      ${ORDER.filter((p) => p.repo === r).map((p) => { const cv = prCov(p); return `<div class="pr"><h4>${esc(short(p.key))} ${md(strip(p.title))}</h4><div class="meta">${tierBar(p.attention.summary, 110)}${findingChip(p)}<span>${cv.n}/${cv.of} read</span></div>
+        <p class="muted" style="font-size:14px;margin:0 0 8px">${md(p.summary || "")}</p>
+        ${(p.layers || []).slice(0, 5).map((l) => `<div class="layer"><b>${md(l.title)}</b><p>${md(l.summary || "")}</p></div>`).join("")}
+        <div class="blks" style="margin-top:8px">${focusBlocks(p, 5).map((b) => blockBtn(p, b)).join("")}</div></div>`; }).join("")}</div>`).join("")}</div></section>
+    ${seam && seamP ? `<section class="sect"><h3>${md(seam.title)}</h3><p class="sub">${md(seam.lede || "")}</p>${momentCode(seamP, seam)}</section>` : ""}
+    ${scopeHtml()}
+    ${VIEWS ? `<section class="sect"><h3>The system</h3>${lensBox(VIEWS.views, 0)}</section>` : ""}
+    ${decisionsHtml(QUESTIONS)}`;
+}
+function wFix() {
+  const p = C.prs[0], sum = p.attention.summary || {};
+  const deep = focusBlocks(p, 6).slice().sort((a, b) => a.path.localeCompare(b.path) || a.from - b.from);
+  const tests = p.files.filter((f) => f.role === "test");
+  const testLayers = (p.layers || []).filter((l) => (l.ranges || []).some((r) => /test/.test(r.path)));
+  const codeBeats = (p.story || []).filter((b) => b.kind === "code");
+  const rest = p.files.filter((f) => !deep.some((b) => b.path === f.path));
+  const paras = (BRIEF && BRIEF.paragraphs) || [];
+  return `<div class="fix">
+    <div class="step"><span class="k">Problem</span><div><h3>${md(BRIEF ? BRIEF.title : strip(p.title))}</h3><p>${md(BRIEF ? BRIEF.lede : p.summary || "")}</p>${paras.slice(0, 3).map((x) => `<p><b>${esc(x.label)}.</b> ${md(x.text)}</p>`).join("")}</div></div>
+    <div class="step"><span class="k">Fix</span><div><h3>The code that decides it</h3><p class="muted">${deep.length} block${deep.length === 1 ? "" : "s"} ${hasDeep ? `marked for deep read, ${sum.deep || 0} of ${sum.total || 0} changed lines` : "with the highest plan score"}. Mark each one as you read it.</p>
+      ${deep.map((b) => { const m = markOf(p, b); return `<div class="inline"><div class="cap"><span>${esc(b.path)}:${b.from}–${b.to}</span><span>${esc((b.why || []).join(" · ") || b.reason || "")}</span></div>${codeHtml(p.code[b.id], { hl: findingsOn(p, b).map((f) => f.line) })}${findingsOn(p, b).map((f) => fndHtml(f, 260)).join("")}<div style="margin-top:6px;display:flex;gap:6px">${markBtns(p, b, m)}</div></div>`; }).join("")}
+      ${codeBeats.map((b) => `<div class="card" style="margin-top:10px"><b>${md(b.title)}</b><p class="muted" style="margin:4px 0 0">${md(b.lede || "")}</p>${(b.notes || []).map((n) => `<p style="margin:6px 0 0;font-size:14px"><code>${esc(base(b.path))}:${n.line}</code> ${md(n.text)}</p>`).join("")}</div>`).join("")}</div></div>
+    <div class="step"><span class="k">Proof</span><div><h3>Tests</h3><p class="muted">${tests.length} test file${tests.length === 1 ? "" : "s"}, +${tests.reduce((a, f) => a + f.add, 0)} lines.</p>${testLayers.map((l) => `<p><b>${md(l.title)}.</b> ${md(l.summary || "")}</p>`).join("")}
+      <ul class="tree">${tests.map((f) => `<li><span class="p" title="${esc(f.path)}">${esc(f.path)}</span>${tierBar(fileSum(f), 90)}<span class="c">+${f.add}</span></li>`).join("")}</ul></div></div>
+    <div class="step"><span class="k">Risk</span><div><p>${md(p.risk || "")}</p><div style="display:grid;gap:6px">${p.findings.filter(isOpen).sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5)).map((f) => fndHtml(f, 240)).join("")}</div></div></div>
+    ${JOURNEY ? `<div class="step"><span class="k">Who feels it</span><div><h3>${md(JOURNEY.title)}</h3><p class="muted">${md(JOURNEY.lede || "")}</p><ol style="padding-left:20px;margin:0">${JOURNEY.steps.map((s) => `<li><b>${esc(s.actor)}</b> ${md(s.text)}</li>`).join("")}</ol></div></div>` : ""}
+    ${decisionsHtml(QUESTIONS)}
+    <details class="rest"><summary>The rest of the change · ${rest.length} files</summary><div>${VIEWS ? lensBox(VIEWS.views, 0) : ""}
+      <div class="blks" style="margin-top:12px">${p.attention.blocks.filter((b) => b.tier === "review" && !deep.includes(b) && p.code[b.id]).sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 14).map((b) => blockBtn(p, b)).join("")}</div>
+      <ul class="tree" style="margin-top:14px">${rest.map((f) => `<li><span class="p" title="${esc(f.path)}">${esc(f.path)}</span>${tierBar(fileSum(f), 90)}<span class="c">+${f.add} −${f.del}</span></li>`).join("")}</ul></div></details></div>`;
+}
+function wProduct() {
+  const files = C.prs.flatMap((p) => p.files.map((f) => ({ ...f, p })));
+  const ui = files.filter((f) => UI_RE.test(f.path)), back = files.filter((f) => !UI_RE.test(f.path) && f.role !== "test" && f.role !== "docs");
+  const blocksIn = (fs, n) => { const set = new Set(fs.map((f) => f.path)); return readable.filter(({ p, b }) => set.has(b.path) && p.code[b.id]).sort((a, b) => (a.b.tier === "deep" ? -1 : 0) - (b.b.tier === "deep" ? -1 : 0) || (b.b.score || 0) - (a.b.score || 0)).slice(0, n); };
+  const lines = (fs) => fs.reduce((a, f) => a + f.add + f.del, 0);
+  const shots = MEDIA.length ? `<section class="sect" style="margin-top:0"><h3>What people will see</h3><p class="sub">Real screenshots of the running app. Under each, the code that draws it.</p>
+    <div style="display:grid;gap:18px">${MEDIA.map((m) => `<figure class="shot pshot"><img src="${esc(m.src)}" alt="${esc(m.title)}" loading="lazy"><figcaption><b>${md(m.title)}</b>${md(m.caption)}<span class="lbl" style="display:block;margin-top:12px">The code behind it</span><div class="blks" style="margin-top:6px">${codeBehind(m).slice(0, 4).map(({ p, b }) => blockBtn(p, b)).join("")}</div></figcaption></figure>`).join("")}</div></section>`
+    : `<section class="sect" style="margin-top:0"><h3>What people will see</h3><p class="sub">No screenshots were captured for this change; the lenses stand in.</p>${VIEWS ? lensBox(VIEWS.views, 0) : ""}</section>`;
+  return `${shots}
+    <section class="sect"><h3>The surface · ${ui.length} UI files, ${lines(ui).toLocaleString()} lines</h3><div class="blks">${blocksIn(ui, 10).map(({ p, b }) => blockBtn(p, b)).join("") || `<p class="muted">No read blocks in UI files.</p>`}</div></section>
+    <section class="sect"><h3>Behind it · ${back.length} files, ${lines(back).toLocaleString()} lines</h3><div class="blks">${blocksIn(back, 12).map(({ p, b }) => blockBtn(p, b)).join("")}</div></section>
+    ${MEDIA.length && VIEWS ? `<section class="sect"><h3>The system</h3>${lensBox(VIEWS.views, 0)}</section>` : ""}
+    <section class="sect"><h3>Open findings · ${openAll.length}</h3><div style="display:grid;gap:6px">${openAll.map((f) => fndHtml(f, 220)).join("")}</div></section>
+    ${decisionsHtml(QUESTIONS)}`;
+}
+
+/* --- drawer --- */
+let drawerCtx = null;
+function openDrawer(head, body, acts) {
+  const d = $("#drawer");
+  d.innerHTML = `<header><div class="row"><span style="flex:1"></span><button class="ghost" id="dr-close" aria-label="Close">Close <kbd>Esc</kbd></button></div>${head}</header><div class="body">${body}</div>${acts ? `<div class="acts">${acts}</div>` : ""}`;
+  d.hidden = false; $("#dr-close").focus();
+  KIT.mermaid(d);
+}
+function closeDrawer() { $("#drawer").hidden = true; drawerCtx = null; }
+function markBtns(p, b, m) {
+  return `<button class="mbtn read" data-mark="read" data-blk-m="${esc(b.id)}" data-pr="${esc(p.key)}" aria-pressed="${m && m.m === "read"}">✓ Read <kbd>r</kbd></button><button class="mbtn flag" data-mark="flag" data-blk-m="${esc(b.id)}" data-pr="${esc(p.key)}" aria-pressed="${m && m.m === "flag"}">⚑ Flag <kbd>f</kbd></button>`;
+}
+function stopList() { return cut(0).fits.filter((s) => s.kind === "block"); }
+function openBlock(prKey, id) {
+  const p = prBy(prKey), b = p.attention.blocks.find((x) => x.id === id); if (!b) return;
+  drawerCtx = { p, b };
+  const layer = (p.layers || [])[b.layer], fs = findingsOn(p, b), m = markOf(p, b);
+  const list = stopList(), i = list.findIndex((s) => s.p === p && s.b === b);
+  openDrawer(`<span class="lbl">${esc(short(p.key))} · ${esc(TIER_NAME[b.tier])} · ${b.lines} lines${i >= 0 ? ` · stop ${i + 1} of ${list.length}` : ""}</span><h3>${md(layer ? layer.title : (b.why || []).join(" · ") || "Block")}</h3><div class="pth">${esc(b.path)}:${b.from}–${b.to}</div>`,
+    `${(b.why || []).length ? `<div class="chip acc" style="justify-self:start">${esc(TIER_NAME[b.tier])} because: ${esc(b.why.join(", "))}</div>` : ""}
+     ${layer ? `<div class="card"><span class="lbl">Step ${b.layer + 1} of the walk</span><div style="font-size:14.5px">${md(layer.summary || "")}</div></div>` : ""}
+     ${fs.map((f) => fndHtml(f, 600)).join("")}
+     ${codeHtml(p.code[b.id], { hl: fs.map((f) => f.line) }) || `<p class="muted">The code for this block isn't in this page; open it on GitHub.</p>`}
+     <label class="lbl" for="mnote">Note for the review</label><textarea id="mnote" placeholder="What should the author know? It goes into your review at ${esc(base(b.path))}:${b.from}.">${esc((m && m.note) || "")}</textarea>
+     <a href="${esc(p.url)}/files" target="_blank" rel="noopener">Open the PR's files on GitHub ↗</a>`,
+    `${markBtns(p, b, m)}<span style="flex:1"></span><button class="ghost" data-dnav="-1" ${i > 0 ? "" : "disabled"}>← <kbd>k</kbd></button><button class="ghost" data-dnav="1" ${i >= 0 && i < list.length - 1 ? "" : "disabled"}><kbd>j</kbd> Next stop →</button>`);
+}
+function setMark(p, b, kind) {
+  const k = mkey(p, b), cur = S.marks[k], note = ($("#mnote") || {}).value ?? (cur && cur.note) ?? "";
+  if (cur && cur.m === kind) { if (note) S.marks[k] = { m: "note", note }; else delete S.marks[k]; }
+  else S.marks[k] = { m: kind, note };
+  save();
+}
+function saveNote() {
+  if (!drawerCtx) return; const t = $("#mnote"); if (!t) return;
+  const k = mkey(drawerCtx.p, drawerCtx.b), cur = S.marks[k];
+  if (t.value.trim()) S.marks[k] = { m: cur ? cur.m : "note", note: t.value.trim() };
+  else if (cur) { if (cur.m === "note") delete S.marks[k]; else S.marks[k] = { m: cur.m, note: "" }; }
+  save();
+}
+
+/* =========================================================== DECIDE */
+const ACT = { a: "Approve", q: "Ask", b: "Block", d: "Defer" };
+const LABELS = {
+  decision: { a: "Agree with the PR", q: "Ask", b: "Block on it", d: "Defer" }, finding: { a: "Fine as is", q: "Ask", b: "Must fix", d: "Defer" },
+  deep: { a: "Looks right", q: "Ask", b: "Block", d: "Defer" }, flag: { a: "Fine after all", q: "Ask", b: "Block", d: "Defer" },
+  risk: { a: "Accept the risk", q: "Ask", b: "Block", d: "Defer" }, scope: { a: "OK for now", q: "Ask", b: "Block", d: "Defer" }, rest: { a: "All fine", q: "Ask", b: "Block", d: "Defer" },
+};
+const KIND = { decision: "Decision", finding: "Finding", deep: "Deep read", flag: "You flagged", risk: "Risk", scope: "Scope gap", rest: "The rest" };
+const qid = (q) => "q:" + (q.pr ? q.pr + ":" : "") + q.id;
+const pickOf = (q) => (S.picks[qid(q)] ?? null);
+let QCACHE = null;
+function queue() {
+  if (QCACHE) return QCACHE;
+  const cards = [], SET = "__set";
+  const byId = Object.fromEntries(C.story.map((b) => [b.id, b]));
+  QUESTIONS.filter((q) => !q.pr).forEach((q) => cards.push({ id: qid(q), group: SET, kind: "decision", title: q.title, claim: q.lede, ask: q.ask, options: q.options || [], q }));
+  (NOTICE && NOTICE.items || []).forEach((it, i) => { const bt = byId[it.beat]; if (bt && bt.kind === "question") return;
+    cards.push({ id: "n:" + i, group: SET, kind: "risk", title: it.title, claim: it.text, pr: it.pr, beat: bt }); });
+  const noticed = new Set((NOTICE && NOTICE.items || []).map((it) => it.beat));
+  C.story.filter((b) => b.kind === "callout" && !noticed.has(b.id)).forEach((b) => cards.push({ id: "c:" + b.id, group: SET, kind: "risk", title: b.title, claim: b.lede, text: b.text }));
+  const scope = C.story.find((b) => b.kind === "scope");
+  (scope && scope.items || []).forEach((it, i) => { const by = Object.entries(it.by || {}); const partial = by.some(([, s]) => s === "partial"); const missing = it.status === "missing" || (!by.length) || by.some(([, s]) => s === "missing");
+    if (missing || partial) cards.push({ id: "s:" + i, group: SET, kind: "scope", title: it.text, claim: missing ? `Not built in any PR here${it.source ? ` (${it.source})` : ""}.` : `Only partly covered${it.source ? ` (${it.source})` : ""}.`, by }); });
+  ORDER.forEach((p) => {
+    const g = p.key, open = p.findings.filter(isOpen);
+    QUESTIONS.filter((q) => q.pr === g).forEach((q) => cards.push({ id: qid(q), group: g, pr: g, kind: "decision", title: q.title, claim: q.lede, ask: q.ask, options: q.options || [], q }));
+    const key = open.filter((f) => isHigh(f) || f.source === "agent").sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5));
+    key.forEach((f) => cards.push({ id: "f:" + f.id, group: g, pr: g, kind: "finding", title: f.title, f, path: f.path, line: f.line, side: f.side || "new", sev: f.severity }));
+    const deepB = p.attention.blocks.filter((b) => b.tier === "deep");
+    (deepB.length ? deepB : []).forEach((b) => { const m = markOf(p, b);
+      cards.push({ id: `d:${g}:${b.id}`, group: g, pr: g, kind: "deep", title: `Is ${base(b.path)} ${b.from}–${b.to} right?`, claim: `${b.lines} changed lines marked for deep read${(b.why || []).length ? ": " + b.why.join(", ") : ""}.`, p, b, path: b.path, line: b.from, side: b.side || "new", pre: m && m.m === "read" ? { act: "a", auto: true, note: m.note || "" } : null, flagged: m && m.m === "flag", seed: m && m.note }); });
+    p.attention.blocks.filter((b) => b.tier !== "deep").forEach((b) => { const m = markOf(p, b); if (m && m.m === "flag") cards.push({ id: `x:${g}:${b.id}`, group: g, pr: g, kind: "flag", title: `You flagged ${base(b.path)} ${b.from}–${b.to}`, claim: m.note || "Flagged while reading, no note yet.", p, b, path: b.path, line: b.from, side: b.side || "new", flagged: true, seed: m.note }); });
+    const low = open.filter((f) => !key.includes(f));
+    const s = p.attention.summary || {};
+    cards.push({ id: `r:${g}`, group: g, pr: g, kind: "rest", title: `The rest of ${short(g)}`, claim: `${(s.review || 0).toLocaleString()} lines on Read, ${(s.skim || 0).toLocaleString()} to skim, ${(s.skip || 0).toLocaleString()} to skip${low.length ? `, and ${low.length} medium or low open finding${low.length > 1 ? "s" : ""}` : ""}. Approve to say you looked through them and nothing else needs a call.`, p, low });
+  });
+  return (QCACHE = cards);
+}
+const eff = (q) => S.dec[q.id] || q.pre || null;
+function groups() { const Q = queue(); return ["__set", ...ORDER.map((p) => p.key)].filter((g) => Q.some((q) => q.group === g)); }
+function verdictFor(g) {
+  const all = queue().filter((q) => q.group === g);
+  if (all.some((q) => (eff(q) || {}).act === "b")) return ["Request changes", "v-rc"];
+  const open = all.filter((q) => !eff(q)).length;
+  if (open) return [`${open} open`, "v-open"];
+  if (all.some((q) => ["q"].includes((eff(q) || {}).act))) return ["Comment", "v-c"];
+  return ["Approve", "v-ok"];
+}
+let reviewView = false;
+function curCard() { const Q = queue(); S.cur = Math.max(0, Math.min(S.cur, Q.length - 1)); return Q[S.cur]; }
+function renderDecide() {
+  const Q = queue(), q = curCard(), G = groups();
+  const rail = G.map((g) => { const qs = Q.filter((x) => x.group === g), d = qs.filter((x) => eff(x)).length, [v, vc] = g === "__set" ? [`${d}/${qs.length}`, d === qs.length ? "v-ok" : "v-open"] : verdictFor(g);
+    const first = Q.indexOf(qs.find((x) => !eff(x)) || qs[0]);
+    return `<button class="qg" data-qi="${first}" aria-current="${q && q.group === g}"><span>${g === "__set" ? "<b>Across the set</b>" : `<b>${esc(short(g))}</b> ${md(strip(prBy(g).title).slice(0, 70))}`}</span><span class="c ${vc}">${esc(v)}</span><div class="tb"><i style="width:${(100 * d) / qs.length}%;background:var(--accent)"></i></div></button>`; }).join("");
+  const done = Q.filter((x) => eff(x)).length;
+  $("#main").innerHTML = reviewView ? renderReview() : `<div class="decide"><nav class="qrail" aria-label="Decision groups"><div class="lbl" style="padding:2px 4px 6px">${done} of ${Q.length} decided</div>${rail}<button class="primary" id="to-review" style="margin-top:8px">Review draft →</button></nav>
+    <div>${q ? cardHtml(q, Q) : `<p>No decisions.</p>`}</div></div>`;
+  KIT.mermaid($("#main"));
+}
+function cardHtml(q, Q) {
+  const e = eff(q), L = LABELS[q.kind], ev = [];
+  if (q.kind === "decision") ev.push(`<div class="opts">${q.options.map((o, i) => `<button data-opt="${i}" aria-pressed="${(e && e.act === "o" && e.option === i) || (pickOf(q.q) === i && !e)}">${i + 1} · ${esc(o)}</button>`).join("")}</div>${pickOf(q.q) != null && !S.dec[q.id] ? `<p class="muted" style="font-size:13.5px;margin:0">You picked “${esc(q.options[pickOf(q.q)])}” earlier; press its number or click to confirm.</p>` : ""}`);
+  if (q.kind === "risk" && q.beat) ev.push(beatEvidence(q.beat, q.pr));
+  if (q.text) ev.push(`<div class="card">${md(q.text)}</div>`);
+  if (q.kind === "scope") ev.push(`<div class="meta">${q.by.map(([k, s]) => `<span class="chip">${esc(short(k))} <span class="st ${esc(s)}">${esc(s)}</span></span>`).join("") || "<span>no PR builds it</span>"}</div>`);
+  if (q.kind === "finding") { const f = q.f, p = prBy(q.pr); ev.push(fndHtml(f, 1200)); const b = p.attention.blocks.find((x) => x.path === f.path && p.code[x.id] && x.from <= (f.line || 0) + 3 && x.to >= (f.line || 0) - 3); if (b) ev.push(`<div class="inline"><div class="cap"><span>${esc(b.path)}:${b.from}–${b.to}</span></div>${codeHtml(p.code[b.id], { hl: [f.line] })}</div>`); }
+  if (q.kind === "deep" || q.kind === "flag") { const fs = findingsOn(q.p, q.b), layer = (q.p.layers || [])[q.b.layer]; if (layer) ev.push(`<div class="card"><span class="lbl">Step ${q.b.layer + 1} of the walk</span><b style="display:block">${md(layer.title)}</b><span class="muted" style="font-size:14px">${md(layer.summary || "")}</span></div>`); ev.push(`<div class="inline"><div class="cap"><span>${esc(q.b.path)}:${q.b.from}–${q.b.to}</span><button class="ghost" data-blk="${esc(q.b.id)}" data-pr="${esc(q.pr)}" style="font-size:12px">Open in reader</button></div>${codeHtml(q.p.code[q.b.id], { hl: fs.map((f) => f.line) })}</div>`); fs.forEach((f) => ev.push(fndHtml(f, 300))); }
+  if (q.kind === "rest") { const p = q.p; ev.push(`<div class="card"><span class="lbl">What this PR does</span><p style="margin:4px 0">${md(p.summary || "")}</p><p class="muted" style="margin:0">${md(p.risk || "")}</p></div>`); ev.push(`<div class="meta">${tierBar(p.attention.summary, 200)}<span>${prCov(p).n} of ${prCov(p).of} read blocks marked while reading</span></div>`); if (q.low.length) ev.push(`<details class="rest" style="margin:0"><summary>${q.low.length} medium or low findings</summary><div style="display:grid;gap:6px">${q.low.map((f) => fndHtml(f, 200)).join("")}</div></details>`); }
+  const note = (S.dec[q.id] && S.dec[q.id].note) ?? q.seed ?? (q.pre && q.pre.note) ?? "";
+  const i = Q.indexOf(q);
+  return `<article class="dcard"><div class="top"><span class="chip acc">${KIND[q.kind]}</span>${q.sev ? `<span class="chip ${isHigh(q) || q.sev === "high" ? "high" : "medium"}">${esc(q.sev)}</span>` : ""}${q.pr ? `<span class="chip">${esc(short(q.pr))}</span>` : `<span class="chip">across the set</span>`}<span style="flex:1"></span><span class="lbl">${i + 1} / ${Q.length}</span></div>
+    <h2>${md(q.title)}</h2>${q.claim ? `<p class="claim">${md(q.claim)}</p>` : ""}${q.ask ? `<p style="margin:0"><b>${md(q.ask)}</b></p>` : ""}
+    ${q.pre && !S.dec[q.id] ? `<div class="pre">✓ Pre-approved: you marked this read while reading. Change it below if you need to.</div>` : ""}${q.flagged ? `<div class="pre flag">⚑ You flagged this while reading.</div>` : ""}
+    <div class="ev">${ev.join("")}</div>
+    <label class="lbl" for="dnote">Note</label><textarea id="dnote" placeholder="Optional for approve; it becomes the comment for ask and block.">${esc(note)}</textarea>
+    <div class="actions">${["a", "q", "b", "d"].map((k) => `<button class="act" data-a="${k}" aria-pressed="${!!e && e.act === k}">${esc(L[k])} <kbd>${k}</kbd></button>`).join("")}</div>
+    <div class="nav"><button class="ghost" data-qstep="-1" ${i ? "" : "disabled"}>← <kbd>k</kbd> Previous</button><button class="ghost" id="undo">Undo <kbd>u</kbd></button><button class="ghost" data-qstep="1" ${i < Q.length - 1 ? "" : "disabled"}>Next <kbd>j</kbd> →</button></div></article>`;
+}
+function beatEvidence(bt, prKey) {
+  if (bt.kind === "code") { const p = bt.pr ? prBy(bt.pr) : prKey ? prBy(prKey) : C.prs.find((q) => q.files.some((f) => f.path === bt.path)); return p ? momentCode(p, bt) : ""; }
+  if (bt.kind === "shape") return shapeHtml(bt.text);
+  if (bt.kind === "callout") return `<div class="card">${md(bt.text || "")}</div>`;
+  if (bt.kind === "views" && bt.views && bt.views[0] && bt.views[0].mermaid) return KIT.mermaidBox(bt.views[0].mermaid);
+  if (bt.kind === "scope") return "";
+  return bt.lede ? `<div class="card">${md(bt.lede)}</div>` : "";
+}
+const undoStack = [];
+function act(a, opt) {
+  const q = curCard(), note = ($("#dnote") || {}).value || "";
+  undoStack.push([q.id, S.dec[q.id]]);
+  if (a === "o") { S.dec[q.id] = { act: "o", option: opt, note }; S.picks[qid(q.q)] = opt; }
+  else if (S.dec[q.id] && S.dec[q.id].act === a) delete S.dec[q.id];
+  else S.dec[q.id] = { act: a, note };
+  save();
+  if ((a === "q" || a === "b") && !note.trim()) { renderDecide(); renderRoute(); toast("Add a note so the author knows what you need"); $("#dnote").focus(); return; }
+  const Q = queue(), nxt = Q.findIndex((x, i) => i > S.cur && !eff(x));
+  if (nxt >= 0) S.cur = nxt; else if (Q.every((x) => eff(x))) { reviewView = true; toast("Every card is decided. Here is your review."); }
+  save(); render();
+}
+function undo() { const u = undoStack.pop(); if (!u) return; const [id, prev] = u; if (prev) S.dec[id] = prev; else delete S.dec[id]; S.cur = queue().findIndex((q) => q.id === id); save(); render(); }
+
+/* --- review + receipt --- */
+function reviewMd() {
+  const Q = queue(), L = [`# ${C.title}: review`, ""];
+  const setQ = Q.filter((q) => q.group === "__set" && eff(q));
+  if (setQ.length) { L.push("## Across the set", ""); setQ.forEach((q) => { const e = eff(q); L.push(`- **${plain(q.title)}**: ${e.act === "o" ? `chose **${q.options[e.option]}**` : e.act === "a" ? "accepted" : ACT[e.act].toLowerCase()}${e.note ? `. ${e.note}` : ""}`); }); L.push(""); }
+  ORDER.forEach((p) => {
+    const [v] = verdictFor(p.key);
+    L.push(`## ${short(p.key)} ${plain(strip(p.title))}`, "", `**Verdict: ${v}**`, "");
+    const items = [];
+    Q.filter((q) => q.group === p.key && eff(q)).forEach((q) => { const e = eff(q); if (e.act === "a" && !e.note) return;
+      const tag = e.act === "b" ? "Blocking" : e.act === "q" ? "Question" : e.act === "d" ? "Later" : e.act === "o" ? "Decided" : "Note";
+      items.push({ path: q.path || "", line: q.line || 0, s: `- ${q.path ? `\`${q.path}${q.line ? ":" + q.line : ""}\` ` : ""}**${tag}:** ${plain(q.title)}${e.act === "o" ? ` → ${q.options[e.option]}` : ""}${e.note ? `. ${e.note}` : ""}` }); });
+    p.attention.blocks.forEach((b) => { const m = markOf(p, b); if (m && m.note && m.m !== "flag" && b.tier !== "deep") items.push({ path: b.path, line: b.from, s: `- \`${b.path}:${b.from}\` **Note:** ${m.note}` }); });
+    items.sort((a, b) => a.path.localeCompare(b.path) || a.line - b.line).forEach((x) => L.push(x.s));
+    const ok = Q.filter((q) => q.group === p.key && (eff(q) || {}).act === "a").length;
+    if (ok) L.push(`- ${ok} item${ok > 1 ? "s" : ""} checked and fine.`);
+    L.push("");
+  });
+  const r = receipt();
+  L.push("## What I reviewed", "", `- Deep reads: ${r.deepRead} of ${r.deepAll} read${r.deepFlag ? `, ${r.deepFlag} flagged` : ""}`, `- Read blocks: ${r.read} of ${r.readAll} marked`, `- Skim and skip signed off: ${r.restOk.length ? r.restOk.map(short).join(", ") : "none yet"}`);
+  if (r.unreadHigh.length) L.push(`- Not reviewed, with open high findings: ${r.unreadHigh.map((f) => `\`${f.path}:${f.line}\``).join(", ")}`);
+  L.push("", `_Prepared with the Guided Review page. Time box: ${S.budget ? S.budget + " min" : "none"}._`);
+  return L.join("\n");
+}
+/* the review as cockpit notes (one per decided card or block note), so the Notes panel can publish it */
+function cockpitNotes() {
+  const Q = queue(), out = [];
+  const tagType = { b: "blocking", q: "question" };
+  const keys = new Set(ORDER.map((p) => p.key));
+  const cardNote = (q, pr, id) => { const e = eff(q); if (!e || (e.act === "a" && !e.note)) return;
+    const tag = e.act === "b" ? "Blocking" : e.act === "q" ? "Question" : e.act === "d" ? "Later" : e.act === "o" ? "Decided" : "Note";
+    out.push(KIT.noteEvent({ id, pr, path: q.path, line: q.line, side: q.side || "new", type: tagType[e.act],
+      text: `**${tag}:** ${plain(q.title)}${e.act === "o" ? ` → ${q.options[e.option]}` : ""}${e.note ? `. ${e.note}` : ""}` })); };
+  /* set-wide cards go to the PRs they name (its PR, or the PRs a scope gap lists), else to every PR */
+  Q.filter((q) => q.group === "__set").forEach((q) => {
+    const named = [q.pr, ...Object.keys(q.by || {})].filter((k) => keys.has(k));
+    const to = named.length ? [...new Set(named)] : [...keys];
+    to.forEach((pr) => cardNote(q, pr, "gd-" + q.id + (to.length > 1 ? "@" + pr : "")));
+  });
+  ORDER.forEach((p) => {
+    Q.filter((q) => q.group === p.key).forEach((q) => cardNote(q, p.key, "gd-" + q.id));
+    p.attention.blocks.forEach((b) => { const m = markOf(p, b); if (m && m.note && m.m !== "flag" && b.tier !== "deep")
+      out.push(KIT.noteEvent({ id: "gb-" + mkey(p, b), pr: p.key, path: b.path, line: b.from, side: b.side, text: m.note })); });
+  });
+  return out;
+}
+KIT.beforePublish = () => sendNotes();
+async function sendNotes() {
+  const evs = cockpitNotes(), ids = new Set(evs.map((e) => e.note_id));
+  const gone = (S.sent || []).filter((x) => !ids.has(x.id)).map((x) => KIT.undoNote(x.id, x.pr));
+  if (!evs.length && !gone.length) return true;   // nothing new to send: publish goes on with what the Agent Session Review has
+  if (!(await KIT.send([...evs, ...gone]))) { toast("Couldn't reach the cockpit server"); return false; }
+  S.sent = evs.map((e) => ({ id: e.note_id, pr: e.pr })); save();
+  toast(`${evs.length} note${evs.length === 1 ? "" : "s"} in your Agent Session Review Notes panel; publish from there`);
+}
+function receipt() {
+  const Q = queue();
+  const deepRead = deepAll.filter(({ p, b }) => (markOf(p, b) || {}).m === "read").length, deepFlag = deepAll.filter(({ p, b }) => (markOf(p, b) || {}).m === "flag").length;
+  const rv = allBlocks.filter(({ b }) => b.tier === "review");
+  const read = rv.filter(({ p, b }) => markOf(p, b)).length;
+  const restOk = ORDER.filter((p) => { const q = Q.find((x) => x.id === "r:" + p.key); return q && (eff(q) || {}).act === "a"; }).map((p) => p.key);
+  const touched = (p, f) => p.attention.blocks.some((b) => b.path === f.path && f.line >= b.from - 3 && f.line <= b.to + 3 && markOf(p, b)) || Q.some((q) => q.f === f && eff(q));
+  const unreadHigh = C.prs.flatMap((p) => p.findings.filter((f) => isOpen(f) && isHigh(f) && f.path && !touched(p, f)));
+  return { deepRead, deepFlag, deepAll: deepAll.length, read, readAll: rv.length, restOk, unreadHigh };
+}
+function renderReview() {
+  const r = receipt(), Q = queue(), doneN = Q.filter((q) => eff(q)).length;
+  const lines = reviewMd().split("\n");
+  const html = lines.map((l) => l.startsWith("# ") ? `<h2>${md(l.slice(2))}</h2>` : l.startsWith("## ") ? `<h3>${md(l.slice(3))}${(() => { const p = ORDER.find((x) => l.includes(short(x.key) + " ")); if (!p) return ""; const [v, vc] = verdictFor(p.key); return ` <span class="chip ${vc === "v-ok" ? "ok" : vc === "v-rc" ? "high" : "medium"}">${esc(v)}</span>`; })()}</h3>` : l.startsWith("- ") ? `<li>${md(l.slice(2))}</li>` : l.startsWith("**Verdict") ? "" : l.startsWith("_") ? `<p class="muted" style="font-size:13px">${esc(l.replace(/_/g, ""))}</p>` : l ? `<p>${md(l)}</p>` : "").join("").replace(/(<li>.*?<\/li>)+/g, (m) => `<ul>${m}</ul>`);
+  return `<div class="review"><article class="rdoc">${html}</article>
+    <aside class="receipt"><h3>Receipt</h3>
+      <div class="ln"><span>Cards decided</span><b>${doneN} / ${Q.length}</b></div>
+      <div class="ln"><span>Deep reads read</span><b>${r.deepRead} / ${r.deepAll}</b></div>
+      <div class="ln"><span>Read blocks marked</span><b>${r.read} / ${r.readAll}</b></div>
+      <div class="ln"><span>Skim and skip signed off</span><b>${r.restOk.length} / ${ORDER.length} PRs</b></div>
+      ${r.unreadHigh.length ? `<div class="warn"><b>${r.unreadHigh.length} high finding${r.unreadHigh.length > 1 ? "s" : ""} you haven't looked at:</b> ${r.unreadHigh.slice(0, 6).map((f) => `<code>${esc(base(f.path))}:${f.line}</code>`).join(" ")}</div>` : `<div style="color:var(--ok)">Every open high finding was read or decided.</div>`}
+      <button class="primary" id="copy-md">Copy as Markdown</button><textarea id="mdout" readonly hidden>${esc(reviewMd())}</textarea>
+      <button class="ghost" id="back-queue">← Back to the queue</button>
+      ${KIT.served ? `<button class="ghost" id="send-notes">Send to Agent Session Review notes</button>${KIT.publishHtml(ORDER.map((p) => p.key))}<p class="muted" style="font-size:13px;margin:0">Publish sends your cards and notes to the <a href="${esc(KIT.host.cockpit)}">Agent Session Review</a>, then shows a preview. Nothing posts until you confirm.</p>` : `<p class="muted" style="font-size:13px;margin:0">Nothing is posted. Paste it into the PR yourself, one review per PR.</p>`}</aside></div>`;
+}
+
+/* =========================================================== shell */
+function render() {
+  $("#case-title").textContent = C.title;
+  renderRoute();
+  if (S.stage === "brief") renderBrief(); else if (S.stage === "read") renderRead(); else renderDecide();
+}
+function goStage(st) { if (playing) stopPlay(); S.stage = st; if (st === "decide") QCACHE = null; save(); closeDrawer(); render(); window.scrollTo({ top: 0 }); }
+function helpHtml() {
+  const rows = [["Everywhere", [["[ ]", "previous / next stage"], ["?", "this sheet"], ["Esc", "close a panel"]]],
+    ["Brief", [["← →", "previous / next screen"], ["Space", "play or stop the narrated walk"]]],
+    ["Read", [["j k", "next / previous stop (in the code panel)"], ["r", "mark the block read"], ["f", "flag it"], ["n", "write a note"]]],
+    ["Decide", [["j k", "next / previous card"], ["a q b d", "approve, ask, block, defer"], ["1–4", "pick an option on a decision"], ["u", "undo"], ["v", "review draft"]]]];
+  return `<div role="dialog" aria-label="Keyboard shortcuts"><h3>Keyboard</h3><table>${rows.map(([h, rs]) => `<tr><th colspan="2">${h}</th></tr>${rs.map(([k, t]) => `<tr><td>${k.split(" ").map((x) => `<kbd>${esc(x)}</kbd>`).join(" ")}</td><td>${esc(t)}</td></tr>`).join("")}`).join("")}</table><p class="muted" style="font-size:14px">Marks, notes and decisions stay in this browser only. Nothing is sent anywhere.</p><button class="primary" id="help-close">Close</button></div>`;
+}
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("button,[data-mod]"); if (!t) return;
+  const d = t.dataset;
+  if (d.stage) return goStage(d.stage);
+  if (t.id === "help-btn") { $("#help").innerHTML = helpHtml(); $("#help").hidden = false; $("#help-close").focus(); return; }
+  if (t.id === "help-close") { $("#help").hidden = true; return; }
+  if (d.bi) { S.bi = +d.bi; save(); return render(); }
+  if (d.bstep) { S.bi = Math.max(0, Math.min(SCREENS.length - 1, S.bi + +d.bstep)); save(); return render(); }
+  if (t.id === "play") return playing ? stopPlay() : startPlay();
+  if (d.gotoScreen) { const i = SCREENS.findIndex((s) => s.id === d.gotoScreen); if (i >= 0) { S.bi = i; save(); render(); } return; }
+  if (d.gotoPr) { S.sel = d.gotoPr; if (S.stage !== "read") { S.stage = "read"; } save(); closeDrawer(); render(); window.scrollTo({ top: 0 }); return; }
+  if (d.shot) { S.shot = +d.shot; save(); return render(); }
+  if (d.pick) { S.picks[d.pick] = S.picks[d.pick] === +d.oi ? null : +d.oi; save(); return render(); }
+  if (d.budget !== undefined && t.closest(".seg")) { S.budget = +d.budget; save(); return render(); }
+  if (d.recipe) { S.recipe = d.recipe === AUTO ? null : d.recipe; save(); return render(); }
+  if (t.id === "why-btn") { S.why = !S.why; save(); return render(); }
+  if (t.id === "route-btn") { S.route = !S.route; save(); return render(); }
+  if (t.id === "map-btn") { S.map = !S.map; save(); return render(); }
+  if (d.mod !== undefined) return openModule(+d.mod);
+  if (d.sel) { S.sel = d.sel; save(); render(); window.scrollTo({ top: 0 }); return; }
+  if (d.blk) return openBlock(d.pr, d.blk);
+  if (d.mark) { const p = prBy(d.pr), b = p.attention.blocks.find((x) => x.id === d.blkM); setMark(p, b, d.mark); QCACHE = null; renderRoute(); if (drawerCtx) openBlock(p.key, b.id); if (S.stage === "read") { const y = window.scrollY; renderRead(); window.scrollTo({ top: y }); } return; }
+  if (d.dnav) { saveNote(); const list = stopList(), i = list.findIndex((s) => drawerCtx && s.p === drawerCtx.p && s.b === drawerCtx.b), n = list[i + +d.dnav]; if (n) openBlock(n.p.key, n.b.id); return; }
+  if (t.id === "dr-close") { saveNote(); closeDrawer(); if (S.stage === "read") { const y = window.scrollY; renderRead(); window.scrollTo({ top: y }); } return; }
+  if (d.qi) { S.cur = +d.qi; reviewView = false; save(); return render(); }
+  if (d.a) return act(d.a);
+  if (d.opt) return act("o", +d.opt);
+  if (d.qstep) { S.cur = Math.max(0, Math.min(queue().length - 1, S.cur + +d.qstep)); save(); return render(); }
+  if (t.id === "undo") return undo();
+  if (t.id === "to-review") { reviewView = true; return render(); }
+  if (t.id === "back-queue") { reviewView = false; return render(); }
+  if (t.id === "send-notes") { sendNotes(); return; }
+  if (t.id === "copy-md") { const txt = reviewMd(); try { await navigator.clipboard.writeText(txt); toast("Copied. Paste it into the PR."); } catch (_) { const ta = $("#mdout"); ta.hidden = false; ta.focus(); ta.select(); toast("Select-all is ready: press Cmd/Ctrl+C"); } return; }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const inField = /^(TEXTAREA|INPUT|SELECT)$/.test(document.activeElement && document.activeElement.tagName);
+  if (e.key === "Escape") { if (!$("#help").hidden) { $("#help").hidden = true; return; } if (!$("#drawer").hidden) { saveNote(); closeDrawer(); if (S.stage === "read") renderRead(); return; } if (inField) document.activeElement.blur(); return; }
+  if (inField) return;
+  const k = e.key;
+  if (k === "?") { $("#help").innerHTML = helpHtml(); $("#help").hidden = false; return; }
+  if (k === "]" || k === "[") { const i = STAGES.findIndex(([s]) => s === S.stage) + (k === "]" ? 1 : -1); if (STAGES[i]) goStage(STAGES[i][0]); return; }
+  if (!$("#drawer").hidden && drawerCtx) {
+    if (k === "r" || k === "f") { setMark(drawerCtx.p, drawerCtx.b, k === "r" ? "read" : "flag"); QCACHE = null; renderRoute(); openBlock(drawerCtx.p.key, drawerCtx.b.id); e.preventDefault(); return; }
+    if (k === "n") { $("#mnote").focus(); e.preventDefault(); return; }
+    if (k === "j" || k === "k") { saveNote(); const list = stopList(), i = list.findIndex((s) => s.p === drawerCtx.p && s.b === drawerCtx.b), n = list[i + (k === "j" ? 1 : -1)]; if (n) openBlock(n.p.key, n.b.id); return; }
+    return;
+  }
+  if (S.stage === "brief") {
+    if (k === "ArrowRight" || k === "j") { if (S.bi < SCREENS.length - 1) { S.bi++; save(); render(); } }
+    else if (k === "ArrowLeft" || k === "k") { if (S.bi > 0) { S.bi--; save(); render(); } }
+    else if (k === " ") { e.preventDefault(); playing ? stopPlay() : startPlay(); }
+    return;
+  }
+  if (S.stage === "decide" && !reviewView) {
+    if (k === "j" || k === "k") { S.cur = Math.max(0, Math.min(queue().length - 1, S.cur + (k === "j" ? 1 : -1))); save(); render(); }
+    else if ("aqbd".includes(k) && k.length === 1) act(k);
+    else if (/^[1-4]$/.test(k)) { const q = curCard(); if (q.kind === "decision" && q.options[+k - 1]) act("o", +k - 1); }
+    else if (k === "u") undo();
+    else if (k === "v") { reviewView = true; render(); }
+  }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.closest && e.target.closest("[data-mod]")) openModule(+e.target.closest("[data-mod]").dataset.mod); });
+{ const h = (location.hash || "").slice(1); if (h === "brief" || h === "read" || h === "decide") S.stage = h; if (h === "review") { S.stage = "decide"; reviewView = true; } if (h === "map") { S.stage = "read"; S.map = true; } { const si = SCREENS.findIndex((x) => x.id === h); if (si >= 0) { S.stage = "brief"; S.bi = si; } } if (h === "route") { S.stage = "read"; S.route = true; } }
+window.addEventListener("error", (ev) => { const m = document.createElement("pre"); m.id = "jserr"; m.textContent = "JS error: " + ev.message; m.style.cssText = "position:fixed;bottom:0;left:0;background:#a00;color:#fff;z-index:99;padding:6px"; document.body.appendChild(m); });
+render();
+$("#cknav").innerHTML = KIT.navHtml(); KIT.liveBanner(document.querySelector(".bar")); KIT.freshBar(document.querySelector(".bar"), C);
+setTimeout(() => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"; s.onload = () => KIT.mermaid(document); document.head.appendChild(s); }, 60);
+document.addEventListener("click", (e) => { const t = e.target.closest("[data-lens-btn]"); if (!t) return; const box = t.closest("[data-lens]"); box.querySelectorAll("[data-lens-btn]").forEach((b) => b.setAttribute("aria-pressed", b === t)); box.querySelectorAll("[data-lens-pane]").forEach((p) => (p.hidden = p.dataset.lensPane !== t.dataset.lensBtn)); box.querySelectorAll(`[data-lens-pane="${t.dataset.lensBtn}"] [data-mlazy]`).forEach((el) => { el.dataset.mermaid = el.dataset.mlazy; el.removeAttribute("data-mlazy"); }); KIT.mermaid(box); });
+})();
+</script>

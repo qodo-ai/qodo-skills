@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -181,6 +181,41 @@ test('unsupported removals and unregistered new skills fail before a source merg
   f.edit('skills/qodo-unknown/SKILL.md');
   f.commit('unregistered skill');
   assert.throws(() => planSkillRelease(f.root), /must be registered/);
+});
+
+test('an explicit optional rename previews, records provenance and removes only retired generated roots', (t) => {
+  const f = fixture(t), catalog = readJson(f.root, 'distribution/catalog.json');
+  const from = 'qodo-agent-session-review', to = 'qodo-renamed-review';
+  const skill = catalog.skills.find((entry) => entry.name === from);
+  const pkg = catalog.installPackages.find((entry) => entry.skills.includes(from));
+  skill.name = to; pkg.name = to; pkg.skills = [to];
+  renameSync(join(f.root, 'skills', from), join(f.root, 'skills', to));
+  rmSync(join(f.root, 'skills', to, 'agents'), { recursive: true, force: true });
+  const document = join(f.root, 'skills', to, 'SKILL.md');
+  writeFileSync(document, readFileSync(document, 'utf8').replaceAll(from, to));
+  writeFileSync(join(f.root, 'distribution/catalog.json'), JSON.stringify(catalog));
+  const path = join(f.root, 'distribution/skill-renames.json');
+  const declared = readJson(f.root, 'distribution/skill-renames.json');
+  const rename = { from, to, fromPackage: from, toPackage: to };
+  declared.renames.push(rename); writeFileSync(path, JSON.stringify(declared));
+  f.commit('rename optional review');
+  assert.deepEqual(planSkillRelease(f.root).skills, [{ name: to, change: 'initial' }]);
+  const result = prepareSkillRelease(f.root);
+  const releasePath = join(f.root, `releases/v${result.version}.json`);
+  assert.deepEqual(JSON.parse(readFileSync(releasePath)).renames, [rename]);
+  for (const base of ['packages', 'codex-packages', 'antigravity-plugins']) {
+    assert(!existsSync(join(f.root, base, from)));
+    assert(existsSync(join(f.root, base, to, 'skills', to, 'runtime/LICENSE')));
+    assert(existsSync(join(f.root, base, 'qodo')));
+  }
+  assert(!existsSync(join(f.root, 'kiro-power-agent-session-review')));
+  assert(existsSync(join(f.root, 'kiro-power-renamed-review', 'skills', to, 'runtime/LICENSE')));
+  f.commit('release optional rename');
+  f.check('scripts/validate-diff.mjs', f.base);
+  assert.equal(planSkillRelease(f.root).pending, false);
+  const record = JSON.parse(readFileSync(releasePath)); record.renames = [];
+  writeFileSync(releasePath, JSON.stringify(record)); f.commit('omit rename provenance');
+  assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /must record the declared skill renames/);
 });
 
 test('Antigravity artifacts belong to versioned release PRs, not source PRs', (t) => {
