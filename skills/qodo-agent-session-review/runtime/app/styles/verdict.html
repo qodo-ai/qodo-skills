@@ -361,7 +361,7 @@ function critSec() {
   const sugs = disc.length ? `<div class="card sugs"><div class="lbl">The review's suggestions</div>${disc.map((e) => `<div class="sugrow"><span class="lv ${e.level === "low" ? "undeclared" : e.level}">${e.level === "low" ? "Low? (reads as not declared)" : W[e.level]}</span>
       <div><code>${esc(repoName(e.repo))}: ${e.paths.map(esc).join(", ")}</code><br><span class="muted">${md(e.reason)}</span></div></div>`).join("")}</div>` : "";
   const snippet = JSON.stringify({ criticality: { map: disc.map((e) => ({ repo: e.repo, paths: e.paths, level: e.level, owner: "", reason: e.reason, verify_after: "" })) } }, null, 2);
-  const decl = disc.length ? `<div class="card decl"><div class="lbl">Declare them</div><p class="muted" style="font-size:14px">Edit what's wrong, add an owner and a date to re-check, and put it in your cockpit config. Add <code>"approve": "never"</code> to an entry to keep Qodo from approving PRs that touch it.</p>
+  const decl = disc.length ? `<div class="card decl"><div class="lbl">Declare them</div><p class="muted" style="font-size:14px">Edit what's wrong, add an owner and a date to re-check, and put it in your Agent Session Review config. Add <code>"approve": "never"</code> to an entry to keep Qodo from approving PRs that touch it.</p>
       <pre id="declpre">${esc(snippet)}</pre><div class="row"><button class="btn" data-copy-decl>Copy</button></div></div>` : "";
   const prs = C.prs || [];
   const KINDS = ["production", "config", "test", "docs", "generated", "from_base"];
