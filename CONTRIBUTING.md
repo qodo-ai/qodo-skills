@@ -63,6 +63,9 @@ npm run release:prepare -- \
   --skill qodo-review=patch
 ```
 
+The manual command uses the same last prepared-release baseline as automated preparation,
+including declared optional-skill renames and generated-package cleanup.
+
 Repeat `--skill <name>=<patch|minor|major>` when one change affects several skills. Use
 `<name>=initial` for a newly added skill; pull-request validation rejects `initial` for an
 existing one. For marketplace-only packaging changes, use `--package patch` instead.

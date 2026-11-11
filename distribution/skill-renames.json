@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "renames": [
+    {
+      "from": "qodo-review-cockpit",
+      "to": "qodo-agent-session-review",
+      "fromPackage": "qodo-cockpit",
+      "toPackage": "qodo-agent-session-review"
+    }
+  ]
+}

@@ -7,4 +7,4 @@
 *.yaml text eol=lf
 *.yml text eol=lf
 # Preserve pinned upstream runtime hashes across source and generated host checkouts.
-**/skills/qodo-review-cockpit/runtime/** -text
+**/skills/qodo-agent-session-review/runtime/** -text

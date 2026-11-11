@@ -15,6 +15,8 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { kiroRoot } from './package-projections.mjs';
+import { activeSkillRenames } from './skill-renames.mjs';
+import { releaseBaseline } from './release-baseline.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -129,7 +131,8 @@ export function releaseTransaction(repositoryRoot, options = {}) {
   const packageCatalog = join(repositoryRoot, 'distribution/catalog.json');
   const optionalRoots = existsSync(packageCatalog)
     ? JSON.parse(readFileSync(packageCatalog, 'utf8')).installPackages.map((pkg) => kiroRoot(pkg.name)) : [];
-  const mutationPaths = [...new Set([...releaseMutationPaths, ...optionalRoots])];
+  const retiredRoots = (options.retiredPackages ?? []).map((name) => kiroRoot(name));
+  const mutationPaths = [...new Set([...releaseMutationPaths, ...optionalRoots, ...retiredRoots])];
   const copy = options.copy ?? cpSync;
   const remove = options.remove ?? rmSync;
   for (const relativePath of mutationPaths) {
@@ -277,6 +280,7 @@ export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD
     }
   }
   const headSkills = new Set((headCatalog.skills ?? []).map((skill) => skill.name));
+  const renames = hasHead ? activeSkillRenames(repositoryRoot, headCatalog, catalog) : [];
   for (const [name, bump] of options.skills) {
     if (bump === 'initial' && headSkills.has(name)) {
       throw new Error(`${name}=initial is only valid for a skill absent from the ${baseCommit === 'HEAD' ? 'HEAD' : 'release base'} catalog`);
@@ -311,7 +315,18 @@ export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD
       runtimeProtocolVersion: catalog.runtime.protocolVersion,
       minimumCliVersion: catalog.runtime.minimumCliVersion,
       skills: changes,
+      ...(renames.length ? { renames } : {}),
     });
+
+    // Retire only packages verified against this release's actual base catalog,
+    // inside the same rollback transaction as their replacement projections.
+    for (const { fromPackage, toPackage } of renames) {
+      if (fromPackage === toPackage || catalog.installPackages.some((entry) => entry.name === fromPackage)) continue;
+      for (const path of ['packages', 'codex-packages', 'antigravity-plugins']
+        .map((base) => join(base, fromPackage)).concat(kiroRoot(fromPackage))) {
+        rmSync(join(repositoryRoot, path), { recursive: true, force: true });
+      }
+    }
 
     execFileSync(process.execPath, [join(repositoryRoot, 'scripts', 'sync-adapters.mjs')], {
       cwd: repositoryRoot,
@@ -326,12 +341,12 @@ export function prepareRelease(argv, repositoryRoot = root, { baseCommit = 'HEAD
       stdio: 'inherit',
     });
     return { version: nextPackageVersion, changes };
-  });
+  }, { retiredPackages: renames.map(({ fromPackage }) => fromPackage) });
 }
 
 if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const release = prepareRelease(process.argv.slice(2));
+    const release = prepareRelease(process.argv.slice(2), root, { baseCommit: releaseBaseline(root) });
     console.log(`Prepared Qodo skills v${release.version} with ${release.changes.length} skill change(s).`);
   } catch (error) {
     console.error(error.message);

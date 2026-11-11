@@ -88,7 +88,7 @@ try {
       '--skill', 'qodo-review=initial',
     ], { cwd: repositoryRoot, stdio: 'pipe' }),
     (error) => {
-      assert.match(String(error.stderr), /initial is only valid for a skill absent from the HEAD catalog/);
+      assert.match(String(error.stderr), /initial is only valid for a skill absent from the release base catalog/);
       return true;
     },
   );
@@ -438,7 +438,7 @@ try {
     expectDiffFailure(new RegExp(`package version must increase from ${expectedPackageVersion.replaceAll('.', '\\.')}`));
   };
   expectPackageVersionChange('scripts/build-enterprise-bundle.mjs', '\n// enterprise packaging change\n');
-  expectPackageVersionChange('scripts/prepare-release.mjs', '\n// release generator change\n');
+  for (const file of ['prepare-release', 'skill-renames']) expectPackageVersionChange(`scripts/${file}.mjs`, '\n// release generator change\n');
   expectPackageVersionChange('.github/workflows/ship-marketplaces.yml', '\n# release workflow change\n');
   const expectOperationalChange = (path, change) => {
     resetToRelease();

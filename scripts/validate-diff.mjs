@@ -1,6 +1,7 @@
 /** Enforce release versioning for pull-request changes to canonical skills. */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { activeSkillRenames } from './skill-renames.mjs';
 
 const base = process.argv[2];
 if (!base) {
@@ -144,7 +145,7 @@ const versionedPackagePaths = [
   /^kiro-power(?:-[a-z0-9-]+)?\//,
   /^packages\//,
   /^distribution\/(?:(?:catalog|codex-submissions|marketplaces)\.schema|codex-submissions|marketplaces)\.json$/,
-  /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|deterministic-zip|package-projections|marketplace-release(?:-lock)?|prepare-release|release-notes|skill-provenance|sync-adapters|verify-codex-packet)\.mjs$/,
+  /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|deterministic-zip|package-projections|marketplace-release(?:-lock)?|prepare-release|release-baseline|skill-renames|release-notes|skill-provenance|sync-adapters|verify-codex-packet)\.mjs$/,
   /^scripts\/(?:audit-release-protections|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 const packagingChanged = files.some((path) => versionedPackagePaths.some((pattern) => pattern.test(path)));
@@ -153,11 +154,9 @@ if (!changedSkills.size && !catalogChanged && !changedReleaseRecords.length && !
 }
 
 const errors = [];
-for (const name of priorSkills.keys()) {
-  if (!currentSkills.has(name)) {
-    errors.push(`${name} was removed without a supported immutable removal record`);
-  }
-}
+let renames = [];
+try { renames = activeSkillRenames(process.cwd(), baseCatalog, catalog); }
+catch (error) { errors.push(error.message); }
 if (!isGreater(catalog.package.version, baseCatalog.package.version)) {
   errors.push(`package version must increase from ${baseCatalog.package.version}`);
 }
@@ -169,6 +168,9 @@ try {
   errors.push(`${expectedReleasePath} must exist and contain valid JSON: ${error.message}`);
 }
 const releaseSkills = Array.isArray(release.skills) ? release.skills : [];
+if (JSON.stringify(release.renames ?? []) !== JSON.stringify(renames)) {
+  errors.push(`${expectedReleasePath} must record the declared skill renames`);
+}
 if (!Array.isArray(release.skills)) errors.push(`${expectedReleasePath}: skills must be an array`);
 for (const [status, path] of changedReleaseRecords) {
   if (status !== 'A' || path !== expectedReleasePath) {

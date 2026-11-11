@@ -16,21 +16,22 @@ plugins remain owned by their host.
 |---|---:|---|
 | `qodo` | Yes | setup, codebase wisdom, local review, PR review resolver |
 | `qodo-standards` | No | rules discovery and standards administration |
-| `qodo-cockpit` | No | interactive PR/work-package review, local notes/marks, refresh/resume and export |
+| `qodo-agent-session-review` | No | interactive PR/work-package review, local notes/marks, refresh/resume and export |
 
-Qodo Standards and Cockpit are separate opt-in packages. Updating core never installs either.
-Cockpit requires Python 3.9+ and Qodo CLI2+, keeps state outside installed resources, and does
+Qodo Standards and Agent Session Review are separate opt-in packages. Updating core never installs either.
+Agent Session Review requires Python 3.9+ and Qodo CLI2+, keeps state outside installed resources, and does
 not publish provider comments or finding dispositions. Its runtime retains Qodo commercial terms;
 core and Standards retain their MIT metadata.
 
-Cockpit's engine, UI and behavior tests are maintained in this repository. Change the
-component and its tests in one PR; see [component maintenance](skills/qodo-review-cockpit/references/packaging.md#maintaining-and-testing).
-No separate Cockpit checkout or runtime-pin update is required.
+Agent Session Review's engine, UI and behavior tests are maintained in this repository. Change the
+component and its tests in one PR; see [component maintenance](skills/qodo-agent-session-review/references/packaging.md#maintaining-and-testing).
+No separate Agent Session Review checkout or runtime-pin update is required.
 
-Cockpit host resources are generated for a release containing the optional package; external
-provider listings are deferred. Current CLI/enterprise managed installers support only core and
-Standards. For explicit native/portable Cockpit installation, see its
-[package and host guidance](skills/qodo-review-cockpit/references/packaging.md#install-scope-and-current-managed-compatibility).
+Agent Session Review is an optional beta, excluded from defaults and marketplace indexes.
+With Qodo CLI 2.3.0 or newer, install it explicitly with
+`qodo skills install qodo-agent-session-review`. The CLI selects the verified public or private
+source and maintains the full package under existing update preferences. For native/portable installation, see its
+[package and host guidance](skills/qodo-agent-session-review/references/packaging.md#install-scope-and-current-managed-compatibility).
 
 ## Contribute a skill update
 
@@ -172,7 +173,7 @@ Direct `npx skills` installations keep their skills.sh update owner.
 catalog skills, resources and component terms. It does not expand legacy enterprise
 bundles, CLI-managed bundles, setup defaults or provider listings. Enterprise delivery
 also requires the QAR catalog-serving change and an explicitly enabled deployment pin.
-Source merge alone does not publish this artifact or list Cockpit in a marketplace.
+Source merge alone does not publish this artifact or list Agent Session Review in a marketplace.
 For a retry after publisher changes, rerun the original workflow at its original revision
 or select a new main source commit. Uploaded-byte mismatches deliberately stop publication;
 completed assets are never automatically replaced.

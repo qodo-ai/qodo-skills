@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -116,17 +116,20 @@ test('supporting files, catalog display metadata, and packaging fixes are collec
 
 test('a projection-helper-only edit requires a packaging release without changing skill versions', (t) => {
   const f = fixture(t);
-  f.edit('scripts/package-projections.mjs', '\n// Projection-policy fixture correction.\n');
-  f.commit('change projection policy only');
-  const plan = planSkillRelease(f.root);
-  assert.equal(plan.pending, true);
-  assert.deepEqual(plan.skills, []);
-  assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
-  const result = prepareSkillRelease(f.root, plan);
-  assert.deepEqual(result.changes, []);
-  assert.equal(readJson(f.root, `releases/v${result.version}.json`).package.change, 'patch');
-  f.commit('version projection policy release');
-  f.check('scripts/validate-diff.mjs', f.base);
+  for (const file of ['package-projections', 'skill-renames']) {
+    f.reset(f.base);
+    f.edit(`scripts/${file}.mjs`, '\n// Projection-policy fixture correction.\n');
+    f.commit('change projection policy only');
+    const plan = planSkillRelease(f.root);
+    assert.equal(plan.pending, true);
+    assert.deepEqual(plan.skills, []);
+    assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
+    const result = prepareSkillRelease(f.root, plan);
+    assert.deepEqual(result.changes, []);
+    assert.equal(readJson(f.root, `releases/v${result.version}.json`).package.change, 'patch');
+    f.commit('version projection policy release');
+    f.check('scripts/validate-diff.mjs', f.base);
+  }
 });
 
 test('a new skill already merged to main uses initial relative to the last prepared release', (t) => {
@@ -181,6 +184,83 @@ test('unsupported removals and unregistered new skills fail before a source merg
   f.edit('skills/qodo-unknown/SKILL.md');
   f.commit('unregistered skill');
   assert.throws(() => planSkillRelease(f.root), /must be registered/);
+});
+
+test('an explicit optional rename previews, records provenance and removes only retired generated roots', (t) => {
+  const f = fixture(t), catalog = readJson(f.root, 'distribution/catalog.json');
+  const from = 'qodo-agent-session-review', to = 'qodo-renamed-review';
+  const skill = catalog.skills.find((entry) => entry.name === from);
+  const pkg = catalog.installPackages.find((entry) => entry.skills.includes(from));
+  skill.name = to; pkg.name = to; pkg.skills = [to];
+  renameSync(join(f.root, 'skills', from), join(f.root, 'skills', to));
+  rmSync(join(f.root, 'skills', to, 'agents'), { recursive: true, force: true });
+  const document = join(f.root, 'skills', to, 'SKILL.md');
+  writeFileSync(document, readFileSync(document, 'utf8').replaceAll(from, to));
+  writeFileSync(join(f.root, 'distribution/catalog.json'), JSON.stringify(catalog));
+  const path = join(f.root, 'distribution/skill-renames.json');
+  const declared = readJson(f.root, 'distribution/skill-renames.json');
+  const rename = { from, to, fromPackage: from, toPackage: to };
+  declared.renames.push(rename, { from: 'qodo-unrelated', to: 'qodo-other', fromPackage: 'qodo-unrelated', toPackage: 'qodo-other' });
+  writeFileSync(path, JSON.stringify(declared));
+  const renamedSource = f.commit('rename optional review');
+  const plan = planSkillRelease(f.root);
+  assert.deepEqual(plan.skills, [{ name: to, change: 'initial' }]);
+  const unrelated = join(f.root, 'packages/qodo-unrelated/keep.txt');
+  mkdirSync(dirname(unrelated), { recursive: true }); writeFileSync(unrelated, 'keep unrelated generated state');
+  const builder = join(f.root, 'scripts/build-cli-managed-bundle.mjs'), originalBuilder = readFileSync(builder);
+  writeFileSync(builder, originalBuilder + '\nthrow new Error("injected rename release failure");\n');
+  assert.throws(() => prepareSkillRelease(f.root, plan), /Command failed/);
+  assert(existsSync(join(f.root, 'kiro-power-agent-session-review')));
+  assert(!existsSync(join(f.root, 'kiro-power-renamed-review')));
+  assert.equal(readFileSync(unrelated, 'utf8'), 'keep unrelated generated state');
+  writeFileSync(builder, originalBuilder);
+  const result = prepareSkillRelease(f.root, plan);
+  assert.equal(readFileSync(unrelated, 'utf8'), 'keep unrelated generated state');
+  rmSync(dirname(unrelated), { recursive: true });
+  const releasePath = join(f.root, `releases/v${result.version}.json`);
+  assert.deepEqual(JSON.parse(readFileSync(releasePath)).renames, [rename]);
+  for (const base of ['packages', 'codex-packages', 'antigravity-plugins']) {
+    assert(!existsSync(join(f.root, base, from)));
+    assert(existsSync(join(f.root, base, to, 'skills', to, 'runtime/LICENSE')));
+    assert(existsSync(join(f.root, base, 'qodo')));
+  }
+  assert(!existsSync(join(f.root, 'kiro-power-agent-session-review')));
+  assert(existsSync(join(f.root, 'kiro-power-renamed-review', 'skills', to, 'runtime/LICENSE')));
+  f.commit('release optional rename');
+  f.check('scripts/validate-diff.mjs', f.base);
+  assert.equal(planSkillRelease(f.root).pending, false);
+  const record = JSON.parse(readFileSync(releasePath)); record.renames = [];
+  writeFileSync(releasePath, JSON.stringify(record)); f.commit('omit rename provenance');
+  assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /must record the declared skill renames/);
+  // The documented manual command must resolve the same prepared baseline
+  // after the source rename is committed, including initial/version handling.
+  f.reset(renamedSource);
+  f.check('scripts/prepare-release.mjs', '--summary', 'Manual optional rename.', '--skill', `${to}=initial`);
+  assert.deepEqual(JSON.parse(readFileSync(releasePath)).renames, [rename]);
+  assert(!existsSync(join(f.root, 'kiro-power-agent-session-review')));
+  assert(existsSync(join(f.root, 'kiro-power-renamed-review', 'skills', to, 'runtime/LICENSE')));
+  f.commit('manual optional rename release');
+  f.check('scripts/validate-diff.mjs', f.base);
+  // A source branch can merge a newer prepared main release. Its merge
+  // commit carries the record but is not the record's introducing baseline.
+  f.reset(f.base);
+  f.edit(); f.commit('new main source');
+  const mainResult = prepareSkillRelease(f.root), mainCatalog = readJson(f.root, 'distribution/catalog.json');
+  const mainRelease = f.commit('new main prepared release');
+  f.reset(renamedSource);
+  try { f.git('merge', '--no-ff', '--no-commit', mainRelease); }
+  catch (error) { assert.match(String(error.stdout), /CONFLICT/); }
+  mainCatalog.skills.find((entry) => entry.name === from).name = to;
+  const mergedPackage = mainCatalog.installPackages.find((entry) => entry.name === from);
+  mergedPackage.name = to; mergedPackage.skills = [to];
+  writeFileSync(join(f.root, 'distribution/catalog.json'), JSON.stringify(mainCatalog, null, 2));
+  f.commit('merge prepared main into rename source');
+  f.check('scripts/prepare-release.mjs', '--summary', 'Rename after main merge.', '--skill', `${to}=initial`);
+  assert.equal(releaseBaseline(f.root), mainRelease);
+  const mergedVersion = incrementVersion(mainResult.version, 'minor');
+  assert.deepEqual(readJson(f.root, `releases/v${mergedVersion}.json`).renames, [rename]);
+  f.commit('manual release after main merge');
+  f.check('scripts/validate-diff.mjs', mainRelease);
 });
 
 test('Antigravity artifacts belong to versioned release PRs, not source PRs', (t) => {
