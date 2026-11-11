@@ -243,7 +243,7 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             name = require(name)
         except ValueError as e:
-            return self._html(f"<!doctype html><meta charset=utf-8><title>Unknown style</title><p>{e}</p><p><a href='/index.html'>Open the cockpit</a></p>", 404)
+            return self._html(f"<!doctype html><meta charset=utf-8><title>Unknown style</title><p>{e}</p><p><a href='/index.html'>Open Agent Session Review</a></p>", 404)
         if name == APP:
             self.send_response(302); self.send_header("Location", "/index.html"); self.end_headers()
             return
@@ -748,7 +748,7 @@ def serve(sdir: Path, port: int | None = None, open_browser: bool = True, style:
     httpd.product = enabled()  # explicit launch profile, independent of the selected saved session
     httpd.access_key = secrets.token_urlsafe(32)
     url = f"http://127.0.0.1:{port}/"
-    print(f"Review cockpit: {url}  (session {sdir.name}, style {Handler.style}; Ctrl+C to stop)")
+    print(f"Agent Session Review: {url}  (session {sdir.name}, style {Handler.style}; Ctrl+C to stop)")
     if Handler.style != "cockpit":
         print(f"  local notes and review: {url}index.html")
     if open_browser:

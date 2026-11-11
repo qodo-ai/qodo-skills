@@ -429,7 +429,7 @@ class FlowTests(unittest.TestCase):
         ctx = C.context(prs)
         self.assertEqual([r["key"] for r in ctx["related"]], ["Example-org/review-engine#7636"])   # owner/repo#N, not a same-repo guess
         self.assertEqual([m["same_repo_guess"] for m in ctx["mentions"]], ["o/cockpit#12"])
-        self.assertEqual(C.context([{**prs[0], "body": "Same as O/Agent Session Review#57."}])["related"], [])   # its own PR, however it's cased
+        self.assertEqual(C.context([{**prs[0], "body": "Same as O/Cockpit#57."}])["related"], [])   # its own PR, however it's cased
         twice = C.context([{**prs[0], "body": "See o/Engine#9 and O/engine#9."}])["related"]
         self.assertEqual(len(twice), 1)   # one sister PR, however each description spells it
         odd = C.context([{**prs[0], "body": "Docs: https://gitlab.com/team/docs/-/blob/main/a#12 and https://github.com/x/y/pull/3"}])["related"]

@@ -1,5 +1,5 @@
 """Ask Qodo, served: answer a reviewer's question with a local coding agent (config `ask.agent`) that has no
-file or network access of its own; it asks, and the cockpit runs only checked reads: the session's files and
+file or network access of its own; it asks, and Agent Session Review runs only checked reads: the session's files and
 Qodo's read catalog."""
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ SCHEMA = {"type": "object", "additionalProperties": False, "required": ["answer"
                          "covered": {"type": "boolean"},
                          "code": {"type": "array", "maxItems": 3, "items": {"type": "object", "additionalProperties": False,
                                   "required": ["path", "why"], "properties": {"path": {"type": "string"}, "why": {"type": "string"}}}}}}
-SESSION_TOOLS = {   # the session's own files, read by the cockpit for the agent; nothing outside the session folder
+SESSION_TOOLS = {   # the session's own files, read by Agent Session Review for the agent; nothing outside the session folder
     "session ls": {"description": "List the review session's files", "params": [], "required": []},
     "session read": {"description": "Read a session file (review-data.json holds every PR's diff, findings and story)",
                      "params": ["path", "start", "lines"], "required": ["path"]},
@@ -251,7 +251,7 @@ def _tools_text(cat: dict) -> str:
     lines = [f"- {k}: {v['description'][:140]} (args: {', '.join((p + '*') if p in v['required'] else p for p in v['params']) or 'none'})" for k, v in tools.items()]
     return ("TOOLS: you have no file, shell or network access. To look further, return \"calls\": up to "
             f"{CALLS} items of {{\"tool\": \"<name>\", \"args\": \"<JSON object as a string>\"}} with an empty answer; the "
-            "cockpit runs them and you answer in the next round. Session tools read this review's own files; the others "
+            "Agent Session Review runs them and you answer in the next round. Session tools read this review's own files; the others "
             "are Qodo's read-only tools for the code, other repos and pull requests. Use them only when the index can't "
             "answer. * marks a required argument. If you use something outside the index, list it in \"code\" "
             "[{\"path\": \"repo/path\", \"why\": \"one line\"}], at most 3; otherwise \"code\": []. Reply with JSON only, "

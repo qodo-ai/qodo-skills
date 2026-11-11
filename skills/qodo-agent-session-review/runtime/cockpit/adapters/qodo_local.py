@@ -87,7 +87,7 @@ def _ran_at(result: dict) -> str | None:
 
 
 def norm_pr(ref: str | None) -> str | None:
-    """owner/repo#12, or a GitHub PR URL, as the cockpit's PR key; ValueError for anything else."""
+    """owner/repo#12, or a GitHub PR URL, as Agent Session Review's PR key; ValueError for anything else."""
     if not ref:
         return None
     m = PR_REF.match(ref.strip())
@@ -99,7 +99,7 @@ def norm_pr(ref: str | None) -> str | None:
 def add(result: dict, *, pr: str | None = None, repo: str | None = None, branch: str | None = None,
         commit: str | None = None, cwd: str | None = None) -> dict:
     """Keep one `qodo review --json` result for the PR it belongs to. Repo and branch come from the findings
-    themselves, else from git in `cwd`, the author's checkout (never the cockpit's own, where its commands usually
+    themselves, else from git in `cwd`, the author's checkout (never Agent Session Review's own, where its commands usually
     run); `pr` names the PR when those won't find it (a fork, say). The reviewed commit is never taken from the
     checkout: the author may have committed since the review ran."""
     if not isinstance(result, dict) or not isinstance(result.get("findings"), list):

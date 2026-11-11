@@ -83,7 +83,7 @@ class AMR:
             idx = "\n".join(f"- [[{p[:-3]}]]" for p in PREF_FILES.values())
             write_text(mem,
                 f"# Memory: {reviewer} (PR review)\n"
-                f"- Preferences are learned from review sessions in the cockpit [added: {today()}]\n"
+                f"- Preferences are learned from review sessions in Agent Session Review [added: {today()}]\n"
                 f"- Bullets with a `rule:` key are applied by the app once `evidence` reaches the threshold\n\n"
                 f"## Index\n{idx}\n- [[reviews]]\n"
             )
@@ -344,7 +344,7 @@ def _toplevel(d: Path) -> Path | None:
 
 
 def _memory_repos(paths: list[Path]) -> dict[Path, list[Path]]:
-    """Each memory folder with the git repo that holds it: the one it already sits in (the cockpit checkout, or a
+    """Each memory folder with the git repo that holds it: the one it already sits in (Agent Session Review checkout, or a
     team repo), else a new one at the memory's own root (the folder both kinds share, such as <home>/memory), so
     commits never land in the code's repo by accident and never in a broad folder like $HOME."""
     out: dict[Path, list[Path]] = {}

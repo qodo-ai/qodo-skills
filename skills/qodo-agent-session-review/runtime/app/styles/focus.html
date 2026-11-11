@@ -2485,12 +2485,12 @@ const okAnswer = (v) => { if (!(v && typeof v.answer === "string" && v.answer.tr
 const jsonIn = (t) => { if (t && typeof t === "object") return t; const m = String(t || "").match(/\{[\s\S]*\}/); if (!m) return null; try { return JSON.parse(m[0]); } catch (_) { return null; } };
 async function qaAnswer(q, ctl, ctx) {   // ctx: the subject when the question was sent, not whatever ⌘K points at by the time it's answered
   const ix = qaIx(), prompt = qaPrompt(q, ix, ctx), qid = ASK.qid = Math.random().toString(36).slice(2);
-  if (KIT.served) {   // the cockpit on this machine: Claude Code with read-only tools, Qodo's among them, can look past the report into the code
+  if (KIT.served) {   // Agent Session Review on this machine: Claude Code with read-only tools, Qodo's among them, can look past the report into the code
     try { const r = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q, prompt, id: qid }), signal: ctl.signal });
       const j = await r.json().catch(() => ({})), v = r.ok ? okAnswer(jsonIn(j.answer)) : null;
       if (v) return { ...v, how: "local", agent: j.agent, qodo: Array.isArray(j.qodo) ? j.qodo.filter((x) => typeof x === "string") : [] };
       ASK.note = `The local agent didn't answer${j.error ? ` (${j.error})` : r.ok ? " in the expected shape" : ""}, so this is the next best.`;   // never a silent "no model"
-    } catch (e) { if (e.name === "AbortError") throw e; ASK.note = "The cockpit server didn't answer, so this is the next best."; }
+    } catch (e) { if (e.name === "AbortError") throw e; ASK.note = "Agent Session Review server didn't answer, so this is the next best."; }
   }
   const sample = await sampler();
   if (sample) { try { const v = okAnswer(jsonIn(await sample.json(prompt, { signal: ctl.signal }))); if (v) return { ...v, how: "claude" }; }
@@ -2498,7 +2498,7 @@ async function qaAnswer(q, ctl, ctx) {   // ctx: the subject when the question w
   return qaSearch(q, ix, ctx);
 }
 function askHtml() {
-  const AG = { claude: "Claude Code", codex: "Codex" }, how = (a) => a.how === "local" ? `From the report${(a.code || []).length ? " and the code" : ""} · ${AG[a.agent] || "a coding agent"} on this machine, through the cockpit's read-only calls`
+  const AG = { claude: "Claude Code", codex: "Codex" }, how = (a) => a.how === "local" ? `From the report${(a.code || []).length ? " and the code" : ""} · ${AG[a.agent] || "a coding agent"} on this machine, through Agent Session Review's read-only calls`
     + ((a.qodo || []).length ? ` · looked at: ${Object.entries(a.qodo.reduce((m, t) => ((m[t] = (m[t] || 0) + 1), m), {})).map(([t, n]) => n > 1 ? `${t} ×${n}` : t).join(", ")}` : "")
     : a.how === "claude" ? "From the report · Claude" : a.how === "search" ? "Search only: no model is available here" : "";
   const ids = new Set(qaIx().map((x) => x.id)), byId = Object.fromEntries(qaIx().map((x) => [x.id, x]));

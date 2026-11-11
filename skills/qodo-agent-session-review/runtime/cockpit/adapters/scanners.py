@@ -13,7 +13,7 @@ import hashlib
 import re
 from html import unescape
 
-SEV = {"critical": "high", "high": "high", "medium": "medium", "low": "low"}   # the cockpit's three levels
+SEV = {"critical": "high", "high": "high", "medium": "medium", "low": "low"}   # Agent Session Review's three levels
 RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
 

@@ -9,14 +9,14 @@ import subprocess
 
 from .qodo_comments import _fid
 
-# attribution_status, as the tool documents it: open ones carry no status; closed ones map to the cockpit's.
+# attribution_status, as the tool documents it: open ones carry no status; closed ones map to Agent Session Review's.
 # `implemented` isn't in the tool's documented list, but the review producer has serialized it; closed either way.
 CLOSED = {"full_implementation": "resolved", "implemented": "resolved", "detected_after_merge": "detected_after_merge",
           "dismissed": "dismissed", "outdated": "outdated"}
 
 
 # The review DB names a finding's kind in `finding_source` (the review agent that raised it). The labels are the
-# review producer's own badges, so the cockpit says what Qodo's comment says; skills keep
+# review producer's own badges, so Agent Session Review says what Qodo's comment says; skills keep
 # the summary comment's "Skill insight". Like the producer, an unlisted source is a suggestion.
 TYPES = {"issuefinding": "Bug", "compliancerule": "Rule violation", "complianceagentfilerule": "Rule violation",
          "complianceticketrule": "Requirement gap", "specfinding": "Requirement gap", "uiruntimefinding": "UI issue",

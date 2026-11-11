@@ -1028,7 +1028,7 @@ async function sendNotes() {
   const evs = cockpitNotes(), ids = new Set(evs.map((e) => e.note_id));
   const gone = (S.sent || []).filter((x) => !ids.has(x.id)).map((x) => KIT.undoNote(x.id, x.pr));
   if (!evs.length && !gone.length) return true;   // nothing new to send: publish goes on with what the Agent Session Review has
-  if (!(await KIT.send([...evs, ...gone]))) { toast("Couldn't reach the cockpit server"); return false; }
+  if (!(await KIT.send([...evs, ...gone]))) { toast("Couldn't reach Agent Session Review server"); return false; }
   S.sent = evs.map((e) => ({ id: e.note_id, pr: e.pr })); save();
   toast(`${evs.length} note${evs.length === 1 ? "" : "s"} in your Agent Session Review Notes panel; publish from there`);
 }

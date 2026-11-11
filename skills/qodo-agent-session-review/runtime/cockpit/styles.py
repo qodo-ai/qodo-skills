@@ -115,7 +115,7 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
     links: in a snapshot, the other styles exported next to it (style -> file name)."""
     style = require(style)
     if style == APP:
-        raise ValueError("the cockpit style is the app itself; use export.build")
+        raise ValueError("Agent Session Review style is the app itself; use export.build")
     data = data or json.loads((sdir / "review-data.json").read_text())
     view = view_data(sdir, inline_media=(mode != "serve"), data=data, story_media=(style == "onepage"))
     if mode != "serve":   # a shared page never carries or applies the exporter's personal preferences to its readers

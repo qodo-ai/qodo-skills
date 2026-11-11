@@ -1,6 +1,6 @@
 /* Shared helpers for the review styles (app/styles/*.html). The session arrives as
    <script type="application/json" class="case-data">, the host as <script id="cockpit-host">:
-   mode "serve" (notes go to the local cockpit server) or "snapshot" (they stay in this browser). */
+   mode "serve" (notes go to the local Agent Session Review server) or "snapshot" (they stay in this browser). */
 const KIT = (() => {
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   /* inline markdown: `code`, **bold**, [text](https://...) — input escaped first */
@@ -155,7 +155,7 @@ const KIT = (() => {
   const mermaidBox = (src) => `<div class="mbox" data-mermaid="${esc(src)}"><pre>${esc(src)}</pre></div>`;
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (_) { return d; } },
                   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} if (APPK && APPK.has(k)) appPush(k, v); } };
-  /* ---------- host: the cockpit server when served, nothing in a snapshot ---------- */
+  /* ---------- host: Agent Session Review server when served, nothing in a snapshot ---------- */
   let host = { mode: "snapshot", styles: [] };
   try { const el = document.getElementById("cockpit-host"); if (el) host = JSON.parse(el.textContent); } catch (_) {}
   const served = host.mode === "serve";
@@ -190,7 +190,7 @@ const KIT = (() => {
     try { return await p; } finally { inflight.delete(p); }
   };
   const EMOJI = { blocking: "🚫", question: "❓", nit: "🧹", bug: "🐛" };
-  /* one note on one line, in the cockpit's event format (it publishes notes marked post) */
+  /* one note on one line, in Agent Session Review's event format (it publishes notes marked post) */
   const noteEvent = ({ id, ui_id, pr, path, line, side, text, type, label }) => {
     const onLine = path && line && side !== "old";
     return { type: "note", note_id: id, pr, text, emoji: EMOJI[type] || null, post: !host.product, style: host.style, ...(host.product ? {ui_id, note_type:type} : {}),
@@ -296,7 +296,7 @@ const KIT = (() => {
     const now = host.styles.filter((s) => s.id === host.style || (s.url && !s.needs)), later = host.styles.filter((s) => !now.includes(s));
     const own = ownHtml();
     return own + `<div class="h${own ? " sep" : ""}">Review in a different style</div>${now.map(itemHtml).join("")}`
-      + (later.length ? `<div class="h sep">Create this review in another style</div><p class="ck-note">Claude Code builds the review cockpit for this session in that style. Copy a request and paste it into Claude Code${served ? "" : " (where this review was made)"}.</p>${later.map(itemHtml).join("")}` : "");
+      + (later.length ? `<div class="h sep">Create this review in another style</div><p class="ck-note">Claude Code builds the Agent Session Review for this session in that style. Copy a request and paste it into Claude Code${served ? "" : " (where this review was made)"}.</p>${later.map(itemHtml).join("")}` : "");
   };
   const navHtml = () => {
     if (!others().length) return "";
@@ -334,7 +334,7 @@ const KIT = (() => {
   }, true);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector(".ck-menu:not([hidden])")) { closeMenu(); const b = document.querySelector(".ck-sbtn"); if (b) b.focus(); } });
   setTimeout(() => document.querySelectorAll(".ck-coach").forEach((c) => c.remove()), 12000);   // a hint, not a nag: it fades on its own and shows again next visit until used
-  /* publish to GitHub from any style, with the cockpit's preview first: notes on a finding with its own thread
+  /* publish to GitHub from any style, with Agent Session Review's preview first: notes on a finding with its own thread
      reply there (and can resolve it), the rest form one COMMENT review per PR. A style whose notes wait to be
      sent sets KIT.beforePublish (resolving false stops the publish). */
   const publishHtml = (keys) => served && !host.product ? `<div class="ck-pub">${keys.map((k) => `<button class="ck-pbtn" data-ck-pub="${esc(k)}">Publish ${esc(k.split("/").pop())} to GitHub</button>`).join("")}</div>` : "";

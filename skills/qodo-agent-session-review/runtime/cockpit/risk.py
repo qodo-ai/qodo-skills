@@ -257,7 +257,7 @@ def approval(data: dict, level: str, limit: str = APPROVAL_LIMIT, gate: dict | N
         reasons.append(f"{unseen} changed file{'s' if unseen != 1 else ''} weren't collected, so their paths couldn't be checked against the protected ones.")
     if prot:
         reasons.append(f"{prot} changed file{'s' if prot != 1 else ''} on protected paths ({', '.join(sorted({(f['protected_by'] or '').split(':')[0] for f in gate['protected']}))}), "
-                       f"so a person approves, even if the other files pass{' (mixed PR)' if gate.get('mixed') else ''}. This is the cockpit's map: Qodo's own auto-approval doesn't read it yet.")
+                       f"so a person approves, even if the other files pass{' (mixed PR)' if gate.get('mixed') else ''}. This is Agent Session Review's map: Qodo's own auto-approval doesn't read it yet.")
     if level == "unknown":
         reasons.append("Risk is Unknown, which never passes.")
     elif _rank(level) > _rank(limit):

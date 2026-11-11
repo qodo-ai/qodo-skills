@@ -1,4 +1,4 @@
-"""GitHub review threads: which findings have one, and replying to or resolving them from the cockpit.
+"""GitHub review threads: which findings have one, and replying to or resolving them from Agent Session Review.
 
 A Qodo (or scanner) finding that GitHub shows as an inline comment links to its thread's first comment
 (`.../pull/12#discussion_r<id>`). A note on that finding is posted as a reply in the thread, not as a line

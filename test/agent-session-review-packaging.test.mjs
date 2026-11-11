@@ -136,7 +136,8 @@ function installedFixture(t, resources = canonical, stubEngine = true) {
   const run = (extra = {}, args = ['home']) => spawnSync(python, ['-B', join(installed, 'scripts/launch.py'), ...args], {
     cwd: path, encoding: 'utf8', env: { ...process.env,
       PATH: process.platform === 'win32' ? [bin, dirname(process.execPath)].join(';') : bin,
-      HOME: path, USERPROFILE: path, QODO_HOME: join(path, '.qodo'), REVIEW_COCKPIT_QODO: '',
+      HOME: path, USERPROFILE: path, QODO_HOME: join(path, '.qodo'),
+      QODO_AGENT_SESSION_REVIEW_HOME: '', QODO_AGENT_SESSION_REVIEW_CLI: '', REVIEW_COCKPIT_QODO: '',
       REVIEW_COCKPIT_HOME: home, PROBE_LOG: log, PYTHONUTF8: '0', ...extra },
   });
   return { path, installed, home, log, run };

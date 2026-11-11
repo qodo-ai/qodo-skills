@@ -111,7 +111,7 @@ def main(argv=None):
     lsub = lc.add_subparsers(dest="local_cmd", required=True)
     la = lsub.add_parser("add", help="keep a `qodo review --json` result for its PR (`-` reads stdin)")
     la.add_argument("file"); la.add_argument("--pr", help="owner/repo#123 (default: the PR of this repo's branch)")
-    la.add_argument("--dir", help="the author's checkout, for its repo, branch and commit (default: here, unless here is the cockpit)")
+    la.add_argument("--dir", help="the author's checkout, for its repo, branch and commit (default: here, unless here is Agent Session Review)")
     la.add_argument("--repo"); la.add_argument("--branch"); la.add_argument("--commit")
     lsub.add_parser("list", help="the local reviews kept, newest last")
     sub.add_parser("dream"); sub.add_parser("validate"); sub.add_parser("styles"); sub.add_parser("memory")

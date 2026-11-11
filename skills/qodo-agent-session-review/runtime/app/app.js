@@ -29,7 +29,7 @@ function snapshotApi(path, body) {
     if (path.startsWith("/api/events")) { const since = Number(path.split("since=")[1] || 0); return { events: X.events.slice(since), n: X.events.length }; }
   }
   if (path === "/api/event") { (Array.isArray(body) ? body : [body]).forEach((e) => X.events.push({ ts: new Date().toISOString(), source: "snapshot", ...e })); return { ok: true }; }
-  throw new Error("This is a shared snapshot: publishing, knowledge and memory work in the live cockpit only.");
+  throw new Error("This is a shared snapshot: publishing, knowledge and memory work in the live Agent Session Review only.");
 }
 async function api(path, body) {
   if (SNAPSHOT) return snapshotApi(path, body);
@@ -1296,6 +1296,6 @@ window.addEventListener("beforeunload", leavePanel);
     pollLive(); setInterval(pollLive, 180000);
     window.addEventListener("load", renderMermaid);
   } catch (e) {
-    $("#main").innerHTML = `<div class="card"><div class="bd"><h2>Can't reach the cockpit server</h2><p class="muted">Start it with <code>python3 -m cockpit serve</code>, then reload. (${esc(e.message)})</p></div></div>`;
+    $("#main").innerHTML = `<div class="card"><div class="bd"><h2>Can't reach Agent Session Review server</h2><p class="muted">Start it with <code>python3 -m cockpit serve</code>, then reload. (${esc(e.message)})</p></div></div>`;
   }
 })();
