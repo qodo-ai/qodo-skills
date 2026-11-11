@@ -145,7 +145,7 @@ const versionedPackagePaths = [
   /^kiro-power(?:-[a-z0-9-]+)?\//,
   /^packages\//,
   /^distribution\/(?:(?:catalog|codex-submissions|marketplaces)\.schema|codex-submissions|marketplaces)\.json$/,
-  /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|deterministic-zip|package-projections|marketplace-release(?:-lock)?|prepare-release|release-baseline|release-notes|skill-provenance|sync-adapters|verify-codex-packet)\.mjs$/,
+  /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|deterministic-zip|package-projections|marketplace-release(?:-lock)?|prepare-release|release-baseline|skill-renames|release-notes|skill-provenance|sync-adapters|verify-codex-packet)\.mjs$/,
   /^scripts\/(?:audit-release-protections|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 const packagingChanged = files.some((path) => versionedPackagePaths.some((pattern) => pattern.test(path)));

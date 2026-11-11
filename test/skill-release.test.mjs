@@ -116,17 +116,20 @@ test('supporting files, catalog display metadata, and packaging fixes are collec
 
 test('a projection-helper-only edit requires a packaging release without changing skill versions', (t) => {
   const f = fixture(t);
-  f.edit('scripts/package-projections.mjs', '\n// Projection-policy fixture correction.\n');
-  f.commit('change projection policy only');
-  const plan = planSkillRelease(f.root);
-  assert.equal(plan.pending, true);
-  assert.deepEqual(plan.skills, []);
-  assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
-  const result = prepareSkillRelease(f.root, plan);
-  assert.deepEqual(result.changes, []);
-  assert.equal(readJson(f.root, `releases/v${result.version}.json`).package.change, 'patch');
-  f.commit('version projection policy release');
-  f.check('scripts/validate-diff.mjs', f.base);
+  for (const file of ['package-projections', 'skill-renames']) {
+    f.reset(f.base);
+    f.edit(`scripts/${file}.mjs`, '\n// Projection-policy fixture correction.\n');
+    f.commit('change projection policy only');
+    const plan = planSkillRelease(f.root);
+    assert.equal(plan.pending, true);
+    assert.deepEqual(plan.skills, []);
+    assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
+    const result = prepareSkillRelease(f.root, plan);
+    assert.deepEqual(result.changes, []);
+    assert.equal(readJson(f.root, `releases/v${result.version}.json`).package.change, 'patch');
+    f.commit('version projection policy release');
+    f.check('scripts/validate-diff.mjs', f.base);
+  }
 });
 
 test('a new skill already merged to main uses initial relative to the last prepared release', (t) => {
@@ -238,6 +241,26 @@ test('an explicit optional rename previews, records provenance and removes only 
   assert(existsSync(join(f.root, 'kiro-power-renamed-review', 'skills', to, 'runtime/LICENSE')));
   f.commit('manual optional rename release');
   f.check('scripts/validate-diff.mjs', f.base);
+  // A source branch can merge a newer prepared main release. Its merge
+  // commit carries the record but is not the record's introducing baseline.
+  f.reset(f.base);
+  f.edit(); f.commit('new main source');
+  const mainResult = prepareSkillRelease(f.root), mainCatalog = readJson(f.root, 'distribution/catalog.json');
+  const mainRelease = f.commit('new main prepared release');
+  f.reset(renamedSource);
+  try { f.git('merge', '--no-ff', '--no-commit', mainRelease); }
+  catch (error) { assert.match(String(error.stdout), /CONFLICT/); }
+  mainCatalog.skills.find((entry) => entry.name === from).name = to;
+  const mergedPackage = mainCatalog.installPackages.find((entry) => entry.name === from);
+  mergedPackage.name = to; mergedPackage.skills = [to];
+  writeFileSync(join(f.root, 'distribution/catalog.json'), JSON.stringify(mainCatalog, null, 2));
+  f.commit('merge prepared main into rename source');
+  f.check('scripts/prepare-release.mjs', '--summary', 'Rename after main merge.', '--skill', `${to}=initial`);
+  assert.equal(releaseBaseline(f.root), mainRelease);
+  const mergedVersion = incrementVersion(mainResult.version, 'minor');
+  assert.deepEqual(readJson(f.root, `releases/v${mergedVersion}.json`).renames, [rename]);
+  f.commit('manual release after main merge');
+  f.check('scripts/validate-diff.mjs', mainRelease);
 });
 
 test('Antigravity artifacts belong to versioned release PRs, not source PRs', (t) => {
