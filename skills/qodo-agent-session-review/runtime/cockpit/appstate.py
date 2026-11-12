@@ -21,13 +21,18 @@ def path():
     return HOME / "app-state.json"
 
 
-def load() -> dict:
-    """The saved settings, only the known keys; a missing or damaged file reads as none."""
+def _raw() -> dict:
+    """Every cockpit setting in the file, known or not: another runtime sharing this data home may keep newer keys."""
     try:
         d = json.loads(path().read_text())
     except (OSError, ValueError):
         return {}
-    return {k: v for k, v in d.items() if k in APP_KEYS} if isinstance(d, dict) else {}
+    return {k: v for k, v in d.items() if isinstance(k, str) and k.startswith("cockpit:")} if isinstance(d, dict) else {}
+
+
+def load() -> dict:
+    """The saved settings, only the known keys; a missing or damaged file reads as none."""
+    return {k: v for k, v in _raw().items() if k in APP_KEYS}
 
 
 @contextlib.contextmanager
@@ -46,8 +51,8 @@ def update(changes) -> dict:
     bad = [k for k in changes if k not in APP_KEYS]
     if bad:
         raise ValueError(f"not an app setting: {', '.join(map(str, bad))[:200]}")
-    with _locked():   # read, merge and write as one step, so two ports never drop each other's change
-        d = load()
+    with _locked():   # read, merge and write as one step, so two ports (or two runtime versions) never drop each other's keys
+        d = _raw()
         for k, v in changes.items():
             if v is None:
                 d.pop(k, None)
@@ -56,4 +61,4 @@ def update(changes) -> dict:
         if len(json.dumps(d, ensure_ascii=False).encode()) > MAX_BYTES:
             raise ValueError("the app settings would be too large; delete a saved layout first")
         write_json(path(), d)
-    return d
+    return {k: v for k, v in d.items() if k in APP_KEYS}

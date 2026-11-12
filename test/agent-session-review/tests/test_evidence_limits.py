@@ -114,6 +114,19 @@ class EvidenceLimitsTests(unittest.TestCase):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()
         self.assertIn("if '{{PACKAGE_SCRIPT}}' not in (STYLES_DIR / meta['template']).read_text():", styles)   # Work Package shows them in its refresh details instead
 
+    def test_saving_a_setting_keeps_keys_from_a_newer_runtime(self):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        from cockpit import appstate
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(appstate, "path", lambda: Path(d) / "app-state.json"):
+            (Path(d) / "app-state.json").write_text(json.dumps({"cockpit:theme": "dark", "cockpit:from-newer": {"x": 1}, "junk": 1}))
+            self.assertNotIn("cockpit:from-newer", appstate.load())   # only known keys reach the page
+            out = appstate.update({"cockpit:theme": "light"})
+            self.assertEqual(out, {"cockpit:theme": "light"})
+            saved = json.loads((Path(d) / "app-state.json").read_text())
+            self.assertEqual(saved, {"cockpit:theme": "light", "cockpit:from-newer": {"x": 1}})   # another runtime's key survives the write; non-cockpit junk doesn't
+
     def test_the_page_no_longer_appends_the_limits_block(self):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()
         self.assertNotIn('Managed source evidence and limits', styles)
