@@ -78,10 +78,9 @@ class NavDividerTests(unittest.TestCase):
     def test_risk_summary_text_moves_into_risk_assessment(self):
         out = self.run_js(cut(self.source, 'const LDEF = ', 'const VIEWDEF') + 'result=LDEF().pages.flatMap((p)=>p.widgets);')
         self.assertNotIn('rtext', out); self.assertIn('rsum', out)   # the default shows the summary inside Risk assessment
-        store = ("const DB={'L':{pages:[{id:'r',label:'Risk',widgets:['rtext','rsum','rblast']},{id:'t',label:'Text',widgets:['rtext']}]}},"
-                 "LKEY='L',store={get:(k,d)=>k in DB?DB[k]:d,set:(k,v)=>{DB[k]=v;}};")
-        mig = self.run_js(store + cut(self.source, 'const RTXTIN = ', 'const PGICONS = ') + "result=DB.L.pages.map((p)=>p.widgets);")
-        self.assertEqual(mig, [['rsum', 'rblast'], ['rtext']])   # dropped beside Risk assessment, kept where it stands alone
+        layout = {'pages': [{'id': 'r', 'label': 'Risk', 'widgets': ['rtext', 'rsum', 'w']}, {'id': 't', 'label': 'Text', 'widgets': ['rtext']}]}
+        out = self.run_js("WIDGETS.rtext=1;WIDGETS.rsum=1;" + cut(self.source, 'function cleanLayout(', 'const RTXT') + f'result=cleanLayout({json.dumps(layout)}).pages.map((p)=>p.widgets);')
+        self.assertEqual(out, [['rsum', 'w'], ['rtext']])   # any layout source: dropped beside Risk assessment, kept where it stands alone
         body = self.source[self.source.index('function bRiskSum()'):self.source.index('const bRiskText')]
         self.assertLess(body.index('class="rtop"'), body.index('riskRadar()'))   # the text across the top, then the chart
 

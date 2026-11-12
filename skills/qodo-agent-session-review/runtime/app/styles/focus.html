@@ -1416,8 +1416,9 @@ function startTarget0(it) {
 }
 const TONE = { risk: "Risk", decision: "Decision", gap: "Gap", good: "Good" };   // what kind of thing to notice
 /* the brief as four readings of one paragraph slot: the one-liner, then why, what and how, swapped in place */
-const BKIND = (l) => { const s = String(l || "").toLowerCase();
-  return /today|current|before|context|baseline/.test(s) ? "today" : /why|goal|problem|motivation/.test(s) ? "why" : /how|mechanism|design/.test(s) ? "how" : /status|not included|scope left|open/.test(s) ? "status" : "what"; };
+const BKIND = (l) => { const s = String(l || "").toLowerCase().trim(), lead = s.match(/^(today|why|what|how|status)\b/);
+  if (lead) return lead[1];   // a label that starts with a canonical name is that part, whatever it adds in brackets
+  return /current|before|context|baseline/.test(s) ? "today" : /why|goal|problem|motivation/.test(s) ? "why" : /how|mechanism|design/.test(s) ? "how" : /status|not included|scope left|open/.test(s) ? "status" : "what"; };
 function briefParts() {
   const out = { today: [], why: [], what: [], how: [], status: [] };   // today: how the feature behaves before this change
   const ps = (BRIEF && BRIEF.paragraphs) || [];
@@ -1433,7 +1434,7 @@ function heroMerged() {   // one card, top-down: the headline, plain answers, th
   const paras = (xs) => xs.map((t) => `<p>${md(t)}</p>`).join("");
   const why = P.why.length ? paras(P.why) + (srcs.length ? `<p class="src">Sources: ${srcs.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.url)} ↗</a>`).join(" · ")}</p>` : "") : "";
   return `<section class="hero"><div class="card bcard bmerged"><div class="ih chead"><b class="ctitle">Brief</b></div>
-    <p class="bhead">${md(lede)}</p>${FLOW.title ? `<p class="bkick">${md(FLOW.title)}</p>` : ""}
+    ${P.today.length ? `<p class="bkick">Today</p>${paras(P.today)}` : ""}<p class="bhead">${md(lede)}</p>${FLOW.title ? `<p class="bkick">${md(FLOW.title)}</p>` : ""}
     <div class="bfolds">${(FLOW.answers || []).map((a, i) => flowFold(`fq${i}`, md(a.q), "", `<p>${md(a.a)}</p>`)).join("")}</div>
     <p class="bkick">Go deeper</p><div class="bfolds">${flowFolds(P.how.join(" "))}${flowFold("fwhy", "Why it's being built", "", why, false, "why")}</div></div></section>`;
 }

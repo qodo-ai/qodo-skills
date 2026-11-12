@@ -934,8 +934,9 @@ function startTarget0(it) {
 }
 const TONE = { risk: "Risk", decision: "Decision", gap: "Gap", good: "Good" };   // what kind of thing to notice
 /* the brief as four readings of one paragraph slot: the one-liner, then why, what and how, swapped in place */
-const BKIND = (l) => { const s = String(l || "").toLowerCase();
-  return /today|current|before|context|baseline/.test(s) ? "today" : /why|goal|problem|motivation/.test(s) ? "why" : /how|mechanism|design/.test(s) ? "how" : /status|not included|scope left|open/.test(s) ? "status" : "what"; };
+const BKIND = (l) => { const s = String(l || "").toLowerCase().trim(), lead = s.match(/^(today|why|what|how|status)\b/);
+  if (lead) return lead[1];   // a label that starts with a canonical name is that part, whatever it adds in brackets
+  return /current|before|context|baseline/.test(s) ? "today" : /why|goal|problem|motivation/.test(s) ? "why" : /how|mechanism|design/.test(s) ? "how" : /status|not included|scope left|open/.test(s) ? "status" : "what"; };
 function briefParts() {
   const out = { today: [], why: [], what: [], how: [], status: [] };   // today: how the feature behaves before this change
   const ps = (BRIEF && BRIEF.paragraphs) || [];
@@ -970,7 +971,7 @@ function heroMerged() {   // one card, top-down: the headline, plain answers, th
   const paras = (xs) => xs.map((t) => `<p>${md(t)}</p>`).join("");
   const why = P.why.length ? paras(P.why) + (srcs.length ? `<p class="src">Sources: ${srcs.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.url)} ↗</a>`).join(" · ")}</p>` : "") : "";
   return `<section class="hero"><div class="card bcard bmerged"><div class="ih chead"><b class="ctitle">Design brief</b></div>${assetsHtml()}
-    <p class="bkick">Summary</p><p class="bsum">${md(lede)}</p>
+    ${P.today.length ? `<p class="bkick">Today</p>${paras(P.today)}` : ""}<p class="bkick">Summary</p><p class="bsum">${md(lede)}</p>
     <p class="bkick">Go deeper</p><div class="bfolds">${behaviorsFold()}${flowFolds(P.how.join(" "))}${flowFold("fwhy", "Why it's being built", "", why, false, "why")}</div></div></section>`;
 }
 function heroHtml() {
@@ -3325,7 +3326,7 @@ function cleanLayout(x) {   // what a stored layout may hold: named pages, known
     const own = (Array.isArray(p.widgets) ? p.widgets : []).find((w) => Object.hasOwn(SICON, w));
     const icon = PICONS.includes(p.icon) || Object.hasOwn(SICON, p.icon || "") ? p.icon : own || "ovw";   // a page with no known icon takes its first widget's
     return { id, label, icon, ...(Object.keys(names).length ? { names } : {}),
-      widgets: (Array.isArray(p.widgets) ? p.widgets : []).flatMap((w) => (w === "brief" ? BRIEF3 : w === "behaviors" ? BEH6 : w === "risk" ? RISK5 : [w])).filter((w, i, ws) => typeof w === "string" && Object.hasOwn(WIDGETS, w) && ws.indexOf(w) === i) }; }).filter((p) => p && p.widgets.length);   // each widget once per page, on as many pages as you like; no page without a widget
+      widgets: (Array.isArray(p.widgets) ? p.widgets : []).flatMap((w) => (w === "brief" ? BRIEF3 : w === "behaviors" ? BEH6 : w === "risk" ? RISK5 : [w])).filter((w, i, ws) => typeof w === "string" && Object.hasOwn(WIDGETS, w) && ws.indexOf(w) === i).filter((w, i, ws) => w !== "rtext" || !ws.includes("rsum")) }; }).filter((p) => p && p.widgets.length);   // Risk assessment opens with the Risk summary text, so a page never shows both   // each widget once per page, on as many pages as you like; no page without a widget
   const dids = new Set(), dividers = (Array.isArray(x.dividers) ? x.dividers : []).slice(0, 12).map((d) => { const label = String((d && d.label) || "").trim().slice(0, 24); if (!label) return null;
     let id = rslug(d.id || "d-" + label); while (dids.has(id)) id += "-2"; dids.add(id);
     return { id, label, at: pages.some((p) => p.id === d.at) ? d.at : null }; }).filter(Boolean);   // at: the page below it; null, after the last page
@@ -3345,10 +3346,6 @@ const DIVS = "cockpit:layout-dividers";   // nav dividers came after the stored 
 if (!store.get(DIVS, false)) { const L0 = store.get(LKEY, null);
   if (L0 && Array.isArray(L0.pages) && !Array.isArray(L0.dividers)) { L0.dividers = LDEF().dividers.filter((d) => L0.pages.some((p) => p && p.id === d.at)); L0.pages.forEach((p) => p && delete p.group); store.set(LKEY, L0); }
   store.set(DIVS, true); }
-const RTXTIN = "cockpit:layout-rtext-in-rsum";   // Risk assessment now opens with the Risk summary text: a page holding both drops the separate widget, once
-if (!store.get(RTXTIN, false)) { const L0 = store.get(LKEY, null);
-  if (L0 && Array.isArray(L0.pages)) { L0.pages.forEach((p) => { if (p && Array.isArray(p.widgets) && p.widgets.includes("rsum") && p.widgets.length > 1) p.widgets = p.widgets.filter((w) => w !== "rtext"); }); store.set(LKEY, L0); }
-  store.set(RTXTIN, true); }
 const PGICONS = "cockpit:layout-icons";   // pages once got the shared Overview icon by default: such a page takes its first widget's icon instead, once
 if (!store.get(PGICONS, false)) { const L0 = store.get(LKEY, null);
   if (L0 && Array.isArray(L0.pages)) { L0.pages.forEach((p) => { const own = p && p.label !== "Overview" && p.icon === "ovw" && (p.widgets || []).find((w) => Object.hasOwn(SICON, w)); if (own) p.icon = own; }); store.set(LKEY, L0); }

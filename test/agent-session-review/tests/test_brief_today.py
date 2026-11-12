@@ -28,6 +28,22 @@ class BriefTodayTests(unittest.TestCase):
                 self.assertEqual((parts['today'], parts['what']), (['old'], ['new']))   # pre-change behavior never reads as What
                 self.assertIn('["today", "Today"]', src)   # and the hero has a Today tab
 
+    def test_a_canonical_label_wins_over_its_brackets(self):
+        for name in ('package.js', 'focus.html'):
+            with self.subTest(style=name):
+                src = (util.ROOT / 'app/styles' / name).read_text()
+                code = cut(src, 'const BKIND = ', 'function briefParts')
+                kinds = self.run_js(code + "result=['Why (current behavior)','How it worked before','Current behavior','Today','What'].map(BKIND);")
+                self.assertEqual(kinds, ['why', 'how', 'today', 'today', 'what'])
+
+    def test_the_flow_brief_shows_today_in_every_style(self):
+        for name in ('package.js', 'focus.html'):
+            with self.subTest(style=name):
+                src = (util.ROOT / 'app/styles' / name).read_text()
+                merged = src[src.index('function heroMerged()'):]
+                merged = merged[:merged.index('\n}\n')]
+                self.assertIn('<p class="bkick">Today</p>${paras(P.today)}', merged)
+
     def test_summary_has_three_sections_with_or_without_a_flow(self):
         src = (util.ROOT / 'app/styles/package.js').read_text()
         body = cut(src, 'function bSummary()', 'const flowOn = ')
