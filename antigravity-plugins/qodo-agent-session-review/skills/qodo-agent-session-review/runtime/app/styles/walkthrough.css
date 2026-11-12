@@ -1,4 +1,4 @@
-/* Execution paths, Code changes and Finding review (walkthrough.js), on the Work Package's tokens */
+/* Execution walkthrough and Finding review (walkthrough.js), on the Work Package's tokens */
 .bw-head{display:flex; flex-direction:column; gap:12px}
 .bw-bar{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px}
 .bw-bar .pviews{margin-top:0}
@@ -29,9 +29,9 @@ details.bw-f[open] > summary{border-bottom:1px solid var(--line); border-radius:
 .bw-ms{display:flex; flex-direction:column; padding:6px 8px 8px}
 details.bw-m{border-radius:6px}
 details.bw-m + details.bw-m{border-top:1px solid var(--line)}
-details.bw-m > summary{display:grid; grid-template-columns:106px minmax(0,1fr) auto; gap:2px 10px; align-items:start; padding:8px 8px; cursor:pointer; list-style:none; border-radius:6px}   /* the kind column fits the widest chip, "component", on one line */
+details.bw-m > summary{display:grid; grid-template-columns:76px minmax(0,1fr) auto; gap:2px 10px; align-items:start; padding:8px 8px; cursor:pointer; list-style:none; border-radius:6px}
 details.bw-m > summary:hover{background:var(--sunk)}
-.bw-k{justify-self:start; display:inline-flex; align-items:center; gap:5px; white-space:nowrap; margin-top:2px; font:600 12px/1.6 var(--f-mono); letter-spacing:.02em; padding:2px 8px 2px 6px; border:1px solid var(--line); border-radius:999px; background:var(--sunk); color:var(--muted); text-transform:lowercase}
+.bw-k{justify-self:start; display:inline-flex; align-items:center; gap:5px; margin-top:2px; font:600 12px/1.6 var(--f-mono); letter-spacing:.02em; padding:2px 8px 2px 6px; border:1px solid var(--line); border-radius:999px; background:var(--sunk); color:var(--muted); text-transform:lowercase}
 .bw-k svg{flex:none; width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}   /* the same size as the repo chip's GitHub mark */
 /* every kind the same neutral chip: its icon tells them apart */
 .bw-mn{min-width:0; display:flex; flex-direction:column; gap:2px}
@@ -200,11 +200,11 @@ button.bf-go{cursor:pointer} button.bf-go:hover, button.bf-go:focus-visible{bord
 
 .bf-flat .bf-s, .bf-flat .bf-x{--d:0 !important} .bf-flat .bf-v{display:none}   /* Flat: every step at the left edge, no tree lines */
 
-.bw-bar > .bw-q{margin-left:auto; flex:0 1 280px; height:32px; box-sizing:border-box}   /* Code changes' search, at the bar's far right */
+.bw-head > .bw-q{flex:none; align-self:flex-start; width:100%; max-width:420px}   /* Tree's filter, under the bar */
 .bw-bar .bf-keyw{margin-left:auto}
 .bw-tree .bw-path{display:none}   /* Nested: the folder already says where a file lives */
 details.bw-dir > summary{display:flex; align-items:center; gap:8px; padding:6px 4px; cursor:pointer; list-style:none; border-radius:6px; font:600 13.5px/1.4 var(--f-mono); color:var(--muted)} details.bw-dir > summary::-webkit-details-marker{display:none}
-details.bw-dir > summary:hover{background:var(--sunk)} details.bw-dir > summary .fic{width:16px; height:16px} details.bw-dir > summary .bw-pre{font-weight:400; color:var(--faint)} details.bw-dir > summary .bw-cnt{font:500 12px var(--f-body); color:var(--faint)}
+details.bw-dir > summary:hover{background:var(--sunk)} details.bw-dir > summary .fic{width:16px; height:16px} details.bw-dir > summary .bw-cnt{font:500 12px var(--f-body); color:var(--faint)}
 .bw-dk{display:flex; flex-direction:column; gap:8px; margin:4px 0 6px 11px; padding-left:14px; border-left:1px solid var(--line)}
 
 .bw-bar .pv, .bw-all{display:inline-flex; align-items:center; gap:6px} .bw-bar .pv svg, .bw-all svg{width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round}

@@ -218,7 +218,6 @@ def fetch_pr(repo: str, number: int, annotation_checks: list[str] | None = None)
         "deletions": v.get("deletions", 0), "labels": [l["name"] for l in v.get("labels", [])], **human_reviews(reviews, v.get("headRefOid")),
         "files": files, "checks": checks, "created": v.get("createdAt"), "_raw_comments": raw, "_threads": review_threads,
         "unresolved_threads": sum(1 for t in review_threads.values() if not t["resolved"]) if review_threads is not None else None,
-        "review_threads": len(review_threads) if review_threads is not None else None,   # every review conversation, resolved or not
         "unresolved_ids": sorted(c for c, t in review_threads.items() if not t["resolved"])[:50] if review_threads is not None else [],   # first comment of each, for links
         "_annotations": fetch_annotations(repo, v.get("headRefOid"), annotation_checks or []),
         **_tests_and_coverage(repo, v.get("headRefOid"), raw),
@@ -537,7 +536,7 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
         key, repo, num = pr["key"], pr["repo"], pr["number"]
         try:
             v = gh_json(["pr", "view", str(num), "--repo", repo, "--json",
-                         "headRefOid,state,mergeStateStatus,reviewDecision,isDraft,comments,reviews,statusCheckRollup"]) or {}
+                         "headRefOid,state,mergeStateStatus,reviewDecision,isDraft,comments,reviews"]) or {}
         except RuntimeError as e:
             out[key] = {"error": str(e)[:200]}
             continue
@@ -555,15 +554,13 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
         new_comments = sum(1 for c in (v.get("comments") or []) if (c.get("createdAt") or "") > since) + \
             sum(1 for r in new_reviews if r.get("state") != "APPROVED")
         try:   # review conversations still open, for the verdict: how many, and the first comment of each for its link
-            ths = threads.fetch(repo, num)
-            open_ids, total = sorted(c for c, t in ths.items() if not t["resolved"]), len(ths)
+            open_ids = sorted(c for c, t in threads.fetch(repo, num).items() if not t["resolved"])
             unresolved = len(open_ids)
         except (RuntimeError, ValueError, KeyError):
-            open_ids, unresolved, total = [], None, None
-        out[key] = {"head": head, "snapshot_head": old, "moved": bool(head and old and head != old), "new_commits": ahead, "unresolved": unresolved, "unresolved_ids": open_ids[:50], "threads": total,
+            open_ids, unresolved = [], None
+        out[key] = {"head": head, "snapshot_head": old, "moved": bool(head and old and head != old), "new_commits": ahead, "unresolved": unresolved, "unresolved_ids": open_ids[:50],
                     "state": v.get("state"), "merge_state": v.get("mergeStateStatus"), "review_decision": v.get("reviewDecision"),
-                    "draft": v.get("isDraft"), "new_comments": new_comments, "approved_by": approvers,
-                    "checks": latest_checks(v["statusCheckRollup"]) if v.get("statusCheckRollup") is not None else None}   # CI as it is now, for the verdict
+                    "draft": v.get("isDraft"), "new_comments": new_comments, "approved_by": approvers}
     return out
 
 

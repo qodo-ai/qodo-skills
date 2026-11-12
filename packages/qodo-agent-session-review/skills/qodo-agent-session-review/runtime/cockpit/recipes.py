@@ -39,7 +39,7 @@ LABELS = {"brief": "Brief", "flow": "How it works", "plan": "Reading plan", "ris
           "other": "Other work", "prs": "Pull requests", "stories": "Stories", "arch": "Architecture", "changes": "Changes",
           "findings": "Quality", "walk": "Review walkthrough", "review": "Your review", "system": "System"}   # a tab with no name takes its first block's
 # Work Package's own blocks (app/styles/package.html): a recipe may name them; Focus skips what it can't draw
-PACKAGE_BLOCKS = {"verdict": "Verdict: the bottom line, whether the package is ready to merge, and what still blocks it",
+PACKAGE_BLOCKS = {"verdict": "Verdict: the bottom line, whether the package is ready to merge, with its Merge Risk and open findings",
                   "prstable": "Package table: a row per repo that opens to a row per PR, with merge, open findings, CI and lines",
                   "assets": "Product assets: links to the feature's PRD, tickets, overview deck and prototype",
                   "summary": "Product summary: the feature in one line",
@@ -56,9 +56,9 @@ PACKAGE_BLOCKS = {"verdict": "Verdict: the bottom line, whether the package is r
                   "rcplx": "Complexity: how hard each scenario is to get right, with the evidence",
                   "rdmg": "Damage: how bad a fault is where it lands, scenario by scenario, with the evidence",
                   "rdeep": "Go deeper: how to roll back, how Merge Risk was decided, review effort, auto-approval and who should review",
-                  "decisions": "Agent decisions: what the code decided against the plan, unplanned first, each with its code and an answer",
+                  "decisions": "Coding agent decisions: what the code decided against the plan, unplanned first, each with its code and an answer",
                   "issues": "Quality and issue findings: what the reviewers, scanners and CI found, and how it was tested"}
-PACKAGE_LABELS = {"verdict": "Verdict", "prstable": "Package table", "assets": "Product assets", "summary": "Product summary", "behaviors": "Behaviors", "bhv": "Primary behaviors", "bdif": "What's different", "bdec": "Key decisions", "bcon": "Contract changes", "bhop": "Hop by hop", "bwhy": "Why it's being built", "rsum": "Risk assessment", "rtext": "Risk summary", "rblast": "Blast radius", "rcplx": "Complexity", "rdmg": "Damage", "rdeep": "Go deeper", "decisions": "Agent decisions", "issues": "Quality & Issue findings"}   # a tab with no name, in Work Package
+PACKAGE_LABELS = {"verdict": "Verdict", "prstable": "Package table", "assets": "Product assets", "summary": "Product summary", "behaviors": "Behaviors", "bhv": "Primary behaviors", "bdif": "What's different", "bdec": "Key decisions", "bcon": "Contract changes", "bhop": "Hop by hop", "bwhy": "Why it's being built", "rsum": "Risk assessment", "rtext": "Risk summary", "rblast": "Blast radius", "rcplx": "Complexity", "rdmg": "Damage", "rdeep": "Go deeper", "decisions": "Coding agent decisions", "issues": "Quality & Issue findings"}   # a tab with no name, in Work Package
 LAYOUTS = ("tabs", "page")
 DENSITIES = ("calm", "compact")
 ACCENTS = ("purple", "blue", "green", "amber", "rose")
