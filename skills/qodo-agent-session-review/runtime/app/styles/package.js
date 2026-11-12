@@ -1462,7 +1462,7 @@ function headActions() {
     + `<div class="vw"><button type="button" class="hbtn hlbl" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}<span>Share</span></button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
     + `<button type="button" class="hbtn" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>`;   // Share, then More on the far right
 }
-if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; C.live_at = new Date().toISOString(); keepScroll(() => {}); drawHead(); }).catch(() => {});
+if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; if (Object.values(LIVE).some((v) => v && !v.error)) C.live_at = j.checked_at || new Date().toISOString(); keepScroll(() => {}); drawHead(); }).catch(() => {});
 const OVERVIEW = ["prs", "brief", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"];
 const OVERVIEWISH = OVERVIEW.concat(["risk"]);   // blocks that make a tab the overview (Focus's own overview stays OVERVIEW)
 function vOverview() { return OVERVIEW.map((b) => BLOCKS[b].render()).join(""); }
@@ -1696,7 +1696,7 @@ function walkStepper() {   // Review walkthrough as a stepper: one unit at a tim
   const route = `<details class="wk-route" data-wkroute${S.open.wkroute ? " open" : ""}><summary><b>Reading route</b><span class="muted">Every unit against the files it reads; click a cell to go to that step</span><span class="chev" aria-hidden="true"></span></summary>${planRoute(ORDER.filter((p) => prOn(p.key)))}</details>`;
   return `<div class="wks"><div class="wks-head"><div class="wks-top"><b class="wks-n">Step ${i + 1} of ${us.length}</b><span class="muted">${done} of ${us.length} read${done < us.length ? ` · ${fmtMin(Math.max(1, mleft))} left` : ""}</span></div>
     <div class="wks-dots" role="group" aria-label="Steps">${dots}</div></div>${route}
-    <article class="wks-card${cdone ? " done" : ""}"><header class="wks-h"><span class="wks-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><div class="wks-t"><span class="wks-k">Overview · step ${unitNo(cur)}</span><h3>${md(cur.title)}</h3>${cur.summary ? `<p class="us">${md(cur.summary)}</p>` : ""}</div><span class="r">${tags}<span class="muted n">${cur.blocks.length} chunk${cur.blocks.length === 1 ? "" : "s"} · ${cdone ? "read" : fmtMin(Math.max(1, left([cur])))}</span></span></header>
+    <article class="wks-card${cdone ? " done" : ""}" tabindex="-1"><header class="wks-h"><span class="wks-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><div class="wks-t"><span class="wks-k">Overview · step ${unitNo(cur)}</span><h3>${md(cur.title)}</h3>${cur.summary ? `<p class="us">${md(cur.summary)}</p>` : ""}</div><span class="r">${tags}<span class="muted n">${cur.blocks.length} chunk${cur.blocks.length === 1 ? "" : "s"} · ${cdone ? "read" : fmtMin(Math.max(1, left([cur])))}</span></span></header>
       <div class="body">${FROMNOTE && FROMNOTE.uid === cur.id ? `<p class="fromnote"><span class="lbl">From Start here</span><b>${md(FROMNOTE.title)}</b> ${md(FROMNOTE.text)}</p>` : ""}${cur.decisions.map(udecHtml).join("")}${cur.blocks.map((b) => blockHtml(cur.p, b, true)).join("")}</div></article>
     <nav class="wks-nav" aria-label="Steps"><button type="button" class="btn" data-wkgo="${esc(us[0].id)}"${i ? "" : " disabled"}>Start again</button>
       <span class="wks-pn"><button type="button" class="btn" data-wkgo="${prev ? esc(prev.id) : ""}"${prev ? "" : " disabled"}>← Previous</button>
@@ -1722,11 +1722,12 @@ function openUnit(u, bid) {
   if (!prOn(u.p.key)) S.pr = [u.p.key];
   S.open["s:" + u.p.key] = true; S.open["u:" + u.id] = true;
   if (bid) S.open["b:" + u.p.key + "|" + bid] = true;
-  S.wkstep = u.id; const pg = pageOf("walk") || S.tab; S.tab = pg; save();   // the stepper shows that unit
+  S.wkstep = u.id; const pg = pageOf("walk") || S.tab; S.tab = pg; if (pg !== "walk") { SECT[pg] = "walk"; WTAB[pg] = "walk"; } save();   // the stepper shows that unit, its widget picked in Tabs and Accordion too
   try { history.replaceState(null, "", "#" + pg); } catch (_) {}
   render(); if (!bid) wkTop();
   const el = document.querySelector(`[data-open="${CSS.escape(bid ? "b:" + u.p.key + "|" + bid : "u:" + u.id)}"]`);
   if (el) { el.scrollIntoView({ block: bid ? "center" : "start" }); el.querySelector("summary").focus({ preventScroll: true }); }
+  else if (!bid) { const card = document.querySelector(".wks-card"); if (card) card.focus({ preventScroll: true }); }   // the stepper's step: keyboard focus lands on it
 }
 
 /* ---------- architecture: one lens at a time ---------- */
@@ -2334,7 +2335,10 @@ function vdThreads(ps, off) {   // unresolved review conversations across the PR
 const reviewCoverageKnown = (p) => !C.product || (LIVE[p.key] ? LIVE[p.key].reviews_complete === true : p.review_decision_complete === true && p.read_evidence?.sections?.reviews?.complete === true);
 const awaitingReview = (p) => { const L = LIVE[p.key];
   if (!reviewCoverageKnown(p)) return null;
-  return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length || (p.changes_requested || []).length > 0; };
+  const snap = () => !(p.approvals || []).length || (p.changes_requested || []).length > 0;   // as collected: no approval yet, or a change still requested
+  if (!(L && L.state)) return snap();
+  if (L.state !== "OPEN" || L.draft) return false;   // drafts and closed PRs block the Verdict on their own
+  return L.review_decision ? L.review_decision !== "APPROVED" : snap() && !(L.approved_by || []).length; };   // no review decision: the repo doesn't require reviews, so a human approval is enough
 const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], ci: true, conflicts: true, review: true, comments: true };
 let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
 const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
@@ -2345,8 +2349,9 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
   const cst = (c) => String(c.state || c.conclusion || "").toUpperCase(), ci = ps.filter((p) => ciChecks(p).some((c) => CI_BAD.includes(cst(c))));
   const wt = ps.filter((p) => !ci.includes(p) && ciChecks(p).some((c) => !CI_BAD.includes(cst(c)) && !CI_OK.includes(cst(c)))), nc = ps.filter((p) => !ci.includes(p) && !wt.includes(p) && !ciChecks(p).some((c) => cst(c) === "SUCCESS"));   // still running; no passing check (skipped and neutral are not passes, as in the package table)
   const ms = (p) => (LIVE[p.key] || {}).merge_state, cfKnown = Object.keys(LIVE).length > 0;   // read once the live check answered
+  const lv = (p) => LIVE[p.key] || {}, dr = ps.filter((p) => lv(p).state === "OPEN" && lv(p).draft), sh = ps.filter((p) => lv(p).state && lv(p).state !== "OPEN");   // not mergeable at all, whatever the thresholds
   const cf = ps.filter((p) => ms(p) === "DIRTY"), aw = ps.filter(awaitingReview), cm = ps.reduce((a, p) => a + (vdN(p) > 0 ? vdN(p) : 0), 0), bf = fs.filter(vrBlocks);
-  const pr = (n) => `${n} PR${n === 1 ? "" : "s"}`, why = [VR.sev.length && bf.length && `${bf.length} open finding${bf.length === 1 ? "" : "s"} to resolve`,
+  const pr = (n) => `${n} PR${n === 1 ? "" : "s"}`, why = [sh.length && `${pr(sh.length)} merged or closed`, dr.length && `${pr(dr.length)} still a draft`, VR.sev.length && bf.length && `${bf.length} open finding${bf.length === 1 ? "" : "s"} to resolve`,
     VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.ci && wt.length && `CI still running on ${pr(wt.length)}`, VR.ci && ciKnown && nc.length && `no passing CI checks on ${pr(nc.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VR.comments && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
   const unread = [VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
   if (unread.length) why.push(`${unread.length > 1 ? unread.slice(0, -1).join(", ") + " and " + unread.at(-1) : unread[0]} not checked yet`);
