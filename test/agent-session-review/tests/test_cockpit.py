@@ -1289,10 +1289,10 @@ class StoryTests(unittest.TestCase):
                 {"label": "Execution", "shape": {"form": "calltree", "text": "a"}}]},
         ], where="session", prs=prs, sdir=self.sdir)
         text = "\n".join(warn)
-        self.assertIn("label the brief's paragraphs Why, What and How (missing: Why, What, How)", text)   # the overview's switch
+        self.assertIn("label the brief's paragraphs Today, Why, What and How (missing: Today, Why, What, How)", text)   # Product summary's sections and the overview's switch
         ok, w2 = normalize([{"kind": "brief", "title": "t", "lede": "l", "paragraphs": [
-            {"label": "Why", "text": "a"}, {"label": "What", "text": "b"}, {"label": "How", "text": "c"}]}], where="session", prs=prs, sdir=self.sdir)
-        self.assertFalse([x for x in w2 if "Why, What and How" in x])
+            {"label": "Today", "text": "t"}, {"label": "Why", "text": "a"}, {"label": "What", "text": "b"}, {"label": "How", "text": "c"}, {"label": "Status", "text": "s"}]}], where="session", prs=prs, sdir=self.sdir)
+        self.assertFalse([x for x in w2 if "Why, What and How" in x or "1-5 paragraphs" in x])   # five labelled paragraphs are fine
         for frag in ("paragraph 1 has 70 words", "contribution pr '#5'", "views needs 2-4 lenses",
                      "lens v2 needs a label and the question"):
             self.assertIn(frag, text)

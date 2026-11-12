@@ -935,9 +935,9 @@ function startTarget0(it) {
 const TONE = { risk: "Risk", decision: "Decision", gap: "Gap", good: "Good" };   // what kind of thing to notice
 /* the brief as four readings of one paragraph slot: the one-liner, then why, what and how, swapped in place */
 const BKIND = (l) => { const s = String(l || "").toLowerCase();
-  return /why|goal|problem|motivation|context/.test(s) ? "why" : /how|mechanism|design/.test(s) ? "how" : /status|not included|scope left|open/.test(s) ? "status" : "what"; };
+  return /today|current|before|context|baseline/.test(s) ? "today" : /why|goal|problem|motivation/.test(s) ? "why" : /how|mechanism|design/.test(s) ? "how" : /status|not included|scope left|open/.test(s) ? "status" : "what"; };
 function briefParts() {
-  const out = { why: [], what: [], how: [], status: [] };
+  const out = { today: [], why: [], what: [], how: [], status: [] };   // today: how the feature behaves before this change
   const ps = (BRIEF && BRIEF.paragraphs) || [];
   // an unlabeled paragraph reads by position, as older briefs were written: goal first, mechanism last
   const byPos = (i) => (i === 0 ? "why" : i === ps.length - 1 && ps.length > 2 ? "how" : "what");
@@ -994,9 +994,11 @@ function heroHtml() {
 /* the brief as three widgets in Work Package: its product assets, its summary, and its behaviors to go deeper */
 const briefCard = (title, body, cls = " bmerged") => body ? `<section class="hero"><div class="card bcard${cls}"><div class="ih chead"><b class="ctitle">${title}</b></div>${body}</div></section>` : "";
 const bAssets = () => briefCard("Product assets", assetsHtml().replace(/^<p class="bkick top">Product assets<\/p>/, ""));
-function bSummary() {   // the one line, or with no flow the brief's One line / Why / What / How readings
+function bSummary() {   // three sections: how it behaves today, the change, and why; with no flow, the brief's One line / Why / What / How readings
   if (!(flowOn() && BRIEF)) return heroHtml().replace(/<b class="ctitle">Design brief<\/b>/, '<b class="ctitle">Product summary</b>').replace(assetsHtml(), "");
-  return briefCard("Product summary", `<p class="bsum">${md(BRIEF.lede || C.blurb)}</p>`);
+  const P = briefParts(), sec = (k, t, body) => `<div class="bsec bsec-${k}"><p class="bkick">${t}</p>${body}</div>`, ps = (xs) => xs.map((x) => `<p class="bsum">${md(x)}</p>`).join("");
+  const today = P.today.length ? ps(P.today) : `<p class="muted bsum">Not written for this review. Ask the coding agent to add a Today paragraph to the brief: how the feature behaves before this change.</p>`;
+  return briefCard("Product summary", `<div class="bsecs">${sec("today", "Today", today)}${sec("change", "The change", `<p class="bsum">${md(BRIEF.lede || C.blurb)}</p>`)}${P.why.length ? sec("why", "Why", ps(P.why)) : ""}</div>`);
 }
 /* Behaviors as six widgets: each Go deeper fold is a widget of its own */
 const BEH6 = ["bhv", "bdif", "bdec", "bcon", "bhop", "bwhy"];
