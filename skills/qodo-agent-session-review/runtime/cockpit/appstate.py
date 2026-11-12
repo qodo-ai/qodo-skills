@@ -58,7 +58,7 @@ def update(changes) -> dict:
                 d.pop(k, None)
             else:
                 d[k] = v
-        if len(json.dumps(d, ensure_ascii=False).encode()) > MAX_BYTES:
+        if len(json.dumps({k: v for k, v in d.items() if k in APP_KEYS}, ensure_ascii=False).encode()) > MAX_BYTES:   # this runtime's own settings only: another runtime's keys, which Customize can't delete, never block a save
             raise ValueError("the app settings would be too large; delete a saved layout first")
         write_json(path(), d)
     return {k: v for k, v in d.items() if k in APP_KEYS}

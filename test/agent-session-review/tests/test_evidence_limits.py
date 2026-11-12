@@ -126,6 +126,10 @@ class EvidenceLimitsTests(unittest.TestCase):
             self.assertEqual(out, {"cockpit:theme": "light"})
             saved = json.loads((Path(d) / "app-state.json").read_text())
             self.assertEqual(saved, {"cockpit:theme": "light", "cockpit:from-newer": {"x": 1}})   # another runtime's key survives the write; non-cockpit junk doesn't
+            (Path(d) / "app-state.json").write_text(json.dumps({"cockpit:from-newer": "x" * (appstate.MAX_BYTES + 10)}))
+            self.assertEqual(appstate.update({"cockpit:theme": "dark"}), {"cockpit:theme": "dark"})   # a foreign key over the budget never blocks a save
+            with self.assertRaises(ValueError):
+                appstate.update({"cockpit:my-layouts": "y" * (appstate.MAX_BYTES + 10)})   # this runtime's own settings still have the cap
 
     def test_the_page_no_longer_appends_the_limits_block(self):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()
