@@ -161,30 +161,21 @@ Do not edit generated provider packages by hand.
 
 ## Optional repository catalog
 
-The Qodo CLI can install a named skill from the repository catalog without adding it
-to default setup or a marketplace. The CLI automatically uses the verified stable public
-source or the catalog pinned and served by the recorded private deployment.
-New repository receipts use the `qodo-repository` owner and are separate from old
-public/enterprise receipts. Explicit installation includes automatic full-package updates
-for that named skill; existing update preferences and local edits are respected.
-Direct `npx skills` installations keep their skills.sh update owner.
+The Qodo CLI can install a named skill without adding it to default setup or a
+marketplace. It uses the verified stable public source or the catalog served by the
+recorded private deployment. Explicit installation enrolls that named skill in
+normal full-package automatic updates, respecting preferences, ownership and local
+edits. Direct `npx skills` installations retain their skills.sh update owner.
 
-`build-repository-catalog.mjs` emits a separate data-only release artifact with all
-catalog skills, resources and component terms. It does not expand legacy enterprise
-bundles, CLI-managed bundles, setup defaults or provider listings. Enterprise delivery
-also requires the QAR catalog-serving change and an explicitly enabled deployment pin.
-Source merge alone does not publish this artifact or list Agent Session Review in a marketplace.
-For a retry after publisher changes, rerun the original workflow at its original revision
-or select a new main source commit. Uploaded-byte mismatches deliberately stop publication;
-completed assets are never automatically replaced.
-The artifact supports Unicode resource filenames and contents without rewriting paths.
-Canonical normalization, full Unicode case folding and Windows case checks reject
-collisions and reserved names. Pinned Unicode data and its notice are in
+The normal protected `v<version>` release publishes `qodo-repository-catalog.json`
+and its checksum from the same captured source as core. This additional data asset
+contains every skill resource and component term while preserving legacy bundles,
+CLI-managed bundles, default setup and provider listings. There is no separate
+catalog publication workflow. Private adoption requires the companion QAR consumer
+and normal sync/release/deployment; source merge alone changes no installed copy.
+Retries use the normal release workflow and its immutable asset checks.
+
+Unicode resource filenames and contents retain their path spelling. Canonical
+normalization, full Unicode case folding and Windows case checks reject collisions
+and reserved names. Pinned Unicode data and its notice are in
 `scripts/unicode-casefold.json`, matching the CLI and QAR consumers.
-
-The optional catalog publisher uses the existing protected release environment and
-contents-scoped workflow token. A repository owner must enable release immutability
-before dispatch. Publication verifies the returned immutable flag and fails/attempts
-to return to draft if it is absent; consumers must wait for successful publication
-before proposing a catalog pin. The settings API needs Administration read permission,
-which this workflow deliberately does not add.

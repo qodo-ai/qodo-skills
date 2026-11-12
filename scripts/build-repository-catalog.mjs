@@ -1,5 +1,5 @@
 import { parseSkillFrontmatter } from './skill-frontmatter.mjs';
-/** Data-only opt-in skill catalog; independent of legacy bundles and provider projections. */
+/** Complete-resource release asset; preserves legacy bundles and provider projections. */
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { resourcePathKeys, windowsResourceKey } from './resource-path-keys.mjs';

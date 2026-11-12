@@ -114,16 +114,20 @@ test('supporting files, catalog display metadata, and packaging fixes are collec
   assert.ok(readFileSync(join(f.root, 'antigravity-plugins/qodo/README.md'), 'utf8').includes(`v${result.version}`));
 });
 
-test('a projection-helper-only edit requires a packaging release without changing skill versions', (t) => {
+test('a projection or publisher-only edit requires a packaging release without changing skill versions', (t) => {
   const f = fixture(t);
-  for (const file of ['package-projections', 'skill-renames']) {
+  for (const file of ['scripts/package-projections.mjs', 'scripts/skill-renames.mjs',
+    'scripts/publish-release.sh', 'scripts/build-repository-catalog.mjs', '.github/workflows/release.yml']) {
     f.reset(f.base);
-    f.edit(`scripts/${file}.mjs`, '\n// Projection-policy fixture correction.\n');
+    f.edit(file, `\n${file.endsWith('.mjs') ? '//' : '#'} Packaging-policy fixture correction.\n`);
     f.commit('change projection policy only');
     const plan = planSkillRelease(f.root);
     assert.equal(plan.pending, true);
     assert.deepEqual(plan.skills, []);
-    assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
+    // Preserve operational recovery validation while the bot prepares a normal release.
+    if (file === 'scripts/publish-release.sh' || file === '.github/workflows/release.yml')
+      f.check('scripts/validate-diff.mjs', f.base);
+    else assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
     const result = prepareSkillRelease(f.root, plan);
     assert.deepEqual(result.changes, []);
     assert.equal(readJson(f.root, `releases/v${result.version}.json`).package.change, 'patch');
