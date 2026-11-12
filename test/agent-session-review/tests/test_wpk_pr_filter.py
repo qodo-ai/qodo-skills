@@ -60,10 +60,10 @@ class WorkPackagePrFilterTests(unittest.TestCase):
         self.assertIn('return v && !v.error && v.head;', tip)   # only a read that found the head counts
         self.assertIn('${gap} not checked', tip)
 
-    def test_product_verdicts_date_from_a_complete_readiness_read(self):
+    def test_product_verdicts_date_from_collection(self):
         live = self.source[self.source.index('fetch("/api/live")'):]
         live = live[:live.index('\n')]
-        self.assertIn('C.product ? v.readiness_complete === true && v.reviews_complete === true', live)   # product reads carry no unresolved count or checks
+        self.assertIn('C.live_at = !C.product &&', live)   # product CI and findings come from collection, so a live time would date them falsely
 
     def test_the_header_no_longer_holds_the_filter(self):
         html = (util.ROOT / 'app/styles/package.html').read_text()
