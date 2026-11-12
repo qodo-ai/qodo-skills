@@ -1,7 +1,8 @@
 /** Exercise complete optional packages through the standard release publisher. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { copyFileSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildEnterpriseBundle } from './build-enterprise-bundle.mjs';
@@ -10,10 +11,25 @@ import { buildReleaseIndexFixture } from './release-index-test-helpers.mjs';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const name = 'qodo-repository-catalog.json';
 
+export function copyCapturedSkillFixture(checkout) {
+  const files = execFileSync('git', ['ls-files', '-z', '--', 'skills'], { cwd: root, encoding: 'utf8' });
+  for (const file of files.split('\0').filter(Boolean)) {
+    mkdirSync(dirname(join(checkout, file)), { recursive: true });
+    copyFileSync(join(root, file), join(checkout, file));
+  }
+  const skill = join(checkout, 'skills/qodo-agent-session-review/SKILL.md');
+  writeFileSync(skill, readFileSync(skill, 'utf8') + '\nCaptured release fixture, different from the automation checkout.\n');
+}
+
 export function buildStandardReleaseAssets(source, index, output, commit) {
   buildReleaseIndexFixture(source, index, commit);
   buildEnterpriseBundle({ output, commit, releaseIndex: join(index, 'qodo-skills-index.json') });
-  writeRepositoryCatalog(root, commit, output);
+  writeRepositoryCatalog(source, commit, output);
+  const payload = JSON.parse(readFileSync(join(output, name)));
+  const skill = payload.skills.find((entry) => entry.name === 'qodo-agent-session-review');
+  const packaged = skill.files.find((file) => file.path === 'SKILL.md');
+  assert.deepEqual(Buffer.from(packaged.content, 'base64'),
+    readFileSync(join(source, 'skills/qodo-agent-session-review/SKILL.md')));
 }
 
 export function assertRepositoryCatalogFailures({ checkout, enterpriseDir, publishEnv, publishPath, runShell }) {

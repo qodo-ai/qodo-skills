@@ -14,7 +14,7 @@ import {
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildStandardReleaseAssets, assertRepositoryCatalogFailures, assertCatalogPublication } from './release-catalog-test-helpers.mjs';
+import { buildStandardReleaseAssets, assertRepositoryCatalogFailures, assertCatalogPublication, copyCapturedSkillFixture } from './release-catalog-test-helpers.mjs';
 import { assertDiscoveryManifestFailures } from './test-release-discovery-assets.mjs';
 import { assertCapturedReleasePublication } from './test-release-main-ancestry.mjs';
 import {
@@ -266,6 +266,7 @@ try {
   copyFileSync(join(root, 'scripts', 'publish-release.sh'), join(checkout, 'scripts', 'publish-release.sh'));
   copyFileSync(join(root, 'scripts', 'publish-release.cmd'), join(checkout, 'scripts', 'publish-release.cmd'));
   chmodSync(join(checkout, 'scripts', 'publish-release.sh'), 0o755);
+  copyCapturedSkillFixture(checkout);
   run(checkout, 'git', ['add', '.']);
   run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '-m', 'release fixture']);
   const releaseSha = run(checkout, 'git', ['rev-parse', 'HEAD']).trim();
