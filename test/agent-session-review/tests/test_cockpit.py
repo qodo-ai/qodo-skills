@@ -1875,7 +1875,7 @@ class StyleTests(unittest.TestCase):
                 self.assertEqual(r.returncode, 0, f"{st} script {j}: {r.stderr[:400]}")
 
     def test_package_walkthrough_pages_need_their_files(self):
-        """Execution walkthrough and Finding review appear only when the session holds builder.json or triage/."""
+        """Execution paths, Code changes and Finding review appear only when the session holds builder.json or triage/."""
         from cockpit.styles import render
         from cockpit.walkthrough import check_files
         self.assertNotIn('id="wt-data"', render("package", self.sdir))
@@ -1886,6 +1886,7 @@ class StyleTests(unittest.TestCase):
         html = render("package", self.sdir)
         self.assertIn('id="wt-data"', html)
         self.assertIn("BLOCKS.builder = ", html)
+        self.assertIn("BLOCKS.codechg = ", html)   # the tree is its own widget, Code changes
         b, tri, warn = check_files(self.sdir, self.data())
         self.assertEqual(b["files"][0]["uid"], "bwf-qodo-ai-shop-demo-101-src-cache-price-cache-py")
         self.assertEqual(tri[0]["counts"]["open"], 0)
@@ -2163,9 +2164,25 @@ class StyleTests(unittest.TestCase):
         view = {"headRefOid": "abc", "state": "OPEN", "mergeStateStatus": "CLEAN", "reviewDecision": "REVIEW_REQUIRED", "isDraft": False, "comments": [], "reviews": []}
         with mock.patch.object(CL, "gh_json", return_value=view), mock.patch.object(CL.threads, "fetch", return_value={1: {"resolved": False}, 2: {"resolved": True}, 3: {"resolved": False}}):
             got = CL.live_state([pr])["o/r#1"]
-        self.assertEqual((got["unresolved"], got["unresolved_ids"], got["review_decision"]), (2, [1, 3], "REVIEW_REQUIRED"))
+        self.assertEqual((got["unresolved"], got["unresolved_ids"], got["threads"], got["review_decision"]), (2, [1, 3], 3, "REVIEW_REQUIRED"))
+        self.assertIsNone(got["checks"])                                                   # no rollup read: unknown, so the snapshot's checks stand
+        rolled = {**view, "statusCheckRollup": [{"name": "ci", "conclusion": "FAILURE", "completedAt": "2026-01-02T00:00:00Z"}]}
+        with mock.patch.object(CL, "gh_json", return_value=rolled), mock.patch.object(CL.threads, "fetch", return_value={}):
+            self.assertEqual(CL.live_state([pr])["o/r#1"]["checks"], [{"name": "ci", "state": "FAILURE"}])
         with mock.patch.object(CL, "gh_json", return_value=view), mock.patch.object(CL.threads, "fetch", side_effect=RuntimeError("no gh")):
             self.assertIsNone(CL.live_state([pr])["o/r#1"]["unresolved"])                  # unknown, not zero
+        reviews = [{"author": {"login": "ann"}, "state": "APPROVED", "submittedAt": "2025-12-01T00:00:00Z", "commit": {"oid": "old"}},
+                   {"author": {"login": "bob"}, "state": "APPROVED", "submittedAt": "2026-01-02T00:00:00Z", "commit": {"oid": "abc"}},
+                   {"author": {"login": "cy"}, "state": "APPROVED", "submittedAt": "2026-01-02T00:00:00Z", "commit": {"oid": "abc"}},
+                   {"author": {"login": "cy"}, "state": "CHANGES_REQUESTED", "submittedAt": "2026-01-03T00:00:00Z", "commit": {"oid": "abc"}},
+                   {"author": {"login": "renovate", "is_bot": True}, "state": "APPROVED", "submittedAt": "2026-01-02T00:00:00Z", "commit": {"oid": "abc"}},
+                   {"author": {"login": "qodo-merge-pro"}, "state": "APPROVED", "submittedAt": "2026-01-02T00:00:00Z", "commit": {"oid": "abc"}}]
+        with mock.patch.object(CL, "gh_json", return_value={**view, "reviewDecision": "", "reviews": reviews}), mock.patch.object(CL.threads, "fetch", return_value={}):
+            got = CL.live_state([pr])["o/r#1"]
+        self.assertEqual((got["approved_head"], got["changes_requested"]), (["bob"], ["cy"]))   # humans only; an approval of an older head doesn't count; each reviewer's latest decision does
+
+    def test_comment_badges_map_to_three_severities(self):
+        self.assertEqual([Q.SEVERITY[k] for k in ("required", "action_required", "recommended", "informational")], ["high", "high", "medium", "low"])
 
     def test_manage_work_packages(self):
         import shutil, subprocess, tempfile, threading, urllib.error, urllib.request

@@ -153,7 +153,7 @@ class SourceAndReaderTests(unittest.TestCase):
         with mock.patch.object(Client,'read',side_effect=read):
             pr = Client().change('org/repo',1)
             def draw(live, snapshot=pr):
-                return self.node('const esc=String,strip=String;'+code+';const p='+json.dumps(snapshot)+';result={state:prState(p),awaiting:awaitingReview(p),html:vdPrs("Human review",[p].filter(awaitingReview),'+known+')};',{'context':{'C':{'product':True},'LIVE':live}})
+                return self.node('const esc=String,strip=String,store={get:(k,d)=>d,set(){}};'+code+';const p='+json.dumps(snapshot)+';result={state:prState(p),awaiting:awaitingReview(p),html:vdPrs("Human review",[p].filter(awaitingReview),'+known+')};',{'context':{'C':{'product':True},'LIVE':live}})
             live = managed_work.live_state([pr]); result = draw(live)
             self.assertEqual(result['state'],'open'); self.assertIsNone(result['awaiting']); self.assertIn('not checked yet',result['html'])
             self.assertEqual(live[pr['key']]['read_evidence']['readiness']['items'][0]['state'],'open')
@@ -221,8 +221,8 @@ class SourceAndReaderTests(unittest.TestCase):
         code=source[source.index('const vdLink ='):source.index('function crumb()')]
         code=source[source.index('function productCiUnknown('):source.index('\n',source.index('function productCiUnknown('))]+code
         def draw(pr, product=True):
-            context={'C':{'product':product},'LIVE':{},'RK':None,'CI_BAD':['FAILURE','ERROR'],'VDICON':{'unknown':''},'KIT':{}}
-            setup='const esc=String,strip=String,RW=String; KIT.openFindings=()=>[]; const prs=()=>['+json.dumps(pr)+'];'
+            context={'C':{'product':product},'LIVE':{},'RK':None,'CI_BAD':['FAILURE','ERROR'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'unknown':''},'KIT':{}}
+            setup='const esc=String,strip=String,RW=String; KIT.openFindings=()=>[];const store={get:(k,d)=>d,set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};KIT.allFindings=()=>[]; const prs=()=>['+json.dumps(pr)+'];'
             html=self.node(setup+code+';result=bVerdict();',{'context':context})
             def row(label):
                 return html.split('<span class="vd-k">'+label+'</span>',1)[1].split('</div>',1)[0]
@@ -242,11 +242,11 @@ class SourceAndReaderTests(unittest.TestCase):
             self.assertIn('at least 1',ci); self.assertIn('#1',ci); self.assertIn('coverage unknown',ci)
             complete=True
             ci,reviews=draw(view._pr_view(Client().change('org/repo',1)))
-            self.assertIn('>1</b>',ci); self.assertNotIn('coverage unknown',ci); self.assertIn('>1</b>',reviews)
+            self.assertIn('>1<small',ci); self.assertNotIn('coverage unknown',ci); self.assertIn('>1<small',reviews)
             checks[:]=[{'name':'passing','state':'success'}]
             ci,_=draw(view._pr_view(Client().change('org/repo',1)))
-            self.assertIn('>0</b>',ci); self.assertIn('none',ci)
+            self.assertIn('>0<small',ci); self.assertIn('none',ci)
             complete=False; checks.clear()
             legacy=view._pr_view(Client().change('org/repo',1)); legacy.pop('product',None)
             ci,_=draw(legacy,False)
-            self.assertIn('>0</b>',ci); self.assertNotIn('coverage unknown',ci)
+            self.assertIn('>0<small',ci); self.assertNotIn('coverage unknown',ci)

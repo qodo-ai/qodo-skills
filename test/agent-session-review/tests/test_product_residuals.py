@@ -33,10 +33,12 @@ vm.createContext(c);vm.runInContext(x.code+'; result={cells:pkCells('+JSON.strin
         pr={'key':'org/repo#1','product':True,'findings':[],'checks':[{'state':'success'}],'product_evidence':{'ci_complete':False}}
         out=self.node(script,{'code':code,'pr':pr})
         self.assertEqual(out['cells']['ci'],['','Unknown']);self.assertIn('CI: Unknown',out['chips'])
-        self.assertNotIn('All passed',out['table']);self.assertNotIn('1/1 passed',out['table']);self.assertIn('Unknown',out['table'])
+        self.assertNotIn('Passed',out['table']);self.assertNotIn('1/1 passed',out['table']);self.assertIn('Unknown',out['table'])
         for control in ({**pr,'product_evidence':{'ci_complete':True}},{**pr,'product':False}):
             known=self.node(script,{'code':code,'pr':control});self.assertEqual(known['cells']['ci'],['ok','1/1 passed'])
-            self.assertIn('CI passed 1/1',known['chips']);self.assertIn('All passed',known['table'])
+            self.assertIn('CI passed 1/1',known['chips']);self.assertIn('Passed',known['table'])
+        skipped=self.node(script,{'code':code,'pr':{**pr,'product':False,'checks':[{'state':'skipped'}]}})   # skipped-only CI is not a pass
+        self.assertEqual(skipped['cells']['ci'],['','1 skipped']);self.assertIn('No passing checks',skipped['table']);self.assertNotIn('>Passed<',skipped['table'])
 
     def test_patch_unavailability_cannot_make_local_quality_complete(self):
         with mock.patch.object(Client,'read',side_effect=fixture):pr=Client().change('org/repo',1)

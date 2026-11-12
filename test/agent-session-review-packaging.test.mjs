@@ -154,7 +154,7 @@ test('installed launcher works from unrelated cwd/read-only resources with order
   assert.deepEqual(JSON.parse(result.stdout), { argv: ['--product', 'review', 'owner/repo#12', '--collect-only'], home: f.home, bytecode: true });
   const calls = readFileSync(f.log, 'utf8').trim().split('\n').map(JSON.parse);
   assert.deepEqual(calls[0], ['--version']);
-  assert.deepEqual(calls[1], ['read', 'whoami', '--json', '--skill', skillName, '--skill-version', '1.0.0', '--distribution', 'marketplace', '--host', 'codex']);
+  assert.deepEqual(calls[1], ['read', 'whoami', '--json', '--skill', skillName, '--skill-version', /\n\s*version: "([^"]+)"/.exec(markdown)[1], '--distribution', 'marketplace', '--host', 'codex']);   // the installed skill's own version
   assert.deepEqual(calls[2], ['read', 'tools', '--json']);
   assert(!existsSync(join(f.installed, 'runtime/cockpit/__pycache__')));
 });

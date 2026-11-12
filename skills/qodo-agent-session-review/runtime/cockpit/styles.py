@@ -155,7 +155,7 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
         tpl = tpl.replace('</title>', '</title><div role="status" style="padding:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line)">' + _esc(gap) + '</div>', 1)
     html = tpl.replace("{{TITLE}}", _esc(page_title), 1)
     extra = ""
-    if "{{WALKTHROUGH}}" in html:   # Execution walkthrough and Finding review: always drawn, with data only when the session has their files
+    if "{{WALKTHROUGH}}" in html:   # Execution paths, Code changes and Finding review: always drawn, with data only when the session has their files
         from .walkthrough import page_data
         wt = page_data(sdir, data)
         html = html.replace("{{WALKTHROUGH}}", (STYLES_DIR / "walkthrough.js").read_text().replace("</script", "<\\/script"), 1)
