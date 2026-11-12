@@ -127,9 +127,12 @@ jobs:
             --output "${RUNNER_TEMP}/qodo-enterprise-release" \
             --commit "${RELEASE_COMMIT}" \
             --release-index "${RUNNER_TEMP}/qodo-release-index/qodo-skills-index.json"
-          node "${RUNNER_TEMP}/qodo-release-source/scripts/build-repository-catalog.mjs" \
-            --output-dir "${RUNNER_TEMP}/qodo-enterprise-release" \
-            --source-commit "${RELEASE_COMMIT}"
+          CATALOG_EXPECTED="$(node -p 'require("node:fs").readFileSync(process.argv[1], "utf8").includes("qodo-repository-catalog.json")' "${RUNNER_TEMP}/qodo-release-source/scripts/publish-release.sh")"
+          if [[ "${CATALOG_EXPECTED}" == true ]]; then
+            node "${RUNNER_TEMP}/qodo-release-source/scripts/build-repository-catalog.mjs" \
+              --output-dir "${RUNNER_TEMP}/qodo-enterprise-release" \
+              --source-commit "${RELEASE_COMMIT}"
+          fi
           node "${RUNNER_TEMP}/qodo-release-source/scripts/release-notes.mjs" \
             "${RUNNER_TEMP}/qodo-release-notes.md"
 

@@ -395,3 +395,5 @@ retry, and loading updated instructions in a new agent session.
   skill release.
 
 Never mutate a published tag, release asset, or provider cache in place.
+
+Retries of existing immutable tags retain their captured source's original asset inventory; they do not add the catalog retroactively. New releases require both catalog assets and all normal identity/checksum checks.

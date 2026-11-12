@@ -156,3 +156,16 @@ test('Unicode comparison covers the pinned full-fold mapping and Windows aliases
   assert.ok(resourcePathKeys('assets/é.txt').some((key) => resourcePathKeys('assets/e\u0301.txt').includes(key)));
   assert.ok(resourcePathKeys('assets/ı.txt').some((key) => resourcePathKeys('assets/i.txt').includes(key)));
 });
+
+test('normal release workflow builds the catalog from its dependency-installed captured source', () => {
+  const workflow = readFileSync(join(root, '.github/workflows/release.yml'), 'utf8');
+  const install = workflow.indexOf('npm ci --ignore-scripts --prefix "${RUNNER_TEMP}/qodo-release-source"');
+  const builder = workflow.indexOf('node "${RUNNER_TEMP}/qodo-release-source/scripts/build-repository-catalog.mjs"');
+  const publish = workflow.indexOf('run: scripts/publish-release.sh');
+  assert.ok(install >= 0 && builder > install && publish > builder);
+  const command = workflow.slice(builder, workflow.indexOf('fi', builder));
+  assert.match(command, /--output-dir "\$\{RUNNER_TEMP\}\/qodo-enterprise-release"/);
+  assert.match(command, /--source-commit "\$\{RELEASE_COMMIT\}"/);
+  assert.match(workflow, /QODO_ENTERPRISE_RELEASE_DIR: \$\{\{ runner.temp \}\}\/qodo-enterprise-release/);
+  assert.match(workflow, /if \[\[ "\$\{CATALOG_EXPECTED\}" == true \]\]; then/);
+});
