@@ -65,6 +65,18 @@ class WorkPackagePrFilterTests(unittest.TestCase):
         live = live[:live.index('\n')]
         self.assertIn('C.live_at = !C.product &&', live)   # product CI and findings come from collection, so a live time would date them falsely
 
+    def test_refresh_leads_the_header_and_more_sits_in_the_footer(self):
+        head = self.source[self.source.index('function headActions()'):]
+        head = head[:head.index('\n}\n')]
+        self.assertTrue(head.rstrip().endswith('refreshHtml();   // Share, then Refresh, the primary action, on the far right'))
+        self.assertNotIn('data-nvmore', head)
+        foot = self.source[self.source.index('function freshHtml()'):self.source.index('function refreshHtml()')]
+        self.assertLess(foot.index('snav-ago'), foot.index('data-nvmore')); self.assertLess(foot.index('data-nvmore'), foot.index('data-settings-open'))   # last refresh time, More, Settings
+        self.assertNotIn('data-ck="refresh"', foot)
+        tip = self.source[self.source.index('function freshTip()'):self.source.index('const SRV =')]
+        self.assertIn('${folderBtn()}</div>', tip)   # Open in Finder beside when the data was fetched
+        self.assertIn('class="hbtn hlbl hpri rf-btn ck-ricon', self.source)   # a primary button that still spins while refreshing
+
     def test_the_header_no_longer_holds_the_filter(self):
         html = (util.ROOT / 'app/styles/package.html').read_text()
         self.assertNotIn('id="prsel"', html)

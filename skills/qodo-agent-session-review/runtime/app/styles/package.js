@@ -1306,11 +1306,14 @@ function agoText(iso) {   // "just now", "5 min ago", "3 h ago", "2 days ago"
   const m = Math.max(0, Math.round((Date.now() - t) / 60000));
   return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : pl(Math.round(m / 1440), "day") + " ago";
 }
-function freshHtml() {   // the side nav's foot: refresh, with how long ago the PRs and the review's data were read; the details on hover
-  const moved = C.prs.some((p) => (LIVE[p.key] || {}).moved), live = KIT.served && !C.demo;
-  return `<span class="hago snav-ago">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : ""}</span><span class="tipw"><button class="snav-fd snav-rf ck-ricon${moved ? " moved" : ""}"${live ? ` data-ck="refresh"` : ` aria-disabled="true"`} aria-label="Refresh the review">${HICON.refresh}</button><span class="htip" role="tooltip">${freshTip()}</span></span>${folderBtn()}<button type="button" class="snav-fd snav-set" data-settings-open aria-haspopup="dialog" aria-label="Settings" title="Settings">${MICON.gear}</button>`;   // refresh (how long ago), the data folder, Settings
+function freshHtml() {   // the side nav's foot: how long ago the review's data was read, then More and Settings
+  return `<span class="hago snav-ago">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : ""}</span><button type="button" class="snav-fd snav-more" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button><button type="button" class="snav-fd snav-set" data-settings-open aria-haspopup="dialog" aria-label="Settings" title="Settings">${MICON.gear}</button>`;
 }
-const folderBtn = () => KIT.served ? `<span class="tipw ft-fw"><button class="snav-fd" data-reveal aria-label="Open the data folder">${MICON.folder}</button><span class="htip" role="tooltip"><b>${/Mac/.test(navigator.platform) ? "Open the data folder in Finder" : "Open the data folder"}</b><p>This review's session folder: its data, execution paths and triage pages (sessions/${esc(KIT.host.session || "")})</p></span></span>` : "";   // beside the refresh: where its data lives
+function refreshHtml() {   // the header's primary button: refresh the review; its details (fetch time, the data folder, server, commits, evidence, access) on hover
+  const moved = C.prs.some((p) => (LIVE[p.key] || {}).moved), live = KIT.served && !C.demo;
+  return `<span class="tipw rfw"><button type="button" class="hbtn hlbl hpri rf-btn ck-ricon${moved ? " moved" : ""}"${live ? ` data-ck="refresh"` : ` aria-disabled="true"`} aria-label="Refresh the review">${HICON.refresh}<span>Refresh</span></button><span class="htip rf-tip" role="tooltip">${freshTip()}</span></span>`;
+}
+const folderBtn = () => KIT.served ? `<button type="button" class="ft-fold" data-reveal aria-label="${/Mac/.test(navigator.platform) ? "Open the data folder in Finder" : "Open the data folder"}" title="${/Mac/.test(navigator.platform) ? "Open in Finder" : "Open the data folder"}: this review's session folder (sessions/${esc(KIT.host.session || "")})">${MICON.folder}</button>` : "";   // in the refresh details, beside when the data was fetched
 const drawHead = () => { $("#cknav").innerHTML = headActions(); $("#snavfoot").innerHTML = freshHtml(); };   // the header's buttons and the nav's refresh, drawn together
 setInterval(() => { const h = document.querySelector(".hago"); if (h && C.reviewed_at) h.textContent = agoText(C.reviewed_at); }, 60000);   // the label keeps up as time passes
 function freshTip() {   // when the data was read and whether the server answers, then the PR commits (in a dialog) and the evidence limits
@@ -1318,7 +1321,7 @@ function freshTip() {   // when the data was read and whether the server answers
   const act = C.demo ? "The demo is fixed; there's nothing to re-read." : KIT.served ? ""
     : `A snapshot. To refresh, ask Claude Code: <code>/review-prs refresh session ${esc(C.session || "")}</code>`;
   const read = C.prs.filter((p) => { const v = LIVE[p.key]; return v && !v.error && v.head; }), moved = read.filter((p) => LIVE[p.key].moved).length, gap = C.prs.length - read.length;   // a failed read is unchecked, never up to date
-  return `<div class="ft-h"><span>Review data fetched</span><b class="ft-ago" title="${esc(when)}">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : "—"}</b></div>`
+  return `<div class="ft-h"><div class="ft-hl"><span>Review data fetched</span><b class="ft-ago" title="${esc(when)}">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : "—"}</b></div>${folderBtn()}</div>`
     + (KIT.served && !C.demo ? `<div class="srv" data-srv>${srvText()}</div>` : "") + (act ? `<p>${act}</p>` : "")
     + `<button type="button" class="ev-tip" data-commits-open aria-haspopup="dialog"><span class="ev-k">PR commits</span><span class="ev-s">${read.length ? `<i class="ev-dot ${moved || gap ? "warn" : "ok"}"></i>${read.length - moved} of ${pl(C.prs.length, "PR")} up to date${gap ? ` · ${gap} not checked` : ""}` : "Not checked for new commits yet"}</span><span class="ev-more">View the commits</span></button>` + evTip() + authTip();   // a section of its own, like the evidence limits
 }
@@ -1326,7 +1329,7 @@ const SRV = { ok: null, at: 0, err: "" };   // the local server, as the last che
 const srvAgo = () => { const s = Math.round((Date.now() - SRV.at) / 1000); return s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.round(s / 60)} min ago`; };
 const srvText = () => SRV.ok === null ? `<i class="srv-dot"></i><span>Checking the local server…</span>`
   : `<i class="srv-dot ${SRV.ok ? "up" : "down"}"></i><span>${SRV.ok ? "Server up" : "Server not responding"} · last ping ${SRV.at ? srvAgo() : "never"}</span>${SRV.ok ? "" : `<em>${esc(SRV.err)}. Start it again with /review-prs, or <code>python3 -m cockpit serve</code></em>`}`;
-const srvPaint = () => { document.querySelectorAll("[data-srv]").forEach((e) => (e.innerHTML = srvText())); if (C.reviewed_at) document.querySelectorAll(".ft-ago").forEach((e) => (e.textContent = agoText(C.reviewed_at))); document.querySelectorAll(".snav-rf").forEach((b) => b.classList.toggle("srv-down", SRV.ok === false)); };
+const srvPaint = () => { document.querySelectorAll("[data-srv]").forEach((e) => (e.innerHTML = srvText())); if (C.reviewed_at) document.querySelectorAll(".ft-ago").forEach((e) => (e.textContent = agoText(C.reviewed_at))); document.querySelectorAll(".rf-btn").forEach((b) => b.classList.toggle("srv-down", SRV.ok === false)); };
 async function srvPing() {   // every 15 s: is the local server still answering? A timeout or a refused connection reads as down
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), 5000);
   try { const r = await fetch("/api/health", { cache: "no-store", signal: ac.signal }); if (!r.ok) throw new Error(`It answered ${r.status}`); SRV.ok = true; SRV.at = Date.now(); SRV.err = ""; }
@@ -1477,7 +1480,7 @@ function headActions() {
     + `<div class="theme" role="group" aria-label="Theme">${[["light", "Light", HICON.sun], ["dark", "Dark", HICON.moon]].map(([k, n, i]) => `<button type="button" data-theme-set="${k}" aria-pressed="${themeNow() === k}" aria-label="${n} mode" title="${n} mode">${i}</button>`).join("")}</div>`
     + `<span class="vsep hdsep" aria-hidden="true"></span>`   // the view options (View, theme), then sharing
     + `<div class="vw"><button type="button" class="hbtn hlbl" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}<span>Share</span></button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
-    + `<button type="button" class="hbtn" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>`;   // Share, then More on the far right
+    + refreshHtml();   // Share, then Refresh, the primary action, on the far right
 }
 if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; C.live_at = !C.product && Object.keys(LIVE).length && Object.values(LIVE).every((v) => v && !v.error && v.unresolved != null && Array.isArray(v.checks)) ? j.checked_at || new Date().toISOString() : C.live_at; keepScroll(() => {}); drawHead(); }).catch(() => {});
 const OVERVIEW = ["prs", "brief", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"];
@@ -2324,11 +2327,12 @@ const LYICON = {   // the layout editor's icons: more options, a page, a widget,
   reset: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
   tpl: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/></svg>',
   edit: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2 2 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>' };
-function nvMore(btn) {   // the ⋮ menu opens under its header button, right-aligned (fixed, so nothing clips it)
+function nvMore(btn) {   // the ⋮ menu, from the nav's foot (fixed, so nothing clips it)
   let m = document.querySelector(".nv-mm"); if (m && !m.hidden) { m.hidden = true; btn.setAttribute("aria-expanded", "false"); return; }
   if (!m) { m = document.createElement("div"); m.className = "nv-mm hmenu"; m.setAttribute("role", "menu"); document.body.appendChild(m); }
   m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Templates</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="mine">${LYICON.page}<span>My layouts</span></button><button class="hsrow" role="menuitem" data-ly="my-new">${LYICON.save}<span>Add to my layouts</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="reset" title="Back to the Work Package default pages, widgets and Page views">${LYICON.reset}<span>Reset to default</span></button>`;
-  const r = btn.getBoundingClientRect(); m.hidden = false; m.style.top = r.bottom + 6 + "px"; m.style.left = Math.max(8, r.right - m.offsetWidth) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
+  const r = btn.getBoundingClientRect(); m.hidden = false; const up = r.top > innerHeight / 2;   // from the nav's foot it opens upwards, from its left edge
+  m.style.top = (up ? Math.max(8, r.top - 6 - m.offsetHeight) : r.bottom + 6) + "px"; m.style.left = (up ? Math.min(r.left, innerWidth - m.offsetWidth - 8) : Math.max(8, r.right - m.offsetWidth)) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-nvmore]"); if (b) return nvMore(b);
