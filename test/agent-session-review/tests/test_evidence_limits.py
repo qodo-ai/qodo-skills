@@ -71,13 +71,16 @@ class EvidenceLimitsTests(unittest.TestCase):
         server = (util.ROOT / 'cockpit/server.py').read_text()
         self.assertIn('render(name, self.sdir, mode="serve", access_link=link)', server)
         source = (util.ROOT / 'app/styles/evidence.js').read_text()
-        fn = source[source.index('function authTip()'):source.index('function evLink(')]
+        fn = source[source.index('let EVLINK'):source.index('function evLink(')]
         out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': "const esc=String,KIT={host:{access_link:true}};" + fn + "result=[authTip(),(KIT.host={},authTip())];"}), capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
         html, none = json.loads(out.stdout)
         self.assertIn('Session auth', html); self.assertIn('data-copy-access', html); self.assertNotIn('href=', html)   # just Copy link
         self.assertEqual(none, '')
-        self.assertIn('fetch("/api/access-link"', source); self.assertIn('evLink(box, url)', source)   # minted on demand; shown when the clipboard refuses
+        out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': "const esc=String,KIT={host:{access_link:true}};" + fn + "EVLINK={url:'http://127.0.0.1:1/_access#key=k',until:Date.now()+1000};result=authTip();"}), capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('class="ft-link" readonly value="http://127.0.0.1:1/_access#key=k"', json.loads(out.stdout))   # a refused link survives a footer redraw
+        self.assertIn('fetch("/api/access-link"', source); self.assertIn('evLink(url)', source)   # minted on demand; shown when the clipboard refuses
 
     def test_copied_access_links_work_once_and_expire(self):
         from types import SimpleNamespace

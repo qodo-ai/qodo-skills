@@ -13,14 +13,17 @@ function evTip() {   // the refresh details' section: the state, and a way to th
   if (!EVL || !EVL.prs.length) return ""; const [t, h] = evSummary();
   return `<button type="button" class="ev-tip" data-ev-open aria-haspopup="dialog"><span class="ev-k">Evidence limits</span><span class="ev-s"><i class="ev-dot ${t}"></i>${esc(h)}</span><span class="ev-more">See the details</span></button>`;
 }
+let EVLINK = null;   // a minted link the clipboard refused: {url, until}; kept so a footer redraw still shows it
 function authTip() {   // Session auth: this browser holds access until the server restarts; Copy link makes a one-time link for another browser
   if (!KIT.host.access_link) return "";
+  if (EVLINK && EVLINK.until > Date.now()) return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">Copy this link: it works once, within 10 minutes</span><input class="ft-link" readonly value="${esc(EVLINK.url)}" aria-label="Access link"></div>`;
   return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">This browser is signed in until the server restarts</span><button type="button" class="ft-copy" data-copy-access title="Paste it into any browser on this machine">Copy link</button></div>`;
 }
-function evLink(box, url) {   // the clipboard refused: the link itself, selected, to copy by hand
-  if (!box) return toast("Couldn't copy the access link"); box.querySelector(".ev-s").textContent = "Copy this link: it works once, within 10 minutes";
-  const i = document.createElement("input"); i.className = "ft-link"; i.readOnly = true; i.value = url; i.setAttribute("aria-label", "Access link");
-  const b = box.querySelector("[data-copy-access]"); if (b) b.replaceWith(i); else box.appendChild(i); i.focus(); i.select();
+function evLink(url) {   // the clipboard refused: the link itself, selected, to copy by hand, in whichever footer is on the page now
+  EVLINK = { url, until: Date.now() + 600000 }; const els = [...document.querySelectorAll(".ft-auth")];
+  if (!els.length) return toast("Couldn't copy the access link; open the refresh details to copy it");
+  els.forEach((el) => { el.outerHTML = authTip(); });
+  const i = document.querySelector(".ft-link"); if (i) { i.focus(); i.select(); }
 }
 function evPr(p) {   // one PR in the dialog: folded unless it has gaps
   const [tone, st] = evState(p), secs = p.sections.filter((s) => !s.complete), sure = p.files - p.files_open.length - p.files_unrecorded;
@@ -54,9 +57,9 @@ function evOpen() {   // the full list, in a dialog like the others
 document.addEventListener("click", (e) => { const t = e.target.closest ? e.target : null; if (!t) return;
   if (t.closest("[data-ev-open]")) { e.preventDefault(); return evOpen(); }
   if (t.closest("[data-commits-open]")) { e.preventDefault(); return evCommits(); }
-  if (t.closest("[data-copy-access]")) { e.preventDefault(); const box = t.closest(".ft-auth");   // the server mints a one-time link; the page never holds a key
+  if (t.closest("[data-copy-access]")) { e.preventDefault();   // the server mints a one-time link; the page never holds a key
     return fetch("/api/access-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((r) => (r.ok ? r.json() : Promise.reject())).then(({ url }) =>
-      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast("Access link copied: it opens this review once, in any browser on this machine, within 10 minutes"), () => evLink(box, url)),
+      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast("Access link copied: it opens this review once, in any browser on this machine, within 10 minutes"), () => evLink(url)),
       () => toast("Couldn't make an access link; reload the page")); }
   const m = document.getElementById("evm"); if (m && (t.id === "evm" || t.closest("[data-ev-close]"))) m.remove(); });
 document.addEventListener("keydown", (e) => { const m = document.getElementById("evm"); if (m && e.key === "Escape") { e.stopPropagation(); m.remove(); } }, true);
