@@ -2332,7 +2332,8 @@ function nvMore(btn) {   // the ⋮ menu, from the nav's foot (fixed, so nothing
   if (!m) { m = document.createElement("div"); m.className = "nv-mm hmenu"; m.setAttribute("role", "menu"); document.body.appendChild(m); }
   m.innerHTML = `<button class="hsrow" role="menuitem" data-ly="mode">${LYICON.edit}<span>Customize</span></button><button class="hsrow" role="menuitem" data-ly="lgal">${LYICON.widget}<span>Templates</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="mine">${LYICON.page}<span>My layouts</span></button><button class="hsrow" role="menuitem" data-ly="my-new">${LYICON.save}<span>Add to my layouts</span></button><div class="hsep"></div><button class="hsrow" role="menuitem" data-ly="reset" title="Back to the Work Package default pages, widgets and Page views">${LYICON.reset}<span>Reset to default</span></button>`;
   const r = btn.getBoundingClientRect(); m.hidden = false; const up = r.top > innerHeight / 2;   // from the nav's foot it opens upwards, from its left edge
-  m.style.top = (up ? Math.max(8, r.top - 6 - m.offsetHeight) : r.bottom + 6) + "px"; m.style.left = (up ? Math.min(r.left, innerWidth - m.offsetWidth - 8) : Math.max(8, r.right - m.offsetWidth)) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
+  const lim = (x) => Math.max(8, Math.min(x, innerWidth - m.offsetWidth - 8));   // the menu (no wider than the window, see .nv-mm) stays on screen at any zoom
+  m.style.top = (up ? Math.max(8, r.top - 6 - m.offsetHeight) : r.bottom + 6) + "px"; m.style.left = lim(up ? r.left : r.right - m.offsetWidth) + "px"; btn.setAttribute("aria-expanded", "true"); m.querySelector("button").focus();
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-nvmore]"); if (b) return nvMore(b);

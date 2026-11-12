@@ -77,6 +77,14 @@ class WorkPackagePrFilterTests(unittest.TestCase):
         self.assertIn('${folderBtn()}</div>', tip)   # Open in Finder beside when the data was fetched
         self.assertIn('class="hbtn hlbl hpri rf-btn ck-ricon', self.source)   # a primary button that still spins while refreshing
 
+    def test_the_tour_points_at_refresh_and_more_stays_on_screen(self):
+        welcome = (util.ROOT / 'app/styles/welcome.js').read_text()
+        self.assertIn('document.querySelector(".rfw"), t: "Your data stays local"', welcome); self.assertNotIn('#snavfoot', welcome)
+        more = self.source[self.source.index('function nvMore('):]
+        more = more[:more.index('\n}\n')]
+        self.assertIn('Math.max(8, Math.min(x, innerWidth - m.offsetWidth - 8))', more)   # both openings clamp the left edge
+        self.assertIn('max-width:calc(100vw - 16px)', (util.ROOT / 'app/styles/package.html').read_text())
+
     def test_the_header_no_longer_holds_the_filter(self):
         html = (util.ROOT / 'app/styles/package.html').read_text()
         self.assertNotIn('id="prsel"', html)

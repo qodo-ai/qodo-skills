@@ -1355,7 +1355,7 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .wct-a{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px} .wct-a > span{display:flex; gap:8px} .wct-skip{border:0; background:none; padding:0; font:inherit; font-size:12.5px; color:var(--faint); cursor:pointer} .wct-skip:hover{color:var(--ink)}
 
 /* the … menu, the floating Save bar, the add placeholders */
-.nv-mm{position:fixed; z-index:70; width:max-content; min-width:220px; padding:6px; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface); box-shadow:var(--shadow)} .nv-mm[hidden]{display:none}
+.nv-mm{position:fixed; z-index:70; width:max-content; min-width:min(220px, calc(100vw - 16px)); max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); overflow-y:auto; box-sizing:border-box; padding:6px; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface); box-shadow:var(--shadow)} .nv-mm[hidden]{display:none}
 .lsave{position:fixed; left:50%; bottom:20px; z-index:65; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; border:1px solid var(--line-strong); border-radius:12px; background:var(--surface); box-shadow:var(--shadow); font-size:13.5px; color:var(--muted);
   transform:translate(-50%, calc(100% + 40px)); opacity:0; pointer-events:none; transition:transform .25s ease, opacity .25s ease}
 .lsave.on{transform:translate(-50%, 0); opacity:1; pointer-events:auto} .lsave .sico{width:16px; height:16px; color:var(--accent-text)}
