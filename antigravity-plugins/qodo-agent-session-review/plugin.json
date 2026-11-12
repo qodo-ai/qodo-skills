@@ -1,0 +1,26 @@
+{
+  "name": "qodo-agent-session-review",
+  "displayName": "Agent Session Review",
+  "version": "2.3.0",
+  "description": "Review PR work packages in a browser with Qodo evidence, local notes, refresh, resume and export. Install only when requested.",
+  "logo": "assets/qodo.png",
+  "suggestedPrompts": [
+    "Review these pull requests together in the interactive Agent Session Review."
+  ],
+  "category": "Developer Tools",
+  "keywords": [
+    "qodo",
+    "code-review",
+    "code-intelligence",
+    "standards",
+    "coding-agents"
+  ],
+  "author": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "homepage": "https://www.qodo.ai",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT AND LicenseRef-Qodo-Cockpit"
+}
