@@ -1313,7 +1313,7 @@ function freshTip() {   // when the data was read and whether the server answers
   const moved = C.prs.filter((p) => (LIVE[p.key] || {}).moved).length;
   return `<div class="ft-h"><span>Review data fetched</span><b class="ft-ago" title="${esc(when)}">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : "—"}</b></div>`
     + (KIT.served && !C.demo ? `<div class="srv" data-srv>${srvText()}</div>` : "") + (act ? `<p>${act}</p>` : "")
-    + `<button type="button" class="ev-tip" data-commits-open aria-haspopup="dialog"><span class="ev-k">PR commits</span><span class="ev-s">${Object.keys(LIVE).length ? `<i class="ev-dot ${moved ? "warn" : "ok"}"></i>${C.prs.length - moved} of ${pl(C.prs.length, "PR")} up to date` : "Not checked for new commits yet"}</span><span class="ev-more">View the commits</span></button>` + evTip();   // a section of its own, like the evidence limits
+    + `<button type="button" class="ev-tip" data-commits-open aria-haspopup="dialog"><span class="ev-k">PR commits</span><span class="ev-s">${Object.keys(LIVE).length ? `<i class="ev-dot ${moved ? "warn" : "ok"}"></i>${C.prs.length - moved} of ${pl(C.prs.length, "PR")} up to date` : "Not checked for new commits yet"}</span><span class="ev-more">View the commits</span></button>` + evTip() + authTip();   // a section of its own, like the evidence limits
 }
 const SRV = { ok: null, at: 0, err: "" };   // the local server, as the last check found it
 const srvAgo = () => { const s = Math.round((Date.now() - SRV.at) / 1000); return s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.round(s / 60)} min ago`; };

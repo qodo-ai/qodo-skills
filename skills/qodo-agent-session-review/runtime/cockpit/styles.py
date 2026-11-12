@@ -140,7 +140,7 @@ from .product import session_operation
 
 @session_operation
 def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None = None, data: dict | None = None,
-           links: dict[str, str] | None = None) -> str:
+           links: dict[str, str] | None = None, access_url: str | None = None) -> str:
     """The style as a page fragment (title, fonts, styles, markup, scripts; no html/head/body).
     mode: "serve" (notes go to the local server) or "snapshot" (they stay in the reader's browser).
     links: in a snapshot, the other styles exported next to it (style -> file name)."""
@@ -173,6 +173,8 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
         host['notice'] = NOTICE
         tpl += NOTICE_BAR.replace('{{NOTICE}}', NOTICE)
         host['limits'] = evidence_limits(data)   # shown in the refresh details, in full in a dialog
+    if mode == "serve" and access_url:   # served to a browser that already holds access: the link that signs in another browser (never in a snapshot)
+        host['access_url'] = access_url
     if enabled(data) and (data.get('collection') or {}).get('complete') is False:
         coll = data['collection']
         gap = f"Work package collection incomplete: {len(coll.get('collected_refs') or [])} of {len(coll.get('requested_refs') or [])} requested changes retained. Omitted: {', '.join(coll.get('omitted_refs') or []) or 'some source evidence'}."

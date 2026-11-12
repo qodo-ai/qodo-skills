@@ -13,6 +13,10 @@ function evTip() {   // the refresh details' section: the state, and a way to th
   if (!EVL || !EVL.prs.length) return ""; const [t, h] = evSummary();
   return `<button type="button" class="ev-tip" data-ev-open aria-haspopup="dialog"><span class="ev-k">Evidence limits</span><span class="ev-s"><i class="ev-dot ${t}"></i>${esc(h)}</span><span class="ev-more">See the details</span></button>`;
 }
+function authTip() {   // Session auth: this browser holds access until the server restarts; Copy link signs in another browser
+  if (!KIT.host.access_url) return "";
+  return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">This browser is signed in until the server restarts</span><button type="button" class="ft-copy" data-copy-access title="Paste it into any browser on this machine">Copy link</button></div>`;
+}
 function evPr(p) {   // one PR in the dialog: folded unless it has gaps
   const [tone, st] = evState(p), secs = p.sections.filter((s) => !s.complete), sure = p.files - p.files_open.length - p.files_unrecorded;
   const body = !p.recorded ? `<p class="muted">No completeness was recorded for this PR, so none of its reads can be confirmed complete.</p>` : [
@@ -45,5 +49,7 @@ function evOpen() {   // the full list, in a dialog like the others
 document.addEventListener("click", (e) => { const t = e.target.closest ? e.target : null; if (!t) return;
   if (t.closest("[data-ev-open]")) { e.preventDefault(); return evOpen(); }
   if (t.closest("[data-commits-open]")) { e.preventDefault(); return evCommits(); }
+  if (t.closest("[data-copy-access]")) { e.preventDefault(); const u = KIT.host.access_url;   // paste it into any browser on this machine
+    return (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast("Access link copied: open it in any browser on this machine"), () => toast("Couldn't copy the access link")); }
   const m = document.getElementById("evm"); if (m && (t.id === "evm" || t.closest("[data-ev-close]"))) m.remove(); });
 document.addEventListener("keydown", (e) => { const m = document.getElementById("evm"); if (m && e.key === "Escape") { e.stopPropagation(); m.remove(); } }, true);

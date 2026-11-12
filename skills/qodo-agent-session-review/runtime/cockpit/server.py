@@ -247,7 +247,9 @@ class Handler(SimpleHTTPRequestHandler):
         if name == APP:
             self.send_response(302); self.send_header("Location", "/index.html"); self.end_headers()
             return
-        return self._html(as_document(render(name, self.sdir, mode="serve")))
+        key = getattr(self.server, 'access_key', None) if getattr(self.server, 'product', False) else None
+        access = f"http://127.0.0.1:{self.server.server_address[1]}/_access#key={key}" if key else None   # Session auth: sign in another browser
+        return self._html(as_document(render(name, self.sdir, mode="serve", access_url=access)))
 
     def _origin_error(self):
         """The existing local host/same-origin request boundary, shared by product reads."""

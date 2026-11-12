@@ -1292,7 +1292,8 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .snav-foot .htip code{font:inherit; font-size:12px; font-variant-numeric:tabular-nums; color:var(--muted); background:none; border:0; padding:0}   /* the nav's own type, no mono chips */   /* the details open upwards from the foot */
 .snav-foot .htip:has(.ev-tip){pointer-events:auto} .snav-foot .htip:has(.ev-tip)::after{content:""; position:absolute; left:0; right:0; top:100%; height:10px}   /* the refresh details hold a button: they take the pointer, with a bridge over the gap */
 .ev-tip{display:flex; flex-direction:column; align-items:flex-start; gap:2px; width:100%; margin:10px 0 0; padding:8px 10px; border:0; border-radius:8px; background:var(--sunk); color:inherit; font:inherit; text-align:left; cursor:pointer} .ev-tip:hover{background:color-mix(in srgb, var(--ink) 9%, var(--surface))}   /* the evidence limits, a section of their own */
-.ev-tip + .ev-tip{margin-top:6px}
+.ev-tip + .ev-tip{margin-top:6px} .ft-auth{cursor:default} .ft-auth:hover{background:var(--sunk)}
+.ft-copy{padding:0; border:0; background:none; font:inherit; font-size:12px; color:var(--accent-text); cursor:pointer} .ft-copy:hover{text-decoration:underline}   /* Session auth: open or copy the access link */
 .ev-repo + .ev-repo{margin-top:12px} .ev-repo .ev-l{display:flex; align-items:center; gap:6px; margin:6px 0 4px} .ev-repo .ev-l svg{width:13px; height:13px; fill:currentColor}
 .ev-cm{list-style:none; margin:0; padding:0; border:1px solid var(--line); border-radius:10px} .ev-cm li{display:flex; align-items:center; gap:10px; padding:9px 12px; font-size:13.5px} .ev-cm li + li{border-top:1px solid var(--line)}
 .ev-cm a{flex:1; min-width:0; display:flex; gap:8px; color:var(--ink); text-decoration:none} .ev-cm a:hover .ev-t{text-decoration:underline} .ev-cm code{font-size:12px; color:var(--muted)}   /* PR commits: one bordered list per repo */

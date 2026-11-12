@@ -64,6 +64,19 @@ class EvidenceLimitsTests(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertEqual(json.loads(out.stdout), ['warn', '1 gap'])   # the files section and the file list are one failed read
 
+    def test_session_auth_link_is_for_served_pages_only(self):
+        styles = (util.ROOT / 'cockpit/styles.py').read_text()
+        self.assertIn('if mode == "serve" and access_url:', styles)   # a snapshot never carries the key
+        server = (util.ROOT / 'cockpit/server.py').read_text()
+        self.assertIn('render(name, self.sdir, mode="serve", access_url=access)', server)
+        source = (util.ROOT / 'app/styles/evidence.js').read_text()
+        fn = source[source.index('function authTip()'):source.index('function evPr(')]
+        out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': "const esc=String,KIT={host:{access_url:'http://127.0.0.1:1/_access#key=k'}};" + fn + "result=[authTip(),(KIT.host={},authTip())];"}), capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        html, none = json.loads(out.stdout)
+        self.assertIn('Session auth', html); self.assertIn('data-copy-access', html); self.assertNotIn('href=', html)   # just Copy link
+        self.assertEqual(none, '')
+
     def test_the_page_no_longer_appends_the_limits_block(self):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()
         self.assertNotIn('Managed source evidence and limits', styles)
