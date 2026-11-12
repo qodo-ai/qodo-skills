@@ -551,6 +551,12 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
         since = pr.get("collected_at") or since_default   # older sessions: the session's creation time
         new_reviews = [r for r in (v.get("reviews") or []) if (r.get("submittedAt") or "") > since]
         approvers = sorted({(r.get("author") or {}).get("login") or "someone" for r in new_reviews if r.get("state") == "APPROVED"})
+        last = {}   # each reviewer's latest decision, for the verdict when GitHub gives no review decision
+        for r in sorted(v.get("reviews") or [], key=lambda r: r.get("submittedAt") or ""):
+            if r.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
+                last[(r.get("author") or {}).get("login") or "someone"] = r
+        approved_head = sorted(k for k, r in last.items() if r.get("state") == "APPROVED" and head and (r.get("commit") or {}).get("oid") == head)
+        changes = sorted(k for k, r in last.items() if r.get("state") == "CHANGES_REQUESTED")
         # an approval is news of its own, not "a comment"; the other reviews are comments to read
         new_comments = sum(1 for c in (v.get("comments") or []) if (c.get("createdAt") or "") > since) + \
             sum(1 for r in new_reviews if r.get("state") != "APPROVED")
@@ -562,7 +568,7 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
             open_ids, unresolved, total = [], None, None
         out[key] = {"head": head, "snapshot_head": old, "moved": bool(head and old and head != old), "new_commits": ahead, "unresolved": unresolved, "unresolved_ids": open_ids[:50], "threads": total,
                     "state": v.get("state"), "merge_state": v.get("mergeStateStatus"), "review_decision": v.get("reviewDecision"),
-                    "draft": v.get("isDraft"), "new_comments": new_comments, "approved_by": approvers,
+                    "draft": v.get("isDraft"), "new_comments": new_comments, "approved_by": approvers, "approved_head": approved_head, "changes_requested": changes,
                     "checks": latest_checks(v["statusCheckRollup"]) if v.get("statusCheckRollup") is not None else None}   # CI as it is now, for the verdict
     return out
 

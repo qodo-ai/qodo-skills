@@ -92,11 +92,12 @@ class ProductFindingScopeTests(unittest.TestCase):
         context['C']={'product':True}
         self.assertIn('vd-s low off',self.node(setup+code+';result=bVerdict();',context))   # product mode dims by the same thresholds
         ok={'state':'OPEN','merge_state':'CLEAN','review_decision':'APPROVED','unresolved':0,'checks':[{'state':'SUCCESS'}]}
-        for live,want in (({**ok,'draft':True},'1 PR still a draft'),({**ok,'state':'MERGED'},'1 PR merged or closed'),({**ok,'review_decision':None,'approved_by':['reviewer']},'Ready to merge'),({**ok,'review_decision':None},'1 PR awaiting human review')):
+        for live,want in (({**ok,'draft':True},'1 PR still a draft'),({**ok,'state':'MERGED'},'1 PR merged or closed'),({**ok,'review_decision':None,'approved_head':['reviewer']},'Ready to merge'),({**ok,'review_decision':None,'approved_by':['reviewer']},'1 PR awaiting human review'),({**ok,'review_decision':None,'approved_head':['a'],'changes_requested':['b']},'1 PR awaiting human review'),({**ok,'review_decision':None},'1 PR awaiting human review')):
             with self.subTest(live=live):
                 context={'p':public,'C':{'product':False},'LIVE':{p['key']:live},'RK':None,'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
                 html=self.node(setup+code+';result=bVerdict();',context);self.assertIn(want,html)
                 if want=='Ready to merge':self.assertNotIn('Not ready',html)   # no review decision: the repo doesn't require reviews, and a human approved
+                if 'draft' in want or 'closed' in want:self.assertNotIn('0 of',html)   # the subtitle names the real blocker, never "0 of N thresholds not met"
 
     def render(self,p):
         package=(util.ROOT/'app/styles/package.js').read_text();app=(util.ROOT/'app/app.js').read_text()

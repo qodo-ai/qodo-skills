@@ -55,6 +55,11 @@ class WorkPackagePrFilterTests(unittest.TestCase):
         drop = radar.index('RSEL = new Set([...RSEL].filter((k) => ser.some((x) => x.i === k)))')
         self.assertLess(drop, radar.index('const sel = RSEL ||'))   # reconciled before the chart picks its focus
 
+    def test_failed_live_reads_are_not_up_to_date(self):
+        tip = self.source[self.source.index('function freshTip()'):self.source.index('const SRV =')]
+        self.assertIn('return v && !v.error && v.head;', tip)   # only a read that found the head counts
+        self.assertIn('${gap} not checked', tip)
+
     def test_the_header_no_longer_holds_the_filter(self):
         html = (util.ROOT / 'app/styles/package.html').read_text()
         self.assertNotIn('id="prsel"', html)

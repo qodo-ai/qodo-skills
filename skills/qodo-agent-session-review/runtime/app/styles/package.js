@@ -1314,10 +1314,10 @@ function freshTip() {   // when the data was read and whether the server answers
   const at = C.reviewed_at ? new Date(C.reviewed_at) : null, when = at && !isNaN(at) ? at.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
   const act = C.demo ? "The demo is fixed; there's nothing to re-read." : KIT.served ? ""
     : `A snapshot. To refresh, ask Claude Code: <code>/review-prs refresh session ${esc(C.session || "")}</code>`;
-  const moved = C.prs.filter((p) => (LIVE[p.key] || {}).moved).length;
+  const read = C.prs.filter((p) => { const v = LIVE[p.key]; return v && !v.error && v.head; }), moved = read.filter((p) => LIVE[p.key].moved).length, gap = C.prs.length - read.length;   // a failed read is unchecked, never up to date
   return `<div class="ft-h"><span>Review data fetched</span><b class="ft-ago" title="${esc(when)}">${C.reviewed_at ? esc(agoText(C.reviewed_at)) : "—"}</b></div>`
     + (KIT.served && !C.demo ? `<div class="srv" data-srv>${srvText()}</div>` : "") + (act ? `<p>${act}</p>` : "")
-    + `<button type="button" class="ev-tip" data-commits-open aria-haspopup="dialog"><span class="ev-k">PR commits</span><span class="ev-s">${Object.keys(LIVE).length ? `<i class="ev-dot ${moved ? "warn" : "ok"}"></i>${C.prs.length - moved} of ${pl(C.prs.length, "PR")} up to date` : "Not checked for new commits yet"}</span><span class="ev-more">View the commits</span></button>` + evTip() + authTip();   // a section of its own, like the evidence limits
+    + `<button type="button" class="ev-tip" data-commits-open aria-haspopup="dialog"><span class="ev-k">PR commits</span><span class="ev-s">${read.length ? `<i class="ev-dot ${moved || gap ? "warn" : "ok"}"></i>${read.length - moved} of ${pl(C.prs.length, "PR")} up to date${gap ? ` · ${gap} not checked` : ""}` : "Not checked for new commits yet"}</span><span class="ev-more">View the commits</span></button>` + evTip() + authTip();   // a section of its own, like the evidence limits
 }
 const SRV = { ok: null, at: 0, err: "" };   // the local server, as the last check found it
 const srvAgo = () => { const s = Math.round((Date.now() - SRV.at) / 1000); return s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.round(s / 60)} min ago`; };
@@ -1476,7 +1476,7 @@ function headActions() {
     + `<div class="vw"><button type="button" class="hbtn hlbl" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}<span>Share</span></button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
     + `<button type="button" class="hbtn" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>`;   // Share, then More on the far right
 }
-if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; if (Object.values(LIVE).some((v) => v && !v.error)) C.live_at = j.checked_at || new Date().toISOString(); keepScroll(() => {}); drawHead(); }).catch(() => {});
+if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; C.live_at = Object.keys(LIVE).length && Object.values(LIVE).every((v) => v && !v.error && v.unresolved != null && Array.isArray(v.checks)) ? j.checked_at || new Date().toISOString() : C.live_at; keepScroll(() => {}); drawHead(); }).catch(() => {});
 const OVERVIEW = ["prs", "brief", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"];
 const OVERVIEWISH = OVERVIEW.concat(["risk"]);   // blocks that make a tab the overview (Focus's own overview stays OVERVIEW)
 function vOverview() { return OVERVIEW.map((b) => BLOCKS[b].render()).join(""); }
@@ -2365,7 +2365,7 @@ const awaitingReview = (p) => { const L = LIVE[p.key];
   const snap = () => !(p.approvals || []).length || (p.changes_requested || []).length > 0;   // as collected: no approval yet, or a change still requested
   if (!(L && L.state)) return snap();
   if (L.state !== "OPEN" || L.draft) return false;   // drafts and closed PRs block the Verdict on their own
-  return L.review_decision ? L.review_decision !== "APPROVED" : snap() && !(L.approved_by || []).length; };   // no review decision: the repo doesn't require reviews, so a human approval is enough
+  return L.review_decision ? L.review_decision !== "APPROVED" : !(L.approved_head || []).length || (L.changes_requested || []).length > 0; };   // no review decision (reviews not required): a human approval of the current head, with no change still requested
 const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], ci: true, conflicts: true, review: true, comments: true };
 let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
 const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
@@ -2383,7 +2383,8 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
   const unread = [VR.sev.length && !fdKnown && "findings", VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
   if (unread.length) why.push(`${unread.length > 1 ? unread.slice(0, -1).join(", ") + " and " + unread.at(-1) : unread[0]} not checked yet`);
   const on = [VR.sev.length, VR.ci, VR.conflicts, VR.review, VR.comments].filter(Boolean).length, unmet = [VR.sev.length && (bf.length || !fdKnown), VR.ci && (ci.length || wt.length || !ciKnown || nc.length), VR.conflicts && (cf.length || !cfKnown), VR.review && (aw.length || !rvKnown), VR.comments && (cm || ps.some((p) => vdN(p) == null))].filter(Boolean).length;
-  const st = why.length ? ["no", "Not ready to merge", `${unmet} of ${on} merge threshold${on === 1 ? "" : "s"} not met`] : ["ok", "Ready to merge", "Every merge threshold is met."];   // the cards below say which; the full list is on hover
+  const blk = [sh.length && `${pr(sh.length)} merged or closed`, dr.length && `${pr(dr.length)} still a draft`, unmet && `${unmet} of ${on} merge threshold${on === 1 ? "" : "s"} not met`].filter(Boolean);   // drafts and closed PRs block whatever the thresholds
+  const st = why.length ? ["no", "Not ready to merge", blk.join(" · ")] : ["ok", "Ready to merge", "Every merge threshold is met."];   // the cards below say which; the full list is on hover
   const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
   return `<div class="vd ${st[0]}"><div class="vd-st"${why.length ? ` title="${esc(why.join(" · "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
     <div class="vd-t${VR.sev.length ? "" : " off"}"${VR.sev.length ? "" : offT}><span class="vd-k">Open findings</span><b class="vd-n${bf.length ? " block" : " none"}">${fs.length}${vdOf(KIT.allFindings({ ...C, prs: ps }).length)}</b>

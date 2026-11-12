@@ -2171,6 +2171,13 @@ class StyleTests(unittest.TestCase):
             self.assertEqual(CL.live_state([pr])["o/r#1"]["checks"], [{"name": "ci", "state": "FAILURE"}])
         with mock.patch.object(CL, "gh_json", return_value=view), mock.patch.object(CL.threads, "fetch", side_effect=RuntimeError("no gh")):
             self.assertIsNone(CL.live_state([pr])["o/r#1"]["unresolved"])                  # unknown, not zero
+        reviews = [{"author": {"login": "ann"}, "state": "APPROVED", "submittedAt": "2025-12-01T00:00:00Z", "commit": {"oid": "old"}},
+                   {"author": {"login": "bob"}, "state": "APPROVED", "submittedAt": "2026-01-02T00:00:00Z", "commit": {"oid": "abc"}},
+                   {"author": {"login": "cy"}, "state": "APPROVED", "submittedAt": "2026-01-02T00:00:00Z", "commit": {"oid": "abc"}},
+                   {"author": {"login": "cy"}, "state": "CHANGES_REQUESTED", "submittedAt": "2026-01-03T00:00:00Z", "commit": {"oid": "abc"}}]
+        with mock.patch.object(CL, "gh_json", return_value={**view, "reviewDecision": "", "reviews": reviews}), mock.patch.object(CL.threads, "fetch", return_value={}):
+            got = CL.live_state([pr])["o/r#1"]
+        self.assertEqual((got["approved_head"], got["changes_requested"]), (["bob"], ["cy"]))   # an approval of an older head doesn't count; each reviewer's latest decision does
 
     def test_comment_badges_map_to_three_severities(self):
         self.assertEqual([Q.SEVERITY[k] for k in ("required", "action_required", "recommended", "informational")], ["high", "high", "medium", "low"])
