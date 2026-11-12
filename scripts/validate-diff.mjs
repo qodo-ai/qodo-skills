@@ -137,7 +137,7 @@ const changedReleaseRecords = statuses.flatMap(({ status, path, sourcePath }) =>
   [sourcePath, path].filter((candidate) => candidate?.startsWith('releases/'))
     .map((candidate) => [status, candidate]));
 const versionedPackagePaths = [
-  /^\.github\/workflows\/(?:ship-marketplaces|release)\.yml$/,
+  /^\.github\/workflows\/ship-marketplaces\.yml$/,
   /^\.agents\/plugins\//,
   /^\.claude-plugin\//,
   /^antigravity-plugins\//,
@@ -146,7 +146,7 @@ const versionedPackagePaths = [
   /^packages\//,
   /^distribution\/(?:(?:catalog|codex-submissions|marketplaces)\.schema|codex-submissions|marketplaces)\.json$/,
   /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|build-repository-catalog|deterministic-zip|package-projections|marketplace-release(?:-lock)?|prepare-release|release-baseline|skill-renames|release-notes|skill-provenance|sync-adapters|verify-codex-packet)\.mjs$/,
-  /^scripts\/(?:audit-release-protections|publish-release|verify-release-prerequisites)\.(?:cmd|sh)$/,
+  /^scripts\/(?:audit-release-protections|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 const packagingChanged = files.some((path) => versionedPackagePaths.some((pattern) => pattern.test(path)));
 if (!changedSkills.size && !catalogChanged && !changedReleaseRecords.length && !packagingChanged) {

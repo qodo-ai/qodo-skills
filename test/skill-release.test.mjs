@@ -124,7 +124,10 @@ test('a projection or publisher-only edit requires a packaging release without c
     const plan = planSkillRelease(f.root);
     assert.equal(plan.pending, true);
     assert.deepEqual(plan.skills, []);
-    assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
+    // Preserve operational recovery validation while the bot prepares a normal release.
+    if (file === 'scripts/publish-release.sh' || file === '.github/workflows/release.yml')
+      f.check('scripts/validate-diff.mjs', f.base);
+    else assert.throws(() => f.check('scripts/validate-diff.mjs', f.base), /package version must increase/);
     const result = prepareSkillRelease(f.root, plan);
     assert.deepEqual(result.changes, []);
     assert.equal(readJson(f.root, `releases/v${result.version}.json`).package.change, 'patch');
