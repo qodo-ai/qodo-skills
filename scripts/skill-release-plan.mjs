@@ -14,7 +14,7 @@ const packaging = [
   /^distribution\//,
   /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|build-repository-catalog|deterministic-zip|package-projections|marketplace-release(?:-lock)?|prepare-release|release-baseline|skill-renames|release-notes|skill-provenance|sync-adapters|verify-codex-packet)\.mjs$/,
   /^\.github\/workflows\/release\.yml$/,
-  /^scripts\/(?:audit-release-protections|verify-release-prerequisites)\.(?:cmd|sh)$/,
+  /^scripts\/(?:audit-release-protections|publish-release|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 
 function assertSourceVersions(root, prior, catalog, renames) {
