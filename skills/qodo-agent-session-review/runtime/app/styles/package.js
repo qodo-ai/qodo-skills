@@ -3272,21 +3272,21 @@ const SKETCH = {   // a low-fidelity picture of each widget on a 160×90 grid
 const sketch = (w) => `<svg class="wsk" viewBox="0 0 160 90" aria-hidden="true">${(SKETCH[w] || SKETCH.brief)()}</svg>`;
 const LKEY = "cockpit:package-layout:4";   // :4, the default below; a layout saved under an older key starts over from it
 const BRIEF3 = ["assets", "summary", ...BEH6];   // the Design brief page: assets, summary, then each Go deeper part
-const LDEF = () => ({ pages: [   // the default pages, in order: what anyone opening the style sees until they edit it (Adam's layout, 2026-11-09)
-  { id: "prs", label: "Overview", icon: "ovw", names: { prstable: "Package contents" }, widgets: ["verdict", "prstable"] },
-  { id: "brief", label: "Requirements", icon: "brief", widgets: BRIEF3.slice() },
-  { id: "coding-agent-decisions", label: "Agent Decisions", icon: "decisions", widgets: ["decisions"] },
-  { id: "risk", label: "Merge Risk", icon: "risk", widgets: ["rsum", "rblast", "rcplx", "rdmg", "rdeep"] },
+const LDEF = () => ({ pages: [   // the default pages, in order: what anyone opening the style sees until they edit it (Adam's layout, 2026-11-12)
+  { id: "prs", label: "Overview", icon: "pg-home", names: { prstable: "Package contents", verdict: "Merge status", rsum: "Qodo risk assessment" }, widgets: ["summary", "verdict", "prstable", "rsum"] },
+  { id: "brief", label: "Requirements", icon: "brief", widgets: ["summary", "assets", "bhv"] },
+  { id: "coding-agent-decisions", label: "Decisions", icon: "decisions", names: { bdec: "Human decisions" }, widgets: ["decisions", "bdec"] },
+  { id: "system", label: "System", icon: "system", widgets: ["system"] },
+  { id: "triage", label: "Findings", icon: "triage", names: { triage: "Findings review" }, widgets: ["triage"] },
   { id: "plan", label: "Code map", icon: "plan", widgets: ["plan"] },
   { id: "review-walkthrough", label: "Review walkthrough", icon: "walk", widgets: ["walk"] },
   { id: "builder", label: "Execution paths", icon: "builder", widgets: ["builder"] },
-  { id: "code-changes", label: "Code changes", icon: "codechg", widgets: ["codechg"] },
-  { id: "triage", label: "Finding review", icon: "triage", widgets: ["triage"] },
-  { id: "system", label: "System", icon: "system", widgets: ["system"] }],
-  dividers: [{ id: "d-intent", label: "Intent", at: "brief" }, { id: "d-review", label: "Review", at: "risk" }, { id: "d-reference", label: "Reference", at: "system" }] });   // at: the page each divider sits above
-const VIEWDEF = { prs: { mode: "open", wide: true, fit: true }, brief: { mode: "manual", wide: true }, "coding-agent-decisions": { mode: "open", wide: true }, risk: { mode: "accordion", wide: true },
-  plan: { mode: "accordion", wide: true }, "review-walkthrough": { mode: "open", wide: true }, builder: { mode: "open", wide: true, fit: true }, "code-changes": { mode: "open", wide: true, fit: true },
-  triage: { mode: "open", wide: true }, system: { mode: "open", wide: true } };   // the default layout's Page view, page by page
+  { id: "contract-changes", label: "Contract changes", icon: "bcon", widgets: ["bcon"] },
+  { id: "code-changes", label: "Code changes", icon: "codechg", widgets: ["codechg"] }],
+  dividers: [{ id: "d-review", label: "Session review", at: "brief" }, { id: "d-intent", label: "Code review", at: "triage" }], home: "prs" });   // at: the page each divider sits above
+const VIEWDEF = { prs: { mode: "open", wide: true, fit: true }, brief: { mode: "open", wide: true }, "coding-agent-decisions": { mode: "accordion", wide: true }, system: { mode: "open", wide: true },
+  triage: { mode: "open", wide: true }, plan: { mode: "accordion", wide: true, fit: true }, "review-walkthrough": { mode: "open", wide: true }, builder: { mode: "open", wide: true, fit: true },
+  "contract-changes": { mode: "open", wide: true }, "code-changes": { mode: "open", wide: true, fit: true } };   // the default layout's Page view, page by page
 // more page icons (Lucide strokes), a house first for a home page
 SICON["pg-home"] = '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>';
 SICON["pg-star"] = '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>';
@@ -3469,7 +3469,7 @@ function tplHtml() {
 }
 /* the layout gallery: each review style's parts, in its order, rebuilt from Work Package's widgets */
 const LGAL = [
-  { id: "package", name: "Work Package", from: "This style's default", what: "An overview with the verdict and the PRs, then the requirements, agent decisions, Merge Risk, the code map, the review walkthrough, execution paths, code changes, finding review and the system map", views: VIEWDEF, pages: LDEF().pages, dividers: LDEF().dividers },
+  { id: "package", name: "Work Package", from: "This style's default", what: "An overview with the product summary, merge status, the PRs and the risk assessment; then, under Session review, the requirements, decisions and the system map; and under Code review, findings, the code map, the review walkthrough, execution paths, contract changes and code changes", views: VIEWDEF, pages: LDEF().pages, dividers: LDEF().dividers },
   { id: "cockpit", name: "Agent Session Review", from: "The Agent Session Review app", what: "The story first, then the reading plan, the walk through the code, the findings and your review", views: { story: { mode: "open" }, plan: { mode: "open" }, findings: { mode: "tabs" } }, pages: [
     { id: "story", label: "Story", icon: "stories", widgets: ["summary", "stories", "flow"] }, { id: "plan", label: "Reading plan", icon: "plan", widgets: ["plan", "starts"] },
     { id: "walk", label: "Walk", icon: "walk", widgets: ["walk", "codechg"] }, { id: "findings", label: "Findings", icon: "findings", widgets: ["findings", "triage"] }, { id: "review", label: "Your review", icon: "review", widgets: ["review"] }] },

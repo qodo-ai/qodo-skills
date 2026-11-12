@@ -76,8 +76,8 @@ class NavDividerTests(unittest.TestCase):
         self.assertEqual(mig, [['ovw', 'w'], True])   # the old shared default, once, on stored layouts
 
     def test_risk_summary_text_moves_into_risk_assessment(self):
-        out = self.run_js(cut(self.source, 'const LDEF = ', 'const VIEWDEF') + 'result=LDEF().pages.find((p)=>p.id==="risk").widgets;')
-        self.assertNotIn('rtext', out); self.assertEqual(out[0], 'rsum')
+        out = self.run_js(cut(self.source, 'const LDEF = ', 'const VIEWDEF') + 'result=LDEF().pages.flatMap((p)=>p.widgets);')
+        self.assertNotIn('rtext', out); self.assertIn('rsum', out)   # the default shows the summary inside Risk assessment
         store = ("const DB={'L':{pages:[{id:'r',label:'Risk',widgets:['rtext','rsum','rblast']},{id:'t',label:'Text',widgets:['rtext']}]}},"
                  "LKEY='L',store={get:(k,d)=>k in DB?DB[k]:d,set:(k,v)=>{DB[k]=v;}};")
         mig = self.run_js(store + cut(self.source, 'const RTXTIN = ', 'const PGICONS = ') + "result=DB.L.pages.map((p)=>p.widgets);")
@@ -85,9 +85,13 @@ class NavDividerTests(unittest.TestCase):
         body = self.source[self.source.index('function bRiskSum()'):self.source.index('const bRiskText')]
         self.assertLess(body.index('class="rtop"'), body.index('riskRadar()'))   # the text across the top, then the chart
 
-    def test_default_layout_has_three_dividers(self):
+    def test_default_layout_is_adams_2026_11_12_layout(self):
         out = self.run_js(cut(self.source, 'const LDEF = ', 'const VIEWDEF') + 'result=LDEF();')
-        self.assertEqual([(d['label'], d['at']) for d in out['dividers']], [('Intent', 'brief'), ('Review', 'risk'), ('Reference', 'system')])
+        self.assertEqual([(d['label'], d['at']) for d in out['dividers']], [('Session review', 'brief'), ('Code review', 'triage')])
+        self.assertEqual([p['id'] for p in out['pages']], ['prs', 'brief', 'coding-agent-decisions', 'system', 'triage', 'plan', 'review-walkthrough', 'builder', 'contract-changes', 'code-changes'])
+        self.assertEqual(out['pages'][0]['widgets'], ['summary', 'verdict', 'prstable', 'rsum']); self.assertEqual(out['home'], 'prs')
+        views = self.run_js(cut(self.source, 'const VIEWDEF = ', '// more page icons') + 'result=VIEWDEF;')
+        self.assertEqual(set(views), {p['id'] for p in out['pages']})   # a Page view for every default page, none for pages it no longer has
         self.assertFalse(any('group' in p for p in out['pages']))
 
     def test_a_stored_layout_without_dividers_gets_the_defaults_once(self):
@@ -96,7 +100,7 @@ class NavDividerTests(unittest.TestCase):
         code = store + cut(self.source, 'const LDEF = ', 'const VIEWDEF') + cut(self.source, 'const DIVS', 'const navItems')
         out = self.run_js(code + 'result=DB;')
         layout = out['cockpit:package-layout:4']
-        self.assertEqual(layout['dividers'], [{'id': 'd-intent', 'label': 'Intent', 'at': 'brief'}])   # only above pages it still has
+        self.assertEqual(layout['dividers'], [{'id': 'd-review', 'label': 'Session review', 'at': 'brief'}])   # only above pages it still has
         self.assertNotIn('group', layout['pages'][0])
         self.assertTrue(out['cockpit:layout-dividers'])
         kept = self.run_js(store.replace("{pages:[", "{dividers:[],pages:[") + cut(self.source, 'const LDEF = ', 'const VIEWDEF') + cut(self.source, 'const DIVS', 'const navItems') + 'result=DB;')
