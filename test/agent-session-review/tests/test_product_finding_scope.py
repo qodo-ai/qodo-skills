@@ -98,6 +98,14 @@ class ProductFindingScopeTests(unittest.TestCase):
                 html=self.node(setup+code+';result=bVerdict();',context);self.assertIn(want,html)
                 if want=='Ready to merge':self.assertNotIn('Not ready',html)   # no review decision: the repo doesn't require reviews, and a human approved
                 if 'draft' in want or 'closed' in want:self.assertNotIn('0 of',html)   # the subtitle names the real blocker, never "0 of N thresholds not met"
+        for live,want in (({**ok,'state':None},'PR states not checked yet'),({'error':'read failed'},'PR states not checked yet')):   # an unread state can't pass, whatever the other thresholds say
+            with self.subTest(unread=live):
+                context={'p':public,'C':{'product':False},'LIVE':{p['key']:live},'RK':None,'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
+                html=self.node(setup+code+';result=bVerdict();',context);self.assertIn(want,html);self.assertNotIn('Ready to merge',html)
+        context={'p':public,'C':{'product':True},'LIVE':{p['key']:{**ok,'readiness_complete':False}},'RK':None,'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
+        self.assertIn('PR states',self.node(setup+code+';result=bVerdict();',context))   # product: an incomplete readiness read leaves the state unknown
+        context['LIVE'][p['key']]={**ok,'readiness_complete':True,'unresolved':None}
+        self.assertNotIn('unresolved comments not checked',self.node(setup+code+';result=bVerdict();',context))   # product reads report no unresolved conversations, so that threshold doesn't apply
 
     def render(self,p):
         package=(util.ROOT/'app/styles/package.js').read_text();app=(util.ROOT/'app/app.js').read_text()

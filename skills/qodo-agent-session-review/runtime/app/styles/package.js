@@ -2375,15 +2375,18 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
   const ciKnown = !P || !productCiUnknown(ps), rvKnown = ps.every(reviewCoverageKnown), fdKnown = !P || ps.every((p) => (p.product_evidence || {}).qodo_complete === true && !p.qodo_read_error);   // product mode: Qodo's findings read in full, else unknown   // product mode: incomplete evidence is unknown, never a pass
   const cst = (c) => String(c.state || c.conclusion || "").toUpperCase(), ci = ps.filter((p) => ciChecks(p).some((c) => CI_BAD.includes(cst(c))));
   const wt = ps.filter((p) => !ci.includes(p) && ciChecks(p).some((c) => !CI_BAD.includes(cst(c)) && !CI_OK.includes(cst(c)))), nc = ps.filter((p) => !ci.includes(p) && !wt.includes(p) && !ciChecks(p).some((c) => cst(c) === "SUCCESS"));   // still running; no passing check (skipped and neutral are not passes, as in the package table)
-  const ms = (p) => (LIVE[p.key] || {}).merge_state, cfKnown = Object.keys(LIVE).length > 0;   // read once the live check answered
+  const stKnown = ps.every((p) => { const L = LIVE[p.key]; return L && !L.error && L.state && (!P || L.readiness_complete === true); });   // every PR's open, draft or closed state read live
+  const ms = (p) => (LIVE[p.key] || {}).merge_state, cfKnown = stKnown && ps.every((p) => ms(p) != null), VC = VR.comments && !P;   // conflicts: every PR's merge state read; product reads report no unresolved conversations
   const lv = (p) => LIVE[p.key] || {}, dr = ps.filter((p) => lv(p).state === "OPEN" && lv(p).draft), sh = ps.filter((p) => lv(p).state && lv(p).state !== "OPEN");   // not mergeable at all, whatever the thresholds
   const cf = ps.filter((p) => ms(p) === "DIRTY"), aw = ps.filter(awaitingReview), cm = ps.reduce((a, p) => a + (vdN(p) > 0 ? vdN(p) : 0), 0), bf = fs.filter(vrBlocks);
   const pr = (n) => `${n} PR${n === 1 ? "" : "s"}`, why = [sh.length && `${pr(sh.length)} merged or closed`, dr.length && `${pr(dr.length)} still a draft`, VR.sev.length && bf.length && `${bf.length} open finding${bf.length === 1 ? "" : "s"} to resolve`,
-    VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.ci && wt.length && `CI still running on ${pr(wt.length)}`, VR.ci && ciKnown && nc.length && `no passing CI checks on ${pr(nc.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VR.comments && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
-  const unread = [VR.sev.length && !fdKnown && "findings", VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
+    VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.ci && wt.length && `CI still running on ${pr(wt.length)}`, VR.ci && ciKnown && nc.length && `no passing CI checks on ${pr(nc.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VC && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
+  const unread = [VR.sev.length && !fdKnown && "findings", VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VC && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
+  const on = [VR.sev.length, VR.ci, VR.conflicts, VR.review, VC].filter(Boolean).length, stGap = on > 0 && !stKnown;   // with any threshold on, a draft or closed PR can't be ruled out until every state is read
+  if (stGap) unread.unshift("PR states");
   if (unread.length) why.push(`${unread.length > 1 ? unread.slice(0, -1).join(", ") + " and " + unread.at(-1) : unread[0]} not checked yet`);
-  const on = [VR.sev.length, VR.ci, VR.conflicts, VR.review, VR.comments].filter(Boolean).length, unmet = [VR.sev.length && (bf.length || !fdKnown), VR.ci && (ci.length || wt.length || !ciKnown || nc.length), VR.conflicts && (cf.length || !cfKnown), VR.review && (aw.length || !rvKnown), VR.comments && (cm || ps.some((p) => vdN(p) == null))].filter(Boolean).length;
-  const blk = [sh.length && `${pr(sh.length)} merged or closed`, dr.length && `${pr(dr.length)} still a draft`, unmet && `${unmet} of ${on} merge threshold${on === 1 ? "" : "s"} not met`].filter(Boolean);   // drafts and closed PRs block whatever the thresholds
+  const unmet = [VR.sev.length && (bf.length || !fdKnown), VR.ci && (ci.length || wt.length || !ciKnown || nc.length), VR.conflicts && (cf.length || !cfKnown), VR.review && (aw.length || !rvKnown), VC && (cm || ps.some((p) => vdN(p) == null))].filter(Boolean).length;
+  const blk = [sh.length && `${pr(sh.length)} merged or closed`, dr.length && `${pr(dr.length)} still a draft`, stGap && "PR states not checked yet", unmet && `${unmet} of ${on} merge threshold${on === 1 ? "" : "s"} not met`].filter(Boolean);   // drafts and closed PRs block whatever the thresholds
   const st = why.length ? ["no", "Not ready to merge", blk.join(" · ")] : ["ok", "Ready to merge", "Every merge threshold is met."];   // the cards below say which; the full list is on hover
   const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
   return `<div class="vd ${st[0]}"><div class="vd-st"${why.length ? ` title="${esc(why.join(" · "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
@@ -2392,7 +2395,7 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
     ${vdPrs("PRs failing CI", ci, ciKnown, ps.length, "high", "/checks", !VR.ci, P)}
     ${vdPrs("PRs with merge conflicts", cf, cfKnown, ps.length, "high", "", !VR.conflicts)}
     ${vdPrs("PRs awaiting human review", aw, rvKnown, ps.length, "medium", "", !VR.review, P)}
-    ${vdThreads(ps, !VR.comments)}</div>`;
+    ${vdThreads(ps, !VC)}</div>`;
 }
 const WRENCH = '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
 const VRZERO = [["ci", "PRs failing CI"], ["conflicts", "PRs with merge conflicts"], ["review", "PRs awaiting human review"], ["comments", "Unresolved comments"]];
@@ -2401,7 +2404,7 @@ function vrPaneHtml() {   // Customize › Verdict settings: the merge threshold
   return `<p class="pms-h">Merge thresholds</p><p class="muted vr-p">What has to be true before Verdict says Ready to merge.</p>
     <p class="smod-k">Open findings</p><div class="vr-sev" role="group" aria-label="Open findings that must be resolved">${[["high", "High"], ["medium", "Medium"], ["low", "Low"]].map(([k, t]) => `<button type="button" class="vr-c" data-vrsev="${k}" aria-pressed="${VR.sev.includes(k)}">${t}</button>`).join("")}</div>
     <p class="muted vr-p">${!VR.sev.length ? "Findings don't block a merge." : all ? "Every open finding must be resolved." : `Open ${VR.sev.join(" and ").replace(/ and (?=.* and )/, ", ")} findings must be resolved.`}</p>
-    <p class="smod-k smod-k2">Require zero</p><div class="vr-z">${VRZERO.map(([k, t]) => sw(k, t)).join("")}</div>`;
+    <p class="smod-k smod-k2">Require zero</p><div class="vr-z">${VRZERO.map(([k, t]) => sw(k, t, C.product && k === "comments" ? "Qodo's managed reads don't report unresolved conversations, so this has no effect here" : "")).join("")}</div>`;
 }
 document.addEventListener("click", (e) => {
   const c = e.target.closest && e.target.closest("[data-vrsev]"), t = !c && e.target.closest && e.target.closest("[data-vr]"); if (!c && !t) return;
