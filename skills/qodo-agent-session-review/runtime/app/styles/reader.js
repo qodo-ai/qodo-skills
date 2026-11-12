@@ -10,10 +10,11 @@ document.documentElement.style.setProperty("--rdz", RDZ[RDZI]);
 const RDPGKEY = "cockpit:reader-pages"; let RDPG = store.get(RDPGKEY, true) !== false;   // Scroll: a dashed boundary and the page's name between pages
 const rdPgBtn = () => `<button type="button" class="wz-ic rd-pgt" data-rdpg aria-pressed="${RDPG}" aria-label="Page boundaries" title="${RDPG ? "Hide" : "Show"} page boundaries">${svg('<rect x="4" y="3" width="16" height="6" rx="1.5"/><path d="M3 12h2M8 12h3M14 12h3M19 12h2"/><rect x="4" y="15" width="16" height="6" rx="1.5"/>')}</button>`;
 const rdFs = () => `<span class="rd-fs" role="group" aria-label="Text size"><button type="button" class="wz-ic" data-rdfs="-1" aria-label="Smaller text" title="Smaller text"${RDZI === 0 ? " disabled" : ""}><span class="rd-a">A</span></button><button type="button" class="wz-ic" data-rdfs="1" aria-label="Larger text" title="Larger text"${RDZI === RDZ.length - 1 ? " disabled" : ""}><span class="rd-a rd-al">A</span></button></span>`;
+const RDMAG = '<svg class="rd-mag" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
 const GLASSES_T = GLASSES.replace('class="g24"', 'class="sico"');   // in the dialog's tile, drawn like every widget icon
 function rdHead(step) {   // one header for both modes: Reader on the left, the mode switch and text size in the middle, Find and close on the right
   return `<div class="lmod-h wfm-h rd-hd"><span class="rd-hl"><span class="stile">${GLASSES_T}</span><b>Reader</b></span><span class="rd-hc">${rdSeg()}${rdFs()}${step ? "" : rdPgBtn()}</span><span class="rd-hr">`
-    + `<span class="rd-find"><svg class="rd-fi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="search" class="rd-q" placeholder="Find" aria-label="Find a widget" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="rd-res"><div class="rd-res" id="rd-res" role="listbox" hidden></div></span>`
+    + `<span class="rd-find"><button type="button" class="wz-ic rd-fb" data-rdfind aria-haspopup="listbox" aria-expanded="false" aria-label="Find a widget" title="Find a widget">${RDMAG}</button><div class="rd-pop" hidden><div class="rd-ps">${RDMAG}<input type="search" class="rd-q" placeholder="Find a widget" aria-label="Find a widget" autocomplete="off" role="combobox" aria-expanded="true" aria-controls="rd-res"></div><div class="rd-res" id="rd-res" role="listbox"></div></div></span>`
     + `<button type="button" class="wz-ic" ${step ? "data-wfm-close" : "data-rdclose"} aria-label="Close Reader" title="Close (Esc)"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span></div>`;
 }
 function rdFoot(step) {   // a narrow footer, centred: first, previous, where you are, next, last
@@ -49,13 +50,12 @@ function rdClose() { const m = document.getElementById("rdm"); READER = READER =
 function rdDraw() {   // Scroll: every widget, one after another; it redraws with the page and keeps its place
   const seq = wseq(); let m = document.getElementById("rdm");
   if (READER !== "scroll" || !seq.length) return rdClose();
-  const fresh = !m, top = m ? m.querySelector(".rd-b").scrollTop : 0, oq = m && m.querySelector(".rd-q"), find = oq && { v: oq.value, focus: document.activeElement === oq, at: oq.selectionStart, open: !oq.parentNode.querySelector(".rd-res").hidden };   // a search in progress survives the redraw
+  const fresh = !m, top = m ? m.querySelector(".rd-b").scrollTop : 0, oq = m && m.querySelector(".rd-q"), find = oq && !oq.closest(".rd-pop").hidden && { v: oq.value, focus: document.activeElement === oq, at: oq.selectionStart };   // a search in progress survives the redraw
   if (!m) { m = document.createElement("div"); m.id = "rdm"; m.className = "lmod"; document.body.appendChild(m); }
   m.innerHTML = `<div class="lmod-c wfm-c" role="dialog" aria-modal="true" aria-label="Reader">${rdHead(false)}
     <div class="rd-b${RDPG ? "" : " rd-nopg"}">${rdBody(seq, (i) => ` data-rdfocus="${i}" role="button" tabindex="0" title="Focus this widget"`)}</div>${rdFoot(false)}</div>`;
   rdAfter(m, seq); m.querySelector(".rd-b").scrollTop = top;
-  if (find && find.v) { const q = m.querySelector(".rd-q"); q.value = find.v; rdFindDraw(q); if (!find.open) { q.parentNode.querySelector(".rd-res").hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); }   // dismissed suggestions stay dismissed
-    if (find.focus) { q.focus(); q.setSelectionRange(find.at, find.at); } }
+  if (find) { rdFindOpen(m, find.v); const q = m.querySelector(".rd-q"); if (find.focus) q.setSelectionRange(find.at, find.at); else q.blur(); }   // an open Find survives the redraw
   rdFocus(RDAT, false); if (fresh) m.querySelector("[data-rdclose]").focus();
 }
 function rdFocus(i, scroll = true) {   // one widget in focus: marked, counted in the header, and brought to the top
@@ -99,32 +99,40 @@ function rdExport() {   // Share › Export: Reader's layout on paper, every wid
     KIT.mermaidReset(); if (window.mermaid) KIT.mermaid($("#panel")); };   // and back in the page's own theme
   addEventListener("afterprint", done, { once: true }); rdAfter(el, seq).then(() => setTimeout(() => print(), 120));   // after the widgets' setup and diagrams
 }
-/* Find: widgets by name, page, what they show and (in Scroll) their text; picking one goes to it in either mode */
+/* Find: the glass opens every widget, page by page, with a search on top: scroll and pick, or type to narrow by name, page, what it shows and (in Scroll) its text */
 function rdFind(q) {
-  const words = q.toLowerCase().split(/\s+/).filter(Boolean); if (!words.length) return [];
-  return wseq().map(([w, pid], i) => { const pg = rdPage(pid), name = wname(w, pg), what = (WIDGETS[w] || [])[1] || "", el = document.querySelector(`#rdm .rd-w[data-rdi="${i}"] .sbody`), text = el ? el.textContent.replace(/\s+/g, " ") : "";
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  return wseq().map(([w, pid], i) => { const pg = rdPage(pid), name = wname(w, pg);
+    if (!words.length) return { i, w, name, page: pg.label || "", snip: "", score: 1 };
+    const what = (WIDGETS[w] || [])[1] || "", el = document.querySelector(`#rdm .rd-w[data-rdi="${i}"] .sbody`), text = el ? el.textContent.replace(/\s+/g, " ") : "";
     const hay = (where) => words.every((x) => where.toLowerCase().includes(x)), score = hay(name) ? 3 : hay(`${name} ${pg.label || ""}`) ? 2 : hay(`${name} ${pg.label || ""} ${what}`) ? 1 : hay(text) ? 0.5 : 0;
     let snip = ""; if (score === 0.5) { const k = text.toLowerCase().indexOf(words[0]); snip = (k > 40 ? "…" : "") + text.slice(Math.max(0, k - 40), k + 60).trim() + "…"; }
-    return { i, w, name, page: pg.label || "", snip, score }; }).filter((x) => x.score).sort((a, b) => b.score - a.score || a.i - b.i).slice(0, 8);
+    return { i, w, name, page: pg.label || "", snip, score }; }).filter((x) => x.score).sort((a, b) => b.score - a.score || a.i - b.i);
 }
-function rdFindDraw(inp) {   // the suggestions under the box
-  const box = inp.parentNode.querySelector(".rd-res"), hits = rdFind(inp.value); RDFI = 0;
-  box.innerHTML = hits.length ? hits.map((h, k) => `<button type="button" class="rd-r${k ? "" : " on"}" role="option" id="rd-opt-${k}" aria-selected="${!k}" data-rdgo="${h.i}"><span class="stile">${sico(h.w)}</span><span class="rd-rt"><b>${esc(h.name)}</b><small>${esc(h.page)}${h.snip ? ` · ${esc(h.snip)}` : ""}</small></span></button>`).join("") : `<p class="rd-none">No widget matches</p>`;
-  box.hidden = !inp.value.trim(); inp.setAttribute("aria-expanded", String(!box.hidden));
-  if (hits.length && !box.hidden) inp.setAttribute("aria-activedescendant", "rd-opt-0"); else inp.removeAttribute("aria-activedescendant");   // the highlighted match, for screen readers
+function rdFindDraw(inp) {   // the list: every widget under its page's name, or the matches, best first
+  const box = inp.closest(".rd-pop").querySelector(".rd-res"), all = !inp.value.trim(), hits = rdFind(inp.value), cur = READER === "scroll" ? RDAT : wpos(wseq());
+  RDFI = all ? Math.max(0, hits.findIndex((h) => h.i === cur)) : 0;   // the open list starts on the widget you're on
+  box.innerHTML = hits.length ? hits.map((h, k) => (all && (k === 0 || hits[k - 1].page !== h.page) ? `<p class="rd-rg">${esc(h.page)}</p>` : "")
+    + `<button type="button" class="rd-r${k === RDFI ? " on" : ""}${h.i === cur ? " cur" : ""}" role="option" id="rd-opt-${k}" aria-selected="${k === RDFI}" data-rdgo="${h.i}"><span class="stile">${sico(h.w)}</span><span class="rd-rt"><b>${esc(h.name)}</b>${all ? "" : `<small>${esc(h.page)}${h.snip ? ` · ${esc(h.snip)}` : ""}</small>`}</span></button>`).join("") : `<p class="rd-none">No widget matches</p>`;
+  if (hits.length) { inp.setAttribute("aria-activedescendant", `rd-opt-${RDFI}`); const on = box.querySelector(".rd-r.on"); if (on) on.scrollIntoView({ block: "nearest" }); } else inp.removeAttribute("aria-activedescendant");
 }
-let RDFI = 0;   // the highlighted suggestion
+let RDFI = 0;   // the highlighted row
+function rdFindOpen(root, v = "") { const pop = root.querySelector(".rd-pop"), b = root.querySelector("[data-rdfind]"), q = pop.querySelector(".rd-q");
+  pop.hidden = false; b.setAttribute("aria-expanded", "true"); q.value = v; rdFindDraw(q); q.focus(); }
+function rdFindClose(focusButton) { document.querySelectorAll(".rd-pop:not([hidden])").forEach((pop) => { pop.hidden = true; const f = pop.closest(".rd-find"), b = f.querySelector("[data-rdfind]"); b.setAttribute("aria-expanded", "false"); f.querySelector(".rd-q").removeAttribute("aria-activedescendant"); if (focusButton) b.focus(); }); }
 function rdGo(i) {   // to a widget, in either mode
+  rdFindClose(false);
   if (READER === "scroll") rdFocus(i);
   else { const n = wseq().length, at = WFULL === WDONE ? n : wpos(wseq()); if (i !== at) wfStep(i - at); }
-  const q = document.querySelector("#rdm .rd-q, #wfm .rd-q"); if (q) { q.value = ""; q.blur(); const b = q.parentNode.querySelector(".rd-res"); b.hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); }
 }
 document.addEventListener("input", (e) => { if (e.target.matches && e.target.matches(".rd-q")) rdFindDraw(e.target); });
 document.addEventListener("keydown", (e) => { const q = e.target.matches && e.target.matches(".rd-q") ? e.target : null; if (!q) return;
-  const box = q.parentNode.querySelector(".rd-res"), opts = box.hidden ? [] : [...box.querySelectorAll(".rd-r")];   // closed suggestions don't navigate
-  if (box.hidden && e.key === "ArrowDown" && q.value.trim()) { e.preventDefault(); return rdFindDraw(q); }   // ↓ reopens them
-  if (e.key === "Escape") { e.preventDefault(); if (!box.hidden) { box.hidden = true; q.setAttribute("aria-expanded", "false"); q.removeAttribute("aria-activedescendant"); } else if (q.value) q.value = ""; else q.blur(); return; }   // closes the suggestions, not Reader
-  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && opts.length) { e.preventDefault(); RDFI = (RDFI + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length; opts.forEach((o, k) => { o.classList.toggle("on", k === RDFI); o.setAttribute("aria-selected", String(k === RDFI)); }); q.setAttribute("aria-activedescendant", opts[RDFI].id); opts[RDFI].scrollIntoView({ block: "nearest" }); return; }
+  const opts = [...q.closest(".rd-pop").querySelectorAll(".rd-r")];
+  if (e.key === "Escape") { e.preventDefault(); return q.value ? (q.value = "", rdFindDraw(q)) : rdFindClose(true); }   // clears the search, then closes the list; never Reader
+  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && opts.length) { e.preventDefault(); RDFI = (RDFI + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length;
+    opts.forEach((o, k) => { o.classList.toggle("on", k === RDFI); o.setAttribute("aria-selected", String(k === RDFI)); }); q.setAttribute("aria-activedescendant", opts[RDFI].id); opts[RDFI].scrollIntoView({ block: "nearest" }); return; }
   if (e.key === "Enter" && opts.length) { e.preventDefault(); rdGo(+opts[RDFI].dataset.rdgo); } });
-document.addEventListener("click", (e) => { const g = e.target.closest && e.target.closest("[data-rdgo]"); if (g) { e.preventDefault(); e.stopPropagation(); return rdGo(+g.dataset.rdgo); }
-  if (!(e.target.closest && e.target.closest(".rd-find"))) document.querySelectorAll(".rd-res:not([hidden])").forEach((b) => { b.hidden = true; }); }, true);
+document.addEventListener("click", (e) => { const t = e.target.closest ? e.target : null; if (!t) return;
+  const g = t.closest("[data-rdgo]"); if (g) { e.preventDefault(); e.stopPropagation(); return rdGo(+g.dataset.rdgo); }
+  const fb = t.closest("[data-rdfind]"); if (fb) { e.preventDefault(); e.stopPropagation(); const pop = fb.parentNode.querySelector(".rd-pop"); return pop.hidden ? rdFindOpen(fb.closest(".lmod-c")) : rdFindClose(true); }
+  if (!t.closest(".rd-find")) rdFindClose(false); }, true);

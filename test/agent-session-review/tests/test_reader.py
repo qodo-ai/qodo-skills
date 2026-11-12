@@ -71,19 +71,20 @@ class ReaderTests(unittest.TestCase):
                  "BLOCKS={a:{},b:{},c:{}},LAYOUT={pages:[{id:'o',label:'Overview',widgets:['a']},{id:'r',label:'Merge Risk',widgets:['b','c']}]},GLASSES='<svg></svg>',svg=(p)=>p,WDONE='_done',"
                  "wseq=()=>[['a','o'],['b','r'],['c','r']],wpos=()=>0,store={get:(k,d)=>d,set(){}},document={documentElement:{style:{setProperty(){}}},querySelectorAll:()=>[],querySelector:(q)=>q.includes('rdi=') && q.includes('2')?{textContent:'the engine reads dropped_findings here'}:null,addEventListener(){}};let READER='scroll',RDAT=0,WFULL=null;")
         code = stubs + self.source[self.source.index('const RDICON = '):self.source.index('function rdOpen(')] + self.source[self.source.index('function rdFind('):self.source.index('function rdFindDraw(')]
-        hits = self.run_js(code + "result=[rdFind('blast').map(h=>h.name), rdFind('merge risk').map(h=>h.name), rdFind('dropped_findings').map(h=>[h.name,h.snip])];")
+        hits = self.run_js(code + "result=[rdFind('blast').map(h=>h.name), rdFind('merge risk').map(h=>h.name), rdFind('dropped_findings').map(h=>[h.name,h.snip]), rdFind('').map(h=>h.name)];")
+        self.assertEqual(hits[3], ['Verdict', 'Blast radius', 'Hop by hop'])   # no query: every widget, in order
         self.assertEqual(hits[0], ['Blast radius'])
         self.assertEqual(hits[1], ['Blast radius', 'Hop by hop'])   # by page name
         self.assertEqual(hits[2][0][0], 'Hop by hop'); self.assertIn('dropped_findings', hits[2][0][1])   # by the widget's text, with a snippet
         self.assertTrue(self.source.index('rd-find') < self.source.index('function rdFoot('))   # Find is in the header; the steps are in the footer
         self.assertIn('!(e.target.matches && e.target.matches(".rd-q"))', self.source)   # Escape in Find doesn't close Reader
         self.assertIn('id="rd-opt-${k}"', self.source); self.assertIn('q.setAttribute("aria-activedescendant", opts[RDFI].id)', self.source)   # the highlighted match is announced
-        self.assertIn('if (find && find.v) { const q = m.querySelector(".rd-q"); q.value = find.v; rdFindDraw(q);', self.source)   # a redraw keeps a search in progress
+        self.assertIn('if (find) { rdFindOpen(m, find.v);', self.source)   # a redraw keeps an open Find, its query and focus
         html = (util.ROOT / 'app/styles/package.html').read_text()
         self.assertNotIn('.rd-pgt, .rd-find{display:none}', html)   # phones keep Find
-        self.assertIn('.rd-q{max-width:min(150px, 40vw)}', html)   # and close stays on screen
-        self.assertIn('if (!find.open) {', self.source)   # dismissed suggestions stay dismissed after a redraw
-        self.assertIn('opts = box.hidden ? [] : [...box.querySelectorAll(".rd-r")]', self.source)   # Enter and the arrows ignore closed suggestions
+        self.assertIn('.rd-pop{width:min(340px, calc(100vw - 48px))}', html)   # and its list fits the screen
+        self.assertIn('data-rdfind aria-haspopup="listbox"', self.source); self.assertIn('class="rd-pop" hidden', self.source)   # a glass button opens the list and its search
+        self.assertIn('return q.value ? (q.value = "", rdFindDraw(q)) : rdFindClose(true);', self.source)   # Escape clears, then closes; never Reader
 
     def test_expand_opens_reader_in_stepper_and_scrolling_never_moves_the_focus(self):
         self.assertIn('READER = "step"; WFULL = b.dataset.wfull;', self.source)
