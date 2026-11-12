@@ -35,7 +35,7 @@ class WelcomeTests(unittest.TestCase):
         self.assertIn('cockpit:layout-dividers', APP_KEYS)
 
     def test_welcome_page_has_both_ways_in_and_dont_show_again_checked(self):
-        for part in ('Agent Session Review', 'data-wc-tour>Start the tour', 'data-wc-hide checked', "Don't show again", 'You can manage this in Settings at any time.'):
+        for part in ('Agent Session Review', 'data-wc-tour>Start the tour', 'data-wc-hide checked', "Don't show again", 'Change it later in Settings'):
             self.assertIn(part, self.source)
         self.assertNotIn('data-wc-build', self.source); self.assertNotIn('wc-pk', self.source)   # no layout button, no feature name or package counts
         self.assertEqual(self.source.count('t: "'), 6)   # the tour: pages, the work package, where to start, Reader, the layout, the data

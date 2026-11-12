@@ -20,7 +20,7 @@ function wcOpen() {   // the welcome page: what this is, what it offers, and the
       <p class="wc-lead">A personalised review that helps you quickly understand what your agent sessions built, and the work package behind it: the collection of PRs that makes up your feature.</p>
       <ul class="wc-f">${feat("ovw", "Pages and widgets", "The verdict, requirements, risk, code and findings, each a widget on a page")}${feat("walk", "Reader", "Every widget in one view: scroll through them or step one at a time")}${feat("plan", "Personal", "Innovative ways to review agent code quickly, arranged the way you review")}</ul>
       <div class="wc-a"><button type="button" class="btn pri" data-wc-tour>Start the tour</button></div>
-      <label class="wc-ck"><input type="checkbox" data-wc-hide checked><span>Don't show again</span></label><p class="wc-note">You can manage this in Settings at any time.</p></div></div>`;
+      <div class="wc-foot"><label class="wc-ck"><input type="checkbox" data-wc-hide checked><span>Don't show again</span></label><span class="wc-note">· Change it later in Settings</span></div></div></div>`;
   m.querySelector("[data-wc-tour]").focus();
 }
 function wcClose(then) { const m = document.getElementById("wcm"); if (!m) return; const ck = m.querySelector("[data-wc-hide]"); wcSave(!ck || ck.checked); m.remove(); if (then) then(); }
