@@ -103,6 +103,14 @@ class EvidenceLimitsTests(unittest.TestCase):
         self.assertIn('<summary', html); self.assertIn('Evidence limits', html)
         self.assertIn('files not read in full (partial); patches confirmed complete: 2 of 3', html)   # the list gap folds into the files section
         self.assertIn('no completeness recorded', html)
+        old = limits_block({'prs': [{'key': 'o/c#3', 'recorded': False, 'overlaps': ['o/d#4 touches a.py'], 'qodo_error': 'findings read timed out'}]})
+        self.assertIn('no completeness recorded, so no read can be confirmed complete; overlapping work: o/d#4 touches a.py; Qodo findings: findings read timed out', old)   # failures still show without records
+        source = (util.ROOT / 'app/styles/evidence.js').read_text()
+        self.assertIn('none of its reads can be confirmed complete.</p>${fails}', source)   # and in the Work Package dialog
+        stubs = "const KIT={host:{limits:{prs:[{key:'o/c#3',recorded:false,sections:[],overlaps:[],qodo_error:'timed out'}]}}},esc=String,strip=String,pl=(n,w)=>n+' '+w+(n===1?'':'s');"
+        out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': stubs + source.split('document.addEventListener')[0] + 'result=[evState(EVL.prs[0]),evSummary()[0]];'}), capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(json.loads(out.stdout), [['warn', 'Not recorded · 1 read warning'], 'warn'])   # a read failure warns even without records
         styles = (util.ROOT / 'cockpit/styles.py').read_text()
         self.assertIn("if '{{PACKAGE_SCRIPT}}' not in (STYLES_DIR / meta['template']).read_text():", styles)   # Work Package shows them in its refresh details instead
 

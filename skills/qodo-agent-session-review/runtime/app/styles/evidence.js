@@ -2,9 +2,10 @@
 const EVL = KIT.host.limits || null;   // product mode only; see evidence_limits() in cockpit/styles.py
 const evListGap = (p) => p.recorded && !p.files_list_complete && !p.sections.some((s) => s.name === "files" && !s.complete);   // an unconfirmed file list, unless the files section already reports it
 const evGaps = (p) => p.sections.filter((s) => !s.complete).length + (evListGap(p) ? 1 : 0) + (p.files_missing ? 1 : 0) + p.files_open.length + p.files_unrecorded + p.overlaps.length + (p.qodo_error ? 1 : 0);
-const evState = (p) => (!p.recorded ? ["none", "Not recorded"] : evGaps(p) ? ["warn", pl(evGaps(p), "gap")] : ["ok", "Complete"]);   // a PR: [tone, label]
+const evFails = (p) => p.overlaps.length + (p.qodo_error ? 1 : 0);   // read failures, recorded or not
+const evState = (p) => (!p.recorded ? (evFails(p) ? ["warn", `Not recorded · ${pl(evFails(p), "read warning")}`] : ["none", "Not recorded"]) : evGaps(p) ? ["warn", pl(evGaps(p), "gap")] : ["ok", "Complete"]);   // a PR: [tone, label]
 function evSummary() {   // the package: [tone, headline, a line under it]
-  const ps = EVL.prs, none = ps.filter((p) => !p.recorded).length, gaps = ps.filter((p) => p.recorded && evGaps(p)).length;
+  const ps = EVL.prs, none = ps.filter((p) => !p.recorded && !evFails(p)).length, gaps = ps.filter((p) => (p.recorded ? evGaps(p) : evFails(p))).length;
   if (none === ps.length) return ["none", "Not recorded for this package", "It was collected before reads recorded whether they were complete, so none can be confirmed."];
   if (gaps || none) return ["warn", `Gaps on ${gaps + none} of ${pl(ps.length, "PR")}`, "Some reads couldn't be confirmed complete. Unread evidence never counts as a clean review."];
   return ["ok", "Every read complete", "Each PR's sections and patches were read in full."];
@@ -27,13 +28,14 @@ function evLink(url) {   // the clipboard refused: the link itself, selected, to
 }
 function evPr(p) {   // one PR in the dialog: folded unless it has gaps
   const [tone, st] = evState(p), secs = p.sections.filter((s) => !s.complete), sure = p.files - p.files_open.length - p.files_unrecorded;
-  const body = !p.recorded ? `<p class="muted">No completeness was recorded for this PR, so none of its reads can be confirmed complete.</p>` : [
+  const fails = [p.overlaps.length && `<p class="ev-l">Reading overlapping work</p><ul>${p.overlaps.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`,
+    p.qodo_error && `<p class="ev-l">Qodo findings</p><p>${esc(p.qodo_error)}</p>`].filter(Boolean).join("");   // read failures show with or without completeness records
+  const body = !p.recorded ? `<p class="muted">No completeness was recorded for this PR, so none of its reads can be confirmed complete.</p>${fails}` : [
     secs.length && `<p class="ev-l">Sections not read in full</p><ul>${secs.map((s) => `<li><b>${esc(s.name)}</b><span class="muted">${esc(s.status || "unknown")}</span></li>`).join("")}</ul>`,
     evListGap(p) && `<p class="ev-l">Changed-file list</p><p>Not confirmed complete, so some changed files may be missing.</p>`,
     p.files_missing && `<p class="ev-l">Missing changed files</p><p>${pl(p.files_missing, "changed file")} the PR reports ${p.files_missing === 1 ? "isn't" : "aren't"} in the review.</p>`,
     (p.files_open.length || p.files_unrecorded) && `<p class="ev-l">Patches confirmed complete: ${sure} of ${p.files}</p>${p.files_open.length ? `<ul>${p.files_open.map((f) => `<li><code>${esc(f)}</code></li>`).join("")}</ul>` : ""}${p.files_unrecorded ? `<p class="muted">${pl(p.files_unrecorded, "file")} with no completeness recorded.</p>` : ""}`,
-    p.overlaps.length && `<p class="ev-l">Reading overlapping work</p><ul>${p.overlaps.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`,
-    p.qodo_error && `<p class="ev-l">Qodo findings</p><p>${esc(p.qodo_error)}</p>`].filter(Boolean).join("") || `<p class="muted">Every section and patch was read in full.</p>`;
+    fails].filter(Boolean).join("") || `<p class="muted">Every section and patch was read in full.</p>`;
   return `<details class="ev-pr"${tone === "warn" ? " open" : ""}><summary><i class="ev-dot ${tone}"></i><b>${esc(p.key)}</b><span class="ev-t">${esc(strip(p.title))}</span><span class="ev-st ${tone}">${esc(st)}</span><span class="ev-cv" aria-hidden="true"></span></summary><div class="ev-b">${body}</div></details>`;
 }
 function evCommits() {   // the PRs' read commits, by repo, and any new commits since; a dialog like the evidence limits
