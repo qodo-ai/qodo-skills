@@ -241,14 +241,16 @@ const AXN = { radius: "Blast radius", complexity: "Complexity", damage: "Damage"
 let RSEL = null, RHOVER = null, RFOC = null;   // the PRs shown on the chart (null: all of them) and the one under the pointer
 const RDET = {};   // each PR's levels and reasons, for the details panel
 const sent1 = (t) => { const m = String(t || "").match(/^.*?[.!?](?=\s|$)/s); return (m ? m[0] : String(t || "")).trim(); };   // a reason's first sentence
+const rIso = () => (RSEL && RSEL.size === 1 ? [...RSEL][0] : null);   // the one PR a click picked, if any
+const rShown = () => (RHOVER && RDET[RHOVER] ? RHOVER : RDET[rIso()] ? rIso() : "");   // the details panel: the PR under the pointer, else the picked one
 const rSideOne = (k) => { const d = k && RDET[k];
-  if (!d) return `<p class="pms-h">Hover a pull request</p><p class="muted">Its overall risk and a line on each factor show here.</p>`;
+  if (!d) return `<p class="pms-h">Pick a pull request</p><p class="muted">Hover or click one: its overall risk and a line on each factor show here.</p>`;
   return `<p class="pms-h">#${esc(d.num)} <span class="muted">${esc(d.repo)}</span></p><p class="rsd-t">${esc(d.sub)}</p>
     <div class="rsd-sum">${rchip(d.risk)}<span>Decided by <b>${esc(d.worst.component)}</b>, its riskiest scenario.</span></div>
     <ul class="rsd-f">${RAXES.map((k) => `<li><span class="rnp"><span class="rni">${fic(k)}</span>${AXN[k]}</span><i class="rsdot ${rtone(d.factors[k])}"></i><b>${esc(RW(d.factors[k]))}</b><p title="${esc(d.why[k])}">${md(d.why[k])}</p></li>`).join("")}</ul>`; };
-const rSideHtml = () => [""].concat(Object.keys(RDET)).map((k) => `<div class="rsd-st${k === (RHOVER || "") ? " on" : ""}" data-rsd="${esc(k)}">${rSideOne(k)}</div>`).join("");   // every PR stacked in one cell: the panel is as tall as the tallest, so hovering never moves the page
-const rSide = () => document.querySelectorAll(".rside .rsd-st").forEach((x) => x.classList.toggle("on", x.dataset.rsd === (RHOVER && RDET[RHOVER] ? RHOVER : "")));
-function riskRadar() {   // each PR as a shape on three bare axes: its highest level per factor across its failure scenarios; the legend turns PRs on and off
+const rSideHtml = () => [""].concat(Object.keys(RDET)).map((k) => `<div class="rsd-st${k === rShown() ? " on" : ""}" data-rsd="${esc(k)}">${rSideOne(k)}</div>`).join("");   // every PR stacked in one cell: the panel is as tall as the tallest, so hovering never moves the page
+const rSide = () => document.querySelectorAll(".rside .rsd-st").forEach((x) => x.classList.toggle("on", x.dataset.rsd === rShown()));
+function riskRadar() {   // each PR as a shape on three bare axes: its highest level per factor across its failure scenarios; a click in the legend shows one PR alone
   const cx = 150, cy = 110, r = 72, VB = [64, 4, 204, 168], TIP = 1.18;   // a tight frame: the triangle and its labels, little else
   const pt = (i, v) => { const a = -Math.PI / 2 + i * 2 * Math.PI / 3, rr = r * v / 3; return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)]; };
   const val = (l) => RVAL[l] || 3, top = (ls) => (ls.includes("unknown") ? "unknown" : ls.reduce((a, l) => (val(l) > val(a) ? l : a), "low"));   // an unassessed factor stays Unknown, whatever else is known
@@ -271,7 +273,7 @@ function riskRadar() {   // each PR as a shape on three bare axes: its highest l
   h += ser.filter((x) => x.i !== focus).map(shape).join("") + (focus ? shape(ser.find((x) => x.i === focus)) : "");   // the focused one on top
   const pills = ser.map((sc) => RAXES.map((k, i) => { const [x, y] = pt(i, val(sc.factors[k])); return `<span class="rvp rt-${sc.c}${sc.i === focus ? " on" : ""}" data-s="${esc(sc.i)}" style="${at(x, y)}"><i class="rsdot ${rtone(sc.factors[k])}"></i>${esc(RW(sc.factors[k]))}</span>`; }).join("")).join("");   // the level on each corner
   const labs = RAXES.map((k, i) => { const [x, y] = pt(i, 3 * TIP); return `<div class="rlab ${i === 0 ? "top" : "bot"}" style="${at(x, y)}"><span class="rnp"><span class="rni">${fic(k)}</span>${AXN[k]}</span></div>`; }).join("");
-  const leg = ser.map((sc) => `<button class="rser rt-${sc.c}" data-rser="${esc(sc.i)}" aria-pressed="${sel.has(sc.i)}" title="${esc(sc.sub)}"><i class="rsw" aria-hidden="true"></i><span class="rsl"><b>#${esc(sc.num)}</b><span class="rsr">${esc(sc.repo)}</span></span></button>`).join("");
+  const leg = ser.map((sc) => `<button class="rser rt-${sc.c}${sc.i === rIso() ? " foc" : ""}" data-rser="${esc(sc.i)}" aria-pressed="${sel.has(sc.i)}" title="${esc(sc.sub)}"><i class="rsw" aria-hidden="true"></i><span class="rsl"><b>#${esc(sc.num)}</b><span class="rsr">${esc(sc.repo)}</span></span></button>`).join("");
   return `<div class="rgraph side${focus ? " has-hi" : ""}"><div class="rleg" role="group" aria-label="Pull requests"><p class="rleg-h">Pull requests</p>${leg}</div>
     <div class="rchart"><svg class="radar" viewBox="${VB.join(" ")}" style="--ro:${cx - VB[0]}px ${cy - VB[1]}px" role="img" aria-label="Merge Risk factors per PR">${h}</svg>${pills}${labs}</div><aside class="rside pmside" aria-live="polite">${rSideHtml()}</aside></div>`;
 }
@@ -279,7 +281,7 @@ function rApply() {   // the legend's PRs on the chart: the ones turned on, the 
   document.querySelectorAll(".rgraph").forEach((g) => {
     const keys = [...g.querySelectorAll(".rser")].map((b) => b.dataset.rser), on = RSEL || new Set(keys), f = RHOVER || (on.size === 1 ? [...on][0] : null); RFOC = f;
     g.classList.toggle("has-hi", !!f);
-    g.querySelectorAll(".rser").forEach((b) => b.setAttribute("aria-pressed", String(on.has(b.dataset.rser))));
+    g.querySelectorAll(".rser").forEach((b) => { b.setAttribute("aria-pressed", String(on.has(b.dataset.rser))); b.classList.toggle("foc", b.dataset.rser === rIso()); });
     g.querySelectorAll(".rsh").forEach((x) => { const k = x.dataset.s; x.classList.toggle("off", !on.has(k) && k !== RHOVER);
       if (k !== f) return x.classList.remove("hi");
       if (!x.classList.contains("hi")) { x.parentNode.appendChild(x); requestAnimationFrame(() => requestAnimationFrame(() => x.classList.toggle("hi", x.dataset.s === RFOC))); } });   // on top, then marked, so it thickens instead of jumping
@@ -291,8 +293,7 @@ document.addEventListener("mouseover", (e) => { const b = e.target.closest && e.
   if (RHOV && !(e.target.closest && e.target.closest(".rleg"))) { RHOV = false; RHOVER = null; rApply(); } });   // off the legend: every PR that's on, side by side
 document.addEventListener("click", (e) => {
   const b = e.target.closest && e.target.closest("[data-rser]"); if (!b) return;
-  const keys = [...b.closest(".rgraph").querySelectorAll(".rser")].map((x) => x.dataset.rser), on = RSEL || new Set(keys);
-  on.has(b.dataset.rser) ? on.delete(b.dataset.rser) : on.add(b.dataset.rser); RSEL = on;
+  RSEL = rIso() === b.dataset.rser ? null : new Set([b.dataset.rser]);   // a click shows only that PR; clicking it again shows them all
   rApply();
 });
 function riskAxis(k) {   // the picked factor in every scenario, riskiest first, each with its reason and evidence
@@ -1237,7 +1238,8 @@ function wpkDraw() {
   const me = WPKS.find((s) => s.id === KIT.host.session);
   box.innerHTML = `<button type="button" class="wpk-b" data-wpk aria-haspopup="menu" aria-expanded="false" aria-label="${esc(me ? me.title : C.title)}: switch work package or filter its PRs"><span>${esc(me ? me.title : C.title)}</span>${HICON.chev}</button>`
     + `<div class="wpk-m" role="menu" aria-label="Work packages" hidden>${wpkMenu()}</div>`;
-  box.hidden = false; $("#ttl").hidden = true; crumb(); wpkMark();   // a renamed package's name reaches the header too
+  box.hidden = false; $("#ttl").hidden = true; crumb(); wpkMark();
+  try { if (sessionStorage.getItem("cockpit:wpk-reopen")) { sessionStorage.removeItem("cockpit:wpk-reopen"); wpkOpen("list"); } } catch (_) {}   // a renamed package's name reaches the header too
 }
 function wpkMark() {   // under the package's name, while the PR filter is on: how many PRs show; it opens the filter
   const f = $("#wpkf"); if (!f) return; const n = prFilterOk() ? prCount() : "";
@@ -1266,6 +1268,7 @@ async function wpkGo(id) {   // the server keeps the pick until it restarts; thi
   try {
     const r = await fetch("/api/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session: id }) });
     if (!r.ok) throw new Error((await r.json()).error || r.statusText);
+    try { sessionStorage.setItem("cockpit:wpk-reopen", "1"); } catch (_) {}   // the menu opens again after the reload, so the new package's PR filter is one click away
     history.replaceState(null, "", location.pathname); location.reload();
   } catch (err) { wpkClose(); toast(`Couldn't switch: ${err.message}`); }
 }
@@ -1429,7 +1432,7 @@ function setVmode(v) {   // a new mode: folds opened or closed by hand start ove
 document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest(".vw-m [data-vmode]"); if (b) setVmode(b.dataset.vmode); });
 function viewMenu() {   // Page view: how a page's widgets open, one mode at a time
   const opt = (k) => `<button class="hopt${VMODE === k ? " on" : ""}" role="menuitemradio" aria-checked="${VMODE === k}" data-vmode="${k}" title="${esc(VMDESC[k][1])}"><i class="hrad" aria-hidden="true"></i><b>${VMDESC[k][0]}</b></button>`;
-  return `<p class="vw-h">Page view</p><div class="hlay vw-lay"><button class="hsrow" data-hsub aria-haspopup="menu" aria-expanded="false"><span>Widgets open</span><b class="vw-cur">${VMDESC[VMODE][0]}</b><i class="hchev" aria-hidden="true">›</i></button><div class="hsub" role="menu" aria-label="How widgets open">${VMODES.map(opt).join("")}</div></div>`   // the mode as a sub-menu
+  return `<p class="vw-h">Page view preferences</p><div class="hlay vw-lay"><button class="hsrow" data-hsub aria-haspopup="menu" aria-expanded="false"><span>Widgets open</span><b class="vw-cur">${VMDESC[VMODE][0]}</b><i class="hchev" aria-hidden="true">›</i></button><div class="hsub" role="menu" aria-label="How widgets open">${VMODES.map(opt).join("")}</div></div>`   // the mode as a sub-menu
     + `<div class="vw-sep"></div><button class="hsrow htg vw-r" role="menuitemcheckbox" aria-checked="${WIDE}" data-wide><span><b>Wide widgets</b><em>Widgets use more of the window's width</em></span><i class="hsw" aria-hidden="true"></i></button>`
     + `<button class="hsrow htg vw-r" role="menuitemcheckbox" aria-checked="${FIT}" data-fit><span><b>Fit height to content</b><em>An open widget grows to show all of its content instead of scrolling inside its own box</em></span><i class="hsw" aria-hidden="true"></i></button>`;
 }
@@ -1465,7 +1468,7 @@ document.addEventListener("keydown", (e) => { const m = document.querySelector("
 function headActions() {
   const name = (KIT.host.styles.find((s) => s.id === KIT.host.style) || {}).name || "";
   return `<button type="button" class="hbtn hlbl" data-reader aria-label="Reader: every widget, expanded, in one view" title="Reader: every widget, expanded, in one view">${GLASSES}<span>Reader</span></button>`
-    + `<div class="vw"><button type="button" class="hbtn hlbl" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Page view" title="Page view: how this page's widgets open">${EYE}<span>View</span></button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
+    + `<div class="vw"><button type="button" class="hbtn hlbl" data-vw aria-haspopup="menu" aria-expanded="false" aria-label="Preferences" title="Page view preferences: how this page's widgets open">${EYE}<span>Preferences</span></button><div class="vw-m" role="menu" aria-label="Page view" hidden>${viewMenu()}</div></div>`
 
     + `<div class="theme" role="group" aria-label="Theme">${[["light", "Light", HICON.sun], ["dark", "Dark", HICON.moon]].map(([k, n, i]) => `<button type="button" data-theme-set="${k}" aria-pressed="${themeNow() === k}" aria-label="${n} mode" title="${n} mode">${i}</button>`).join("")}</div>`
     + `<span class="vsep hdsep" aria-hidden="true"></span>`   // the view options (View, theme), then sharing
@@ -3267,7 +3270,7 @@ const LDEF = () => ({ pages: [   // the default pages, in order: what anyone ope
   { id: "builder", label: "Execution paths", icon: "builder", widgets: ["builder"] },
   { id: "code-changes", label: "Code changes", icon: "codechg", widgets: ["codechg"] },
   { id: "triage", label: "Finding review", icon: "triage", widgets: ["triage"] },
-  { id: "system", label: "System", icon: "ovw", widgets: ["system"] }],
+  { id: "system", label: "System", icon: "system", widgets: ["system"] }],
   dividers: [{ id: "d-intent", label: "Intent", at: "brief" }, { id: "d-review", label: "Review", at: "risk" }, { id: "d-reference", label: "Reference", at: "system" }] });   // at: the page each divider sits above
 const VIEWDEF = { prs: { mode: "open", wide: true, fit: true }, brief: { mode: "manual", wide: true }, "coding-agent-decisions": { mode: "open", wide: true }, risk: { mode: "accordion", wide: true },
   plan: { mode: "accordion", wide: true }, "review-walkthrough": { mode: "open", wide: true }, builder: { mode: "open", wide: true, fit: true }, "code-changes": { mode: "open", wide: true, fit: true },
@@ -3307,7 +3310,9 @@ function cleanLayout(x) {   // what a stored layout may hold: named pages, known
     label = { "Builder walkthrough": "Execution paths", "Execution walkthrough": "Execution paths", "Code paths": "Execution paths", "Code reading": "Code map", "Code analysis": "Code map" }[label] || label;   // the pages' old default names
     let id = rslug(p.id || label); while (ids.has(id)) id += "-2"; ids.add(id);
     const names = Object.fromEntries(Object.entries((p && p.names) || {}).filter(([w, n]) => Object.hasOwn(WIDGETS, w) && typeof n === "string" && n.trim()).map(([w, n]) => [w, n.trim().slice(0, 40)]));   // widget names given on this page
-    return { id, label, icon: PICONS.includes(p.icon) ? p.icon : "ovw", ...(Object.keys(names).length ? { names } : {}),
+    const ws0 = Array.isArray(p.widgets) ? p.widgets : [], own = ws0.find((w) => Object.hasOwn(SICON, w)), dflt = (label === "Overview" || !own) ? "ovw" : own;
+    const icon = PICONS.includes(p.icon) && !(p.icon === "ovw" && dflt !== "ovw") ? p.icon : dflt;   // a page with no icon, or the shared default, takes its first widget's icon
+    return { id, label, icon, ...(Object.keys(names).length ? { names } : {}),
       widgets: (Array.isArray(p.widgets) ? p.widgets : []).flatMap((w) => (w === "brief" ? BRIEF3 : w === "behaviors" ? BEH6 : w === "risk" ? RISK5 : [w])).filter((w, i, ws) => typeof w === "string" && Object.hasOwn(WIDGETS, w) && ws.indexOf(w) === i) }; }).filter((p) => p && p.widgets.length);   // each widget once per page, on as many pages as you like; no page without a widget
   const dids = new Set(), dividers = (Array.isArray(x.dividers) ? x.dividers : []).slice(0, 12).map((d) => { const label = String((d && d.label) || "").trim().slice(0, 24); if (!label) return null;
     let id = rslug(d.id || "d-" + label); while (dids.has(id)) id += "-2"; dids.add(id);
@@ -3565,7 +3570,7 @@ document.addEventListener("click", (e) => {
   if (a === "close") return lDialog(null);
   if (a === "add") {
     if (LD.newPage) { let id = rslug(WIDGETS[v][0]); while (LAYOUT.pages.some((x) => x.id === id)) id += "-2";
-      LAYOUT.pages.push({ id, label: WIDGETS[v][0], icon: PICONS.includes(v) ? v : "ovw", widgets: [v] }); S.tab = id; (LAYOUT.dividers || []).forEach((d) => { if (!LAYOUT.pages.some((x) => x.id === d.at)) d.at = id; }); LD.newPage = false; } else p.widgets.push(v);   // the next picks join the new page; a divider below the last page goes above it
+      LAYOUT.pages.push({ id, label: WIDGETS[v][0], icon: Object.hasOwn(SICON, v) ? v : "ovw", widgets: [v] }); S.tab = id; (LAYOUT.dividers || []).forEach((d) => { if (!LAYOUT.pages.some((x) => x.id === d.at)) d.at = id; }); LD.newPage = false; } else p.widgets.push(v);   // the next picks join the new page; a divider below the last page goes above it
     LD.added = (LD.added || 0) + 1; lDraw(); return lDialog(LD); }   // the gallery stays open: pick more, then Done
   if (a === "rm") { ws.splice(i, 1); return lDraw(); }
   if (a === "tpl") { const m = document.querySelector(".nv-mm"); if (m) m.hidden = true; return lDialog({ kind: "tpl", ...(store.get("cockpit:layout-template:2", null) || { who: "other", depth: "thorough", type: "full" }), kind: "tpl" }); }

@@ -8,7 +8,7 @@ SCRIPT = ("const vm=require('node:vm'),x=JSON.parse(require('node:fs').readFileS
           "vm.createContext(c);vm.runInContext(x.code,c);process.stdout.write(JSON.stringify(c.result));")
 STUBS = ("const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'),sico=()=>'',NVICON={},GRIP='',LYICON={page:'',bin:'',pen:'',div:''},"
          "S={tab:'a'},SECS=false,SUBON=false,NVOPEN=false,MINI=false,BEH6=[],RISK5=[],BRIEF3=['brief'],"
-         "WIDGETS={w:1,brief:1,decisions:1},PICONS=['ovw'],rslug=(s)=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-');")
+         "WIDGETS={w:1,brief:1,decisions:1},PICONS=['ovw','brief'],SICON={w:'',brief:''},rslug=(s)=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-');")
 
 
 def cut(source, start, end):
@@ -64,6 +64,12 @@ class NavDividerTests(unittest.TestCase):
         self.assertEqual(out['dividers'][0], {'id': 'd-x', 'label': 'Intent', 'at': 'a'})
         self.assertEqual((out['dividers'][1]['id'], len(out['dividers'][1]['label']), out['dividers'][1]['at']), ('d-x-2', 24, None))
         self.assertEqual(len(out['dividers']), 2)   # an empty name is dropped
+
+    def test_pages_without_an_icon_take_their_first_widgets(self):
+        layout = {'pages': [{'id': 'o', 'label': 'Overview', 'icon': 'ovw', 'widgets': ['w']}, {'id': 's', 'label': 'System', 'icon': 'ovw', 'widgets': ['w']},
+                            {'id': 'c', 'label': 'Complexity', 'widgets': ['w']}, {'id': 'b', 'label': 'Mine', 'icon': 'brief', 'widgets': ['w']}, {'id': 'd', 'label': 'Plain', 'widgets': ['decisions']}]}
+        out = self.run_js(cut(self.source, 'function cleanLayout(', 'const RTXT') + f'result=cleanLayout({json.dumps(layout)}).pages.map((p)=>p.icon);')
+        self.assertEqual(out, ['ovw', 'w', 'w', 'brief', 'ovw'])   # only Overview keeps the shared default; a chosen icon stays; no widget icon falls back
 
     def test_default_layout_has_three_dividers(self):
         out = self.run_js(cut(self.source, 'const LDEF = ', 'const VIEWDEF') + 'result=LDEF();')
