@@ -25,7 +25,10 @@ const rdTitle = (w, pid) => { const B = BLOCKS[w] || {}; return `<div class="ssu
 const rdPage = (id) => LAYOUT.pages.find((p) => p.id === id) || {};
 const rdWidget = ([w, pid], i, extra = "") => { const B = BLOCKS[w], pg = rdPage(pid);   // a widget as Reader and the export show it: its title bar, then all of it
   return `<section class="rd-w" data-rdi="${i}"><div class="ssum rd-h"${extra}><span class="stile">${sico(w)}</span><h2>${esc(wname(w, pg))}</h2>${B.sub ? `<span class="ssub">${B.sub()}</span>` : ""}</div><div class="sbody">${widgetHtml(w)}</div></section>`; };
-const rdBody = (seq, extra) => seq.map((x, i) => (i === 0 || seq[i - 1][1] !== x[1] ? `<p class="rd-pg">${esc(rdPage(x[1]).label || "")}</p>` : "") + rdWidget(x, i, extra(i))).join("");   // each page's name above its first widget
+const rdSecs = () => { let s = ""; const m = {}; navItems().forEach((x) => { if (x.widgets) m[x.id] = s; else s = x.label || ""; }); return m; };   // each page's section: the divider above it in the nav
+const rdBody = (seq, extra) => { const ps = [...new Set(seq.map((x) => x[1]))], sec = rdSecs();   // each page opens with a strip: its icon, section › name, and where it sits
+  return seq.map((x, i) => { if (i && seq[i - 1][1] === x[1]) return rdWidget(x, i, extra(i)); const pg = rdPage(x[1]), s = sec[x[1]];
+    return `<div class="rd-pg"><span class="stile">${sico(pg.icon)}</span><span class="rd-pgc">${s ? `<span>${esc(s)}</span><i aria-hidden="true">›</i>` : ""}<b>${esc(pg.label || "")}</b></span><span class="rd-pgn">Page ${ps.indexOf(x[1]) + 1} of ${ps.length}</span></div>` + rdWidget(x, i, extra(i)); }).join(""); };
 const rdAfter = (root, seq) => { const seen = {};   // each widget's own setup, once: a widget with one live instance (the System map) shows on its first page only
   root.querySelectorAll(".rd-w").forEach((el) => { const [w, pid] = seq[+el.dataset.rdi], B = BLOCKS[w]; if (!B || !B.after) return;
     if (seen[w]) { el.querySelector(".sbody").innerHTML = `<p class="wempty">This widget is shown earlier, on ${esc(seen[w])}.</p>`; return; }
@@ -91,7 +94,7 @@ function rdExport() {   // Share › Export: Reader's layout on paper, every wid
   const R = document.documentElement, was = R.dataset.theme, old = document.getElementById("rdp"); if (old) old.remove();
   const el = document.createElement("div"), title = document.title.split(" · ")[0], day = new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
   el.id = "rdp"; el.className = "rdp";
-  el.innerHTML = `<header class="rdp-cover"><p class="rd-pg">Work package review</p><h1>${esc(title)}</h1><p class="muted">${pl(C.prs.length, "pull request")} · exported ${esc(day)}</p><ul>${C.prs.map((p) => `<li><b>${esc(p.key)}</b> ${esc(strip(p.title || ""))}</li>`).join("")}</ul></header>${rdBody(seq, () => "")}`;
+  el.innerHTML = `<header class="rdp-cover"><p class="rdp-eb">Work package review</p><h1>${esc(title)}</h1><p class="muted">${pl(C.prs.length, "pull request")} · exported ${esc(day)}</p><ul>${C.prs.map((p) => `<li><b>${esc(p.key)}</b> ${esc(strip(p.title || ""))}</li>`).join("")}</ul></header>${rdBody(seq, () => "")}`;
   document.body.appendChild(el); R.dataset.theme = "light"; document.body.classList.add("rd-printing"); KIT.mermaidReset();   // diagrams redraw in the light colours
   el.querySelectorAll("details").forEach((d) => (d.open = true));
   el.querySelectorAll("textarea").forEach((x) => { const d = document.createElement("div"); d.className = "rdp-ta"; d.textContent = x.value; x.replaceWith(d); });   // typed notes as text, not editable fields

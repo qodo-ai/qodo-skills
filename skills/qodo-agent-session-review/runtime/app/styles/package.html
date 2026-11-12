@@ -1094,8 +1094,9 @@ body.wdrag, body.wdrag *{cursor:grabbing !important; user-select:none}
 @media (max-width:640px){ .rd-hl b, .rd-seg, .rd-fs, .rd-pgt{display:none} .rd-pop{width:min(340px, calc(100vw - 48px))} }   /* phones keep Find; the rest of the header gives way */
 .rd-ht{display:flex; align-items:center; gap:10px; margin:0} .rd-ht h2{margin:0; font-size:17px; font-weight:600} .rd-ht ~ .wks .wks-head{margin-top:0}   /* Stepper: the widget's title, at the top of the body */
 .rd-b{position:relative; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; display:flex; flex-direction:column; gap:16px; padding:20px 24px 0} .rd-b::after{content:""; flex:none; height:70vh}   /* Scroll: room below, so the last widget can come to the top */
-.rd-pg{margin:14px 0 -4px; font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--faint)} .rd-pg:first-child{margin-top:0}
-.rd-b .rd-pg:not(:first-child){margin-top:12px; padding-top:22px; border-top:1px dashed var(--line-strong)} .rd-b.rd-nopg .rd-pg{display:none}   /* Scroll: a dashed boundary between pages, hidden by the header's toggle */
+.rd-pg{display:flex; align-items:center; gap:10px; margin:18px 0 -2px; padding:8px 12px 8px 8px; border:1px solid var(--line); border-radius:10px; background:var(--sunk); font-size:13px; color:var(--muted)} .rd-pg:first-child{margin-top:0}
+.rd-pg .stile{width:26px; height:26px} .rd-pgc{flex:1; min-width:0; display:flex; align-items:center; gap:7px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis} .rd-pgc i{font-style:normal; color:var(--faint)} .rd-pgc b{font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis}
+.rd-pgn{flex:none; font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums} .rd-b.rd-nopg .rd-pg{display:none}   /* Scroll: each page opens with a strip (icon, section › page, page x of y), hidden by the header's toggle */
 .rd-pgt{display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--line) !important; border-radius:7px; background:var(--surface)} .rd-pgt[aria-pressed="true"]{color:var(--ink); background:var(--sunk)} .rd-pgt svg{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
 .rd-w{border:1px solid var(--line); border-radius:12px; background:var(--surface); opacity:.85; transition:opacity .2s, border-color .2s} .rd-w:hover, .rd-w.on{opacity:1} .rd-w.on{border-color:color-mix(in srgb, var(--accent) 40%, var(--line))}   /* the widget in focus: a softly tinted border; the others barely dimmed */
 .rd-w{min-width:0} .rd-w > .sbody{min-width:0; overflow-x:auto} .rd-w > .rd-h{display:flex; align-items:center; gap:10px; margin:0; padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer} .rd-w > .rd-h h2{margin:0; font-size:15px; font-weight:600} .rd-w > .sbody{padding:16px 18px 20px}
@@ -1105,7 +1106,7 @@ body.wdrag, body.wdrag *{cursor:grabbing !important; user-select:none}
   #rdp .rd-w{opacity:1; box-shadow:none; break-inside:auto} #rdp .rd-h, #rdp .rd-pg{break-after:avoid; cursor:auto}
   #rdp .wfull, #rdp .wz-ic, #rdp .btn, #rdp .pmap-tog, #rdp .pviews, #rdp .bviews, #rdp .dfilts, #rdp .ddrop, #rdp .rviews, #rdp .rcopyrow, #rdp .wks-nav, #rdp .cm button, #rdp input, #rdp select{display:none !important}   /* no controls on paper */
   #rdp .rdp-ta{white-space:pre-wrap; padding:8px 10px; border:1px solid var(--line); border-radius:8px}   /* a typed note, as text */
-  .rdp-cover{margin-bottom:6px; padding-bottom:16px; border-bottom:1px solid var(--line)} .rdp-cover h1{margin:4px 0; font-size:26px} .rdp-cover ul{margin:10px 0 0; padding-left:18px; font-size:13px; color:var(--muted)} @page{margin:14mm} }
+  .rdp-eb{margin:0; font-size:12px; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--faint)} .rdp-cover{margin-bottom:6px; padding-bottom:16px; border-bottom:1px solid var(--line)} .rdp-cover h1{margin:4px 0; font-size:26px} .rdp-cover ul{margin:10px 0 0; padding-left:18px; font-size:13px; color:var(--muted)} @page{margin:14mm} }
 .lmod-c:has(> .lmod-f){display:flex; flex-direction:column}
 .wtabs-w{position:relative; display:flex; align-items:center; gap:12px; margin:0 0 12px} .wtabs{flex:1; min-width:0; display:flex; gap:22px; overflow-x:auto; scrollbar-width:none}   /* Tabs: one per widget, the chosen one's content below with no frame */
 .wtabs-w::after{content:""; position:absolute; left:0; bottom:0; width:calc(100vw - var(--nvw, 0px) - 40px); height:1px; background:var(--line); pointer-events:none}   /* the rule runs on to the window's edge, no further */
@@ -1193,11 +1194,11 @@ body.nv-none .wtabs-w::after{width:calc(100vw - 40px)} @media (max-width:900px){
 
 /* Settings modal */
 .smod{position:fixed; inset:0; z-index:60; display:grid; place-items:center; padding:24px; background:rgba(0,0,0,.45)} .smod[hidden]{display:none}
-.smod-c{display:flex; flex-direction:column; width:min(680px, 100%); max-height:calc(100dvh - 48px); border:1px solid var(--line-strong); border-radius:12px; background:var(--surface); box-shadow:var(--shadow)}
+.smod-c{display:flex; flex-direction:column; width:min(760px, 100%); max-height:calc(100dvh - 48px); border:1px solid var(--line-strong); border-radius:12px; background:var(--surface); box-shadow:var(--shadow)}
 .smod-h{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line)} .smod-h b{font-size:16px}
 .smod-h [data-smod-close]{display:grid; place-items:center; width:28px; height:28px; padding:0; border:0; border-radius:6px; background:none; box-shadow:none; color:var(--faint); font-size:14px; line-height:1; cursor:pointer}
 .smod-h [data-smod-close]:hover{background:var(--sunk); color:var(--ink)}   /* a quiet close, like the nav's own icons */
-.smod-g{display:grid; grid-template-columns:180px minmax(0, 1fr); grid-template-rows:minmax(0, 1fr); height:370px; min-height:0}   /* the tabs down the left, the open one beside them; one height for every tab, a longer tab scrolls */
+.smod-g{display:grid; grid-template-columns:180px minmax(0, 1fr); grid-template-rows:minmax(0, 1fr); height:min(600px, calc(100dvh - 130px)); min-height:0}   /* the tabs down the left, the open one beside them; tall enough that General needs no scroll */
 .smod-nav{display:flex; flex-direction:column; gap:2px; padding:10px 8px; border-right:1px solid var(--line); background:color-mix(in srgb, var(--ink) 2.5%, var(--surface)); border-bottom-left-radius:12px}
 .smod-t{display:flex; align-items:center; gap:9px; width:100%; padding:8px 10px; border:0; border-radius:7px; background:none; color:var(--muted); font:500 13.5px var(--f-body); text-align:left; cursor:pointer}
 .smod-t .sico{width:16px; height:16px} .smod-t:hover{background:var(--sunk); color:var(--ink)} .smod-t[aria-selected="true"]{background:var(--sunk); color:var(--ink); font-weight:600}

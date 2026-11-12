@@ -24,14 +24,16 @@ class ReaderTests(unittest.TestCase):
         return json.loads(result.stdout)
 
     def test_reader_lists_every_widget_with_its_page_name_above_the_first(self):
-        stubs = ("const esc=String,sico=()=>'',widgetHtml=(w)=>'<p>'+w+'</p>',wname=(w,p)=>((p&&p.names)||{})[w]||w.toUpperCase(),"
+        stubs = ("const navItems=()=>[{label:'Review'},...LAYOUT.pages],esc=String,sico=()=>'',widgetHtml=(w)=>'<p>'+w+'</p>',wname=(w,p)=>((p&&p.names)||{})[w]||w.toUpperCase(),"
                  "BLOCKS={a:{},b:{sub:()=>'2 open'},c:{}},LAYOUT={pages:[{id:'one',label:'Overview',widgets:['a','b']},{id:'two',label:'Risk',names:{c:'Blast'},widgets:['c']}]},"
                  "GLASSES='<svg class=\"g24\"></svg>',svg=(p,c='')=>'<svg class=\"'+c+'\">'+p+'</svg>',WDONE='_done',wseq=()=>[['a','one'],['b','one'],['c','two']],wpos=(q)=>q.findIndex(([w])=>w===WFULL),store={get:(k,d)=>d,set(){}},document={documentElement:{style:{setProperty(){}}},querySelectorAll:()=>[]};let READER='scroll',RDAT=0,WFULL='b';")
         code = stubs + cut(self.source, 'const RDICON = ', 'function rdOpen(')
         html = self.run_js(code + "result=rdBody([['a','one'],['b','one'],['c','two']],(i)=>' data-rdfocus=\"'+i+'\"');")
         self.assertEqual(html.count('class="rd-pg"'), 2)
-        self.assertLess(html.index('>Overview</p>'), html.index('>A</h2>'))
-        self.assertLess(html.index('>B</h2>'), html.index('>Risk</p>'))
+        self.assertLess(html.index('<b>Overview</b>'), html.index('>A</h2>'))
+        self.assertLess(html.index('>B</h2>'), html.index('<b>Risk</b>'))
+        self.assertIn('<span>Review</span><i aria-hidden="true">›</i><b>Overview</b>', html)   # the section the page sits under
+        self.assertIn('<span class="rd-pgn">Page 1 of 2</span>', html); self.assertIn('Page 2 of 2', html)
         self.assertIn('>Blast</h2>', html)   # a widget's name on its own page
         self.assertIn('data-rdfocus="2"', html)
         self.assertIn('<span class="ssub">2 open</span>', html)
@@ -111,7 +113,7 @@ class ReaderTests(unittest.TestCase):
             self.assertIn(part, body)
 
     def test_notice_is_a_toast_until_acknowledged(self):
-        self.assertIn('hidden><span>{{NOTICE}}</span>', NOTICE_BAR)
+        self.assertIn('<b>{{TITLE}}</b><span>{{NOTICE}}</span>', NOTICE_BAR)   # the rule in bold, what it means below
         self.assertIn('>Got it</button>', NOTICE_BAR)
         self.assertIn('cockpit:notice-ack', NOTICE_BAR)
         self.assertNotIn('bottom:0;left', NOTICE_BAR)   # no longer a bar pinned to the bottom edge
