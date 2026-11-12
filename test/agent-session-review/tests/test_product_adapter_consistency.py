@@ -53,9 +53,9 @@ class AdapterConsistencyTests(unittest.TestCase):
                     self.assertEqual(attention.plan(stored)['coverage']['complete'],complete)
                     decision=approval(data,'low');self.assertEqual(decision['result'],'approve' if complete else 'human review')
                     html=self.verdict(view._pr_view(stored),decision)
-                    self.assertIn('Risk review checks pass' if complete else 'Risk review needs attention',html)
+                    self.assertNotIn('Risk review',html)   # the risk review's outcome stays out of the Verdict
                     if reason:
-                        self.assertIn(reason,' '.join(decision['reasons']));self.assertIn(reason,html)
+                        self.assertIn(reason,' '.join(decision['reasons']));self.assertNotIn(reason,html)
                     if case=='truncated':self.assertTrue(stored['files'][0]['hunks'])
         with mock.patch.dict(os.environ,{'REVIEW_COCKPIT_PRODUCT':'0'}):
             self.assertEqual(approval({'prs':[{'key':'legacy#1','qodo_source':'comments','findings':[]}]},'low')['result'],'approve')

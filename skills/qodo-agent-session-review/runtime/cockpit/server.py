@@ -247,7 +247,8 @@ class Handler(SimpleHTTPRequestHandler):
         if name == APP:
             self.send_response(302); self.send_header("Location", "/index.html"); self.end_headers()
             return
-        return self._html(as_document(render(name, self.sdir, mode="serve")))
+        link = bool(getattr(self.server, 'access_key', None)) and getattr(self.server, 'product', False)   # Session auth: Copy link, for another browser
+        return self._html(as_document(render(name, self.sdir, mode="serve", access_link=link)))
 
     def _origin_error(self):
         """The existing local host/same-origin request boundary, shared by product reads."""
@@ -473,11 +474,16 @@ class Handler(SimpleHTTPRequestHandler):
         if error:
             return self._json({'error': error}, 403)
         if self.path == '/api/access':
-            from .local_access import authorized, cookie_name
-            if not authorized(self):
+            from .local_access import authorized, cookie_name, redeem_invite
+            if not (authorized(self) or redeem_invite(self)):
                 return self._json({'error': 'Access expired; reopen Agent Session Review from its launcher.'}, 403)
             return self._json({'ok': True}, cookie=cookie_name(self) + '=' + self.server.access_key
                               + '; Path=/; SameSite=Strict; HttpOnly')
+        if self.path == '/api/access-link':   # a signed-in browser asks for a one-time link that signs in another one
+            from .local_access import authorized, mint_invite
+            if not (getattr(self.server, 'product', False) and authorized(self)):
+                return self._json({'error': 'Reopen Agent Session Review from its launcher to authorize this browser.'}, 403)
+            return self._json({'url': f"http://127.0.0.1:{self.server.server_address[1]}/_access#key={mint_invite(self.server)}"})
         if "application/json" not in (self.headers.get("Content-Type") or ""):
             return self._json({"error": "JSON body required"}, 415)
         if not self._pick_session():
@@ -747,6 +753,7 @@ def serve(sdir: Path, port: int | None = None, open_browser: bool = True, style:
     from .product import enabled
     httpd.product = enabled()  # explicit launch profile, independent of the selected saved session
     httpd.access_key = secrets.token_urlsafe(32)
+    httpd.access_invites, httpd.access_invites_lock = {}, threading.Lock()   # one-time links from Copy link (local_access.mint_invite)
     url = f"http://127.0.0.1:{port}/"
     print(f"Agent Session Review: {url}  (session {sdir.name}, style {Handler.style}; Ctrl+C to stop)")
     if Handler.style != "cockpit":

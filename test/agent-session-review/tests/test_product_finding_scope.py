@@ -30,7 +30,7 @@ class ProductFindingScopeTests(unittest.TestCase):
         p.update(qodo_source='cli',qodo_review={'status':'completed','review_complete':True,'commit':HEAD,'run_id':'run','bounded':False},findings=[])
         return p
 
-    def test_product_risk_recommendation_does_not_claim_merge_readiness(self):
+    def test_product_verdict_follows_merge_thresholds_not_the_risk_review(self):
         source=(util.ROOT/'app/styles/package.js').read_text()
         code=source[source.index('const vdLink ='):source.index('function crumb()')]
         code=source[source.index('function productCiUnknown('):source.index('\n',source.index('function productCiUnknown('))]+code
@@ -44,7 +44,8 @@ class ProductFindingScopeTests(unittest.TestCase):
                 context={'p':public,'C':{'product':True},'LIVE':{},'RK':{'approval':decision,'level':'low'},'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
                 setup='const esc=String,strip=String,RW=String;KIT.openFindings=()=>[];const store={get:(k,d)=>d,set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};KIT.allFindings=()=>[];const prs=()=>[p];'
                 html=self.node(setup+code+';result=bVerdict();',context)
-                self.assertIn('Risk review checks pass',html);self.assertIn('not merge readiness',html);self.assertNotIn('Ready to merge',html)
+                self.assertNotIn('Risk review',html);self.assertIn('Not ready to merge',html)   # an approving risk review has no say; unread thresholds are not met
+                self.assertIn('findings',html)   # Qodo's findings not read in full: the findings threshold is not checked yet, never a pass
                 if case=='failing':self.assertIn('#1',html);self.assertIn('PRs failing CI',html)
                 if case=='partial-ci':self.assertIn('coverage unknown',html)
                 context['C']['product']=False
@@ -55,11 +56,11 @@ class ProductFindingScopeTests(unittest.TestCase):
                 if case=='failing':self.assertIn('Not ready to merge',legacy);self.assertIn('CI failing on 1 PR',legacy)
                 else:self.assertIn('Ready to merge',legacy);self.assertNotIn('Not ready to merge',legacy)
 
-    def test_product_verdict_has_no_merge_thresholds_or_merge_risk_row(self):
+    def test_verdict_thresholds_apply_in_both_modes_without_a_merge_risk_row(self):
         source=(util.ROOT/'app/styles/package.js').read_text()
         code=source[source.index('function productCiUnknown('):source.index('\n',source.index('function productCiUnknown('))]
         code+=source[source.index('const vdLink ='):source.index('function crumb()')]
-        self.assertIn('w === "verdict" && !C.product',source)   # no Verdict settings wrench in product mode
+        self.assertIn('w === "verdict" ? `<button class="wz-ic" data-vrset',source)   # the Verdict settings wrench in every mode
         p=self.pr();p['checks']=[{'name':'build','state':'SUCCESS'}]
         with mock.patch.dict(os.environ,{'REVIEW_COCKPIT_PRODUCT':'0'}):
             decision=approval({'product':True,'prs':[p]},'low');public=view._pr_view(p)
@@ -71,10 +72,9 @@ class ProductFindingScopeTests(unittest.TestCase):
                 context={'p':public,'C':{'product':product},'LIVE':{},'RK':{'approval':decision,'level':'low'},'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
                 html=self.node(setup+code+';result=bVerdict();',context)
                 self.assertNotIn('>Merge Risk<',html)
-                if product:self.assertNotIn('vd-t off',html);self.assertIn('not merge readiness',html)
-                else:self.assertIn('vd-t off',html)
+                self.assertIn('vd-t off',html);self.assertNotIn('Risk review',html);self.assertIn('Ready to merge',html)
 
-    def test_standalone_verdict_blocks_running_or_missing_ci_and_product_never_dims_severities(self):
+    def test_standalone_verdict_blocks_running_or_missing_ci_and_product_dims_the_same_severities(self):
         source=(util.ROOT/'app/styles/package.js').read_text()
         code=source[source.index('function productCiUnknown('):source.index('\n',source.index('function productCiUnknown('))]
         code+=source[source.index('const vdLink ='):source.index('function crumb()')]
@@ -90,13 +90,22 @@ class ProductFindingScopeTests(unittest.TestCase):
                 html=self.node(setup+code+';result=bVerdict();',context);self.assertIn(want,html)
                 if want=='Ready to merge':self.assertNotIn('Not ready',html);self.assertIn('vd-s low off',html)   # a Low finding below the High threshold
         context['C']={'product':True}
-        self.assertNotIn(' off"',self.node(setup+code+';result=bVerdict();',context))   # product mode has no thresholds to dim by
+        self.assertIn('vd-s low off',self.node(setup+code+';result=bVerdict();',context))   # product mode dims by the same thresholds
         ok={'state':'OPEN','merge_state':'CLEAN','review_decision':'APPROVED','unresolved':0,'checks':[{'state':'SUCCESS'}]}
         for live,want in (({**ok,'draft':True},'1 PR still a draft'),({**ok,'state':'MERGED'},'1 PR merged or closed'),({**ok,'review_decision':None,'approved_head':['reviewer']},'Ready to merge'),({**ok,'review_decision':None,'approved_by':['reviewer']},'1 PR awaiting human review'),({**ok,'review_decision':None,'approved_head':['a'],'changes_requested':['b']},'1 PR awaiting human review'),({**ok,'review_decision':None},'1 PR awaiting human review')):
             with self.subTest(live=live):
                 context={'p':public,'C':{'product':False},'LIVE':{p['key']:live},'RK':None,'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
                 html=self.node(setup+code+';result=bVerdict();',context);self.assertIn(want,html)
                 if want=='Ready to merge':self.assertNotIn('Not ready',html)   # no review decision: the repo doesn't require reviews, and a human approved
+                if 'draft' in want or 'closed' in want:self.assertNotIn('0 of',html)   # the subtitle names the real blocker, never "0 of N thresholds not met"
+        for live,want in (({**ok,'state':None},'PR states not checked yet'),({'error':'read failed'},'PR states not checked yet')):   # an unread state can't pass, whatever the other thresholds say
+            with self.subTest(unread=live):
+                context={'p':public,'C':{'product':False},'LIVE':{p['key']:live},'RK':None,'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
+                html=self.node(setup+code+';result=bVerdict();',context);self.assertIn(want,html);self.assertNotIn('Ready to merge',html)
+        context={'p':public,'C':{'product':True},'LIVE':{p['key']:{**ok,'readiness_complete':False}},'RK':None,'CI_BAD':['FAILURE'],'CI_OK':['SUCCESS','NEUTRAL','SKIPPED'],'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
+        self.assertIn('PR states',self.node(setup+code+';result=bVerdict();',context))   # product: an incomplete readiness read leaves the state unknown
+        context['LIVE'][p['key']]={**ok,'readiness_complete':True,'unresolved':None}
+        self.assertNotIn('unresolved comments not checked',self.node(setup+code+';result=bVerdict();',context))   # product reads report no unresolved conversations, so that threshold doesn't apply
 
     def render(self,p):
         package=(util.ROOT/'app/styles/package.js').read_text();app=(util.ROOT/'app/app.js').read_text()
