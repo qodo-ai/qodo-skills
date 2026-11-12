@@ -68,6 +68,13 @@ class ReaderTests(unittest.TestCase):
         title = self.run_js(code + "result=rdTitle('b','one');")
         self.assertIn('<h2>B</h2><span class="ssub">2 open</span>', title)
 
+    def test_a_find_jump_moves_focus_to_the_picked_widget(self):
+        body = self.source[self.source.index('function rdGo(i)'):]
+        body = body[:body.index('\n}\n')]
+        self.assertIn('#rdm .rd-w[data-rdi="${i}"] [data-rdfocus]', body)   # Scroll: the widget's title
+        self.assertIn('"#wfm .rd-ht"', body)   # Steps: the redrawn widget's title
+        self.assertIn('to.focus({ preventScroll: true })', body)
+
     def test_find_suggests_widgets_by_name_page_and_text(self):
         stubs = ("const esc=String,sico=()=>'',widgetHtml=()=>'',wname=(w,p)=>({a:'Verdict',b:'Blast radius',c:'Hop by hop'})[w],WIDGETS={a:['Verdict','The bottom line'],b:['Blast radius','How far a fault reaches'],c:['Hop by hop','One request across systems']},"
                  "BLOCKS={a:{},b:{},c:{}},LAYOUT={pages:[{id:'o',label:'Overview',widgets:['a']},{id:'r',label:'Merge Risk',widgets:['b','c']}]},GLASSES='<svg></svg>',svg=(p)=>p,WDONE='_done',"

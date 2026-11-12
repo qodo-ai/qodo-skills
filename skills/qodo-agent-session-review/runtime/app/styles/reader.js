@@ -127,6 +127,8 @@ function rdGo(i) {   // to a widget, in either mode
   rdFindClose(false);
   if (READER === "scroll") rdFocus(i);
   else { const n = wseq().length, at = WFULL === WDONE ? n : wpos(wseq()); if (i !== at) wfStep(i - at); }
+  const to = document.querySelector(READER === "scroll" ? `#rdm .rd-w[data-rdi="${i}"] [data-rdfocus]` : "#wfm .rd-ht") || document.querySelector(".wfm-c [data-rdfind]");   // keyboard focus lands on the widget you picked, never the hidden search
+  if (to) { if (!to.hasAttribute("tabindex")) to.tabIndex = -1; to.focus({ preventScroll: true }); }
 }
 document.addEventListener("input", (e) => { if (e.target.matches && e.target.matches(".rd-q")) rdFindDraw(e.target); });
 document.addEventListener("keydown", (e) => { const q = e.target.matches && e.target.matches(".rd-q") ? e.target : null; if (!q) return;

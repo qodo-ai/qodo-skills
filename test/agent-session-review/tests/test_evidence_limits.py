@@ -66,16 +66,31 @@ class EvidenceLimitsTests(unittest.TestCase):
 
     def test_session_auth_link_is_for_served_pages_only(self):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()
-        self.assertIn('if mode == "serve" and access_url:', styles)   # a snapshot never carries the key
+        self.assertIn('if mode == "serve" and access_link:', styles)   # a snapshot never offers it
+        self.assertNotIn("host['access_url']", styles)   # the page never holds a key
         server = (util.ROOT / 'cockpit/server.py').read_text()
-        self.assertIn('render(name, self.sdir, mode="serve", access_url=access)', server)
+        self.assertIn('render(name, self.sdir, mode="serve", access_link=link)', server)
         source = (util.ROOT / 'app/styles/evidence.js').read_text()
-        fn = source[source.index('function authTip()'):source.index('function evPr(')]
-        out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': "const esc=String,KIT={host:{access_url:'http://127.0.0.1:1/_access#key=k'}};" + fn + "result=[authTip(),(KIT.host={},authTip())];"}), capture_output=True, text=True)
+        fn = source[source.index('function authTip()'):source.index('function evLink(')]
+        out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': "const esc=String,KIT={host:{access_link:true}};" + fn + "result=[authTip(),(KIT.host={},authTip())];"}), capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
         html, none = json.loads(out.stdout)
         self.assertIn('Session auth', html); self.assertIn('data-copy-access', html); self.assertNotIn('href=', html)   # just Copy link
         self.assertEqual(none, '')
+        self.assertIn('fetch("/api/access-link"', source); self.assertIn('evLink(box, url)', source)   # minted on demand; shown when the clipboard refuses
+
+    def test_copied_access_links_work_once_and_expire(self):
+        from types import SimpleNamespace
+        from cockpit import local_access
+        server = SimpleNamespace(access_key='master')
+        key = local_access.mint_invite(server)
+        ask = lambda k: SimpleNamespace(server=server, headers={'Authorization': 'Bearer ' + k})
+        self.assertFalse(local_access.authorized(ask(key)))   # an invite is not the server's key
+        self.assertTrue(local_access.redeem_invite(ask(key)))
+        self.assertFalse(local_access.redeem_invite(ask(key)))   # once only
+        old = local_access.mint_invite(server); server.access_invites[old] = 0
+        self.assertFalse(local_access.redeem_invite(ask(old)))   # expired
+        self.assertFalse(local_access.redeem_invite(ask('')))
 
     def test_the_page_no_longer_appends_the_limits_block(self):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()

@@ -41,17 +41,17 @@ STYLES: dict[str, dict] = {
 }
 APP = "cockpit"      # the full app (app/index.html)
 DEFAULT = "package"  # what a review opens on when neither --style nor config "style" says otherwise
-# the product notice: a prominent toast over the content area (a lock, the rule in bold, then what it means) until the reader acknowledges it
+# the product notice: a prominent toast over the content area (a desktop computer, the rule in bold, then what it means) until the reader acknowledges it
 NOTICE_BAR = ('<style>.ck-notice{position:fixed;z-index:50;bottom:max(20px,env(safe-area-inset-bottom,0px));left:var(--nvw,0px);right:0;margin:0 auto;width:min(600px,calc(100vw - var(--nvw,0px) - 32px));'
               'display:flex;align-items:center;gap:14px;padding:14px 14px 14px 16px;border:1px solid var(--accent-line,var(--line-strong));border-radius:12px;'
-              'background:color-mix(in srgb,var(--accent,#7968fa) 12%,var(--surface));box-shadow:inset 3px 0 0 var(--accent,#7968fa),0 18px 44px rgba(0,0,0,.4);color:var(--muted);'
+              'background:color-mix(in srgb,var(--accent,#7968fa) 12%,var(--surface));box-shadow:0 18px 44px rgba(0,0,0,.4);color:var(--muted);'
               'font-size:13px;line-height:1.45;animation:ck-pop .25s ease-out}.ck-notice[hidden]{display:none}'
               '.ck-ni{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent-soft,var(--sunk));color:var(--accent-text,var(--ink))}.ck-ni svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'
               '.ck-nt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ck-nt b{font-size:14px;font-weight:650;color:var(--ink)}'
               '.ck-notice button{flex:none;padding:7px 16px;border:0;border-radius:8px;background:var(--accent-fill,var(--ink));color:var(--accent-ink,var(--bg));font:inherit;font-weight:600;cursor:pointer}'
               '.ck-notice button:hover{filter:brightness(1.1)}@keyframes ck-pop{from{opacity:0;transform:translateY(12px)}}'
               'body.nv-none .ck-notice{left:0;width:min(600px,calc(100vw - 32px))}@media (max-width:900px){.ck-notice{left:0;width:calc(100vw - 32px)}}@media print{.ck-notice{display:none!important}}</style>'
-              '<aside role="note" class="ck-notice" id="ck-notice" hidden><span class="ck-ni" aria-hidden="true"><svg viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>'
+              '<aside role="note" class="ck-notice" id="ck-notice" hidden><span class="ck-ni" aria-hidden="true"><svg viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>'
               '<span class="ck-nt"><b>{{TITLE}}</b><span>{{NOTICE}}</span></span><button type="button"'
               ' onclick="this.parentNode.hidden=true;try{localStorage.setItem(\'cockpit:notice-ack\',\'1\')}catch(e){}">Got it</button></aside>'
               '<script>{const n=document.getElementById("ck-notice");try{n.hidden=!!localStorage.getItem("cockpit:notice-ack")}catch(e){n.hidden=false}}</script>')
@@ -144,7 +144,7 @@ from .product import session_operation
 
 @session_operation
 def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None = None, data: dict | None = None,
-           links: dict[str, str] | None = None, access_url: str | None = None) -> str:
+           links: dict[str, str] | None = None, access_link: bool = False) -> str:
     """The style as a page fragment (title, fonts, styles, markup, scripts; no html/head/body).
     mode: "serve" (notes go to the local server) or "snapshot" (they stay in the reader's browser).
     links: in a snapshot, the other styles exported next to it (style -> file name)."""
@@ -178,8 +178,8 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
         head, _, rest = NOTICE.partition('. ')   # the rule as its title, the rest below it
         tpl += NOTICE_BAR.replace('{{TITLE}}', head).replace('{{NOTICE}}', rest)
         host['limits'] = evidence_limits(data)   # shown in the refresh details, in full in a dialog
-    if mode == "serve" and access_url:   # served to a browser that already holds access: the link that signs in another browser (never in a snapshot)
-        host['access_url'] = access_url
+    if mode == "serve" and access_link:   # served to a browser that already holds access: Copy link asks the server for a one-time link (never in a snapshot, never a key in the page)
+        host['access_link'] = True
     if enabled(data) and (data.get('collection') or {}).get('complete') is False:
         coll = data['collection']
         gap = f"Work package collection incomplete: {len(coll.get('collected_refs') or [])} of {len(coll.get('requested_refs') or [])} requested changes retained. Omitted: {', '.join(coll.get('omitted_refs') or []) or 'some source evidence'}."
