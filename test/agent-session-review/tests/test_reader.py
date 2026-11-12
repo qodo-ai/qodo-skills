@@ -123,7 +123,8 @@ class ReaderTests(unittest.TestCase):
         self.assertIn('<b>{{TITLE}}</b><span>{{NOTICE}}</span>', NOTICE_BAR)   # the rule in bold, what it means below
         self.assertIn('>Got it</button>', NOTICE_BAR)
         self.assertIn('cockpit:notice-ack', NOTICE_BAR)
-        self.assertNotIn('bottom:0;left', NOTICE_BAR)   # no longer a bar pinned to the bottom edge
+        self.assertNotIn('bottom:0;left', NOTICE_BAR)
+        self.assertIn('body:has(#qfab):not(.ask-off):not(.qa-open) .ck-notice{bottom:', NOTICE_BAR)   # lifted clear of the Ask Qodo launcher   # no longer a bar pinned to the bottom edge
 
 
 if __name__ == '__main__':

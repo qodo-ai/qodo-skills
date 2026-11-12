@@ -92,6 +92,17 @@ class EvidenceLimitsTests(unittest.TestCase):
         self.assertFalse(local_access.redeem_invite(ask(old)))   # expired
         self.assertFalse(local_access.redeem_invite(ask('')))
 
+    def test_other_styles_keep_an_evidence_limits_block(self):
+        from cockpit.styles import limits_block
+        html = limits_block({'prs': [{'key': 'o/a#1', 'recorded': True, 'sections': [{'name': 'files', 'status': 'partial', 'complete': False}], 'files_list_complete': False,
+                                      'files_missing': 0, 'files': 3, 'files_open': ['a.py'], 'files_unrecorded': 0, 'overlaps': [], 'qodo_error': ''},
+                                     {'key': 'o/b#2', 'recorded': False}]})
+        self.assertIn('<summary', html); self.assertIn('Evidence limits', html)
+        self.assertIn('files not read in full (partial); patches confirmed complete: 2 of 3', html)   # the list gap folds into the files section
+        self.assertIn('no completeness recorded', html)
+        styles = (util.ROOT / 'cockpit/styles.py').read_text()
+        self.assertIn("if '{{PACKAGE_SCRIPT}}' not in (STYLES_DIR / meta['template']).read_text():", styles)   # Work Package shows them in its refresh details instead
+
     def test_the_page_no_longer_appends_the_limits_block(self):
         styles = (util.ROOT / 'cockpit/styles.py').read_text()
         self.assertNotIn('Managed source evidence and limits', styles)

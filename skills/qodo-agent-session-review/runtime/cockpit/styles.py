@@ -50,7 +50,9 @@ NOTICE_BAR = ('<style>.ck-notice{position:fixed;z-index:50;bottom:max(20px,env(s
               '.ck-nt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ck-nt b{font-size:14px;font-weight:650;color:var(--ink)}'
               '.ck-notice button{flex:none;padding:7px 16px;border:0;border-radius:8px;background:var(--accent-fill,var(--ink));color:var(--accent-ink,var(--bg));font:inherit;font-weight:600;cursor:pointer}'
               '.ck-notice button:hover{filter:brightness(1.1)}@keyframes ck-pop{from{opacity:0;transform:translateY(12px)}}'
-              'body.nv-none .ck-notice{left:0;width:min(600px,calc(100vw - 32px))}@media (max-width:900px){.ck-notice{left:0;width:calc(100vw - 32px)}}@media print{.ck-notice{display:none!important}}</style>'
+              'body.nv-none .ck-notice{left:0;width:min(600px,calc(100vw - 32px))}@media (max-width:900px){.ck-notice{left:0;width:calc(100vw - 32px)}}'
+              ':root:not([data-qa-corner^="t"]) body:has(#qfab):not(.ask-off):not(.qa-open) .ck-notice{bottom:calc(max(20px,env(safe-area-inset-bottom,0px)) + 64px)}'   # clear of the Ask Qodo launcher
+              '@media print{.ck-notice{display:none!important}}</style>'
               '<aside role="note" class="ck-notice" id="ck-notice" hidden><span class="ck-ni" aria-hidden="true"><svg viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>'
               '<span class="ck-nt"><b>{{TITLE}}</b><span>{{NOTICE}}</span></span><button type="button"'
               ' onclick="this.parentNode.hidden=true;try{localStorage.setItem(\'cockpit:notice-ack\',\'1\')}catch(e){}">Got it</button></aside>'
@@ -105,6 +107,27 @@ def evidence_limits(data: dict) -> dict:
                     'files_unrecorded': sum(1 for f in files if not f.get('patch_evidence')),
                     'overlaps': [str(w) for w in pr.get('overlap_read_warnings') or []], 'qodo_error': str(pr.get('qodo_read_error') or '')})
     return {'prs': prs}
+
+
+def limits_block(lim: dict) -> str:
+    """Evidence limits for a style without the Work Package script (which shows them in its refresh details): one folded block, a line per PR."""
+    rows = []
+    for p in lim['prs']:
+        if not p['recorded']:
+            gaps = ['no completeness recorded, so no read can be confirmed complete']
+        else:
+            gaps = [f"{s['name']} not read in full ({s['status'] or 'unknown'})" for s in p['sections'] if not s['complete']]
+            if not p['files_list_complete'] and not any(s['name'] == 'files' and not s['complete'] for s in p['sections']):
+                gaps.append('changed-file list not confirmed complete')
+            if p['files_missing']:
+                gaps.append(f"{p['files_missing']} changed file(s) missing from the review")
+            if p['files_open'] or p['files_unrecorded']:
+                gaps.append(f"patches confirmed complete: {p['files'] - len(p['files_open']) - p['files_unrecorded']} of {p['files']}")
+            gaps += [f'overlapping work: {w}' for w in p['overlaps']] + ([f"Qodo findings: {p['qodo_error']}"] if p['qodo_error'] else [])
+        rows.append(f"<li><b>{_esc(p['key'])}</b>: {_esc('; '.join(gaps) or 'every section and patch read in full')}</li>")
+    return ('<details class="ck-limits" style="margin:16px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:13px">'
+            '<summary style="cursor:pointer;font-weight:600">Evidence limits</summary><p style="color:var(--muted)">Each PR is read through Qodo\'s managed tools within a limit of calls and time. '
+            'Unread or unconfirmed evidence never counts as a clean review. Diagrams and fonts load from their public CDNs.</p><ul>' + ''.join(rows) + '</ul></details>')
 
 
 def _esc(s: str) -> str:
@@ -178,6 +201,8 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
         head, _, rest = NOTICE.partition('. ')   # the rule as its title, the rest below it
         tpl += NOTICE_BAR.replace('{{TITLE}}', head).replace('{{NOTICE}}', rest)
         host['limits'] = evidence_limits(data)   # shown in the refresh details, in full in a dialog
+        if '{{PACKAGE_SCRIPT}}' not in (STYLES_DIR / meta['template']).read_text():   # other styles have no refresh details: the limits as a block on the page
+            tpl += limits_block(host['limits'])
     if mode == "serve" and access_link:   # served to a browser that already holds access: Copy link asks the server for a one-time link (never in a snapshot, never a key in the page)
         host['access_link'] = True
     if enabled(data) and (data.get('collection') or {}).get('complete') is False:
