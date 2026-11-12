@@ -331,6 +331,16 @@ representative non-marketplace agents, including multi-agent and project/global 
 
 ## 6. QAR enterprise channel
 
+Optional packages use this same release train. The normal immutable `v<version>`
+release includes `qodo-repository-catalog.json` and its SHA-256 file, built from the
+same captured source as core. This complete-resource package carries scripts, UI
+assets, references and component terms without enlarging the legacy managed bundle.
+There is no separate catalog-snapshot publication workflow. QAR's existing sync
+selects the catalog from the same skills release; already installed optional skills
+receive full-package updates under the existing client preferences. Agent Session
+Review remains `default: false` and `providerListed: false` until separately changed.
+
+
 When adopting v2.0.0, update QAR's reviewed `infra/skills-bundle/topology.json` together with
 `infra/skills-bundle/bundle.lock.json`. Remove `qodo-pr-resolver` from the core Claude, Codex, and
 Kiro `projectionSkills`; portable already uses canonical names. QAR requires an exact topology

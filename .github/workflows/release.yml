@@ -126,6 +126,9 @@ jobs:
             --output "${RUNNER_TEMP}/qodo-enterprise-release" \
             --commit "${RELEASE_COMMIT}" \
             --release-index "${RUNNER_TEMP}/qodo-release-index/qodo-skills-index.json"
+          node "${RUNNER_TEMP}/qodo-release-source/scripts/build-repository-catalog.mjs" \
+            --output-dir "${RUNNER_TEMP}/qodo-enterprise-release" \
+            --source-commit "${RELEASE_COMMIT}"
           node "${RUNNER_TEMP}/qodo-release-source/scripts/release-notes.mjs" \
             "${RUNNER_TEMP}/qodo-release-notes.md"
 

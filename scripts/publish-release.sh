@@ -84,6 +84,8 @@ RELEASE_ASSETS=(
   "${RELEASE_SOURCE_DIR}/distribution/qodo-cli-managed-bundle.json.sha256"
   "${INDEX_DIR}/qodo-skills-index.json"
   "${INDEX_DIR}/qodo-skills-index.json.sha256"
+  "${ENTERPRISE_DIR}/qodo-repository-catalog.json"
+  "${ENTERPRISE_DIR}/qodo-repository-catalog.json.sha256"
 )
 if ! DISCOVERY_ASSET_ROWS="$(node -e '
   const fs = require("node:fs");
@@ -140,6 +142,19 @@ node -e '
   }
   if (manifest.source?.commit !== process.argv[2]) throw new Error("enterprise manifest source does not match QODO_RELEASE_COMMIT");
 ' "${INDEX_DIR}/qodo-skills-index.json" "${RELEASE_COMMIT}" "${VERSION}" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
+(
+  cd "${ENTERPRISE_DIR}"
+  verify_sha256 qodo-repository-catalog.json.sha256
+)
+node -e '
+  const fs = require("node:fs");
+  const catalog = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  if (catalog.schemaVersion !== 1 || catalog.distribution !== "qodo-repository"
+      || catalog.repository !== "https://github.com/qodo-ai/qodo-skills"
+      || catalog.sourceCommit !== process.argv[2] || catalog.packageVersion !== process.argv[3]) {
+    throw new Error("repository catalog identity does not match the release");
+  }
+' "${ENTERPRISE_DIR}/qodo-repository-catalog.json" "${RELEASE_COMMIT}" "${VERSION}"
 verify_discovery_digest() {
   local asset="$1" expected="$2" actual
   actual="$(node -e '
@@ -170,6 +185,7 @@ verify_release_assets() {
     verify_sha256 qodo-cli-managed-bundle.json.sha256
     verify_sha256 "${ARCHIVE_NAME}.sha256"
     verify_sha256 qodo-enterprise-manifest.json.sha256
+    verify_sha256 qodo-repository-catalog.json.sha256
   )
   cmp --silent "${directory}/qodo-skills-index.json" "${INDEX_DIR}/qodo-skills-index.json"
   cmp --silent "${directory}/qodo-skills-index.json.sha256" "${INDEX_DIR}/qodo-skills-index.json.sha256"
@@ -179,6 +195,8 @@ verify_release_assets() {
   cmp --silent "${directory}/${ARCHIVE_NAME}.sha256" "${ENTERPRISE_DIR}/${ARCHIVE_NAME}.sha256"
   cmp --silent "${directory}/qodo-enterprise-manifest.json" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json"
   cmp --silent "${directory}/qodo-enterprise-manifest.json.sha256" "${ENTERPRISE_DIR}/qodo-enterprise-manifest.json.sha256"
+  cmp --silent "${directory}/qodo-repository-catalog.json" "${ENTERPRISE_DIR}/qodo-repository-catalog.json"
+  cmp --silent "${directory}/qodo-repository-catalog.json.sha256" "${ENTERPRISE_DIR}/qodo-repository-catalog.json.sha256"
   while IFS=$'\t' read -r discovery_asset discovery_digest; do
     [[ -n "${discovery_asset}" ]] || continue
     cmp --silent "${directory}/${discovery_asset}" "${ENTERPRISE_DIR}/${discovery_asset}"
