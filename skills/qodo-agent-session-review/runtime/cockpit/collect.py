@@ -551,12 +551,9 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
         since = pr.get("collected_at") or since_default   # older sessions: the session's creation time
         new_reviews = [r for r in (v.get("reviews") or []) if (r.get("submittedAt") or "") > since]
         approvers = sorted({(r.get("author") or {}).get("login") or "someone" for r in new_reviews if r.get("state") == "APPROVED"})
-        last = {}   # each reviewer's latest decision, for the verdict when GitHub gives no review decision
-        for r in sorted(v.get("reviews") or [], key=lambda r: r.get("submittedAt") or ""):
-            if r.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
-                last[(r.get("author") or {}).get("login") or "someone"] = r
-        approved_head = sorted(k for k, r in last.items() if r.get("state") == "APPROVED" and head and (r.get("commit") or {}).get("oid") == head)
-        changes = sorted(k for k, r in last.items() if r.get("state") == "CHANGES_REQUESTED")
+        hr = human_reviews([{"user": {"login": (r.get("author") or {}).get("login") or "", "type": "Bot" if (r.get("author") or {}).get("is_bot") else "User"},
+                             "state": r.get("state"), "submitted_at": r.get("submittedAt"), "commit_id": (r.get("commit") or {}).get("oid")} for r in v.get("reviews") or []], head)
+        approved_head, changes = (hr["approvals"] if head else []), hr["changes_requested"]   # for the verdict when GitHub gives no review decision: humans only, as collected
         # an approval is news of its own, not "a comment"; the other reviews are comments to read
         new_comments = sum(1 for c in (v.get("comments") or []) if (c.get("createdAt") or "") > since) + \
             sum(1 for r in new_reviews if r.get("state") != "APPROVED")
