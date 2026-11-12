@@ -75,6 +75,16 @@ class NavDividerTests(unittest.TestCase):
         mig = self.run_js(store + cut(self.source, 'const PGICONS = ', 'const navItems = ') + "result=[DB.L.pages.map((p)=>p.icon),DB['cockpit:layout-icons']];")
         self.assertEqual(mig, [['ovw', 'w'], True])   # the old shared default, once, on stored layouts
 
+    def test_risk_summary_text_moves_into_risk_assessment(self):
+        out = self.run_js(cut(self.source, 'const LDEF = ', 'const VIEWDEF') + 'result=LDEF().pages.find((p)=>p.id==="risk").widgets;')
+        self.assertNotIn('rtext', out); self.assertEqual(out[0], 'rsum')
+        store = ("const DB={'L':{pages:[{id:'r',label:'Risk',widgets:['rtext','rsum','rblast']},{id:'t',label:'Text',widgets:['rtext']}]}},"
+                 "LKEY='L',store={get:(k,d)=>k in DB?DB[k]:d,set:(k,v)=>{DB[k]=v;}};")
+        mig = self.run_js(store + cut(self.source, 'const RTXTIN = ', 'const PGICONS = ') + "result=DB.L.pages.map((p)=>p.widgets);")
+        self.assertEqual(mig, [['rsum', 'rblast'], ['rtext']])   # dropped beside Risk assessment, kept where it stands alone
+        body = self.source[self.source.index('function bRiskSum()'):self.source.index('const bRiskText')]
+        self.assertLess(body.index('class="rtop"'), body.index('riskRadar()'))   # the text across the top, then the chart
+
     def test_default_layout_has_three_dividers(self):
         out = self.run_js(cut(self.source, 'const LDEF = ', 'const VIEWDEF') + 'result=LDEF();')
         self.assertEqual([(d['label'], d['at']) for d in out['dividers']], [('Intent', 'brief'), ('Review', 'risk'), ('Reference', 'system')])

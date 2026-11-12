@@ -396,14 +396,14 @@ function bRisk() {   // Merge Risk on top, then Quality, then plan alignment: Hu
   return `<section class="card impact risk">${head}${riskAssess()}<div class="rwide">${riskRadar()}<p class="muted rnote">The chart shows each factor's highest level across the scenarios. It's a picture; the two tables in How it was decided decide.</p></div>${riskFolds()}</section>`;
 }
 /* Merge Risk as five widgets: the assessment with its chart, one per factor, then Go deeper */
-const RISK5 = ["rsum", "rtext", "rblast", "rcplx", "rdmg", "rdeep"];
+const RISK5 = ["rsum", "rblast", "rcplx", "rdmg", "rdeep"];   // Risk assessment opens with the Risk summary text
 const RFX = { rblast: "radius", rcplx: "complexity", rdmg: "damage" };
 const rOn = () => !!(RK && RK.scenarios.length);
 const rCard = (h) => h ? `<section class="card impact risk">${h}</section>` : "";
-function bRiskSum() {   // the level, what would go wrong and the chart of each factor's highest level
+function bRiskSum() {   // what would go wrong across the top, then the level's range and the chart of each factor's highest level
   if (!rOn()) return bRisk();
   const range = RK.range ? `<p class="muted">Could be ${esc(RW(RK.range[0]))}–${esc(RW(RK.range[1]))}.</p>` : "";
-  return rCard(range + `<div class="rwide">${riskRadar()}</div>`);
+  return rCard((RK.headline ? `<div class="rtop">${riskHeadline(true)}</div>` : "") + range + `<div class="rwide">${riskRadar()}</div>`);
 }
 const bRiskText = () => (rOn() && RK.headline ? rCard(riskHeadline(true)) : "");   // what would go wrong, in a widget of its own
 const bRiskAxis = (w) => rOn() ? rCard(riskAxis(RFX[w])) : "";
@@ -3276,7 +3276,7 @@ const LDEF = () => ({ pages: [   // the default pages, in order: what anyone ope
   { id: "prs", label: "Overview", icon: "ovw", names: { prstable: "Package contents" }, widgets: ["verdict", "prstable"] },
   { id: "brief", label: "Requirements", icon: "brief", widgets: BRIEF3.slice() },
   { id: "coding-agent-decisions", label: "Agent Decisions", icon: "decisions", widgets: ["decisions"] },
-  { id: "risk", label: "Merge Risk", icon: "risk", widgets: ["rtext", "rsum", "rblast", "rcplx", "rdmg", "rdeep"] },
+  { id: "risk", label: "Merge Risk", icon: "risk", widgets: ["rsum", "rblast", "rcplx", "rdmg", "rdeep"] },
   { id: "plan", label: "Code map", icon: "plan", widgets: ["plan"] },
   { id: "review-walkthrough", label: "Review walkthrough", icon: "walk", widgets: ["walk"] },
   { id: "builder", label: "Execution paths", icon: "builder", widgets: ["builder"] },
@@ -3345,6 +3345,10 @@ const DIVS = "cockpit:layout-dividers";   // nav dividers came after the stored 
 if (!store.get(DIVS, false)) { const L0 = store.get(LKEY, null);
   if (L0 && Array.isArray(L0.pages) && !Array.isArray(L0.dividers)) { L0.dividers = LDEF().dividers.filter((d) => L0.pages.some((p) => p && p.id === d.at)); L0.pages.forEach((p) => p && delete p.group); store.set(LKEY, L0); }
   store.set(DIVS, true); }
+const RTXTIN = "cockpit:layout-rtext-in-rsum";   // Risk assessment now opens with the Risk summary text: a page holding both drops the separate widget, once
+if (!store.get(RTXTIN, false)) { const L0 = store.get(LKEY, null);
+  if (L0 && Array.isArray(L0.pages)) { L0.pages.forEach((p) => { if (p && Array.isArray(p.widgets) && p.widgets.includes("rsum") && p.widgets.length > 1) p.widgets = p.widgets.filter((w) => w !== "rtext"); }); store.set(LKEY, L0); }
+  store.set(RTXTIN, true); }
 const PGICONS = "cockpit:layout-icons";   // pages once got the shared Overview icon by default: such a page takes its first widget's icon instead, once
 if (!store.get(PGICONS, false)) { const L0 = store.get(LKEY, null);
   if (L0 && Array.isArray(L0.pages)) { L0.pages.forEach((p) => { const own = p && p.label !== "Overview" && p.icon === "ovw" && (p.widgets || []).find((w) => Object.hasOwn(SICON, w)); if (own) p.icon = own; }); store.set(LKEY, L0); }
