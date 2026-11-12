@@ -126,7 +126,7 @@ def limits_block(lim: dict) -> str:
         gaps += [f'overlapping work: {w}' for w in p.get('overlaps') or []] + ([f"Qodo findings: {p['qodo_error']}"] if p.get('qodo_error') else [])   # read failures show with or without completeness records
         rows.append(f"<li><b>{_esc(p['key'])}</b>: {_esc('; '.join(gaps) or 'every section and patch read in full')}</li>")
     return ('<details class="ck-limits" style="margin:16px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:13px">'
-            '<summary style="cursor:pointer;font-weight:600">Evidence limits</summary><p style="color:var(--muted)">Each PR is read through Qodo\'s managed tools within a limit of calls and time. '
+            '<summary style="cursor:pointer;font-weight:600">Evidence limits</summary><p style="color:var(--muted)">Each PR is read through Qodo\'s managed tools, a page at a time. '
             'Unread or unconfirmed evidence never counts as a clean review. Diagrams and fonts load from their public CDNs.</p><ul>' + ''.join(rows) + '</ul></details>')
 
 

@@ -52,7 +52,7 @@ function evOpen() {   // the full list, in a dialog like the others
   if (!m) { m = document.createElement("div"); m.id = "evm"; m.className = "lmod"; document.body.appendChild(m); }
   m.innerHTML = `<div class="lmod-c evm-c" role="dialog" aria-modal="true" aria-label="Evidence limits"><div class="lmod-h"><b>Evidence limits</b><button type="button" class="wz-ic" data-ev-close aria-label="Close" title="Close (Esc)">✕</button></div>
     <div class="ev-sum"><i class="ev-dot ${t}"></i><div><b>${esc(h)}</b><p class="muted">${esc(sub)}</p></div></div>
-    <p class="lmod-p">This review reads each PR through Qodo's managed tools, a page at a time and within a limit of calls and time, and records whether each part was read in full.</p>
+    <p class="lmod-p">This review reads each PR through Qodo's managed tools, a page at a time, and records whether each part was read in full.</p>
     ${EVL.prs.map(evPr).join("")}<p class="muted ev-foot">Diagrams and fonts load from their public CDNs.</p></div>`;
   m.querySelector("[data-ev-close]").focus();
 }

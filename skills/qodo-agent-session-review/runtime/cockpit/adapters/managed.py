@@ -20,8 +20,9 @@ from urllib.parse import urlsplit
 
 MAX_PAGES = 20
 MAX_PATCHES = 100
-MAX_OPERATION_CALLS = 96
-MAX_OPERATION_SECONDS = 180
+MAX_OPERATION_CALLS = None   # no cap on managed reads per operation: a multi-PR package reads in full
+MAX_OPERATION_SECONDS = None   # no total time limit either; each read still has its own timeout
+READ_TIMEOUT_SECONDS = 120
 _CURRENT_BUDGET = ContextVar('cockpit_managed_read_budget', default=None)
 
 
@@ -38,23 +39,33 @@ class BudgetExceeded(ReadError):
 
 
 class ReadBudget:
-    """Shared across a whole product operation, including nested adapters and secondary reads."""
+    """Shared across a whole product operation, including nested adapters and secondary reads. It counts the reads;
+    a cap on calls or time applies only when a caller sets one (Ask Qodo, the system map), not by default."""
     def __init__(self, max_calls=None, seconds=None):
         self.max_calls = MAX_OPERATION_CALLS if max_calls is None else max_calls
-        self.deadline = time.monotonic() + (MAX_OPERATION_SECONDS if seconds is None else seconds)
+        limit = MAX_OPERATION_SECONDS if seconds is None else seconds
+        self.deadline = None if limit is None else time.monotonic() + limit
         self.calls = 0
 
+    def _left(self):
+        return None if self.deadline is None else self.deadline - time.monotonic()
+
+    def _spent(self):
+        left = self._left()
+        return (self.max_calls is not None and self.calls >= self.max_calls) or (left is not None and left <= 0)
+
     def reserve(self):
-        left = self.deadline - time.monotonic()
-        if self.calls >= self.max_calls or left <= 0:
+        if self._spent():
             raise BudgetExceeded('Managed read operation budget exhausted; remaining evidence is unavailable')
         self.calls += 1
-        return min(120, left)
+        left = self._left()
+        return READ_TIMEOUT_SECONDS if left is None else min(READ_TIMEOUT_SECONDS, left)
 
     def summary(self):
+        left = self._left()
         return {'calls': self.calls, 'max_calls': self.max_calls,
-                'remaining_seconds': max(0, self.deadline-time.monotonic()),
-                'exhausted': self.calls >= self.max_calls or time.monotonic() >= self.deadline}
+                'remaining_seconds': None if left is None else max(0, left),
+                'exhausted': self._spent()}
 
 
 @contextmanager
