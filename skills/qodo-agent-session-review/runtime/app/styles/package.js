@@ -1462,7 +1462,7 @@ function headActions() {
     + `<div class="vw"><button type="button" class="hbtn hlbl" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}<span>Share</span></button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
     + `<button type="button" class="hbtn" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>`;   // Share, then More on the far right
 }
-if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; if (Object.values(LIVE).some((v) => v && !v.error)) C.live_at = j.checked_at || new Date().toISOString(); keepScroll(() => {}); drawHead(); }).catch(() => {});
+if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; C.live_at = Object.keys(LIVE).length && Object.values(LIVE).every((v) => v && !v.error && v.unresolved != null && Array.isArray(v.checks)) ? j.checked_at || new Date().toISOString() : C.live_at; keepScroll(() => {}); drawHead(); }).catch(() => {});
 const OVERVIEW = ["prs", "brief", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"];
 const OVERVIEWISH = OVERVIEW.concat(["risk"]);   // blocks that make a tab the overview (Focus's own overview stays OVERVIEW)
 function vOverview() { return OVERVIEW.map((b) => BLOCKS[b].render()).join(""); }
@@ -2338,7 +2338,7 @@ const awaitingReview = (p) => { const L = LIVE[p.key];
   const snap = () => !(p.approvals || []).length || (p.changes_requested || []).length > 0;   // as collected: no approval yet, or a change still requested
   if (!(L && L.state)) return snap();
   if (L.state !== "OPEN" || L.draft) return false;   // drafts and closed PRs block the Verdict on their own
-  return L.review_decision ? L.review_decision !== "APPROVED" : snap() && !(L.approved_by || []).length; };   // no review decision: the repo doesn't require reviews, so a human approval is enough
+  return L.review_decision ? L.review_decision !== "APPROVED" : !(L.approved_head || []).length || (L.changes_requested || []).length > 0; };   // no review decision (reviews not required): a human approval of the current head, with no change still requested
 const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], ci: true, conflicts: true, review: true, comments: true };
 let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
 const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
@@ -2360,7 +2360,7 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
       : ok ? ["ok", "Risk review checks pass", "This is a code-review recommendation, not merge readiness. CI and discussion evidence are shown separately."]
       : ["no", "Risk review needs attention", "Address the risk and code-review findings. CI and discussion readiness are assessed separately."]
     : why.length ? ["no", "Not ready to merge", why.join(" · ")] : ["ok", "Ready to merge", "Every merge threshold is met."];
-  const asOf = C.live_at || C.reviewed_at;   // the verdict holds for the data as it was read then
+  const asOf = P ? C.reviewed_at : C.live_at || C.reviewed_at;   // when its data was read: product mode recommends from what was collected; a live time only once every PR read fully
   const gate = (on) => P || on;   // product mode has no merge thresholds, so no row is switched off
   const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
   return `<div class="vd ${st[0]}"><div class="vd-st"${P ? ` title="${esc((A && A.reasons || []).join(" "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span>${asOf ? `<small class="vd-at" title="${esc(new Date(asOf).toLocaleString())}">As of ${esc(agoText(asOf))}</small>` : ""}</div></div>
