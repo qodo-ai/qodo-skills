@@ -75,12 +75,13 @@ class EvidenceLimitsTests(unittest.TestCase):
         out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': "const esc=String,KIT={host:{access_link:true}};" + fn + "result=[authTip(),(KIT.host={},authTip())];"}), capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
         html, none = json.loads(out.stdout)
-        self.assertIn('Session auth', html); self.assertIn('data-copy-access', html); self.assertNotIn('href=', html)   # just Copy link
+        self.assertIn('Session auth', html); self.assertIn('data-open-external', html); self.assertIn('>Open in external browser</button>', html); self.assertNotIn('href=', html)
         self.assertEqual(none, '')
         out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': "const esc=String,KIT={host:{access_link:true}};" + fn + "EVLINK={url:'http://127.0.0.1:1/_access#key=k',until:Date.now()+1000};result=authTip();"}), capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn('class="ft-link" readonly value="http://127.0.0.1:1/_access#key=k"', json.loads(out.stdout))   # a refused link survives a footer redraw
-        self.assertIn('fetch("/api/access-link"', source); self.assertIn('evLink(url)', source)   # minted on demand; shown when the clipboard refuses
+        self.assertIn('fetch("/api/open-external"', source); self.assertIn('evLink(j.url)', source)   # the server opens the browser; the link shows only if it can't
+        self.assertIn("{'opened': True} if opened else {'opened': False, 'url': url}", server)   # an opened browser keeps the link out of the page
 
     def test_copied_access_links_work_once_and_expire(self):
         from types import SimpleNamespace
@@ -100,7 +101,7 @@ class EvidenceLimitsTests(unittest.TestCase):
         html = limits_block({'prs': [{'key': 'o/a#1', 'recorded': True, 'sections': [{'name': 'files', 'status': 'partial', 'complete': False}], 'files_list_complete': False,
                                       'files_missing': 0, 'files': 3, 'files_open': ['a.py'], 'files_unrecorded': 0, 'overlaps': [], 'qodo_error': ''},
                                      {'key': 'o/b#2', 'recorded': False}]})
-        self.assertIn('<summary', html); self.assertIn('Evidence limits', html)
+        self.assertIn('<summary', html); self.assertIn('Fetch requests', html)
         self.assertIn('files not read in full (partial); patches confirmed complete: 2 of 3', html)   # the list gap folds into the files section
         self.assertIn('no completeness recorded', html)
         old = limits_block({'prs': [{'key': 'o/c#3', 'recorded': False, 'overlaps': ['o/d#4 touches a.py'], 'qodo_error': 'findings read timed out'}]})
