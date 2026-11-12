@@ -335,8 +335,9 @@ Optional packages use this same release train. The normal immutable `v<version>`
 release includes `qodo-repository-catalog.json` and its SHA-256 file, built from the
 same captured source as core. This complete-resource package carries scripts, UI
 assets, references and component terms without enlarging the legacy managed bundle.
-There is no separate catalog-snapshot publication workflow. QAR's existing sync
-selects the catalog from the same skills release; already installed optional skills
+There is no separate catalog-snapshot publication workflow. The companion QAR
+consumer must be merged and deployed after this asset pair is published before
+private deployments can follow the same skills release; already installed optional skills
 receive full-package updates under the existing client preferences. Agent Session
 Review remains `default: false` and `providerListed: false` until separately changed.
 

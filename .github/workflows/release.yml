@@ -119,6 +119,7 @@ jobs:
           RELEASE_COMMIT: ${{ steps.release-source.outputs.commit }}
         run: |
           set -euo pipefail
+          npm ci --ignore-scripts --prefix "${RUNNER_TEMP}/qodo-release-source"
           node "${RUNNER_TEMP}/qodo-release-source/scripts/build-release-index.mjs" \
             --output-dir "${RUNNER_TEMP}/qodo-release-index" \
             --source-commit "${RELEASE_COMMIT}"

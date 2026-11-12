@@ -14,7 +14,7 @@ import {
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildStandardReleaseAssets, assertRepositoryCatalogFailures } from './release-catalog-test-helpers.mjs';
+import { buildStandardReleaseAssets, assertRepositoryCatalogFailures, assertCatalogPublication } from './release-catalog-test-helpers.mjs';
 import { assertDiscoveryManifestFailures } from './test-release-discovery-assets.mjs';
 import { assertCapturedReleasePublication } from './test-release-main-ancestry.mjs';
 import {
@@ -314,7 +314,7 @@ try {
   assertDiscoveryManifestFailures({ publisher, enterpriseDir, checkout, publishPath, publishEnv, releaseTag, run, runShell });
   assertCapturedReleasePublication({ checkout, publishPath, publishEnv, releaseSha, run, runShell });
   assert.equal(run(checkout, 'git', ['rev-list', '-n', '1', releaseTag]).trim(), releaseSha);
-  const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
+  const published = assertCatalogPublication(JSON.parse(readFileSync(fakeGhState, 'utf8')));
   assert.deepEqual(
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
     { draft: false, immutable: true, edits: 1, downloads: published.assets.length + 1 },
@@ -351,7 +351,7 @@ try {
     GITHUB_SHA: recoverySha,
     QODO_RELEASE_COMMIT: releaseSha,
   });
-  const recovered = JSON.parse(readFileSync(fakeGhState, 'utf8'));
+  const recovered = assertCatalogPublication(JSON.parse(readFileSync(fakeGhState, 'utf8')));
   assert.deepEqual(
     { draft: recovered.draft, immutable: recovered.immutable, edits: recovered.edits, downloads: recovered.downloads },
     { draft: false, immutable: true, edits: 1, downloads: recovered.assets.length + 1 },

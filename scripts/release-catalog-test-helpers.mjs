@@ -28,9 +28,15 @@ export function assertRepositoryCatalogFailures({ checkout, enterpriseDir, publi
     writeFileSync(`${path}.sha256`, `${createHash('sha256').update(changed).digest('hex')}  ${name}\n`);
     assert.throws(() => runShell(checkout, publishPath, publishEnv), /repository catalog identity/);
     writeFileSync(path, original);
-    assert.throws(() => runShell(checkout, publishPath, publishEnv));
+    assert.throws(() => runShell(checkout, publishPath, publishEnv), /checksum|did NOT match|FAILED/i);
   } finally {
     writeFileSync(path, original);
     writeFileSync(`${path}.sha256`, checksum);
   }
+}
+
+export function assertCatalogPublication(state) {
+  assert.ok(state.assets.includes(name));
+  assert.ok(state.assets.includes(`${name}.sha256`));
+  return state;
 }
