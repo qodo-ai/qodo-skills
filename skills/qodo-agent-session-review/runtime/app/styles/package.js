@@ -261,6 +261,7 @@ function riskRadar() {   // each PR as a shape on three bare axes: its highest l
     const worst = scs.reduce((a, x) => (rk(x).join() > rk(a).join() ? x : a)), by = (k) => scs.find((x) => x.factors[k].level === sc.factors[k]) || worst;   // what decides the PR, and the scenario behind each factor's level
     RDET[sc.i] = { ...sc, risk: top(scs.map((x) => x.risk)), worst, why: Object.fromEntries(RAXES.map((k) => [k, sent1(by(k).factors[k].why)])) }; });
   Object.keys(RDET).forEach((k) => { if (!ser.some((x) => x.i === k)) delete RDET[k]; }); if (RHOVER && !RDET[RHOVER]) RHOVER = null;   // only the PRs the filter shows now
+  if (RSEL) { RSEL = new Set([...RSEL].filter((k) => ser.some((x) => x.i === k))); if (!RSEL.size) RSEL = null; }   // a picked PR the package filter now hides: back to all
   const sel = RSEL || new Set(ser.map((x) => x.i)), focus = RHOVER || (sel.size === 1 ? [...sel][0] : null);
   const at = (x, y) => `left:${((100 * (x - VB[0])) / VB[2]).toFixed(2)}%;top:${((100 * (y - VB[1])) / VB[3]).toFixed(2)}%`;
   let h = `<defs><pattern id="rhatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" class="rhl"/></pattern></defs>`;
@@ -1475,7 +1476,7 @@ function headActions() {
     + `<div class="vw"><button type="button" class="hbtn hlbl" data-share aria-haspopup="menu" aria-expanded="false" aria-label="Share this review" title="Share this review">${SHAREICON}<span>Share</span></button><div class="sh-m" role="menu" aria-label="Share this review" hidden>${shareMenu()}</div></div>`
     + `<button type="button" class="hbtn" data-nvmore aria-haspopup="menu" aria-expanded="false" aria-label="More" title="More"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>`;   // Share, then More on the far right
 }
-if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; C.live_at = new Date().toISOString(); keepScroll(() => {}); drawHead(); }).catch(() => {});
+if (KIT.served && !C.demo) fetch("/api/live").then((r) => r.json()).then((j) => { LIVE = j.prs || {}; if (Object.values(LIVE).some((v) => v && !v.error)) C.live_at = j.checked_at || new Date().toISOString(); keepScroll(() => {}); drawHead(); }).catch(() => {});
 const OVERVIEW = ["prs", "brief", "flow", "plan", "impact", "issues", "starts", "scope", "contracts", "other"];
 const OVERVIEWISH = OVERVIEW.concat(["risk"]);   // blocks that make a tab the overview (Focus's own overview stays OVERVIEW)
 function vOverview() { return OVERVIEW.map((b) => BLOCKS[b].render()).join(""); }
@@ -1709,7 +1710,7 @@ function walkStepper() {   // Review walkthrough as a stepper: one unit at a tim
   const route = `<details class="wk-route" data-wkroute${S.open.wkroute ? " open" : ""}><summary><b>Reading route</b><span class="muted">Every unit against the files it reads; click a cell to go to that step</span><span class="chev" aria-hidden="true"></span></summary>${planRoute(ORDER.filter((p) => prOn(p.key)))}</details>`;
   return `<div class="wks"><div class="wks-head"><div class="wks-top"><b class="wks-n">Step ${i + 1} of ${us.length}</b><span class="muted">${done} of ${us.length} read${done < us.length ? ` · ${fmtMin(Math.max(1, mleft))} left` : ""}</span></div>
     <div class="wks-dots" role="group" aria-label="Steps">${dots}</div></div>${route}
-    <article class="wks-card${cdone ? " done" : ""}"><header class="wks-h"><span class="wks-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><div class="wks-t"><span class="wks-k">Overview · step ${unitNo(cur)}</span><h3>${md(cur.title)}</h3>${cur.summary ? `<p class="us">${md(cur.summary)}</p>` : ""}</div><span class="r">${tags}<span class="muted n">${cur.blocks.length} chunk${cur.blocks.length === 1 ? "" : "s"} · ${cdone ? "read" : fmtMin(Math.max(1, left([cur])))}</span></span></header>
+    <article class="wks-card${cdone ? " done" : ""}" tabindex="-1"><header class="wks-h"><span class="wks-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span><div class="wks-t"><span class="wks-k">Overview · step ${unitNo(cur)}</span><h3>${md(cur.title)}</h3>${cur.summary ? `<p class="us">${md(cur.summary)}</p>` : ""}</div><span class="r">${tags}<span class="muted n">${cur.blocks.length} chunk${cur.blocks.length === 1 ? "" : "s"} · ${cdone ? "read" : fmtMin(Math.max(1, left([cur])))}</span></span></header>
       <div class="body">${FROMNOTE && FROMNOTE.uid === cur.id ? `<p class="fromnote"><span class="lbl">From Start here</span><b>${md(FROMNOTE.title)}</b> ${md(FROMNOTE.text)}</p>` : ""}${cur.decisions.map(udecHtml).join("")}${cur.blocks.map((b) => blockHtml(cur.p, b, true)).join("")}</div></article>
     <nav class="wks-nav" aria-label="Steps"><button type="button" class="btn" data-wkgo="${esc(us[0].id)}"${i ? "" : " disabled"}>Start again</button>
       <span class="wks-pn"><button type="button" class="btn" data-wkgo="${prev ? esc(prev.id) : ""}"${prev ? "" : " disabled"}>← Previous</button>
@@ -1735,11 +1736,12 @@ function openUnit(u, bid) {
   if (!prOn(u.p.key)) S.pr = [u.p.key];
   S.open["s:" + u.p.key] = true; S.open["u:" + u.id] = true;
   if (bid) S.open["b:" + u.p.key + "|" + bid] = true;
-  S.wkstep = u.id; const pg = pageOf("walk") || S.tab; S.tab = pg; save();   // the stepper shows that unit
+  S.wkstep = u.id; const pg = pageOf("walk") || S.tab; S.tab = pg; if (pg !== "walk") { SECT[pg] = "walk"; WTAB[pg] = "walk"; } save();   // the stepper shows that unit, its widget picked in Tabs and Accordion too
   try { history.replaceState(null, "", "#" + pg); } catch (_) {}
   render(); if (!bid) wkTop();
   const el = document.querySelector(`[data-open="${CSS.escape(bid ? "b:" + u.p.key + "|" + bid : "u:" + u.id)}"]`);
   if (el) { el.scrollIntoView({ block: bid ? "center" : "start" }); el.querySelector("summary").focus({ preventScroll: true }); }
+  else if (!bid) { const card = document.querySelector(".wks-card"); if (card) card.focus({ preventScroll: true }); }   // the stepper's step: keyboard focus lands on it
 }
 
 /* ---------- architecture: one lens at a time ---------- */
@@ -2360,7 +2362,10 @@ function vdThreads(ps, off) {   // unresolved review conversations across the PR
 const reviewCoverageKnown = (p) => !C.product || (LIVE[p.key] ? LIVE[p.key].reviews_complete === true : p.review_decision_complete === true && p.read_evidence?.sections?.reviews?.complete === true);
 const awaitingReview = (p) => { const L = LIVE[p.key];
   if (!reviewCoverageKnown(p)) return null;
-  return L && L.state ? L.state === "OPEN" && !L.draft && L.review_decision !== "APPROVED" : !(p.approvals || []).length || (p.changes_requested || []).length > 0; };
+  const snap = () => !(p.approvals || []).length || (p.changes_requested || []).length > 0;   // as collected: no approval yet, or a change still requested
+  if (!(L && L.state)) return snap();
+  if (L.state !== "OPEN" || L.draft) return false;   // drafts and closed PRs block the Verdict on their own
+  return L.review_decision ? L.review_decision !== "APPROVED" : snap() && !(L.approved_by || []).length; };   // no review decision: the repo doesn't require reviews, so a human approval is enough
 const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], ci: true, conflicts: true, review: true, comments: true };
 let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
 const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
@@ -2371,8 +2376,9 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
   const cst = (c) => String(c.state || c.conclusion || "").toUpperCase(), ci = ps.filter((p) => ciChecks(p).some((c) => CI_BAD.includes(cst(c))));
   const wt = ps.filter((p) => !ci.includes(p) && ciChecks(p).some((c) => !CI_BAD.includes(cst(c)) && !CI_OK.includes(cst(c)))), nc = ps.filter((p) => !ci.includes(p) && !wt.includes(p) && !ciChecks(p).some((c) => cst(c) === "SUCCESS"));   // still running; no passing check (skipped and neutral are not passes, as in the package table)
   const ms = (p) => (LIVE[p.key] || {}).merge_state, cfKnown = Object.keys(LIVE).length > 0;   // read once the live check answered
+  const lv = (p) => LIVE[p.key] || {}, dr = ps.filter((p) => lv(p).state === "OPEN" && lv(p).draft), sh = ps.filter((p) => lv(p).state && lv(p).state !== "OPEN");   // not mergeable at all, whatever the thresholds
   const cf = ps.filter((p) => ms(p) === "DIRTY"), aw = ps.filter(awaitingReview), cm = ps.reduce((a, p) => a + (vdN(p) > 0 ? vdN(p) : 0), 0), bf = fs.filter(vrBlocks);
-  const pr = (n) => `${n} PR${n === 1 ? "" : "s"}`, why = [VR.sev.length && bf.length && `${bf.length} open finding${bf.length === 1 ? "" : "s"} to resolve`,
+  const pr = (n) => `${n} PR${n === 1 ? "" : "s"}`, why = [sh.length && `${pr(sh.length)} merged or closed`, dr.length && `${pr(dr.length)} still a draft`, VR.sev.length && bf.length && `${bf.length} open finding${bf.length === 1 ? "" : "s"} to resolve`,
     VR.ci && ci.length && `CI failing on ${pr(ci.length)}`, VR.ci && wt.length && `CI still running on ${pr(wt.length)}`, VR.ci && ciKnown && nc.length && `no passing CI checks on ${pr(nc.length)}`, VR.conflicts && cf.length && `merge conflicts on ${pr(cf.length)}`, VR.review && aw.length && `${pr(aw.length)} awaiting human review`, VR.comments && cm && `${cm} unresolved comment${cm === 1 ? "" : "s"}`].filter(Boolean);
   const unread = [VR.sev.length && !fdKnown && "findings", VR.ci && !ciKnown && "CI", VR.conflicts && !cfKnown && "merge conflicts", VR.review && !rvKnown && "human reviews", VR.comments && ps.some((p) => vdN(p) == null) && "unresolved comments"].filter(Boolean);   // a threshold not read yet is not met
   if (unread.length) why.push(`${unread.length > 1 ? unread.slice(0, -1).join(", ") + " and " + unread.at(-1) : unread[0]} not checked yet`);
@@ -3302,7 +3308,7 @@ SICON["pg-globe"] = '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 
 SICON["pg-chart"] = '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>';
 SICON["pg-message"] = '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>';
 SICON["pg-wrench"] = '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>';
-const PICONS = ["verdict", "ovw", "prs", "brief", "plan", "risk", "issues", "decisions", "builder", "codechg", "triage", "stories", "arch", "changes", "findings", "walk", "review", "contracts", "scope", "starts", "flow", "other", "flask", "ci", "merge", "pg-home", "pg-star", "pg-flag", "pg-bookmark", "pg-book", "pg-lightbulb", "pg-rocket", "pg-lock", "pg-bug", "pg-zap", "pg-compass", "pg-users", "pg-calendar", "pg-clock", "pg-bell", "pg-heart", "pg-eye", "pg-search", "pg-code", "pg-terminal", "pg-database", "pg-package", "pg-globe", "pg-chart", "pg-message", "pg-wrench"];
+const PICONS = ["verdict", "ovw", "system", "prs", "brief", "plan", "risk", "issues", "decisions", "builder", "codechg", "triage", "stories", "arch", "changes", "findings", "walk", "review", "contracts", "scope", "starts", "flow", "other", "flask", "ci", "merge", "pg-home", "pg-star", "pg-flag", "pg-bookmark", "pg-book", "pg-lightbulb", "pg-rocket", "pg-lock", "pg-bug", "pg-zap", "pg-compass", "pg-users", "pg-calendar", "pg-clock", "pg-bell", "pg-heart", "pg-eye", "pg-search", "pg-code", "pg-terminal", "pg-database", "pg-package", "pg-globe", "pg-chart", "pg-message", "pg-wrench"];
 function cleanLayout(x) {   // what a stored layout may hold: named pages, known widgets, each widget once
   if (!x || !Array.isArray(x.pages)) return null;
   const ids = new Set();
@@ -3310,8 +3316,8 @@ function cleanLayout(x) {   // what a stored layout may hold: named pages, known
     label = { "Builder walkthrough": "Execution paths", "Execution walkthrough": "Execution paths", "Code paths": "Execution paths", "Code reading": "Code map", "Code analysis": "Code map" }[label] || label;   // the pages' old default names
     let id = rslug(p.id || label); while (ids.has(id)) id += "-2"; ids.add(id);
     const names = Object.fromEntries(Object.entries((p && p.names) || {}).filter(([w, n]) => Object.hasOwn(WIDGETS, w) && typeof n === "string" && n.trim()).map(([w, n]) => [w, n.trim().slice(0, 40)]));   // widget names given on this page
-    const ws0 = Array.isArray(p.widgets) ? p.widgets : [], own = ws0.find((w) => Object.hasOwn(SICON, w)), dflt = (label === "Overview" || !own) ? "ovw" : own;
-    const icon = PICONS.includes(p.icon) && !(p.icon === "ovw" && dflt !== "ovw") ? p.icon : dflt;   // a page with no icon, or the shared default, takes its first widget's icon
+    const own = (Array.isArray(p.widgets) ? p.widgets : []).find((w) => Object.hasOwn(SICON, w));
+    const icon = PICONS.includes(p.icon) || Object.hasOwn(SICON, p.icon || "") ? p.icon : own || "ovw";   // a page with no known icon takes its first widget's
     return { id, label, icon, ...(Object.keys(names).length ? { names } : {}),
       widgets: (Array.isArray(p.widgets) ? p.widgets : []).flatMap((w) => (w === "brief" ? BRIEF3 : w === "behaviors" ? BEH6 : w === "risk" ? RISK5 : [w])).filter((w, i, ws) => typeof w === "string" && Object.hasOwn(WIDGETS, w) && ws.indexOf(w) === i) }; }).filter((p) => p && p.widgets.length);   // each widget once per page, on as many pages as you like; no page without a widget
   const dids = new Set(), dividers = (Array.isArray(x.dividers) ? x.dividers : []).slice(0, 12).map((d) => { const label = String((d && d.label) || "").trim().slice(0, 24); if (!label) return null;
@@ -3333,6 +3339,10 @@ const DIVS = "cockpit:layout-dividers";   // nav dividers came after the stored 
 if (!store.get(DIVS, false)) { const L0 = store.get(LKEY, null);
   if (L0 && Array.isArray(L0.pages) && !Array.isArray(L0.dividers)) { L0.dividers = LDEF().dividers.filter((d) => L0.pages.some((p) => p && p.id === d.at)); L0.pages.forEach((p) => p && delete p.group); store.set(LKEY, L0); }
   store.set(DIVS, true); }
+const PGICONS = "cockpit:layout-icons";   // pages once got the shared Overview icon by default: such a page takes its first widget's icon instead, once
+if (!store.get(PGICONS, false)) { const L0 = store.get(LKEY, null);
+  if (L0 && Array.isArray(L0.pages)) { L0.pages.forEach((p) => { const own = p && p.label !== "Overview" && p.icon === "ovw" && (p.widgets || []).find((w) => Object.hasOwn(SICON, w)); if (own) p.icon = own; }); store.set(LKEY, L0); }
+  store.set(PGICONS, true); }
 const navItems = () => { const ds = LAYOUT.dividers || [];   // the nav as one list: each page after the dividers above it, then any divider below the last page
   return [...LAYOUT.pages.flatMap((p) => [...ds.filter((d) => d.at === p.id), p]), ...ds.filter((d) => !LAYOUT.pages.some((p) => p.id === d.at))]; };
 const navSet = (xs) => { LAYOUT.pages = xs.filter((x) => x.widgets); LAYOUT.dividers = xs.filter((x) => !x.widgets);   // a reordered nav back into pages and dividers
@@ -3396,7 +3406,7 @@ function dialogHtml() {
     <div class="wz-row"><button class="btn pri" data-ly="w-save">Save</button><button class="btn" data-ly="close">Cancel</button>${(p.names || {})[LD.w] ? `<button class="btn" data-ly="w-reset" style="margin-left:auto">Use its own name</button>` : ""}</div></div>`;
   return `<div class="lmod-c sm" role="dialog" aria-modal="true" aria-label="Edit page"><div class="lmod-h"><b>Edit page</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
     <label class="wz-l">Name<input data-ly-name maxlength="32" value="${esc(LD.name)}" placeholder="e.g. Product review"></label><div class="wz-k">Icon</div>
-    <div class="licons" role="radiogroup" aria-label="Icon">${PICONS.map((i) => `<button class="lic" role="radio" data-ly="icon" data-lyv="${i}" aria-checked="${LD.icon === i}" aria-label="${esc(i.replace(/^pg-/, ""))}" title="${esc(i.replace(/^pg-/, ""))}">${sico(i)}</button>`).join("")}</div>
+    <div class="licons" role="radiogroup" aria-label="Icon">${(PICONS.includes(LD.icon) || !LD.icon ? PICONS : [LD.icon, ...PICONS]).map((i) => `<button class="lic" role="radio" data-ly="icon" data-lyv="${i}" aria-checked="${LD.icon === i}" aria-label="${esc(i.replace(/^pg-/, ""))}" title="${esc(i.replace(/^pg-/, ""))}">${sico(i)}</button>`).join("")}</div>
     <label class="wz-home"><input type="checkbox" data-ly-home${LD.home ? " checked" : ""}><span><b>Home page</b><span class="muted">The review opens on this page every time it loads</span></span></label>
     <div class="wz-row"><button class="btn pri" data-ly="page-save">Save</button><button class="btn" data-ly="close">Cancel</button></div></div>`;
 }

@@ -69,7 +69,11 @@ class NavDividerTests(unittest.TestCase):
         layout = {'pages': [{'id': 'o', 'label': 'Overview', 'icon': 'ovw', 'widgets': ['w']}, {'id': 's', 'label': 'System', 'icon': 'ovw', 'widgets': ['w']},
                             {'id': 'c', 'label': 'Complexity', 'widgets': ['w']}, {'id': 'b', 'label': 'Mine', 'icon': 'brief', 'widgets': ['w']}, {'id': 'd', 'label': 'Plain', 'widgets': ['decisions']}]}
         out = self.run_js(cut(self.source, 'function cleanLayout(', 'const RTXT') + f'result=cleanLayout({json.dumps(layout)}).pages.map((p)=>p.icon);')
-        self.assertEqual(out, ['ovw', 'w', 'w', 'brief', 'ovw'])   # only Overview keeps the shared default; a chosen icon stays; no widget icon falls back
+        self.assertEqual(out, ['ovw', 'ovw', 'w', 'brief', 'ovw'])   # a chosen icon stays, Overview's included; a missing one takes the first widget's
+        store = ("const DB={'L':{pages:[{id:'o',label:'Overview',icon:'ovw',widgets:['w']},{id:'s',label:'System',icon:'ovw',widgets:['w']}]}},"
+                 "LKEY='L',store={get:(k,d)=>k in DB?DB[k]:d,set:(k,v)=>{DB[k]=v;}};")
+        mig = self.run_js(store + cut(self.source, 'const PGICONS = ', 'const navItems = ') + "result=[DB.L.pages.map((p)=>p.icon),DB['cockpit:layout-icons']];")
+        self.assertEqual(mig, [['ovw', 'w'], True])   # the old shared default, once, on stored layouts
 
     def test_default_layout_has_three_dividers(self):
         out = self.run_js(cut(self.source, 'const LDEF = ', 'const VIEWDEF') + 'result=LDEF();')

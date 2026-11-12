@@ -50,6 +50,11 @@ class WorkPackagePrFilterTests(unittest.TestCase):
         self.assertNotIn('data-wpk-prs', self.menu("BL=['review'];"))
         self.assertNotIn('data-wpk-prs', self.menu("C.prs.length=1;"))
 
+    def test_a_risk_pick_the_filter_hides_is_dropped(self):
+        radar = self.source[self.source.index('function riskRadar()'):self.source.index('function rApply()')]
+        drop = radar.index('RSEL = new Set([...RSEL].filter((k) => ser.some((x) => x.i === k)))')
+        self.assertLess(drop, radar.index('const sel = RSEL ||'))   # reconciled before the chart picks its focus
+
     def test_the_header_no_longer_holds_the_filter(self):
         html = (util.ROOT / 'app/styles/package.html').read_text()
         self.assertNotIn('id="prsel"', html)

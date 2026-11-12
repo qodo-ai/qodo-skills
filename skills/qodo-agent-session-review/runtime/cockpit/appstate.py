@@ -12,7 +12,7 @@ from .util import HOME, write_json
 APP_KEYS = ("cockpit:theme", "cockpit:package-layout:4", "cockpit:page-view", "cockpit:widget-view:2", "cockpit:wide-widgets",
             "cockpit:fit-height", "cockpit:nav-submenus", "cockpit:nav-collapsed", "cockpit:ask-qodo:2", "cockpit:wizard-seen",
             "cockpit:layout-template:2", "cockpit:layout-rtext", "cockpit:layout-codechg", "cockpit:decision-filter", "cockpit:my-layouts", "cockpit:verdict-rules",
-            "cockpit:layout-dividers", "cockpit:welcome", "cockpit:reader-mode", "cockpit:reader-zoom", "cockpit:reader-pages")   # cockpit:welcome: the welcome page, {hide, last}
+            "cockpit:layout-dividers", "cockpit:layout-icons", "cockpit:welcome", "cockpit:reader-mode", "cockpit:reader-zoom", "cockpit:reader-pages")   # cockpit:welcome: the welcome page, {hide, last}
 MAX_BYTES = 512_000   # the whole file: a few dozen layouts fit easily
 _lock = threading.Lock()
 
