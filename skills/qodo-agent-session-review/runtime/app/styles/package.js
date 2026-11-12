@@ -978,11 +978,11 @@ function heroHtml() {
   const head = BRIEF || NOTICE || story[0], lede = (head && head.lede) || C.blurb, P = briefParts();
   const adds = ((BRIEF && BRIEF.contributions) || []).filter((c) => c.adds);
   const srcs = (C.sources || []).filter((s) => /^https?:\/\//i.test(String(s.url || ""))).slice(0, 3);   // only web links: a javascript: or data: url never becomes an href
-  const has = { line: true, why: P.why.length > 0, what: P.what.length > 0 || adds.length > 0, how: P.how.length > 0 };
-  const tabs = [["line", "One line"], ["why", "Why"], ["what", "What"], ["how", "How"]].filter(([k]) => has[k]);
+  const has = { line: true, today: P.today.length > 0, why: P.why.length > 0, what: P.what.length > 0 || adds.length > 0, how: P.how.length > 0 };
+  const tabs = [["line", "One line"], ["today", "Today"], ["why", "Why"], ["what", "What"], ["how", "How"]].filter(([k]) => has[k]);   // Today: how it behaves before this change
   const v = has[S.bview] ? S.bview : has[useRecipe().brief] ? useRecipe().brief : "line";
   const paras = (xs) => xs.map((t) => `<p>${md(t)}</p>`).join("");
-  const body = v === "why" ? paras(P.why) + (srcs.length ? `<p class="src">Sources: ${srcs.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.url)} ↗</a>`).join(" · ")}</p>` : "")
+  const body = v === "today" ? paras(P.today) : v === "why" ? paras(P.why) + (srcs.length ? `<p class="src">Sources: ${srcs.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.url)} ↗</a>`).join(" · ")}</p>` : "")
     : v === "what" ? paras(P.what) + (adds.length ? `<div class="adds">${adds.map((c) => `<b>${esc(shortPr(c.pr))}</b><span>${md(c.adds)}</span>`).join("")}</div>` : "")
     : v === "how" ? paras(P.how) + (P.status.length ? `<p class="status">${P.status.map(md).join(" ")}</p>` : "")
     : "";
@@ -994,8 +994,8 @@ function heroHtml() {
 /* the brief as three widgets in Work Package: its product assets, its summary, and its behaviors to go deeper */
 const briefCard = (title, body, cls = " bmerged") => body ? `<section class="hero"><div class="card bcard${cls}"><div class="ih chead"><b class="ctitle">${title}</b></div>${body}</div></section>` : "";
 const bAssets = () => briefCard("Product assets", assetsHtml().replace(/^<p class="bkick top">Product assets<\/p>/, ""));
-function bSummary() {   // three sections: how it behaves today, the change, and why; with no flow, the brief's One line / Why / What / How readings
-  if (!(flowOn() && BRIEF)) return heroHtml().replace(/<b class="ctitle">Design brief<\/b>/, '<b class="ctitle">Product summary</b>').replace(assetsHtml(), "");
+function bSummary() {   // three sections: how it behaves today, the change, and why; with no brief, the hero's one line
+  if (!BRIEF) return heroHtml().replace(/<b class="ctitle">Design brief<\/b>/, '<b class="ctitle">Product summary</b>').replace(assetsHtml(), "");
   const P = briefParts(), sec = (k, t, body) => `<div class="bsec bsec-${k}"><p class="bkick">${t}</p>${body}</div>`, ps = (xs) => xs.map((x) => `<p class="bsum">${md(x)}</p>`).join("");
   const today = P.today.length ? ps(P.today) : `<p class="muted bsum">Not written for this review. Ask the coding agent to add a Today paragraph to the brief: how the feature behaves before this change.</p>`;
   return briefCard("Product summary", `<div class="bsecs">${sec("today", "Today", today)}${sec("change", "The change", `<p class="bsum">${md(BRIEF.lede || C.blurb)}</p>`)}${P.why.length ? sec("why", "Why", ps(P.why)) : ""}</div>`);

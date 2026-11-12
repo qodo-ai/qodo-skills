@@ -1417,9 +1417,9 @@ function startTarget0(it) {
 const TONE = { risk: "Risk", decision: "Decision", gap: "Gap", good: "Good" };   // what kind of thing to notice
 /* the brief as four readings of one paragraph slot: the one-liner, then why, what and how, swapped in place */
 const BKIND = (l) => { const s = String(l || "").toLowerCase();
-  return /why|goal|problem|motivation|context/.test(s) ? "why" : /how|mechanism|design/.test(s) ? "how" : /status|not included|scope left|open/.test(s) ? "status" : "what"; };
+  return /today|current|before|context|baseline/.test(s) ? "today" : /why|goal|problem|motivation/.test(s) ? "why" : /how|mechanism|design/.test(s) ? "how" : /status|not included|scope left|open/.test(s) ? "status" : "what"; };
 function briefParts() {
-  const out = { why: [], what: [], how: [], status: [] };
+  const out = { today: [], why: [], what: [], how: [], status: [] };   // today: how the feature behaves before this change
   const ps = (BRIEF && BRIEF.paragraphs) || [];
   // an unlabeled paragraph reads by position, as older briefs were written: goal first, mechanism last
   const byPos = (i) => (i === 0 ? "why" : i === ps.length - 1 && ps.length > 2 ? "how" : "what");
@@ -1444,11 +1444,11 @@ function heroHtml() {
   const adds = ((BRIEF && BRIEF.contributions) || []).filter((c) => c.adds);
   const srcs = (C.sources || []).filter((s) => /^https?:\/\//i.test(String(s.url || ""))).slice(0, 3);   // only web links: a javascript: or data: url never becomes an href
   const inHow = classic() && flowOn() && BRIEF;   // how it works: the brief's own How, then the flow's answers and folds
-  const has = { line: true, why: P.why.length > 0, what: P.what.length > 0 || adds.length > 0, how: P.how.length > 0 || !!inHow };
-  const tabs = [["line", "One line"], ["why", "Why"], ["what", "What"], ["how", "How"]].filter(([k]) => has[k]);
+  const has = { line: true, today: P.today.length > 0, why: P.why.length > 0, what: P.what.length > 0 || adds.length > 0, how: P.how.length > 0 || !!inHow };
+  const tabs = [["line", "One line"], ["today", "Today"], ["why", "Why"], ["what", "What"], ["how", "How"]].filter(([k]) => has[k]);   // Today: how it behaves before this change
   const v = has[S.bview] ? S.bview : has[useRecipe().brief] ? useRecipe().brief : "line";
   const paras = (xs) => xs.map((t) => `<p>${md(t)}</p>`).join("");
-  const body = v === "why" ? paras(P.why) + (srcs.length ? `<p class="src">Sources: ${srcs.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.url)} ↗</a>`).join(" · ")}</p>` : "")
+  const body = v === "today" ? paras(P.today) : v === "why" ? paras(P.why) + (srcs.length ? `<p class="src">Sources: ${srcs.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title || s.url)} ↗</a>`).join(" · ")}</p>` : "")
     : v === "what" ? paras(P.what) + (adds.length ? `<div class="adds">${adds.map((c) => `<b>${esc(shortPr(c.pr))}</b><span>${md(c.adds)}</span>`).join("")}</div>` : "")
     : v === "how" ? paras(P.how) + (P.status.length ? `<p class="status">${P.status.map(md).join(" ")}</p>` : "")
       + (inHow ? `<div class="bhow">${FLOW.lede ? `<p class="flede">${md(FLOW.lede)}</p>` : ""}${flowAnswers()}<div class="bfolds">${flowFolds()}</div></div>` : "")
