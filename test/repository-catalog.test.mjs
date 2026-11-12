@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, statSync, renameSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -157,7 +158,7 @@ test('Unicode comparison covers the pinned full-fold mapping and Windows aliases
   assert.ok(resourcePathKeys('assets/ı.txt').some((key) => resourcePathKeys('assets/i.txt').includes(key)));
 });
 
-test('normal release workflow builds the catalog from its dependency-installed captured source', () => {
+test('normal release workflow builds the catalog from its dependency-installed captured source', (t) => {
   const workflow = readFileSync(join(root, '.github/workflows/release.yml'), 'utf8');
   const install = workflow.indexOf('npm ci --ignore-scripts --prefix "${RUNNER_TEMP}/qodo-release-source"');
   const builder = workflow.indexOf('node "${RUNNER_TEMP}/qodo-release-source/scripts/build-repository-catalog.mjs"');
@@ -168,4 +169,15 @@ test('normal release workflow builds the catalog from its dependency-installed c
   assert.match(command, /--source-commit "\$\{RELEASE_COMMIT\}"/);
   assert.match(workflow, /QODO_ENTERPRISE_RELEASE_DIR: \$\{\{ runner.temp \}\}\/qodo-enterprise-release/);
   assert.match(workflow, /if \[\[ "\$\{CATALOG_EXPECTED\}" == true \]\]; then/);
+  const decision = workflow.match(/CATALOG_EXPECTED="\$\(node -p '([^']+)'/);
+  assert.ok(decision, 'execute the actual workflow expression, not a duplicate predicate');
+  const temporary = mkdtempSync(join(tmpdir(), 'workflow-catalog-'));
+  t.after(() => rmSync(temporary, { recursive: true, force: true }));
+  const capturedPublisher = join(temporary, 'publish-release.sh');
+  for (const [publisher, expected] of [[readFileSync(join(root, 'scripts/publish-release.sh'), 'utf8'), 'true'],
+    ['#!/usr/bin/env bash\n# Historical release publisher.\n', 'false']]) {
+    writeFileSync(capturedPublisher, publisher);
+    assert.equal(execFileSync(process.execPath, ['-p', decision[1], capturedPublisher],
+      { encoding: 'utf8' }).trim(), expected);
+  }
 });

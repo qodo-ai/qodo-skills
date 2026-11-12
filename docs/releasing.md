@@ -129,7 +129,7 @@ Ordinary source merges do not start publication. The workflow:
 6. publishes the verified draft, which makes the release immutable;
 7. verifies the published release is immutable, the protected tag is unchanged, and all published
    assets still match the validated checkout byte-for-byte;
-8. on an idempotent rerun, downloads all eight existing assets, verifies their checksums, and compares
+8. on an idempotent rerun, downloads the captured release's expected assets, verifies their checksums, and compares
    them byte-for-byte with the validated checkout before reporting success.
 
 GitHub's release-by-tag REST endpoint does not expose draft releases. The publisher therefore finds
