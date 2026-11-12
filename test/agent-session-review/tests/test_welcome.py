@@ -35,21 +35,37 @@ class WelcomeTests(unittest.TestCase):
         self.assertIn('cockpit:layout-dividers', APP_KEYS)
 
     def test_welcome_page_has_both_ways_in_and_dont_show_again_checked(self):
-        for part in ('Agent Session Review', 'data-wc-tour>Start the tour', 'data-wc-build>Help me build a layout', 'data-wc-hide checked', "Don't show again", 'You can manage this in Settings at any time.'):
+        for part in ('Agent Session Review', 'data-wc-tour>Start the tour', 'data-wc-hide checked', "Don't show again", 'You can manage this in Settings at any time.'):
             self.assertIn(part, self.source)
+        self.assertNotIn('data-wc-build', self.source); self.assertNotIn('wc-pk', self.source)   # no layout button, no feature name or package counts
         self.assertEqual(self.source.count('t: "'), 6)   # the tour: pages, the work package, where to start, Reader, the layout, the data
         self.assertIn('Qodo toolbox', self.source)
-        self.assertIn('document.querySelector(".snav-wp")', self.source)
+        self.assertIn('document.querySelector(".snav-wp")', self.source); self.assertIn('document.querySelector(".ptl-w")', self.source)   # the header's name when the side menu is collapsed
         self.assertIn('class="wa-diff"', self.source)   # the hero's diff turns into the dashboard
-        self.assertIn('data-wc-back>← Back to the welcome page', (util.ROOT / 'app/styles/package.js').read_text())
+        self.assertNotIn('data-wc-back', self.package)
+        self.assertIn('data-ly="tpl"><b>${LYICON.tpl}Help me build a layout</b>', self.package)   # the wizard is at the foot of the Customize nav
+        self.assertIn('enter: () =>', self.source); self.assertIn('nvMore(b)', self.source)   # the layout step opens the ⋮ menu
 
     def test_the_wizard_moved_from_the_more_menu_to_the_welcome_page(self):
         self.assertNotIn('<span>Layout wizard</span>', self.package)
         self.assertIn('setTimeout(wcAuto, 0)', self.package)
         self.assertNotIn('WZFIRST', self.package)
-        self.assertIn('kind: "tpl", first: true', self.source)
+        self.assertNotIn('kind: "tpl", first: true', self.source)
         self.assertIn('+ wcSetRow();', self.package)   # Settings › General has the switch
         self.assertIn('"wpk-fwd" : "wpk-back"', self.package)   # the menu's two views slide
+
+
+class HeaderSwitcherTests(unittest.TestCase):
+    def test_the_header_name_switches_packages_only_with_the_side_menu_collapsed(self):
+        nav = (util.ROOT / 'app/styles/nav.js').read_text()
+        code = ("const esc=String,HICON={chev:''},KIT={host:{session:'s1'}};let WPKS=[{id:'s1',title:'A'}];" + nav[:nav.index('function ptlClose')] + "const one=ptlWp('A');WPKS.push({id:'s2',title:'B'});result=[one,ptlWp('A')];")
+        out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': code}), capture_output=True, text=True)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        one, two = json.loads(out.stdout)
+        self.assertNotIn('data-ptlwp', one); self.assertIn('data-ptlwp', two)   # a menu only when there's another package
+        self.assertNotIn('prdd', nav); self.assertIn('wpkGo(g.dataset.ptlgo, true)', nav)   # switching only, no PR filter, no reopened menu
+        package = (util.ROOT / 'app/styles/package.js').read_text()
+        self.assertIn('${nm ? `${ptlWp(nm)}', package)
 
 
 if __name__ == '__main__':

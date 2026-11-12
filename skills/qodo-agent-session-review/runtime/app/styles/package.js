@@ -1268,11 +1268,11 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "ArrowDown") { e.preventDefault(); const go = $("#wpk button.hopt:not([hidden])"); if (go) go.focus(); }
 }, true);
 const wpkClose = () => { const m = $("#wpk .wpk-m"); if (m && !m.hidden) { m.hidden = true; $("#wpk [data-wpk]").setAttribute("aria-expanded", "false"); } };
-async function wpkGo(id) {   // the server keeps the pick until it restarts; this tab then reloads onto it
+async function wpkGo(id, quiet) {   // quiet: the header switcher, which doesn't reopen the menu   // the server keeps the pick until it restarts; this tab then reloads onto it
   try {
     const r = await fetch("/api/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session: id }) });
     if (!r.ok) throw new Error((await r.json()).error || r.statusText);
-    try { sessionStorage.setItem("cockpit:wpk-reopen", "1"); } catch (_) {}   // the menu opens again after the reload, so the new package's PR filter is one click away
+    try { if (!quiet) sessionStorage.setItem("cockpit:wpk-reopen", "1"); } catch (_) {}   // the menu opens again after the reload, so the new package's PR filter is one click away
     history.replaceState(null, "", location.pathname); location.reload();
   } catch (err) { wpkClose(); toast(`Couldn't switch: ${err.message}`); }
 }
@@ -2233,6 +2233,7 @@ let READER = null, RDAT = 0;   // READER: "scroll" or "step" while open; RDAT: t
 /*@READER@*/   // cockpit/styles.py puts app/styles/reader.js here, inside this scope
 /*@EVIDENCE@*/   // and app/styles/evidence.js here
 /*@WELCOME@*/   // and app/styles/welcome.js
+/*@NAV@*/
 const soloHtml = (s) => `<div class="rpart" id="blk-${s.id}"><div class="sec solo" role="region" aria-label="${esc(s.label)}"><div class="ssum"><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}</div><div class="sbody">${s.html}</div></div></div>`;   // a widget that doesn't fold: a page's only one, or every one in Always open
 function secHtml(s, cur, first) {   // the Overview's card: icon, title, a summary chip, folded until opened; every page uses it
   return `<div class="rpart" id="blk-${s.id}"><details class="sec" data-sec="${esc(s.id)}"${secOpen(s.id, cur, first) ? " open" : ""}><summary><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}<span class="chev" aria-hidden="true"></span></summary><div class="sbody">${s.html}</div></details></div>`;
@@ -2313,7 +2314,7 @@ function navHtml(c, parts) {   // while editing, the layout's own list (dividers
   const rows = EDIT ? navItems().map((x) => (x.widgets ? TABS.find((t) => t[0] === x.id) : x)).filter(Boolean) : TABS.flatMap((t) => [...(t[4] || []).map((label) => ({ label })), t])
     .concat(RECIPE && RECIPE.id === "package-layout" ? (LAYOUT.dividers || []).filter((d) => !LAYOUT.pages.some((p) => p.id === d.at)).map((d) => ({ label: d.label })) : []);   // a divider below the last page shows there too
   return rows.map((r, i) => (Array.isArray(r) ? navPage(r, i, parts) : navDiv(r, i))).join("")
-    + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button><button class="nv-add" data-ly="div-new"><b>${LYICON.div}Add divider</b><span>A name above a group of pages</span></button>` : "");
+    + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button><button class="nv-add" data-ly="div-new"><b>${LYICON.div}Add divider</b><span>A name above a group of pages</span></button><button class="nv-add" data-ly="tpl"><b>${LYICON.tpl}Help me build a layout</b><span>Three questions set up the pages</span></button>` : "");
 }
 const LYICON = {   // the layout editor's icons: more options, a page, a widget, a divider, editing
   div: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 16-4 4-4-4"/><path d="M3 12h18"/><path d="m8 8 4-4 4 4"/></svg>',
@@ -2426,7 +2427,7 @@ function crumb() {   // the header names the page, then the open section; with t
   const nm = document.body.classList.contains("nv-mini") ? (WPKS.find((s) => s.id === KIT.host.session) || {}).title || C.title : "";
   const pg = (TABS.find((x) => x[0] === S.tab) || TABS[0])[1], cur = SECT[S.tab], d = (cur && document.querySelector(`#panel details.sec[open][data-sec="${cur}"] > summary h2`)) || document.querySelector('#panel .wtab[aria-selected="true"] span');
   const ed = EDIT ? `<button class="ptl-ed" data-ly="page-edit" aria-label="Rename the page or change its icon" title="Rename page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>` : "";
-  $("#ptl").innerHTML = `${nm ? `<span class="ptl-w">${esc(nm)}</span><span class="ptl-s" aria-hidden="true">›</span>` : ""}${esc(pg)}${ed}${d ? `<span class="ptl-s" aria-hidden="true">›</span><span class="ptl-c">${esc(d.textContent)}</span>` : ""}`;
+  $("#ptl").innerHTML = `${nm ? `${ptlWp(nm)}<span class="ptl-s" aria-hidden="true">›</span>` : ""}${esc(pg)}${ed}${d ? `<span class="ptl-s" aria-hidden="true">›</span><span class="ptl-c">${esc(d.textContent)}</span>` : ""}`;
 }
 const WTAB = {};   // Tabs: each page's chosen widget
 function wtabsHtml(parts) {   // one tab per widget; only the chosen one's content, with no frame, header or fold around it
@@ -3465,9 +3466,8 @@ function tplLayout({ who, depth, type }) {   // the pages a template makes: an a
 function tplHtml() {
   const q = TPLQ.map(([k, title, opts]) => `<div class="tpl-q"><p class="tpl-qh">${title}</p><div class="tpl-os${opts.length > 2 ? " three" : ""}">${opts.map(([v, t, d, ic]) => `<button class="tpl-o" data-ly="tpl-pick" data-lyv="${k}:${v}" aria-pressed="${LD[k] === v}"><span class="tpl-i"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></span><b>${t}</b><span>${d}</span></button>`).join("")}</div></div>`).join("");
   return `<div class="lmod-c tpl-c" role="dialog" aria-modal="true" aria-label="Build your own review"><div class="lmod-h"><b>Build your own review</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
-    ${LD.first ? `<p class="lmod-p">Three questions set up this review's pages and widgets for you. Cancel keeps the default layout; the wizard is on the welcome page, which Settings opens any time.</p>` : ""}
-    <div class="tpl-qs">${q}</div><p class="tpl-gal">Prefer to browse? <button type="button" data-ly="lgal">View the Layout Marketplace →</button></p>
-    <div class="lmod-f"><button type="button" class="tpl-back" data-wc-back>← Back to the welcome page</button><span class="tpl-b"><button class="btn" data-ly="close">Cancel</button><button class="btn pri" data-ly="tpl-use">${LYICON.tpl}Use this layout</button></span></div></div>`;
+    <div class="tpl-qs">${q}</div><p class="tpl-gal">Prefer to browse? <button type="button" data-ly="lgal">Browse the templates →</button></p>
+    <div class="lmod-f"><span></span><span class="tpl-b"><button class="btn" data-ly="close">Cancel</button><button class="btn pri" data-ly="tpl-use">${LYICON.tpl}Use this layout</button></span></div></div>`;
 }
 /* the layout gallery: each review style's parts, in its order, rebuilt from Work Package's widgets */
 const LGAL = [
