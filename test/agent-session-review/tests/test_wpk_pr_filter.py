@@ -20,7 +20,7 @@ class WorkPackagePrFilterTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.source = (util.ROOT / 'app/styles/package.js').read_text()
-        cls.code = STUBS + cut(cls.source, 'function prddPanel()', 'const prddDraw') + cut(cls.source, 'let WPKS = [], WPKV', 'function wpkDraw()')
+        cls.code = STUBS + cut(cls.source, 'function prddPanel()', 'const prddDraw') + cut(cls.source, 'let WPKS = [], WPKT', 'function wpkDraw()')
         cls.code += ("WPKS=[{id:'s1',title:'Pkg',prs:['o/a#1','o/b#2'],story:true},{id:'s2',title:'Other',prs:['o/c#3'],story:true}];")
 
     def menu(self, setup=''):
@@ -36,15 +36,22 @@ class WorkPackagePrFilterTests(unittest.TestCase):
         self.assertNotIn('class="wpk-fn"', html)   # no count while every PR shows
         self.assertIn('<span class="wpk-fn">1 of 2 PRs</span>', self.menu("S.pr=['o/a#1'];"))
 
-    def test_the_arrow_shows_the_pr_filter_with_a_way_back(self):
-        html = self.menu("WPKV='prs';S.pr=['o/b#2'];")
-        self.assertIn('data-wpk-back', html)
-        self.assertIn('class="hsrow wpk-bk" data-wpk-back', html); self.assertIn('<span>Back</span>', html)   # one full-width Back row
-        self.assertIn('data-prpick="o/a#1"', html)
-        self.assertIn('data-prpick="o/b#2"', html)
-        self.assertNotIn('data-wpk-go', html)
-        self.assertNotIn('prdd-q', html)   # no search box
-        self.assertNotIn('data-prpick="all"', html)   # no Select all: the PRs only
+    def test_the_pr_filter_flies_out_on_hover_with_no_back_row(self):
+        self.assertNotIn('data-wpk-back', self.source); self.assertNotIn('WPKV', self.source)   # the menu keeps one view, the list
+        self.assertNotIn('data-prpick', self.menu("S.pr=['o/b#2'];"))   # the PRs sit in the flyout, not the menu
+        panel = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': self.code + 'result=prddPanel();'}), capture_output=True, text=True)
+        html = json.loads(panel.stdout)
+        self.assertIn('data-prpick="o/a#1"', html); self.assertIn('data-prpick="o/b#2"', html)
+        self.assertNotIn('prdd-q', html); self.assertNotIn('data-prpick="all"', html)   # no search box, no Select all
+        self.assertIn('class="wpk-fly"', self.source)
+        self.assertIn('e.pointerType === "mouse" && e.target.closest && e.target.closest("#wpk .wpk-cur, #wpk .wpk-fly")) wpkFly(true)', self.source)   # hover opens it
+        self.assertIn('e.target.closest(".wpk-m, .wpk-fly")', self.source)   # a click inside the flyout keeps the menu open
+
+    def test_picking_a_package_closes_the_menu(self):
+        go = self.source[self.source.index('async function wpkGo(id)'):]
+        self.assertTrue(go.split('\n')[1].lstrip().startswith('wpkClose(); try {'))
+        self.assertNotIn('wpk-reopen', self.source)   # the menu no longer opens again after the reload
+        self.assertIn('if (t.closest("[data-wpk-prs]")) { e.stopImmediatePropagation(); return wpkClose(); }', self.source)
 
     def test_your_review_page_and_single_pr_packages_have_no_filter(self):
         self.assertNotIn('data-wpk-prs', self.menu("BL=['review'];"))

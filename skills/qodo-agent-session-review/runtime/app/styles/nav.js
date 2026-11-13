@@ -1,6 +1,11 @@
 /* The header's package switcher (joined inside package.js at its marker): with the side menu collapsed, the package name in the header
    is a menu of the work packages on this machine, for switching only; the PR filter stays in the side menu's Workpackage box */
 const navMini = () => document.body.classList.contains("nv-mini");
+function navReady() { document.documentElement.classList.remove("ck-boot"); }   // after a package switch: show the page once the Workpackage box has its list
+if (document.documentElement.classList.contains("ck-boot")) setTimeout(navReady, 1500);   // never hidden for long, even if the list is slow
+{ const top = document.querySelector("header.top");   // the side menu's logo row matches the header's height, whenever the header changes (its buttons draw after the first render)
+  if (top && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty("--hh", top.offsetHeight + "px")).observe(top); }
+requestAnimationFrame(() => document.documentElement.classList.remove("ck-hold"));   // just before the first paint: by then the script has drawn the header, side menu and page
 function ptlWp(nm) {   // the name, as a button when there's another package to switch to
   const open = !!(document.getElementById("ptlm") && !document.getElementById("ptlm").hidden);   // a redraw keeps an open menu's trigger marked
   return WPKS.length > 1 ? `<button type="button" class="ptl-w ptl-wb" data-ptlwp aria-haspopup="menu" aria-expanded="${open}" title="Switch work package">${esc(nm)}${HICON.chev}</button>` : `<span class="ptl-w">${esc(nm)}</span>`;
@@ -16,7 +21,7 @@ function ptlMenu(btn) {   // the packages, the open one marked; fixed to the pag
 }
 document.addEventListener("click", (e) => { const t = e.target.closest ? e.target : null; if (!t) return;
   const b = t.closest("[data-ptlwp]"); if (b) { e.preventDefault(); return ptlMenu(b); }
-  const g = t.closest("[data-ptlgo]"); if (g) { ptlClose(); return wpkGo(g.dataset.ptlgo, true); }
+  const g = t.closest("[data-ptlgo]"); if (g) { ptlClose(); return wpkGo(g.dataset.ptlgo); }
   if (!t.closest("#ptlm")) ptlClose(); });
 document.addEventListener("keydown", (e) => { const m = document.getElementById("ptlm"); if (!m || m.hidden) return;
   if (e.key === "Escape") { ptlClose(); const b = document.querySelector("[data-ptlwp]"); if (b) b.focus(); return; }

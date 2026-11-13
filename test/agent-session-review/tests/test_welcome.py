@@ -52,18 +52,18 @@ class WelcomeTests(unittest.TestCase):
         self.assertNotIn('WZFIRST', self.package)
         self.assertNotIn('kind: "tpl", first: true', self.source)
         self.assertIn('+ wcSetRow();', self.package)   # Settings › General has the switch
-        self.assertIn('"wpk-fwd" : "wpk-back"', self.package)   # the menu's two views slide
+        self.assertIn('wpkFly(true, true)', self.package)   # the PR filter flies out
 
 
 class HeaderSwitcherTests(unittest.TestCase):
     def test_the_header_name_switches_packages_only_with_the_side_menu_collapsed(self):
         nav = (util.ROOT / 'app/styles/nav.js').read_text()
-        code = ("const esc=String,HICON={chev:''},KIT={host:{session:'s1'}},document={getElementById:()=>null};let WPKS=[{id:'s1',title:'A'}];" + nav[:nav.index('function ptlClose')] + "const one=ptlWp('A');WPKS.push({id:'s2',title:'B'});result=[one,ptlWp('A')];")
+        code = ("const esc=String,HICON={chev:''},KIT={host:{session:'s1'}},document={getElementById:()=>null,querySelector:()=>null,documentElement:{classList:{contains:()=>false,remove(){}}}},requestAnimationFrame=()=>0,window={};let WPKS=[{id:'s1',title:'A'}];" + nav[:nav.index('function ptlClose')] + "const one=ptlWp('A');WPKS.push({id:'s2',title:'B'});result=[one,ptlWp('A')];")
         out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': code}), capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
         one, two = json.loads(out.stdout)
         self.assertNotIn('data-ptlwp', one); self.assertIn('data-ptlwp', two)   # a menu only when there's another package
-        self.assertNotIn('prdd', nav); self.assertIn('wpkGo(g.dataset.ptlgo, true)', nav)   # switching only, no PR filter, no reopened menu
+        self.assertNotIn('prdd', nav); self.assertIn('wpkGo(g.dataset.ptlgo)', nav)   # switching only, no PR filter, no reopened menu
         package = (util.ROOT / 'app/styles/package.js').read_text()
         self.assertIn('${nm ? `${ptlWp(nm)}', package)
         self.assertIn('m.className = "ptl-mm hmenu"', nav); self.assertNotIn('"nv-mm', nav)   # never reused as the ⋮ menu
@@ -71,6 +71,15 @@ class HeaderSwitcherTests(unittest.TestCase):
             self.assertIn(key, nav)   # a keyboard menu
         self.assertLess(nav.index('if (!m.contains(document.activeElement)) return;'), nav.index('ArrowDown:'))   # only while focus is in the menu
         self.assertIn('if (!nm) ptlClose();', package)   # a redraw without the switcher closes its menu
+        page = (util.ROOT / 'app/styles/package.html').read_text()
+        self.assertIn('sessionStorage.setItem("cockpit:wpk-switch", "1")', package); self.assertIn('classList.add("ck-leaving")', package)   # a switch fades the page out
+        self.assertIn('classList.add("ck-boot")', page); self.assertIn('html.ck-leaving main.wrap, html.ck-boot main.wrap{opacity:0}', page)   # only the content fades
+        self.assertNotIn('ck-boot .snav', page); self.assertNotIn('ck-boot header', page)   # the header and side menu stay visible
+        self.assertIn('document.documentElement.classList.add("ck-hold")', page); self.assertIn('html.ck-hold body > *{visibility:hidden; animation:ck-show 0s 2s forwards}', page)   # no skeleton paint, never hidden past 2 s
+        self.assertIn('requestAnimationFrame(() => document.documentElement.classList.remove("ck-hold"))', nav)   # shown on the first frame after the page is drawn
+        self.assertIn('new ResizeObserver(() => document.documentElement.style.setProperty("--hh", top.offsetHeight + "px")).observe(top)', nav)   # the logo row follows the header's real height
+        self.assertIn('pending: true }]; wpkDraw();', package)   # the Workpackage box is drawn before the first paint, not swapped in later
+        self.assertIn('if (WPKS.some((s) => s.pending)) return;', package); self.assertIn('setTimeout(navReady, 1500)', nav)   # the content shows once the real list is in, or 1.5 s at most
         check = subprocess.run(['node', '--check', str(util.ROOT / 'app/styles/nav.js')], capture_output=True, text=True)
         self.assertEqual(check.returncode, 0, check.stderr)   # the whole file parses, not just the slice above
 
