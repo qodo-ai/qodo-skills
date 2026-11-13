@@ -15,7 +15,8 @@ import subprocess
 TIMEOUT = 20      # per CLI call
 BUDGET = 90       # for the whole collect: notes are optional and never hold a review up for long
 MAX_PAGES = 20    # a paged result (over 1 MiB) comes back in pieces; more than this is not a plan anyone reads
-_END = None       # while collect() runs: when its BUDGET ends, so each managed read stops there too
+from contextvars import ContextVar
+_END = ContextVar('cockpit_notes_end', default=None)   # while collect() runs: when its BUDGET ends; per thread, so parallel refreshes keep their own
 
 
 def _cmd(cfg: dict) -> str | None:
@@ -45,7 +46,8 @@ def _read(cmd: str, leaf: str, args: list[str]) -> tuple[dict | None, str | None
                     params['read_cursor'] = cursor
                 try:
                     import time
-                    left = (_END - time.monotonic()) if _END else None   # notes never outlast their own budget
+                    end = _END.get()
+                    left = (end - time.monotonic()) if end else None   # notes never outlast their own budget
                     if left is not None and left <= 0:
                         return None, f'{leaf}: skipped, reading notes took over {BUDGET}s'
                     value = Client(cmd).read('review-notes', leaf, max_seconds=left, **params)
@@ -150,8 +152,8 @@ def collect(prs: list[dict], cfg: dict) -> None:
     if _cmd(cfg):
         print("Reading Qodo's review notes", file=sys.stderr)
     cache: dict = {}
-    global _END
-    end = _END = time.monotonic() + BUDGET
+    end = time.monotonic() + BUDGET
+    token = _END.set(end)
     try:
         for pr in prs:
             if time.monotonic() > end:
@@ -166,4 +168,4 @@ def collect(prs: list[dict], cfg: dict) -> None:
             except Exception as e:   # an output shape we didn't expect: no notes, said plainly, and the review goes on
                 pr["notes"] = {"status": "unavailable", "why": f"couldn't read the notes ({e.__class__.__name__})"}
     finally:
-        _END = None   # later reads (a refresh's) use their own limits
+        _END.reset(token)   # later reads (a refresh's) use their own limits

@@ -156,16 +156,25 @@ class Client:
         self.command = command or os.environ.get('QODO_AGENT_SESSION_REVIEW_CLI') or os.environ.get('REVIEW_COCKPIT_QODO') or shutil.which('qodo') or str(Path.home() / '.qodo/bin/qodo')
 
     def read(self, group, tool, max_seconds=None, **args):
-        """max_seconds: a caller's own deadline for this read (the notes step's), within the operation's budget."""
+        """max_seconds: a caller's own deadline for this read (the notes step's), within the operation's budget.
+        Every attempt, a rate-limit retry included, reserves its own call and gets only the time still left."""
         budget = current_budget() or self.budget
-        timeout = budget.reserve() if max_seconds is None else min(budget.reserve(), max_seconds)
+        until = None if max_seconds is None else time.monotonic() + max_seconds
+        def left():
+            mine = None if until is None else until - time.monotonic()
+            ops = budget._left()
+            return mine if ops is None else ops if mine is None else min(mine, ops)
         for attempt in range(RATE_LIMIT_RETRIES + 1):
+            remaining = left()
+            if remaining is not None and remaining <= 0:
+                raise BudgetExceeded(f'{group}/{tool}: the caller\'s time ran out before the read')
+            timeout = budget.reserve() if remaining is None else min(budget.reserve(), remaining)   # a cap on calls counts every attempt
             try:
                 return self._read_once(group, tool, args, timeout, budget)
-            except RateLimited as e:   # throttled: wait for the reset (or back off) and try again, within the caller's limit
-                left = budget._left() if max_seconds is None else max_seconds if budget._left() is None else min(budget._left(), max_seconds)
+            except RateLimited as e:   # throttled: wait for the reset (or back off) and try again, within the time still left
                 wait = min(RATE_LIMIT_MAX_WAIT, e.retry_after if e.retry_after is not None else 2 ** (attempt + 1))
-                if attempt == RATE_LIMIT_RETRIES or (left is not None and wait >= left):
+                remaining = left()
+                if attempt == RATE_LIMIT_RETRIES or (remaining is not None and wait >= remaining):
                     raise
                 time.sleep(wait)
 
