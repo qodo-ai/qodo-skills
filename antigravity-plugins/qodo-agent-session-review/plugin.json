@@ -1,7 +1,7 @@
 {
   "name": "qodo-agent-session-review",
   "displayName": "Agent Session Review",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Review PR work packages in a browser with Qodo evidence, local notes, refresh, resume and export. Install only when requested.",
   "logo": "assets/qodo.png",
   "suggestedPrompts": [

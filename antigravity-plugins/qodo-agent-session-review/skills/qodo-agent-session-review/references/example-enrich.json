@@ -6,6 +6,7 @@
       "title": "A larger limit",
       "lede": "The helper returns two instead of one; caller compatibility remains unverified.",
       "paragraphs": [
+        {"label": "Today", "text": "The helper returns the old integer, and every caller depends on that value."},
         {"label": "Why", "text": "This synthetic example demonstrates how to review a changed return value; no live requirement or caller inventory is supplied."},
         {"label": "What", "text": "The returned integer increases. Whether callers accept the new value is an open review question."},
         {"label": "How", "text": "One literal in a pure helper changes; its signature stays the same."}

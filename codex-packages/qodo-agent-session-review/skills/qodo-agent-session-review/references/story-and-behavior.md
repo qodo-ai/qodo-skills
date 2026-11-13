@@ -30,7 +30,7 @@ choose fewer when the change is simple. Do not fill a quota.
 | Beat | What to supply |
 |---|---|
 | `notice` | One to three ranked risks/decisions/gaps, each linked by `beat` to its explanation. |
-| `brief` | Feature title, standalone `lede`, Why/What/How paragraphs, PR `contributions`. |
+| `brief` | Feature title, standalone `lede` (the change), Today/Why/What/How paragraphs, PR `contributions`. Today says how the feature behaves before this change, so Product summary reads Today, The change, Why. |
 | `flow` | Follow one request, record, event, job or user action through ordered `hops`. |
 | `views` | Two to four useful lenses on the same system, such as architecture and data flow. |
 | `journey` / `stories` | Who does what, which PR delivers it, and source-backed delivered/partial/missing status. |

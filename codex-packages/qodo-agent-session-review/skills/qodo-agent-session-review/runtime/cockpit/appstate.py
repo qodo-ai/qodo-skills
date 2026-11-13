@@ -11,7 +11,8 @@ from .util import HOME, write_json
 # the browser keys the page may keep here; anything else stays in that browser (a review's own notes and picks)
 APP_KEYS = ("cockpit:theme", "cockpit:package-layout:4", "cockpit:page-view", "cockpit:widget-view:2", "cockpit:wide-widgets",
             "cockpit:fit-height", "cockpit:nav-submenus", "cockpit:nav-collapsed", "cockpit:ask-qodo:2", "cockpit:wizard-seen",
-            "cockpit:layout-template:2", "cockpit:layout-rtext", "cockpit:decision-filter", "cockpit:my-layouts")
+            "cockpit:layout-template:2", "cockpit:layout-rtext", "cockpit:layout-codechg", "cockpit:decision-filter", "cockpit:my-layouts", "cockpit:verdict-rules",
+            "cockpit:layout-dividers", "cockpit:layout-icons", "cockpit:welcome", "cockpit:reader-mode", "cockpit:reader-zoom", "cockpit:reader-pages")   # cockpit:welcome: the welcome page, {hide, last}
 MAX_BYTES = 512_000   # the whole file: a few dozen layouts fit easily
 _lock = threading.Lock()
 
@@ -20,13 +21,18 @@ def path():
     return HOME / "app-state.json"
 
 
-def load() -> dict:
-    """The saved settings, only the known keys; a missing or damaged file reads as none."""
+def _raw() -> dict:
+    """Every cockpit setting in the file, known or not: another runtime sharing this data home may keep newer keys."""
     try:
         d = json.loads(path().read_text())
     except (OSError, ValueError):
         return {}
-    return {k: v for k, v in d.items() if k in APP_KEYS} if isinstance(d, dict) else {}
+    return {k: v for k, v in d.items() if isinstance(k, str) and k.startswith("cockpit:")} if isinstance(d, dict) else {}
+
+
+def load() -> dict:
+    """The saved settings, only the known keys; a missing or damaged file reads as none."""
+    return {k: v for k, v in _raw().items() if k in APP_KEYS}
 
 
 @contextlib.contextmanager
@@ -45,14 +51,14 @@ def update(changes) -> dict:
     bad = [k for k in changes if k not in APP_KEYS]
     if bad:
         raise ValueError(f"not an app setting: {', '.join(map(str, bad))[:200]}")
-    with _locked():   # read, merge and write as one step, so two ports never drop each other's change
-        d = load()
+    with _locked():   # read, merge and write as one step, so two ports (or two runtime versions) never drop each other's keys
+        d = _raw()
         for k, v in changes.items():
             if v is None:
                 d.pop(k, None)
             else:
                 d[k] = v
-        if len(json.dumps(d, ensure_ascii=False).encode()) > MAX_BYTES:
+        if len(json.dumps({k: v for k, v in d.items() if k in APP_KEYS}, ensure_ascii=False).encode()) > MAX_BYTES:   # this runtime's own settings only: another runtime's keys, which Customize can't delete, never block a save
             raise ValueError("the app settings would be too large; delete a saved layout first")
         write_json(path(), d)
-    return d
+    return {k: v for k, v in d.items() if k in APP_KEYS}

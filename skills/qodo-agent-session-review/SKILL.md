@@ -5,7 +5,7 @@ owner: Qodo
 license: MIT for instructions and launcher; bundled runtime under Qodo terms (runtime/LICENSE).
 metadata:
   vendor: qodo
-  version: "1.0.0"
+  version: "1.0.1"
   recommended: "false"
   package: "qodo-agent-session-review"
   distribution: "skills-sh"
@@ -37,7 +37,7 @@ order. Its provenance comes from this installed SKILL.md. Equivalent first CLI p
 
 ```sh
 qodo --version
-qodo read whoami --json --skill qodo-agent-session-review --skill-version 1.0.0 --distribution skills-sh
+qodo read whoami --json --skill qodo-agent-session-review --skill-version 1.0.1 --distribution skills-sh
 qodo read tools --json
 ```
 

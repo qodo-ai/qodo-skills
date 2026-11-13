@@ -218,6 +218,7 @@ def fetch_pr(repo: str, number: int, annotation_checks: list[str] | None = None)
         "deletions": v.get("deletions", 0), "labels": [l["name"] for l in v.get("labels", [])], **human_reviews(reviews, v.get("headRefOid")),
         "files": files, "checks": checks, "created": v.get("createdAt"), "_raw_comments": raw, "_threads": review_threads,
         "unresolved_threads": sum(1 for t in review_threads.values() if not t["resolved"]) if review_threads is not None else None,
+        "review_threads": len(review_threads) if review_threads is not None else None,   # every review conversation, resolved or not
         "unresolved_ids": sorted(c for c, t in review_threads.items() if not t["resolved"])[:50] if review_threads is not None else [],   # first comment of each, for links
         "_annotations": fetch_annotations(repo, v.get("headRefOid"), annotation_checks or []),
         **_tests_and_coverage(repo, v.get("headRefOid"), raw),
@@ -536,7 +537,7 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
         key, repo, num = pr["key"], pr["repo"], pr["number"]
         try:
             v = gh_json(["pr", "view", str(num), "--repo", repo, "--json",
-                         "headRefOid,state,mergeStateStatus,reviewDecision,isDraft,comments,reviews"]) or {}
+                         "headRefOid,state,mergeStateStatus,reviewDecision,isDraft,comments,reviews,statusCheckRollup"]) or {}
         except RuntimeError as e:
             out[key] = {"error": str(e)[:200]}
             continue
@@ -550,17 +551,22 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
         since = pr.get("collected_at") or since_default   # older sessions: the session's creation time
         new_reviews = [r for r in (v.get("reviews") or []) if (r.get("submittedAt") or "") > since]
         approvers = sorted({(r.get("author") or {}).get("login") or "someone" for r in new_reviews if r.get("state") == "APPROVED"})
+        hr = human_reviews([{"user": {"login": (r.get("author") or {}).get("login") or "", "type": "Bot" if (r.get("author") or {}).get("is_bot") else "User"},
+                             "state": r.get("state"), "submitted_at": r.get("submittedAt"), "commit_id": (r.get("commit") or {}).get("oid")} for r in v.get("reviews") or []], head)
+        approved_head, changes = (hr["approvals"] if head else []), hr["changes_requested"]   # for the verdict when GitHub gives no review decision: humans only, as collected
         # an approval is news of its own, not "a comment"; the other reviews are comments to read
         new_comments = sum(1 for c in (v.get("comments") or []) if (c.get("createdAt") or "") > since) + \
             sum(1 for r in new_reviews if r.get("state") != "APPROVED")
         try:   # review conversations still open, for the verdict: how many, and the first comment of each for its link
-            open_ids = sorted(c for c, t in threads.fetch(repo, num).items() if not t["resolved"])
+            ths = threads.fetch(repo, num)
+            open_ids, total = sorted(c for c, t in ths.items() if not t["resolved"]), len(ths)
             unresolved = len(open_ids)
         except (RuntimeError, ValueError, KeyError):
-            open_ids, unresolved = [], None
-        out[key] = {"head": head, "snapshot_head": old, "moved": bool(head and old and head != old), "new_commits": ahead, "unresolved": unresolved, "unresolved_ids": open_ids[:50],
+            open_ids, unresolved, total = [], None, None
+        out[key] = {"head": head, "snapshot_head": old, "moved": bool(head and old and head != old), "new_commits": ahead, "unresolved": unresolved, "unresolved_ids": open_ids[:50], "threads": total,
                     "state": v.get("state"), "merge_state": v.get("mergeStateStatus"), "review_decision": v.get("reviewDecision"),
-                    "draft": v.get("isDraft"), "new_comments": new_comments, "approved_by": approvers}
+                    "draft": v.get("isDraft"), "new_comments": new_comments, "approved_by": approvers, "approved_head": approved_head, "changes_requested": changes,
+                    "checks": latest_checks(v["statusCheckRollup"]) if v.get("statusCheckRollup") is not None else None}   # CI as it is now, for the verdict
     return out
 
 
