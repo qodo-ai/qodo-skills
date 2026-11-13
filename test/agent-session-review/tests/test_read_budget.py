@@ -95,6 +95,43 @@ class ReadBudgetTests(unittest.TestCase):
         self.assertLessEqual(sum(c.args[0] for c in slept.call_args_list), managed.RATE_LIMIT_TOTAL_WAIT)   # waiting is capped per operation
         self.assertTrue(budget.summary()['exhausted'])
 
+    def test_reset_time_comes_from_the_service_and_is_never_negative(self):
+        now = time.time()
+        self.assertEqual(managed.reset_wait({'retry_after': -5}), 0.0)   # a stale reset: try again now, never a crash
+        self.assertAlmostEqual(managed.reset_wait({'reset_at': now + 30}), 30, delta=1)   # epoch seconds
+        self.assertAlmostEqual(managed.reset_wait({'reset_at': (now + 30) * 1000}), 30, delta=1)   # epoch milliseconds
+        from datetime import datetime, timezone
+        iso = datetime.fromtimestamp(now + 45, timezone.utc).isoformat().replace('+00:00', 'Z')
+        self.assertAlmostEqual(managed.reset_wait({'reset_at': iso}), 45, delta=1)
+        self.assertIsNone(managed.reset_wait({'reset_at': 'soon'}))
+        stale = SimpleNamespace(stdout=json.dumps({'error': {'code': 'MT-RATE-LIMITED', 'metadata': {'retry_after': -3}}}), stderr='', returncode=1)
+        ok = SimpleNamespace(stdout=json.dumps({'repos': []}), stderr='', returncode=0)
+        with mock.patch('subprocess.run', side_effect=[stale, ok]), mock.patch('time.sleep') as slept:
+            Client('qodo', budget=ReadBudget()).read('codebase', 'search-repos')
+        self.assertEqual(slept.call_args.args[0], 1.0)
+        none = SimpleNamespace(stdout=json.dumps({'error': {'code': 'MT-RATE-LIMITED'}}), stderr='', returncode=1)
+        with mock.patch('subprocess.run', side_effect=[none, ok]), mock.patch('time.sleep') as slept:
+            Client('qodo', budget=ReadBudget()).read('codebase', 'search-repos')
+        self.assertEqual(slept.call_args.args[0], managed.RATE_LIMIT_BACKOFF[0])   # no reset given: long enough to clear a one-minute window
+
+    def test_a_callers_own_budget_holds_inside_an_operation(self):
+        ok = SimpleNamespace(stdout=json.dumps({'repos': []}), stderr='', returncode=0)
+        with read_operation() as op, mock.patch('subprocess.run', return_value=ok) as run:
+            own = ReadBudget(max_calls=1, seconds=5)
+            Client('qodo', budget=own).read('codebase', 'search-repos')
+            self.assertLessEqual(run.call_args.kwargs['timeout'], 5)   # the system map's deadline, not the full 120 s
+            with self.assertRaises(BudgetExceeded):
+                Client('qodo', budget=own).read('codebase', 'search-repos')   # and its call cap
+            self.assertEqual(op.calls, 2)   # both attempts still count toward the operation
+
+    def test_the_fallback_link_is_fresh_and_always_available(self):
+        from cockpit import util
+        server = (util.ROOT / 'cockpit/server.py').read_text()
+        self.assertIn("if not want_link and open_browser_briefly(link()):", server)
+        self.assertIn("return self._json({'opened': False, 'url': link()})", server)   # a new invite, not the one handed to the launcher
+        js = (util.ROOT / 'app/styles/evidence.js').read_text()
+        self.assertIn("data-access-fallback", js); self.assertIn("JSON.stringify({ link: true })", js)   # Didn't open? Get a link
+
     def test_parallel_notes_collections_keep_their_own_deadlines(self):
         import threading
         from cockpit import notes

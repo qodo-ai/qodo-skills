@@ -500,9 +500,14 @@ class Handler(SimpleHTTPRequestHandler):
             from .local_access import authorized, mint_invite
             if not (getattr(self.server, 'product', False) and authorized(self)):
                 return self._json({'error': 'Reopen Agent Session Review from its launcher to authorize this browser.'}, 403)
-            url = f"http://127.0.0.1:{self.server.server_address[1]}/_access#key={mint_invite(self.server)}"
-            opened = open_browser_briefly(url)
-            return self._json({'opened': True} if opened else {'opened': False, 'url': url})   # the page gets the link only to copy by hand
+            link = lambda: f"http://127.0.0.1:{self.server.server_address[1]}/_access#key={mint_invite(self.server)}"
+            try:
+                want_link = bool((self._body() or {}).get('link'))   # "Didn't open? Get a link": just the link, no browser
+            except Exception:
+                want_link = False
+            if not want_link and open_browser_briefly(link()):
+                return self._json({'opened': True})
+            return self._json({'opened': False, 'url': link()})   # a fresh one-time link: a slow launch can't use up the one shown
         if "application/json" not in (self.headers.get("Content-Type") or ""):
             return self._json({"error": "JSON body required"}, 415)
         if not self._pick_session():

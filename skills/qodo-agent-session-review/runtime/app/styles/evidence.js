@@ -14,10 +14,11 @@ function evTip() {   // the refresh details' section: the state, and a way to th
   if (!EVL || !EVL.prs.length) return ""; const [t, h] = evSummary();
   return `<button type="button" class="ev-tip" data-ev-open aria-haspopup="dialog"><span class="ev-k">Fetch requests</span><span class="ev-s"><i class="ev-dot ${t}"></i>${esc(h)}</span><span class="ev-more">See the details</span></button>`;
 }
-let EVLINK = null;   // a minted link the clipboard refused: {url, until}; kept so a footer redraw still shows it
+let EVLINK = null, EVOPENED = false;   // EVLINK: a one-time link to copy by hand, {url, until}, kept so a footer redraw still shows it; EVOPENED: the browser was opened
 function authTip() {   // Session auth: this browser holds access until the server restarts; Open in external browser signs in your default browser with a one-time link
   if (!KIT.host.access_link) return "";
   if (EVLINK && EVLINK.until > Date.now()) return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">Copy this link: it works once, within 10 minutes</span><input class="ft-link" readonly value="${esc(EVLINK.url)}" aria-label="Access link"></div>`;
+  if (EVOPENED) return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">Opened in your default browser</span><button type="button" class="ft-copy" data-access-fallback title="Shows a one-time link to paste into any browser on this machine">Didn't open? Get a link</button></div>`;
   return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">This browser is signed in until the server restarts</span><button type="button" class="ft-copy" data-open-external title="Opens this review in your default browser, signed in with a one-time link">Open in external browser</button></div>`;
 }
 function evLink(url) {   // the browser couldn't be opened: the one-time link itself, selected, to copy by hand, in whichever footer is on the page now
@@ -60,7 +61,10 @@ document.addEventListener("click", (e) => { const t = e.target.closest ? e.targe
   if (t.closest("[data-ev-open]")) { e.preventDefault(); return evOpen(); }
   if (t.closest("[data-commits-open]")) { e.preventDefault(); return evCommits(); }
   if (t.closest("[data-open-external]")) { e.preventDefault();   // the local server opens your default browser on a one-time link; the page sees the link only if that fails
-    return fetch("/api/open-external", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((r) => (r.ok ? r.json() : Promise.reject())).then((j) =>
-      (j.opened ? toast("Opened in your default browser") : evLink(j.url)), () => toast("Couldn't open your browser; reload the page")); }
+    return fetch("/api/open-external", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((r) => (r.ok ? r.json() : Promise.reject())).then((j) => {
+      if (!j.opened) return evLink(j.url);
+      EVOPENED = true; document.querySelectorAll(".ft-auth").forEach((el) => { el.outerHTML = authTip(); }); toast("Opened in your default browser"); }, () => toast("Couldn't open your browser; reload the page")); }
+  if (t.closest("[data-access-fallback]")) { e.preventDefault();   // a launcher can report success and still fail: a link to copy by hand, on request
+    return fetch("/api/open-external", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ link: true }) }).then((r) => (r.ok ? r.json() : Promise.reject())).then((j) => evLink(j.url), () => toast("Couldn't make a link; reload the page")); }
   const m = document.getElementById("evm"); if (m && (t.id === "evm" || t.closest("[data-ev-close]"))) m.remove(); });
 document.addEventListener("keydown", (e) => { const m = document.getElementById("evm"); if (m && e.key === "Escape") { e.stopPropagation(); m.remove(); } }, true);
