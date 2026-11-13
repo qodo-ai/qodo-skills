@@ -12,8 +12,9 @@ const generated = /^(?:\.agents\/plugins\/|\.claude-plugin\/|\.codex-plugin\/|an
 const packaging = [
   /^\.github\/workflows\/ship-marketplaces\.yml$/,
   /^distribution\//,
-  /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|deterministic-zip|package-projections|marketplace-release(?:-lock)?|prepare-release|release-baseline|skill-renames|release-notes|skill-provenance|sync-adapters|verify-codex-packet)\.mjs$/,
-  /^scripts\/(?:audit-release-protections|verify-release-prerequisites)\.(?:cmd|sh)$/,
+  /^scripts\/(?:build-cli-managed-bundle|build-enterprise-bundle|build-release-index|build-repository-catalog|deterministic-zip|package-projections|marketplace-release(?:-lock)?|prepare-release|release-baseline|skill-renames|release-notes|skill-provenance|sync-adapters|verify-codex-packet)\.mjs$/,
+  /^\.github\/workflows\/release\.yml$/,
+  /^scripts\/(?:audit-release-protections|publish-release|verify-release-prerequisites)\.(?:cmd|sh)$/,
 ];
 
 function assertSourceVersions(root, prior, catalog, renames) {
