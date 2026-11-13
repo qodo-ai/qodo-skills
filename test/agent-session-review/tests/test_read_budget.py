@@ -62,12 +62,39 @@ class ReadBudgetTests(unittest.TestCase):
         ok = SimpleNamespace(stdout=json.dumps({'repos': []}), stderr='', returncode=0)
         with read_operation() as op, mock.patch('subprocess.run', return_value=ok) as run:
             Client('qodo').read('codebase', 'search-repos', max_seconds=4)
-            self.assertEqual(run.call_args.kwargs['timeout'], 4)   # the notes step's time left, not the full 120 s
+            self.assertAlmostEqual(run.call_args.kwargs['timeout'], 4, places=2)   # the notes step's time left, not the full 120 s
             self.assertEqual(op.calls, 1)   # and it still counts toward the operation
         from cockpit import notes
         src = (notes.__file__ and open(notes.__file__).read())
         self.assertIn("read('review-notes', leaf, max_seconds=left", src)
-        self.assertIn("_END = None   # later reads", src)
+        self.assertIn("_END.reset(token)", src)
+
+    def test_rate_limit_retries_count_as_calls_and_stay_in_time(self):
+        limited = SimpleNamespace(stdout=json.dumps({'error': {'code': 'MT-RATE-LIMITED', 'metadata': {'retry_after': 1}}}), stderr='', returncode=1)
+        with mock.patch('subprocess.run', return_value=limited) as run, mock.patch('time.sleep'):
+            with self.assertRaises(BudgetExceeded):
+                Client('qodo', budget=ReadBudget(max_calls=2)).read('codebase', 'search-repos')
+        self.assertEqual(run.call_count, 2)   # a call cap holds across retries
+        clock = [100.0]
+        with mock.patch('subprocess.run', return_value=limited) as run, mock.patch('time.sleep', side_effect=lambda s: clock.__setitem__(0, clock[0] + s)), \
+                mock.patch('time.monotonic', side_effect=lambda: clock[0]):
+            with self.assertRaises((RateLimited, BudgetExceeded)):
+                Client('qodo', budget=ReadBudget()).read('codebase', 'search-repos', max_seconds=2.5)
+        timeouts = [c.kwargs['timeout'] for c in run.call_args_list]
+        self.assertEqual(timeouts[0], 2.5); self.assertTrue(all(b < a for a, b in zip(timeouts, timeouts[1:])))   # each retry gets only the time still left
+
+    def test_parallel_notes_collections_keep_their_own_deadlines(self):
+        import threading
+        from cockpit import notes
+        seen = {}
+        def run(name, secs):
+            token = notes._END.set(secs)
+            threading.Event().wait(0.05)
+            seen[name] = notes._END.get()
+            notes._END.reset(token)
+        a = threading.Thread(target=run, args=('a', 1.0)); b = threading.Thread(target=run, args=('b', 2.0))
+        a.start(); b.start(); a.join(); b.join()
+        self.assertEqual(seen, {'a': 1.0, 'b': 2.0}); self.assertIsNone(notes._END.get())
 
     def test_opening_the_browser_never_holds_the_reply(self):
         from cockpit import server
