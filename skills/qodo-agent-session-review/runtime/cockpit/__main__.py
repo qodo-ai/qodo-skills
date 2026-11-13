@@ -71,6 +71,7 @@ def main(argv=None):
     r = sub.add_parser("review"); r.add_argument("refs", nargs="*"); r.add_argument("--repo")
     r.add_argument("--demo", action="store_true"); r.add_argument("--port", type=int)
     r.add_argument("--no-open", action="store_true"); r.add_argument("--collect-only", action="store_true")
+    r.add_argument("--new", action="store_true", help="collect a new work package even when one already has exactly these PRs")
     r.add_argument("--style", choices=style_names(), help=STYLE_HELP)
 
     s = sub.add_parser("serve"); s.add_argument("--session"); s.add_argument("--port", type=int); s.add_argument("--no-open", action="store_true")
@@ -141,7 +142,17 @@ def main(argv=None):
         if a.demo:
             session, sdir = collect_demo()
         elif a.refs:
-            session, sdir = collect(a.refs, a.repo)
+            from .collect import existing_sessions, refresh
+            sdir, partial = (None, []) if a.new else existing_sessions(a.refs, a.repo)
+            if sdir:   # the same PRs again: update that package (notes, marks and enrichment stay) rather than duplicate it
+                print(f"Work package {sdir.name} already has these PRs: refreshing it instead of creating a duplicate (--new collects a separate one).")
+                done = refresh(sdir); session = done["session"]; (sdir.parent / "latest").write_text(session)
+                for w in done.get("warnings") or []:
+                    print(f"warning: {w}")
+            else:
+                for other, shared in partial[:3]:
+                    print(f"Note: work package {other} already holds {shared} of these PRs.")
+                session, sdir = collect(a.refs, a.repo)
         else:
             sys.exit("Give PR refs or --demo.")
         print(f"Collected session {session} -> {sdir / 'review-data.json'}")

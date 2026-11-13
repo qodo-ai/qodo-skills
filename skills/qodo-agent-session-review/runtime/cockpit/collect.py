@@ -570,6 +570,48 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
     return out
 
 
+def existing_sessions(refs: list[str], default_repo: str | None = None) -> tuple[Path | None, list[tuple[str, int]]]:
+    """Before collecting: the newest saved work package with exactly these PRs (in any order),
+    so a rerun updates it instead of creating a duplicate, plus (id, shared PR count) for the
+    packages that hold only some of them."""
+    from .product import enabled
+    if enabled():
+        from .adapters.managed import parse_ref as ref
+    else:
+        def ref(x, repo):
+            return (*parse_ref(x, repo), None)
+
+    def keys(xs, repo):
+        out = set()
+        for x in xs:
+            try:
+                r, n, h = ref(x, repo)
+            except ValueError:
+                continue
+            out.add((r.lower(), int(n), h))
+        return out
+
+    def same(have):   # a host is compared only when both sides know it
+        return len(have) == len(want) and all(any(r == wr and n == wn and (not h or not wh or h == wh) for r, n, h in have) for wr, wn, wh in want)
+    want = {(r.lower(), int(n), h) for r, n, h in (ref(x, default_repo) for x in refs)}
+    exact, partial = [], []
+    for d in (sorted(SESSIONS.iterdir()) if SESSIONS.is_dir() and want else []):
+        try:
+            data = json.loads((d / "review-data.json").read_text())
+        except (OSError, ValueError):
+            continue
+        if data.get("demo") or data.get("dummy"):
+            continue
+        prs = {(p["repo"].lower(), int(p["number"]), (p.get("identity") or {}).get("provider_host")) for p in data.get("prs") or []}
+        col = data.get("collection") or {}
+        asked = keys(col.get("requested_refs") or [], col.get("default_repo"))   # what it was asked for: a collection that stopped early still means those PRs
+        if same(asked or prs):
+            exact.append((data.get("created") or "", d.name, d))
+        elif shared := sum(any(r == wr and n == wn for r, n, _ in prs | asked) for wr, wn, _ in want):
+            partial.append((d.name, shared))
+    return (max(exact)[2] if exact else None), sorted(partial, key=lambda x: -x[1])
+
+
 def refresh(sdir: Path, cfg: dict | None = None) -> dict:
     """Re-collect the session's PRs into the same session: notes, marks and verdicts stay, the
     enrichment (sessions/<id>/enrich.json) is re-applied so its warnings show what drifted."""
