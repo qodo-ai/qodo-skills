@@ -14,13 +14,12 @@ import {
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildEnterpriseBundle } from './build-enterprise-bundle.mjs';
+import { buildStandardReleaseAssets, assertRepositoryCatalogFailures, assertCatalogPublication, copyCapturedSkillFixture } from './release-catalog-test-helpers.mjs';
 import { assertDiscoveryManifestFailures } from './test-release-discovery-assets.mjs';
 import { assertCapturedReleasePublication } from './test-release-main-ancestry.mjs';
 import {
   assertMismatchedReleaseIndexRejected,
   assertReleaseIndexWorkflowContract,
-  buildReleaseIndexFixture,
 } from './release-index-test-helpers.mjs';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8');
@@ -267,6 +266,7 @@ try {
   copyFileSync(join(root, 'scripts', 'publish-release.sh'), join(checkout, 'scripts', 'publish-release.sh'));
   copyFileSync(join(root, 'scripts', 'publish-release.cmd'), join(checkout, 'scripts', 'publish-release.cmd'));
   chmodSync(join(checkout, 'scripts', 'publish-release.sh'), 0o755);
+  copyCapturedSkillFixture(checkout);
   run(checkout, 'git', ['add', '.']);
   run(checkout, 'git', ['-c', 'commit.gpgsign=false', 'commit', '-m', 'release fixture']);
   const releaseSha = run(checkout, 'git', ['rev-parse', 'HEAD']).trim();
@@ -277,8 +277,7 @@ try {
   const releaseSourceCheckout = join(harness, 'release-source');
   run(checkout, 'git', ['worktree', 'add', '--detach', releaseSourceCheckout, releaseSha]);
   const releaseIndexDir = join(harness, 'release-index');
-  buildReleaseIndexFixture(releaseSourceCheckout, releaseIndexDir, releaseSha);
-  buildEnterpriseBundle({ output: enterpriseDir, commit: releaseSha, releaseIndex: join(releaseIndexDir, 'qodo-skills-index.json') });
+  buildStandardReleaseAssets(releaseSourceCheckout, releaseIndexDir, enterpriseDir, releaseSha);
   const releaseNotes = join(harness, 'release-notes.md');
   run(releaseSourceCheckout, process.execPath, [join(releaseSourceCheckout, 'scripts', 'release-notes.mjs'), releaseNotes]);
   // The publisher owns the tag format even when the runner prefers signed tags.
@@ -294,6 +293,7 @@ try {
     QODO_RELEASE_INDEX_DIR: releaseIndexDir,
   };
   const publishPath = join(checkout, 'scripts', 'publish-release.sh');
+  assertRepositoryCatalogFailures({ checkout, enterpriseDir, publishEnv, publishPath, runShell });
   assertMismatchedReleaseIndexRejected({
     checkout, indexDirectory: releaseIndexDir, publishEnvironment: publishEnv, publishPath,
     releaseSource: releaseSourceCheckout, releaseCommit: releaseSha, runShell,
@@ -315,7 +315,7 @@ try {
   assertDiscoveryManifestFailures({ publisher, enterpriseDir, checkout, publishPath, publishEnv, releaseTag, run, runShell });
   assertCapturedReleasePublication({ checkout, publishPath, publishEnv, releaseSha, run, runShell });
   assert.equal(run(checkout, 'git', ['rev-list', '-n', '1', releaseTag]).trim(), releaseSha);
-  const published = JSON.parse(readFileSync(fakeGhState, 'utf8'));
+  const published = assertCatalogPublication(JSON.parse(readFileSync(fakeGhState, 'utf8')));
   assert.deepEqual(
     { draft: published.draft, immutable: published.immutable, edits: published.edits, downloads: published.downloads },
     { draft: false, immutable: true, edits: 1, downloads: published.assets.length + 1 },
@@ -352,7 +352,7 @@ try {
     GITHUB_SHA: recoverySha,
     QODO_RELEASE_COMMIT: releaseSha,
   });
-  const recovered = JSON.parse(readFileSync(fakeGhState, 'utf8'));
+  const recovered = assertCatalogPublication(JSON.parse(readFileSync(fakeGhState, 'utf8')));
   assert.deepEqual(
     { draft: recovered.draft, immutable: recovered.immutable, edits: recovered.edits, downloads: recovered.downloads },
     { draft: false, immutable: true, edits: 1, downloads: recovered.assets.length + 1 },
