@@ -155,6 +155,23 @@ def _saved_recipes() -> list[dict]:
     return [{"id": r["id"], "name": r["name"], "about": r.get("about", "")} for r in _recipes()]
 
 
+BROWSER_WAIT = 5   # seconds: a launcher that blocks (a text browser that waits for exit) never holds the reply longer
+
+
+def open_browser_briefly(url, wait=BROWSER_WAIT):
+    """Open the default browser on a background thread; True only when it reported success within `wait` seconds."""
+    import webbrowser
+    done, result = threading.Event(), {}
+    def run():
+        try:
+            result['ok'] = bool(webbrowser.open(url))
+        except Exception:
+            result['ok'] = False
+        done.set()
+    threading.Thread(target=run, daemon=True).start()
+    return done.wait(wait) and result.get('ok', False)
+
+
 class Handler(SimpleHTTPRequestHandler):
     sdir: Path
     cfg: dict
@@ -484,11 +501,7 @@ class Handler(SimpleHTTPRequestHandler):
             if not (getattr(self.server, 'product', False) and authorized(self)):
                 return self._json({'error': 'Reopen Agent Session Review from its launcher to authorize this browser.'}, 403)
             url = f"http://127.0.0.1:{self.server.server_address[1]}/_access#key={mint_invite(self.server)}"
-            import webbrowser
-            try:
-                opened = bool(webbrowser.open(url))
-            except Exception:
-                opened = False
+            opened = open_browser_briefly(url)
             return self._json({'opened': True} if opened else {'opened': False, 'url': url})   # the page gets the link only to copy by hand
         if "application/json" not in (self.headers.get("Content-Type") or ""):
             return self._json({"error": "JSON body required"}, 415)
