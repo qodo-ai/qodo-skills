@@ -83,6 +83,18 @@ class ReadBudgetTests(unittest.TestCase):
         timeouts = [c.kwargs['timeout'] for c in run.call_args_list]
         self.assertEqual(timeouts[0], 2.5); self.assertTrue(all(b < a for a, b in zip(timeouts, timeouts[1:])))   # each retry gets only the time still left
 
+    def test_persistent_throttling_stops_the_operation_instead_of_waiting_per_read(self):
+        limited = SimpleNamespace(stdout=json.dumps({'error': {'code': 'MT-RATE-LIMITED', 'metadata': {'retry_after': 60}}}), stderr='', returncode=1)
+        budget = ReadBudget()
+        with mock.patch('subprocess.run', return_value=limited), mock.patch('time.sleep') as slept:
+            for _ in range(managed.MAX_THROTTLED_IN_A_ROW):
+                with self.assertRaises(RateLimited):
+                    Client('qodo', budget=budget).read('codebase', 'search-repos')
+            with self.assertRaises(BudgetExceeded):
+                Client('qodo', budget=budget).read('codebase', 'search-repos')   # throttled read after read: the rest is marked unavailable
+        self.assertLessEqual(sum(c.args[0] for c in slept.call_args_list), managed.RATE_LIMIT_TOTAL_WAIT)   # waiting is capped per operation
+        self.assertTrue(budget.summary()['exhausted'])
+
     def test_parallel_notes_collections_keep_their_own_deadlines(self):
         import threading
         from cockpit import notes

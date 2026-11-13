@@ -26,6 +26,8 @@ READ_TIMEOUT_SECONDS = 120
 MAX_TIMEOUTS_IN_A_ROW = 3   # a stalled service: stop after this many reads time out in a row, and mark the rest unavailable
 RATE_LIMIT_RETRIES = 3   # a rate-limited read waits for the reset and tries again, up to this many times
 RATE_LIMIT_MAX_WAIT = 60
+RATE_LIMIT_TOTAL_WAIT = 300   # seconds an operation may spend waiting out rate limits, across all its reads
+MAX_THROTTLED_IN_A_ROW = 2   # reads that stay rate-limited after their retries: this many in a row stop the operation
 _CURRENT_BUDGET = ContextVar('cockpit_managed_read_budget', default=None)
 
 
@@ -57,6 +59,8 @@ class ReadBudget:
         self.deadline = None if limit is None else time.monotonic() + limit
         self.calls = 0
         self.timeouts = 0   # reads that timed out in a row
+        self.throttled = 0   # reads that stayed rate-limited after their retries, in a row
+        self.waited = 0.0   # seconds spent waiting out rate limits
 
     def _left(self):
         return None if self.deadline is None else self.deadline - time.monotonic()
@@ -64,7 +68,7 @@ class ReadBudget:
     def _spent(self):
         left = self._left()
         return ((self.max_calls is not None and self.calls >= self.max_calls) or (left is not None and left <= 0)
-                or self.timeouts >= MAX_TIMEOUTS_IN_A_ROW)
+                or self.timeouts >= MAX_TIMEOUTS_IN_A_ROW or self.throttled >= MAX_THROTTLED_IN_A_ROW)
 
     def reserve(self):
         if self._spent():
@@ -171,11 +175,13 @@ class Client:
             timeout = budget.reserve() if remaining is None else min(budget.reserve(), remaining)   # a cap on calls counts every attempt
             try:
                 return self._read_once(group, tool, args, timeout, budget)
-            except RateLimited as e:   # throttled: wait for the reset (or back off) and try again, within the time still left
+            except RateLimited as e:   # throttled: wait for the reset (or back off) and try again, within the time and waiting still left
                 wait = min(RATE_LIMIT_MAX_WAIT, e.retry_after if e.retry_after is not None else 2 ** (attempt + 1))
                 remaining = left()
-                if attempt == RATE_LIMIT_RETRIES or (remaining is not None and wait >= remaining):
+                if attempt == RATE_LIMIT_RETRIES or (remaining is not None and wait >= remaining) or budget.waited + wait > RATE_LIMIT_TOTAL_WAIT:
+                    budget.throttled += 1   # persistent throttling: a couple of these in a row stop the operation instead of waiting read after read
                     raise
+                budget.waited += wait
                 time.sleep(wait)
 
     def _read_once(self, group, tool, args, timeout, budget):
@@ -196,7 +202,9 @@ class Client:
         except OSError as e:
             raise ReadError(f'{group}/{tool}: {type(e).__name__}') from e
         budget.timeouts = 0
-        return decode_result(result, group, tool)
+        out = decode_result(result, group, tool)
+        budget.throttled = 0   # an answered read ends a run of throttled ones
+        return out
 
     def identity(self, repo, host=None):
         # Native URL routes are not necessarily the registry's canonical full_name.
