@@ -13,6 +13,8 @@ payload. Generated optional Agent Session Review plugin manifests identify the c
 MIT AND LicenseRef-Qodo-Cockpit. Existing core and Standards packages retain their MIT metadata.
 
 The initial component was adapted from qodo-ai/pr-review-cockpit at commit
-2288438564c7c0aa1fb401c4f808a0f76986d479. This is historical attribution;
-qodo-skills now owns maintenance, testing and delivery. There is no upstream
-checkout or commit-pin dependency for builds, installation or future edits.
+2288438564c7c0aa1fb401c4f808a0f76986d479. Later Work Package changes were ported from
+that repository's commit 04321b772a05ab5a258e298a39c9188de0410e81 and pull request
+#84. This is historical attribution; qodo-skills now owns maintenance, testing and
+delivery. There is no upstream checkout or commit-pin dependency for builds,
+installation or future edits.
