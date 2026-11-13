@@ -46,6 +46,7 @@ class WorkPackagePrFilterTests(unittest.TestCase):
         self.assertIn('class="wpk-fly"', self.source)
         self.assertIn('e.pointerType === "mouse" && e.target.closest && e.target.closest("#wpk .wpk-cur, #wpk .wpk-fly")) wpkFly(true)', self.source)   # hover opens it
         self.assertIn('e.target.closest(".wpk-m, .wpk-fly")', self.source)   # a click inside the flyout keeps the menu open
+        self.assertIn('if (f && !f.hidden) { if (f.contains(document.activeElement)) $("#wpk .wpk-cur").focus(); return wpkFly(false); }', self.source)   # Escape closes a hover-opened flyout alone
 
     def test_picking_a_package_closes_the_menu(self):
         go = self.source[self.source.index('async function wpkGo(id)'):]

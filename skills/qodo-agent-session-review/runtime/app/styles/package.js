@@ -1302,7 +1302,7 @@ document.addEventListener("click", (e) => {
   if (!(e.target.closest && e.target.closest(".wpk-m, .wpk-fly"))) wpkClose();
 });
 document.addEventListener("keydown", (e) => { if (e.key !== "Escape" || !$("#wpk .wpk-m:not([hidden])")) return; e.stopPropagation();   // the flyout first, then the menu
-  const f = $("#wpk .wpk-fly"); if (f && !f.hidden && f.contains(document.activeElement)) { wpkFly(false); return $("#wpk .wpk-cur").focus(); } wpkClose(); $("#wpk [data-wpk]").focus(); }, true);
+  const f = $("#wpk .wpk-fly"); if (f && !f.hidden) { if (f.contains(document.activeElement)) $("#wpk .wpk-cur").focus(); return wpkFly(false); } wpkClose(); $("#wpk [data-wpk]").focus(); }, true);
 { const solo = () => { WPKS = [{ id: KIT.host.session, title: C.title, prs: C.prs.map((p) => p.key), story: true, local: true }]; wpkDraw(); };   // a snapshot, or no list: this package alone, for its PR filter
   if (KIT.served) queueMicrotask(() => { if (!WPKS.length) { WPKS = [{ id: KIT.host.session, title: C.title, prs: C.prs.map((p) => p.key), story: true, pending: true }]; wpkDraw(); } });   // right after this script, before the first paint: the side menu's box never swaps in late
   if (KIT.served) fetch("/api/sessions").then((r) => r.json()).then((j) => { WPKS = j.sessions || []; if (WPKS.length) wpkDraw(); else solo(); }).catch(solo); else setTimeout(solo); }   // after this script, once the layout exists
