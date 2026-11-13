@@ -26,6 +26,7 @@ READ_TIMEOUT_SECONDS = 120
 MAX_TIMEOUTS_IN_A_ROW = 3   # a stalled service: stop after this many reads time out in a row, and mark the rest unavailable
 RATE_LIMIT_RETRIES = 3   # a rate-limited read waits for the reset and tries again, up to this many times
 RATE_LIMIT_MAX_WAIT = 60
+RATE_LIMIT_BACKOFF = (10, 20, 40)   # seconds, when the service gives no reset time: long enough to clear a one-minute window
 RATE_LIMIT_TOTAL_WAIT = 300   # seconds an operation may spend waiting out rate limits, across all its reads
 MAX_THROTTLED_IN_A_ROW = 2   # reads that stay rate-limited after their retries: this many in a row stop the operation
 _CURRENT_BUDGET = ContextVar('cockpit_managed_read_budget', default=None)
@@ -41,6 +42,25 @@ class ScopedPermissionDenied(ReadError):
 
 class BudgetExceeded(ReadError):
     pass
+
+
+def reset_wait(metadata):
+    """Seconds until a rate limit resets, from the error's metadata: a duration, or reset_at (epoch seconds or ms, or
+    ISO time). None when it gives neither; never negative (a stale reset means try now)."""
+    for key in ('retry_after', 'retry_after_seconds', 'reset_after', 'reset_in_seconds'):
+        value = metadata.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return max(0.0, float(value))
+    at = metadata.get('reset_at')
+    if isinstance(at, (int, float)) and not isinstance(at, bool):
+        return max(0.0, (at / 1000 if at > 1e11 else at) - time.time())
+    if isinstance(at, str):
+        from datetime import datetime
+        try:
+            return max(0.0, datetime.fromisoformat(at.replace('Z', '+00:00')).timestamp() - time.time())
+        except ValueError:
+            return None
+    return None
 
 
 class RateLimited(ReadError):
@@ -140,8 +160,7 @@ def decode_result(result, group, tool):
         code = str((err or {}).get('code', 'unavailable')) if isinstance(err, dict) else 'unavailable'
         metadata = (err.get('metadata') or {}) if isinstance(err, dict) else {}
         if 'RATE-LIMIT' in code.upper() or 'RATE_LIMIT' in code.upper():
-            wait = next((metadata.get(k) for k in ('retry_after', 'retry_after_seconds', 'reset_after', 'reset_in_seconds') if isinstance(metadata.get(k), (int, float))), None)
-            raise RateLimited(f'{group}/{tool}: {code}', wait)
+            raise RateLimited(f'{group}/{tool}: {code}', reset_wait(metadata))
         if code.upper().startswith('MT-AUTH-'):
             raise PermissionDenied(f'{group}/{tool}: {code}; owner action required')
         if str(metadata.get('upstream_status')) in ('401', '403'):
@@ -156,6 +175,7 @@ def decode_result(result, group, tool):
 
 class Client:
     def __init__(self, command=None, budget=None):
+        self.own = budget is not None   # a caller's own limit (Ask Qodo, the system map) applies alongside the operation's
         self.budget = budget or current_budget() or ReadBudget()
         self.command = command or os.environ.get('QODO_AGENT_SESSION_REVIEW_CLI') or os.environ.get('REVIEW_COCKPIT_QODO') or shutil.which('qodo') or str(Path.home() / '.qodo/bin/qodo')
 
@@ -163,20 +183,20 @@ class Client:
         """max_seconds: a caller's own deadline for this read (the notes step's), within the operation's budget.
         Every attempt, a rate-limit retry included, reserves its own call and gets only the time still left."""
         budget = current_budget() or self.budget
+        budgets = [budget] + ([self.budget] if self.own and self.budget is not budget else [])   # both count, the tighter one decides
         until = None if max_seconds is None else time.monotonic() + max_seconds
         def left():
-            mine = None if until is None else until - time.monotonic()
-            ops = budget._left()
-            return mine if ops is None else ops if mine is None else min(mine, ops)
+            ends = [x for x in [None if until is None else until - time.monotonic()] + [b._left() for b in budgets] if x is not None]
+            return min(ends) if ends else None
         for attempt in range(RATE_LIMIT_RETRIES + 1):
             remaining = left()
             if remaining is not None and remaining <= 0:
                 raise BudgetExceeded(f'{group}/{tool}: the caller\'s time ran out before the read')
-            timeout = budget.reserve() if remaining is None else min(budget.reserve(), remaining)   # a cap on calls counts every attempt
+            timeout = min([b.reserve() for b in budgets] + ([remaining] if remaining is not None else []))   # a cap on calls counts every attempt
             try:
                 return self._read_once(group, tool, args, timeout, budget)
             except RateLimited as e:   # throttled: wait for the reset (or back off) and try again, within the time and waiting still left
-                wait = min(RATE_LIMIT_MAX_WAIT, e.retry_after if e.retry_after is not None else 2 ** (attempt + 1))
+                wait = min(RATE_LIMIT_MAX_WAIT, max(1.0, e.retry_after) if e.retry_after is not None else RATE_LIMIT_BACKOFF[min(attempt, len(RATE_LIMIT_BACKOFF) - 1)])
                 remaining = left()
                 if attempt == RATE_LIMIT_RETRIES or (remaining is not None and wait >= remaining) or budget.waited + wait > RATE_LIMIT_TOTAL_WAIT:
                     budget.throttled += 1   # persistent throttling: a couple of these in a row stop the operation instead of waiting read after read

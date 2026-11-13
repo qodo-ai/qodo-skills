@@ -81,7 +81,7 @@ class EvidenceLimitsTests(unittest.TestCase):
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn('class="ft-link" readonly value="http://127.0.0.1:1/_access#key=k"', json.loads(out.stdout))   # a refused link survives a footer redraw
         self.assertIn('fetch("/api/open-external"', source); self.assertIn('evLink(j.url)', source)   # the server opens the browser; the link shows only if it can't
-        self.assertIn("{'opened': True} if opened else {'opened': False, 'url': url}", server)   # an opened browser keeps the link out of the page
+        self.assertIn("return self._json({'opened': True})", server)   # an opened browser keeps the link out of the page
 
     def test_copied_access_links_work_once_and_expire(self):
         from types import SimpleNamespace
