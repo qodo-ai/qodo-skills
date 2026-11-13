@@ -9,7 +9,8 @@ against `<session-review> <command> --help` for the bundled snapshot.
 | Resume browser | `<session-review> serve --session <id> [--style package]` |
 | Save a reviewer note | `<session-review> note --session <id> --pr owner/repo#12 'text'` |
 | Save a local mark | `<session-review> mark --session <id> --pr owner/repo#12 '👍'` |
-| Refresh source, retaining local events | `<session-review> refresh --session <id>` |
+| Refresh source, retaining local events | `<session-review> refresh --session <id>` (or rerun `review` with the same PRs) |
+| Separate package for the same PRs | `<session-review> review <PR refs...> --collect-only --new` |
 | Export locally | `<session-review> export --session <id> --out /chosen/review.html` |
 | Locate data/config | `<session-review> home` |
 
