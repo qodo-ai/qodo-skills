@@ -2427,6 +2427,7 @@ function crumb() {   // the header names the page, then the open section; with t
   const nm = document.body.classList.contains("nv-mini") ? (WPKS.find((s) => s.id === KIT.host.session) || {}).title || C.title : "";
   const pg = (TABS.find((x) => x[0] === S.tab) || TABS[0])[1], cur = SECT[S.tab], d = (cur && document.querySelector(`#panel details.sec[open][data-sec="${cur}"] > summary h2`)) || document.querySelector('#panel .wtab[aria-selected="true"] span');
   const ed = EDIT ? `<button class="ptl-ed" data-ly="page-edit" aria-label="Rename the page or change its icon" title="Rename page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>` : "";
+  if (!nm) ptlClose();   // the side menu is open again: no header switcher, so no menu
   $("#ptl").innerHTML = `${nm ? `${ptlWp(nm)}<span class="ptl-s" aria-hidden="true">›</span>` : ""}${esc(pg)}${ed}${d ? `<span class="ptl-s" aria-hidden="true">›</span><span class="ptl-c">${esc(d.textContent)}</span>` : ""}`;
 }
 const WTAB = {};   // Tabs: each page's chosen widget

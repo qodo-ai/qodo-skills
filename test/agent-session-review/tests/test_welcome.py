@@ -58,7 +58,7 @@ class WelcomeTests(unittest.TestCase):
 class HeaderSwitcherTests(unittest.TestCase):
     def test_the_header_name_switches_packages_only_with_the_side_menu_collapsed(self):
         nav = (util.ROOT / 'app/styles/nav.js').read_text()
-        code = ("const esc=String,HICON={chev:''},KIT={host:{session:'s1'}};let WPKS=[{id:'s1',title:'A'}];" + nav[:nav.index('function ptlClose')] + "const one=ptlWp('A');WPKS.push({id:'s2',title:'B'});result=[one,ptlWp('A')];")
+        code = ("const esc=String,HICON={chev:''},KIT={host:{session:'s1'}},document={getElementById:()=>null};let WPKS=[{id:'s1',title:'A'}];" + nav[:nav.index('function ptlClose')] + "const one=ptlWp('A');WPKS.push({id:'s2',title:'B'});result=[one,ptlWp('A')];")
         out = subprocess.run(['node', '-e', SCRIPT], input=json.dumps({'code': code}), capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
         one, two = json.loads(out.stdout)
@@ -66,6 +66,12 @@ class HeaderSwitcherTests(unittest.TestCase):
         self.assertNotIn('prdd', nav); self.assertIn('wpkGo(g.dataset.ptlgo, true)', nav)   # switching only, no PR filter, no reopened menu
         package = (util.ROOT / 'app/styles/package.js').read_text()
         self.assertIn('${nm ? `${ptlWp(nm)}', package)
+        self.assertIn('m.className = "ptl-mm hmenu"', nav); self.assertNotIn('"nv-mm', nav)   # never reused as the ⋮ menu
+        for key in ('ArrowDown', 'ArrowUp', 'Home', 'End'):
+            self.assertIn(key, nav)   # a keyboard menu
+        self.assertIn('if (!nm) ptlClose();', package)   # a redraw without the switcher closes its menu
+        check = subprocess.run(['node', '--check', str(util.ROOT / 'app/styles/nav.js')], capture_output=True, text=True)
+        self.assertEqual(check.returncode, 0, check.stderr)   # the whole file parses, not just the slice above
 
 
 if __name__ == '__main__':
