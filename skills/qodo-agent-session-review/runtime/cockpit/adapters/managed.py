@@ -23,6 +23,9 @@ MAX_PATCHES = 100
 MAX_OPERATION_CALLS = None   # no cap on managed reads per operation: a multi-PR package reads in full
 MAX_OPERATION_SECONDS = None   # no total time limit either; each read still has its own timeout
 READ_TIMEOUT_SECONDS = 120
+MAX_TIMEOUTS_IN_A_ROW = 3   # a stalled service: stop after this many reads time out in a row, and mark the rest unavailable
+RATE_LIMIT_RETRIES = 3   # a rate-limited read waits for the reset and tries again, up to this many times
+RATE_LIMIT_MAX_WAIT = 60
 _CURRENT_BUDGET = ContextVar('cockpit_managed_read_budget', default=None)
 
 
@@ -38,6 +41,13 @@ class BudgetExceeded(ReadError):
     pass
 
 
+class RateLimited(ReadError):
+    """The service throttled this read; retry_after is its suggested wait in seconds, when it gave one."""
+    def __init__(self, message, retry_after=None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
 class ReadBudget:
     """Shared across a whole product operation, including nested adapters and secondary reads. It counts the reads;
     a cap on calls or time applies only when a caller sets one (Ask Qodo, the system map), not by default."""
@@ -46,13 +56,15 @@ class ReadBudget:
         limit = MAX_OPERATION_SECONDS if seconds is None else seconds
         self.deadline = None if limit is None else time.monotonic() + limit
         self.calls = 0
+        self.timeouts = 0   # reads that timed out in a row
 
     def _left(self):
         return None if self.deadline is None else self.deadline - time.monotonic()
 
     def _spent(self):
         left = self._left()
-        return (self.max_calls is not None and self.calls >= self.max_calls) or (left is not None and left <= 0)
+        return ((self.max_calls is not None and self.calls >= self.max_calls) or (left is not None and left <= 0)
+                or self.timeouts >= MAX_TIMEOUTS_IN_A_ROW)
 
     def reserve(self):
         if self._spent():
@@ -63,7 +75,7 @@ class ReadBudget:
 
     def summary(self):
         left = self._left()
-        return {'calls': self.calls, 'max_calls': self.max_calls,
+        return {'calls': self.calls, 'max_calls': self.max_calls, 'timeouts_in_a_row': self.timeouts,
                 'remaining_seconds': None if left is None else max(0, left),
                 'exhausted': self._spent()}
 
@@ -123,6 +135,9 @@ def decode_result(result, group, tool):
         err = out.get('error') if isinstance(out, dict) else None
         code = str((err or {}).get('code', 'unavailable')) if isinstance(err, dict) else 'unavailable'
         metadata = (err.get('metadata') or {}) if isinstance(err, dict) else {}
+        if 'RATE-LIMIT' in code.upper() or 'RATE_LIMIT' in code.upper():
+            wait = next((metadata.get(k) for k in ('retry_after', 'retry_after_seconds', 'reset_after', 'reset_in_seconds') if isinstance(metadata.get(k), (int, float))), None)
+            raise RateLimited(f'{group}/{tool}: {code}', wait)
         if code.upper().startswith('MT-AUTH-'):
             raise PermissionDenied(f'{group}/{tool}: {code}; owner action required')
         if str(metadata.get('upstream_status')) in ('401', '403'):
@@ -140,8 +155,21 @@ class Client:
         self.budget = budget or current_budget() or ReadBudget()
         self.command = command or os.environ.get('QODO_AGENT_SESSION_REVIEW_CLI') or os.environ.get('REVIEW_COCKPIT_QODO') or shutil.which('qodo') or str(Path.home() / '.qodo/bin/qodo')
 
-    def read(self, group, tool, **args):
-        timeout = (current_budget() or self.budget).reserve()
+    def read(self, group, tool, max_seconds=None, **args):
+        """max_seconds: a caller's own deadline for this read (the notes step's), within the operation's budget."""
+        budget = current_budget() or self.budget
+        timeout = budget.reserve() if max_seconds is None else min(budget.reserve(), max_seconds)
+        for attempt in range(RATE_LIMIT_RETRIES + 1):
+            try:
+                return self._read_once(group, tool, args, timeout, budget)
+            except RateLimited as e:   # throttled: wait for the reset (or back off) and try again, within the caller's limit
+                left = budget._left() if max_seconds is None else max_seconds if budget._left() is None else min(budget._left(), max_seconds)
+                wait = min(RATE_LIMIT_MAX_WAIT, e.retry_after if e.retry_after is not None else 2 ** (attempt + 1))
+                if attempt == RATE_LIMIT_RETRIES or (left is not None and wait >= left):
+                    raise
+                time.sleep(wait)
+
+    def _read_once(self, group, tool, args, timeout, budget):
         try:
             # Installed CLI 2.1.1 advertises --args-file. Preserve booleans/numbers/cursors
             # as JSON instead of treating every dynamic schema option as a string flag.
@@ -153,8 +181,12 @@ class Client:
                 result = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
         except PermissionError as e:
             raise PermissionDenied(f'{group}/{tool}: process permission denied; owner action required') from e
-        except (OSError, subprocess.TimeoutExpired) as e:
+        except subprocess.TimeoutExpired as e:
+            budget.timeouts += 1   # several in a row stop the operation (see MAX_TIMEOUTS_IN_A_ROW)
             raise ReadError(f'{group}/{tool}: {type(e).__name__}') from e
+        except OSError as e:
+            raise ReadError(f'{group}/{tool}: {type(e).__name__}') from e
+        budget.timeouts = 0
         return decode_result(result, group, tool)
 
     def identity(self, repo, host=None):
