@@ -20,6 +20,7 @@ document.addEventListener("click", (e) => { const t = e.target.closest ? e.targe
   if (!t.closest("#ptlm")) ptlClose(); });
 document.addEventListener("keydown", (e) => { const m = document.getElementById("ptlm"); if (!m || m.hidden) return;
   if (e.key === "Escape") { ptlClose(); const b = document.querySelector("[data-ptlwp]"); if (b) b.focus(); return; }
+  if (!m.contains(document.activeElement)) return;   // focus has moved elsewhere: its keys are its own
   const items = [...m.querySelectorAll(".hopt")], i = items.indexOf(document.activeElement);   // a menu: arrows, Home and End move between the packages
   const to = { ArrowDown: (i + 1) % items.length, ArrowUp: (i - 1 + items.length) % items.length, Home: 0, End: items.length - 1 }[e.key];
   if (to !== undefined && items.length) { e.preventDefault(); items[to].focus(); } });

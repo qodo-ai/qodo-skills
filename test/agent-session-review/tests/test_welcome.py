@@ -69,6 +69,7 @@ class HeaderSwitcherTests(unittest.TestCase):
         self.assertIn('m.className = "ptl-mm hmenu"', nav); self.assertNotIn('"nv-mm', nav)   # never reused as the ⋮ menu
         for key in ('ArrowDown', 'ArrowUp', 'Home', 'End'):
             self.assertIn(key, nav)   # a keyboard menu
+        self.assertLess(nav.index('if (!m.contains(document.activeElement)) return;'), nav.index('ArrowDown:'))   # only while focus is in the menu
         self.assertIn('if (!nm) ptlClose();', package)   # a redraw without the switcher closes its menu
         check = subprocess.run(['node', '--check', str(util.ROOT / 'app/styles/nav.js')], capture_output=True, text=True)
         self.assertEqual(check.returncode, 0, check.stderr)   # the whole file parses, not just the slice above
