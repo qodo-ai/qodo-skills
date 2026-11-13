@@ -1,4 +1,4 @@
-/* Evidence limits (joined inside package.js at its marker): what the managed reads couldn't confirm, as a line in the refresh details, in full in a dialog */
+/* Fetch requests (joined inside package.js at its marker): what the managed reads couldn't confirm, as a line in the refresh details, in full in a dialog */
 const EVL = KIT.host.limits || null;   // product mode only; see evidence_limits() in cockpit/styles.py
 const evListGap = (p) => p.recorded && !p.files_list_complete && !p.sections.some((s) => s.name === "files" && !s.complete);   // an unconfirmed file list, unless the files section already reports it
 const evGaps = (p) => p.sections.filter((s) => !s.complete).length + (evListGap(p) ? 1 : 0) + (p.files_missing ? 1 : 0) + p.files_open.length + p.files_unrecorded + p.overlaps.length + (p.qodo_error ? 1 : 0);
@@ -12,17 +12,18 @@ function evSummary() {   // the package: [tone, headline, a line under it]
 }
 function evTip() {   // the refresh details' section: the state, and a way to the full list
   if (!EVL || !EVL.prs.length) return ""; const [t, h] = evSummary();
-  return `<button type="button" class="ev-tip" data-ev-open aria-haspopup="dialog"><span class="ev-k">Evidence limits</span><span class="ev-s"><i class="ev-dot ${t}"></i>${esc(h)}</span><span class="ev-more">See the details</span></button>`;
+  return `<button type="button" class="ev-tip" data-ev-open aria-haspopup="dialog"><span class="ev-k">Fetch requests</span><span class="ev-s"><i class="ev-dot ${t}"></i>${esc(h)}</span><span class="ev-more">See the details</span></button>`;
 }
-let EVLINK = null;   // a minted link the clipboard refused: {url, until}; kept so a footer redraw still shows it
-function authTip() {   // Session auth: this browser holds access until the server restarts; Copy link makes a one-time link for another browser
+let EVLINK = null, EVOPENED = false;   // EVLINK: a one-time link to copy by hand, {url, until}, kept so a footer redraw still shows it; EVOPENED: the browser was opened
+function authTip() {   // Session auth: this browser holds access until the server restarts; Open in external browser signs in your default browser with a one-time link
   if (!KIT.host.access_link) return "";
   if (EVLINK && EVLINK.until > Date.now()) return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">Copy this link: it works once, within 10 minutes</span><input class="ft-link" readonly value="${esc(EVLINK.url)}" aria-label="Access link"></div>`;
-  return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">This browser is signed in until the server restarts</span><button type="button" class="ft-copy" data-copy-access title="Paste it into any browser on this machine">Copy link</button></div>`;
+  if (EVOPENED) return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">Opened in your default browser</span><button type="button" class="ft-copy" data-access-fallback title="Shows a one-time link to paste into any browser on this machine">Didn't open? Get a link</button></div>`;
+  return `<div class="ev-tip ft-auth"><span class="ev-k">Session auth</span><span class="ev-s">This browser is signed in until the server restarts</span><button type="button" class="ft-copy" data-open-external title="Opens this review in your default browser, signed in with a one-time link">Open in external browser</button></div>`;
 }
-function evLink(url) {   // the clipboard refused: the link itself, selected, to copy by hand, in whichever footer is on the page now
+function evLink(url) {   // the browser couldn't be opened: the one-time link itself, selected, to copy by hand, in whichever footer is on the page now
   EVLINK = { url, until: Date.now() + 600000 }; const els = [...document.querySelectorAll(".ft-auth")];
-  if (!els.length) return toast("Couldn't copy the access link; open the refresh details to copy it");
+  if (!els.length) return toast("Couldn't open your browser; open the refresh details to copy the link");
   els.forEach((el) => { el.outerHTML = authTip(); });
   const i = document.querySelector(".ft-link"); if (i) { i.focus(); i.select(); }
 }
@@ -50,18 +51,20 @@ function evCommits() {   // the PRs' read commits, by repo, and any new commits 
 function evOpen() {   // the full list, in a dialog like the others
   if (!EVL) return; let m = document.getElementById("evm"); const [t, h, sub] = evSummary();
   if (!m) { m = document.createElement("div"); m.id = "evm"; m.className = "lmod"; document.body.appendChild(m); }
-  m.innerHTML = `<div class="lmod-c evm-c" role="dialog" aria-modal="true" aria-label="Evidence limits"><div class="lmod-h"><b>Evidence limits</b><button type="button" class="wz-ic" data-ev-close aria-label="Close" title="Close (Esc)">✕</button></div>
+  m.innerHTML = `<div class="lmod-c evm-c" role="dialog" aria-modal="true" aria-label="Fetch requests"><div class="lmod-h"><b>Fetch requests</b><button type="button" class="wz-ic" data-ev-close aria-label="Close" title="Close (Esc)">✕</button></div>
     <div class="ev-sum"><i class="ev-dot ${t}"></i><div><b>${esc(h)}</b><p class="muted">${esc(sub)}</p></div></div>
-    <p class="lmod-p">This review reads each PR through Qodo's managed tools, a page at a time and within a limit of calls and time, and records whether each part was read in full.</p>
+    <p class="lmod-p">This review reads each PR through Qodo's managed tools, a page at a time, and records whether each part was read in full.</p>
     ${EVL.prs.map(evPr).join("")}<p class="muted ev-foot">Diagrams and fonts load from their public CDNs.</p></div>`;
   m.querySelector("[data-ev-close]").focus();
 }
 document.addEventListener("click", (e) => { const t = e.target.closest ? e.target : null; if (!t) return;
   if (t.closest("[data-ev-open]")) { e.preventDefault(); return evOpen(); }
   if (t.closest("[data-commits-open]")) { e.preventDefault(); return evCommits(); }
-  if (t.closest("[data-copy-access]")) { e.preventDefault();   // the server mints a one-time link; the page never holds a key
-    return fetch("/api/access-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((r) => (r.ok ? r.json() : Promise.reject())).then(({ url }) =>
-      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(() => toast("Access link copied: it opens this review once, in any browser on this machine, within 10 minutes"), () => evLink(url)),
-      () => toast("Couldn't make an access link; reload the page")); }
+  if (t.closest("[data-open-external]")) { e.preventDefault();   // the local server opens your default browser on a one-time link; the page sees the link only if that fails
+    return fetch("/api/open-external", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((r) => (r.ok ? r.json() : Promise.reject())).then((j) => {
+      if (!j.opened) return evLink(j.url);
+      EVOPENED = true; document.querySelectorAll(".ft-auth").forEach((el) => { el.outerHTML = authTip(); }); toast("Opened in your default browser"); }, () => toast("Couldn't open your browser; reload the page")); }
+  if (t.closest("[data-access-fallback]")) { e.preventDefault();   // a launcher can report success and still fail: a link to copy by hand, on request
+    return fetch("/api/open-external", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ link: true }) }).then((r) => (r.ok ? r.json() : Promise.reject())).then((j) => evLink(j.url), () => toast("Couldn't make a link; reload the page")); }
   const m = document.getElementById("evm"); if (m && (t.id === "evm" || t.closest("[data-ev-close]"))) m.remove(); });
 document.addEventListener("keydown", (e) => { const m = document.getElementById("evm"); if (m && e.key === "Escape") { e.stopPropagation(); m.remove(); } }, true);

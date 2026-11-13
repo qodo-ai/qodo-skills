@@ -155,6 +155,23 @@ def _saved_recipes() -> list[dict]:
     return [{"id": r["id"], "name": r["name"], "about": r.get("about", "")} for r in _recipes()]
 
 
+BROWSER_WAIT = 5   # seconds: a launcher that blocks (a text browser that waits for exit) never holds the reply longer
+
+
+def open_browser_briefly(url, wait=BROWSER_WAIT):
+    """Open the default browser on a background thread; True only when it reported success within `wait` seconds."""
+    import webbrowser
+    done, result = threading.Event(), {}
+    def run():
+        try:
+            result['ok'] = bool(webbrowser.open(url))
+        except Exception:
+            result['ok'] = False
+        done.set()
+    threading.Thread(target=run, daemon=True).start()
+    return done.wait(wait) and result.get('ok', False)
+
+
 class Handler(SimpleHTTPRequestHandler):
     sdir: Path
     cfg: dict
@@ -247,7 +264,7 @@ class Handler(SimpleHTTPRequestHandler):
         if name == APP:
             self.send_response(302); self.send_header("Location", "/index.html"); self.end_headers()
             return
-        link = bool(getattr(self.server, 'access_key', None)) and getattr(self.server, 'product', False)   # Session auth: Copy link, for another browser
+        link = bool(getattr(self.server, 'access_key', None)) and getattr(self.server, 'product', False)   # Session auth: Open in external browser, for another browser
         return self._html(as_document(render(name, self.sdir, mode="serve", access_link=link)))
 
     def _origin_error(self):
@@ -479,11 +496,18 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._json({'error': 'Access expired; reopen Agent Session Review from its launcher.'}, 403)
             return self._json({'ok': True}, cookie=cookie_name(self) + '=' + self.server.access_key
                               + '; Path=/; SameSite=Strict; HttpOnly')
-        if self.path == '/api/access-link':   # a signed-in browser asks for a one-time link that signs in another one
+        if self.path == '/api/open-external':   # a signed-in browser asks to open this review in the default browser, signed in by a one-time link
             from .local_access import authorized, mint_invite
             if not (getattr(self.server, 'product', False) and authorized(self)):
                 return self._json({'error': 'Reopen Agent Session Review from its launcher to authorize this browser.'}, 403)
-            return self._json({'url': f"http://127.0.0.1:{self.server.server_address[1]}/_access#key={mint_invite(self.server)}"})
+            link = lambda: f"http://127.0.0.1:{self.server.server_address[1]}/_access#key={mint_invite(self.server)}"
+            try:
+                want_link = bool((self._body() or {}).get('link'))   # "Didn't open? Get a link": just the link, no browser
+            except Exception:
+                want_link = False
+            if not want_link and open_browser_briefly(link()):
+                return self._json({'opened': True})
+            return self._json({'opened': False, 'url': link()})   # a fresh one-time link: a slow launch can't use up the one shown
         if "application/json" not in (self.headers.get("Content-Type") or ""):
             return self._json({"error": "JSON body required"}, 415)
         if not self._pick_session():
@@ -753,7 +777,7 @@ def serve(sdir: Path, port: int | None = None, open_browser: bool = True, style:
     from .product import enabled
     httpd.product = enabled()  # explicit launch profile, independent of the selected saved session
     httpd.access_key = secrets.token_urlsafe(32)
-    httpd.access_invites, httpd.access_invites_lock = {}, threading.Lock()   # one-time links from Copy link (local_access.mint_invite)
+    httpd.access_invites, httpd.access_invites_lock = {}, threading.Lock()   # one-time links from Open in external browser (local_access.mint_invite)
     url = f"http://127.0.0.1:{port}/"
     print(f"Agent Session Review: {url}  (session {sdir.name}, style {Handler.style}; Ctrl+C to stop)")
     if Handler.style != "cockpit":

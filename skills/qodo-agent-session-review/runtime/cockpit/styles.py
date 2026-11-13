@@ -126,7 +126,7 @@ def limits_block(lim: dict) -> str:
         gaps += [f'overlapping work: {w}' for w in p.get('overlaps') or []] + ([f"Qodo findings: {p['qodo_error']}"] if p.get('qodo_error') else [])   # read failures show with or without completeness records
         rows.append(f"<li><b>{_esc(p['key'])}</b>: {_esc('; '.join(gaps) or 'every section and patch read in full')}</li>")
     return ('<details class="ck-limits" style="margin:16px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:13px">'
-            '<summary style="cursor:pointer;font-weight:600">Evidence limits</summary><p style="color:var(--muted)">Each PR is read through Qodo\'s managed tools within a limit of calls and time. '
+            '<summary style="cursor:pointer;font-weight:600">Fetch requests</summary><p style="color:var(--muted)">Each PR is read through Qodo\'s managed tools, a page at a time. '
             'Unread or unconfirmed evidence never counts as a clean review. Diagrams and fonts load from their public CDNs.</p><ul>' + ''.join(rows) + '</ul></details>')
 
 
@@ -203,7 +203,7 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
         host['limits'] = evidence_limits(data)   # shown in the refresh details, in full in a dialog
         if '{{PACKAGE_SCRIPT}}' not in (STYLES_DIR / meta['template']).read_text():   # other styles have no refresh details: the limits as a block on the page
             tpl += limits_block(host['limits'])
-    if mode == "serve" and access_link:   # served to a browser that already holds access: Copy link asks the server for a one-time link (never in a snapshot, never a key in the page)
+    if mode == "serve" and access_link:   # served to a browser that already holds access: Open in external browser asks the server to open a one-time link (never in a snapshot, never a key in the page)
         host['access_link'] = True
     if enabled(data) and (data.get('collection') or {}).get('complete') is False:
         coll = data['collection']
