@@ -54,23 +54,25 @@ def collect(refs, default_repo, cfg):
 
 
 @bounded_operation
-def refresh(sdir, old, cfg):
+def refresh(sdir, old, cfg, refs=None, default_repo=None):
     from .product import scope
     from .session_writer import session_writer
     with scope({'product': True}), session_writer(sdir):
         # The caller may have read before a newer enrichment was accepted.
         current = json.loads((sdir / 'review-data.json').read_text())
-        return _refresh(sdir, current, cfg)
+        return _refresh(sdir, current, cfg, refs, default_repo)
 
 
-def _refresh(sdir, old, cfg):
+def _refresh(sdir, old, cfg, refs=None, default_repo=None):
     from .collect import build, _events
     client = Client()
     prs = []
     previous_collection = old.get('collection') or {}
-    requested = previous_collection.get('requested_refs') or [p.get('url') or f"{p['repo']}#{p['number']}" for p in old['prs']]
+    # refs: the package's new scope (PRs added or removed); otherwise what it was asked for before
+    requested = list(refs) if refs else previous_collection.get('requested_refs') or [p.get('url') or f"{p['repo']}#{p['number']}" for p in old['prs']]
+    default = default_repo if refs else previous_collection.get('default_repo')
     for ref in requested:
-        repo, number, host = parse_ref(ref, previous_collection.get('default_repo'))
+        repo, number, host = parse_ref(ref, default)
         collected = previous_collection.get('collected_refs') or []
         paired = list(zip(collected, old['prs'])) if len(collected) == len(old['prs']) else []
         # Exact saved inputs and returned native URLs bind to the identity observed at collection.
@@ -89,7 +91,7 @@ def _refresh(sdir, old, cfg):
         prs.append(pr)
         validate_identities(prs)
     meta = {'complete': True, 'requested_refs': requested, 'collected_refs': requested,
-            'omitted_refs': [], 'default_repo': previous_collection.get('default_repo'), 'reason': None}
+            'omitted_refs': [], 'default_repo': default, 'reason': None}
     known = {e.get('github_id') for e in _events(sdir) if e.get('github_id')}
     snapshot_path = sdir / 'review-data.json'
     snapshot = snapshot_path.read_bytes()
@@ -103,7 +105,7 @@ def _refresh(sdir, old, cfg):
         warnings = []
         if (sdir / 'enrich.json').is_file():
             from .enrich import enrich
-            warnings = enrich(sdir, json.loads((sdir / 'enrich.json').read_text()))['warnings']
+            warnings = enrich(sdir, json.loads((sdir / 'enrich.json').read_text()), reapply=True)['warnings']
         return {'session': sdir.name, 'warnings': warnings}
     except BaseException:
         # Rebuild and re-enrichment are one saved-snapshot operation. Local events are

@@ -570,11 +570,13 @@ def live_state(prs: list[dict], since_default: str = "") -> dict:
     return out
 
 
-def existing_sessions(refs: list[str], default_repo: str | None = None) -> tuple[Path | None, list[tuple[str, int]]]:
-    """Before collecting: the newest saved work package with exactly these PRs (in any order),
-    so a rerun updates it instead of creating a duplicate, plus (id, shared PR count) for the
-    packages that hold only some of them."""
+def existing_sessions(refs: list[str], default_repo: str | None = None) -> tuple[Path | None, list[dict]]:
+    """Before collecting: the newest saved work package asked for exactly these PRs (in any order),
+    so a rerun updates it instead of creating a duplicate, plus every other package that shares any
+    of them, with the PRs it holds, lacks and adds, so the user can decide its scope."""
     from .product import enabled
+    from .server import _SID
+    from .view import package_name, title_of
     if enabled():
         from .adapters.managed import parse_ref as ref
     else:
@@ -593,9 +595,19 @@ def existing_sessions(refs: list[str], default_repo: str | None = None) -> tuple
 
     def same(have):   # a host is compared only when both sides know it
         return len(have) == len(want) and all(any(r == wr and n == wn and (not h or not wh or h == wh) for r, n, h in have) for wr, wn, wh in want)
-    want = {(r.lower(), int(n), h) for r, n, h in (ref(x, default_repo) for x in refs)}
-    exact, partial = [], []
-    for d in (sorted(SESSIONS.iterdir()) if SESSIONS.is_dir() and want else []):
+
+    shown = {}   # compared in lower case, shown as written
+
+    def pr(k):
+        return shown.get(k[:2], f"{k[0]}#{k[1]}")
+    want = set()
+    for r, n, h in (ref(x, default_repo) for x in refs):
+        want.add((r.lower(), int(n), h)); shown[(r.lower(), int(n))] = f"{r}#{n}"
+    home = SESSIONS.resolve() if SESSIONS.is_dir() else None
+    exact, similar = [], []
+    for d in (sorted(SESSIONS.iterdir()) if home and want else []):
+        if d.is_symlink() or not _SID.fullmatch(d.name) or d.resolve().parent != home:
+            continue   # only real package folders: a link could point writes outside the sessions folder
         try:
             data = json.loads((d / "review-data.json").read_text())
         except (OSError, ValueError):
@@ -603,34 +615,46 @@ def existing_sessions(refs: list[str], default_repo: str | None = None) -> tuple
         if data.get("demo") or data.get("dummy"):
             continue
         prs = {(p["repo"].lower(), int(p["number"]), (p.get("identity") or {}).get("provider_host")) for p in data.get("prs") or []}
+        for p in data.get("prs") or []:
+            shown.setdefault((p["repo"].lower(), int(p["number"])), f"{p['repo']}#{p['number']}")
         col = data.get("collection") or {}
         asked = keys(col.get("requested_refs") or [], col.get("default_repo"))   # what it was asked for: a collection that stopped early still means those PRs
+        created = data.get("created") or ""
         if same(asked or prs):
-            exact.append((data.get("created") or "", d.name, d))
-        elif shared := sum(any(r == wr and n == wn for r, n, _ in prs | asked) for wr, wn, _ in want):
-            partial.append((d.name, shared))
-    return (max(exact)[2] if exact else None), sorted(partial, key=lambda x: -x[1])
+            exact.append((created, d.name, d))
+            continue
+        pairs = {(r, n) for r, n, _ in want}
+        held = sorted(pr(k) for k in prs if k[:2] in pairs)
+        if held or any(k[:2] in pairs for k in asked):
+            mine = {k[:2] for k in prs}
+            similar.append({"id": d.name, "title": package_name(d) or title_of(data), "created": created, "held": held,
+                            "missing": sorted(pr(k) for k in want if k[:2] not in mine),   # asked for now, not saved in it
+                            "extra": sorted(pr(k) for k in prs if k[:2] not in pairs)})   # saved in it, not asked for now
+    similar.sort(key=lambda x: (len(x["held"]), x["created"]), reverse=True)   # most shared PRs first, then newest
+    return (max(exact)[2] if exact else None), similar
 
 
-def refresh(sdir: Path, cfg: dict | None = None) -> dict:
+def refresh(sdir: Path, cfg: dict | None = None, refs: list[str] | None = None, default_repo: str | None = None) -> dict:
     """Re-collect the session's PRs into the same session: notes, marks and verdicts stay, the
-    enrichment (sessions/<id>/enrich.json) is re-applied so its warnings show what drifted."""
+    enrichment (sessions/<id>/enrich.json) is re-applied so its warnings show what drifted.
+    refs: a new scope for the package (PRs added or removed), collected the same way."""
     old = json.loads((sdir / "review-data.json").read_text())
     from .product import enabled
     if enabled(old):
         from .managed_work import refresh as managed_refresh
         from .util import session_config
-        return managed_refresh(sdir, old, cfg or session_config(sdir))
+        return managed_refresh(sdir, old, cfg or session_config(sdir), refs=refs, default_repo=default_repo)
     cfg = cfg or load_config()
     try:
         login = gh(["api", "user", "--jq", ".login"]).strip()
     except RuntimeError:
         login = None
-    prs = [fetch_pr(p["repo"], p["number"], annotation_checks(cfg)) for p in old["prs"]]
+    scope = [parse_ref(r, default_repo) for r in refs] if refs else [(p["repo"], p["number"]) for p in old["prs"]]
+    prs = [fetch_pr(repo, number, annotation_checks(cfg)) for repo, number in scope]
     evs = _events(sdir)
     known = {e.get("github_id") for e in evs if e.get("github_id")}
     known |= {g for e in evs if e.get("type") == "published" for g in e.get("github_ids") or []}   # posted from here
-    build(prs, cfg, session=sdir.name, reviewer_login=login, skip_github_ids=known, dest=sdir)
+    build(prs, cfg, session=sdir.name, reviewer_login=login, skip_github_ids=known, dest=sdir, open_prs=_open_prs(prs))
     if old.get("reviewers"):   # kept, but marked stale when the changed paths or the reviewer moved since they were found
         from .reviewers import basis
         new = json.loads((sdir / "review-data.json").read_text())
@@ -640,7 +664,7 @@ def refresh(sdir: Path, cfg: dict | None = None) -> dict:
     enr = sdir / "enrich.json"
     if enr.exists():
         from .enrich import enrich
-        result["warnings"] = enrich(sdir, json.loads(enr.read_text()))["warnings"]
+        result["warnings"] = enrich(sdir, json.loads(enr.read_text()), reapply=True)["warnings"]
     return result
 
 
@@ -660,14 +684,19 @@ def collect(refs: list[str], default_repo: str | None = None) -> tuple[str, Path
     except RuntimeError:
         login = None
     prs = [fetch_pr(*parse_ref(r, default_repo), annotation_checks(cfg)) for r in refs]
+    return build(prs, cfg, reviewer_login=login, open_prs=_open_prs(prs))
+
+
+def _open_prs(prs: list[dict]) -> dict:
+    """Each repo's open PRs, to spot stack members that weren't passed in (collect and refresh alike)."""
     open_prs = {}
-    for repo in sorted({p["repo"] for p in prs}):   # to spot stack members that weren't passed in
+    for repo in sorted({p["repo"] for p in prs}):
         try:
             open_prs[repo] = gh_json(["pr", "list", "--repo", repo, "--state", "open", "--limit", "300",
                                       "--json", "number,title,url,headRefName,baseRefName"]) or []
         except RuntimeError:
             pass
-    return build(prs, cfg, reviewer_login=login, open_prs=open_prs)
+    return open_prs
 
 
 def collect_demo() -> tuple[str, Path]:

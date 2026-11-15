@@ -65,10 +65,12 @@ from .product import session_operation
 
 
 @session_operation
-def enrich(sdir: Path, payload: dict, agent: str = "claude/review-prs") -> dict:
+def enrich(sdir: Path, payload: dict, agent: str = "claude/review-prs", reapply: bool = False) -> dict:
+    """reapply: a refresh putting the saved enrichment back on new evidence, where citations that
+    moved are warnings to revise, not a reason to throw the refreshed evidence away."""
     from .product import enabled
     if not enabled():
-        return _enrich(sdir, payload, agent)
+        return _enrich(sdir, payload, agent, reapply)
     from copy import deepcopy
     from .session_writer import session_writer
     from .util import _merge
@@ -80,12 +82,12 @@ def enrich(sdir: Path, payload: dict, agent: str = "claude/review-prs") -> dict:
         for extra in (authored.get('prs') or {}).values():
             validate(extra.get('findings'))
         # Normalizers can enrich their input; persist only the original authored values.
-        result = _enrich(sdir, deepcopy(authored), agent)
+        result = _enrich(sdir, deepcopy(authored), agent, reapply)
         write_json(authored_file, authored)
         return result
 
 
-def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
+def _enrich(sdir: Path, payload: dict, agent: str, reapply: bool = False) -> dict:
     cfg = session_config(sdir)
     p = sdir / "review-data.json"
     data = json.loads(p.read_text())
@@ -130,10 +132,10 @@ def _enrich(sdir: Path, payload: dict, agent: str) -> dict:
             from .decisions import normalize as normalize_decisions
             decisions, w = normalize_decisions(extra["decisions"], by_key[key])
             from .product import enabled
-            if enabled() and w:
+            if enabled() and w and not reapply:
                 raise ValueError("Invalid decisions; saved review unchanged: " + "; ".join(w))
             by_key[key]["decisions"] = decisions
-            warnings += w
+            warnings += [f"stale after refresh: {x}" for x in w] if reapply else w
     quality_for = {}   # read after attention below, which decides what counts as weakened or untested
     for key, extra in (payload.get("prs") or {}).items():
         if key in by_key and extra.get("quality") is not None:

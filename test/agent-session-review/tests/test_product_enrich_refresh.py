@@ -90,7 +90,7 @@ class ProductEnrichRefreshTests(unittest.TestCase):
                 finally:finish.set();thread.join(timeout=3)
             self.assertFalse(errors);self.assertFalse(thread.is_alive())
             real_refresh=managed_work._refresh
-            def verify_current(sdir,current,config):
+            def verify_current(sdir,current,config,*_scope):
                 self.assertEqual(current['story'][0]['text'],'Accepted newer narrative')
                 return real_refresh(sdir,current,config)
             with mock.patch.object(managed_work,'_refresh',side_effect=verify_current):managed_work.refresh(sd,stale,cfg)
