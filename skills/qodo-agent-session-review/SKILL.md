@@ -1,6 +1,6 @@
 ---
 name: qodo-agent-session-review
-description: Review pull requests or a cross-repository work package in the interactive Agent Session Review browser UI, with evidence-backed stories, Qodo findings, local reviewer notes and marks, refresh/resume and HTML export. Use for reviewing PRs together or opening Agent Session Review. Use qodo-review for local diffs, qodo-review-resolver for stored finding dispositions, and qodo-review-notes for authoring reviewer context.
+description: Review pull requests or a cross-repository work package in the interactive Agent Session Review browser UI, with evidence-backed stories, Qodo findings, local reviewer notes and marks, refresh/resume and HTML export. Use for reviewing PRs together or opening Agent Session Review, and offer it after a material change or when a PR is opened or updated. Use qodo-review for local diffs, qodo-review-resolver for stored finding dispositions, and qodo-review-notes for authoring reviewer context.
 owner: Qodo
 license: MIT for instructions and launcher; bundled runtime under Qodo terms (runtime/LICENSE).
 metadata:
@@ -9,6 +9,10 @@ metadata:
   recommended: "false"
   package: "qodo-agent-session-review"
   distribution: "skills-sh"
+arguments:
+  - name: autoopen
+    description: Optional shorthand for opening the session review at the next trigger without asking. An explicit request to open it also skips the question.
+    optional: true
 ---
 
 # Agent Session Review
@@ -27,6 +31,33 @@ managed review reads for the intended repositories. No gh installation, provider
 private Agent Session Review clone, or runtime download is required. The CLI owns credentials, transport,
 its update origin and catalog. Preserve the deployment and workspace; never switch accounts
 to make a denied read succeed. Installing this skill has no startup side effects.
+
+## When to offer a session review
+
+Offer it at two moments, only for PRs this task already has; it reviews PRs, not local diffs.
+
+- **Material change:** a completed, testable slice a person would want to look over, such as
+  several files or more than one repository, new user- or caller-facing behaviour, or a schema,
+  API, config or other contract change. Not a trivial edit, unfinished exploration, every edit,
+  a docs- or formatting-only change, or time passing. With no PR yet there is no offer; the PR
+  trigger follows. Unpushed commits aren't in the review until pushed; never push to offer it.
+- **PR opened or updated:** you just opened a PR, or pushed commits to one this task is working on.
+
+A pause for a question or an approval is not a trigger. When qodo-review applies at the same
+moment, run its final review first and offer the session review after its findings are settled,
+as one question, not two.
+
+## Offer, don't open
+
+- Ask in one prompt: the host's question dialog when it has one (Claude Code's
+  `AskUserQuestion`), otherwise one plain question. Say in one line which PRs it would cover and
+  why now. Options: open the session review now / not now / don't ask again for this task.
+  **Nothing is pre-selected.**
+- Nothing launches, no server starts and no browser opens before the user says yes.
+- Ask at most once per trigger. After "not now", don't ask again for the same change; ask at the
+  next distinct trigger. After "don't ask again", stay silent for the rest of the task.
+- `autoopen` or an explicit request to open the session review skips the question.
+- On a yes, follow the steps below unchanged.
 
 ## Instructions
 
