@@ -76,8 +76,10 @@ def main(argv=None):
     r.add_argument("--style", choices=style_names(), help=STYLE_HELP)
 
     sub.add_parser("packages", help="the saved work packages as JSON (id, title, PRs, created), newest first")
+    g = sub.add_parser("gaps", help="the default layout's widgets that are still empty, and what fills each one"); g.add_argument("--session"); g.add_argument("--json", action="store_true")
     s = sub.add_parser("serve"); s.add_argument("--session"); s.add_argument("--port", type=int); s.add_argument("--no-open", action="store_true")
     s.add_argument("--style", choices=style_names(), help=STYLE_HELP)
+    s.add_argument("--invite", action="store_true", help="print a one-time sign-in link for the agent's integrated browser instead of opening the default browser")
 
     e = sub.add_parser("enrich"); e.add_argument("file"); e.add_argument("--session")
 
@@ -176,6 +178,17 @@ def main(argv=None):
         print(f"Collected session {session} -> {sdir / 'review-data.json'}")
         if not a.collect_only:
             serve(sdir, a.port, not a.no_open, a.style)
+    elif a.cmd == "gaps":
+        from .gaps import gaps
+        rows = gaps(_session_dir(a.session))
+        if a.json:
+            print(json.dumps(rows, indent=2, ensure_ascii=False))
+        elif not rows:
+            print("Every widget in the default layout has content.")
+        else:
+            for r in rows:
+                print(f"{r['page']} › {r['widget']}{' (if the sources have it)' if r['optional'] else ''}: {r['write']}  [{r['via']}]")
+        sys.exit(1 if any(not r["optional"] for r in rows) else 0)
     elif a.cmd == "packages":
         from .server import list_sessions
         print(json.dumps([{k: s[k] for k in ("id", "title", "prs", "created")} for s in list_sessions() if not (s["demo"] or s["dummy"])], indent=2, ensure_ascii=False))
@@ -183,7 +196,7 @@ def main(argv=None):
         from .server import serve
         sdir = _session_dir(a.session)
         _warn_missing(sdir, a.style)
-        serve(sdir, a.port, not a.no_open, a.style)
+        serve(sdir, a.port, not a.no_open and not a.invite, a.style, invite=a.invite)
     elif a.cmd == "style":
         from . import recipes as R
         if a.scmd == "list":

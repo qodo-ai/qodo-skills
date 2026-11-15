@@ -8,7 +8,8 @@ only evidence. Check note applicability against the current head. Never invent w
 choice or why it was made.
 
 Inspect changed conditions, triggers, defaults, limits, fallbacks, retries, service/model calls,
-data retention and scope. Ask which are explicit requirements and which were chosen during coding.
+data retention and scope. Work out which are explicit requirements and which were chosen during
+coding from the notes, tickets and PR text; don't ask the user.
 Write per-PR `decisions` with a short `text`, source, effect, why it matters and changed-line `ev`:
 
 | Status | Evidence needed |

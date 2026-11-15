@@ -53,10 +53,11 @@ managed-evidence completeness. Retained legacy layouts, including Briefing/Focus
 status-label and export limits. Do not select them as a qualified product review without a
 separate validation step and an explicit explanation of those limits.
 Default package uses story and behavior; risk needs scenario factors and rollback evidence,
-while decisions needs plan-alignment content. If content is missing, keep that gap visible.
+while decisions needs plan-alignment content. `gaps` lists every widget still empty; fill each
+one. Evidence you can't reach stays a visible gap inside the content, not an empty widget.
 The ordinary review UI works without personal code-review-master or qodo-findings-triage skills.
 
-An optional Execution walkthrough accepts a builder.json directly. Supply `files` for changed
+The Execution paths and Code changes pages take a builder.json; write one for every review. Supply `files` for changed
 files with `pr`, `path`, one-line `purpose`, and `methods` with name/qual/kind, purpose,
 start/end (new lines), ostart/oend (old lines where applicable), and change. Include `flows`
 with title, trigger `{kind,label}`, ordered steps (`pr`, `repo`, `path`, `name`, depth, line,
@@ -68,11 +69,11 @@ Validate before attaching:
 `<session-review> walkthrough --session ID --builder /path/builder.json --check`, then omit `--check`.
 Warnings about absent changed files, methods or state changes are gaps to resolve or disclose.
 
-Optional Finding review pages take `--triage-dir DIR`: for each PR number N,
+The Findings review page takes `--triage-dir DIR`; build it for every PR: for each PR number N,
 `findings-N.json` is the complete raw Qodo findings envelope; `triage-N.json` includes
 `pr.repo` and findings with IDs and local verdict (fix/skip/call), reasoning and proposed change
 size where known; `triage-N.html` is the locally authored page. Keep original finding IDs,
 review identity and open/closed status. HTML must faithfully present those inputs. Validate
-with walkthrough --check. Missing pages are optional/unavailable, never proof of no findings.
+with walkthrough --check. A PR with no Qodo findings still gets its files, saying so.
 For same-number PRs in different repos use separate staging/validation rather than overwriting
 one PR's triage files. No external personal renderer is required or automatically installed.
