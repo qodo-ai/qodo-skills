@@ -104,6 +104,7 @@ class ReadBudgetTests(unittest.TestCase):
         iso = datetime.fromtimestamp(now + 45, timezone.utc).isoformat().replace('+00:00', 'Z')
         self.assertAlmostEqual(managed.reset_wait({'reset_at': iso}), 45, delta=1)
         self.assertIsNone(managed.reset_wait({'reset_at': 'soon'}))
+        self.assertIsNone(managed.reset_wait({'reset_at': 0}))   # QAR's 'no reset given': the backoff applies, not an instant retry
         stale = SimpleNamespace(stdout=json.dumps({'error': {'code': 'MT-RATE-LIMITED', 'metadata': {'retry_after': -3}}}), stderr='', returncode=1)
         ok = SimpleNamespace(stdout=json.dumps({'repos': []}), stderr='', returncode=0)
         with mock.patch('subprocess.run', side_effect=[stale, ok]), mock.patch('time.sleep') as slept:
@@ -131,6 +132,21 @@ class ReadBudgetTests(unittest.TestCase):
         self.assertIn("return self._json({'opened': False, 'url': link()})", server)   # a new invite, not the one handed to the launcher
         js = (util.ROOT / 'app/styles/evidence.js').read_text()
         self.assertIn("data-access-fallback", js); self.assertIn("JSON.stringify({ link: true })", js)   # Didn't open? Get a link
+
+    def test_other_failures_break_the_timeout_and_throttle_runs(self):
+        budget = ReadBudget()
+        client = Client('qodo', budget=budget)
+        broken = SimpleNamespace(stdout=json.dumps({'error': {'code': 'UPSTREAM-500'}}), stderr='', returncode=1)
+        with mock.patch('subprocess.run', side_effect=[subprocess.TimeoutExpired('qodo', 1), subprocess.TimeoutExpired('qodo', 1), OSError('gone'), subprocess.TimeoutExpired('qodo', 1)]):
+            for _ in range(4):
+                with self.assertRaises(ReadError):
+                    client.read('codebase', 'search-repos')
+        self.assertEqual(budget.timeouts, 1)   # the OSError ended the first run, so two plus one never reach three
+        budget.throttled = 1
+        with mock.patch('subprocess.run', return_value=broken):
+            with self.assertRaises(ReadError):
+                client.read('codebase', 'search-repos')
+        self.assertEqual(budget.throttled, 0)   # a provider error ends a run of throttled reads
 
     def test_parallel_notes_collections_keep_their_own_deadlines(self):
         import threading

@@ -41,6 +41,22 @@ STYLES: dict[str, dict] = {
 }
 APP = "cockpit"      # the full app (app/index.html)
 DEFAULT = "package"  # what a review opens on when neither --style nor config "style" says otherwise
+# the product notice: a prominent toast over the content area (a desktop computer, the rule in bold, then what it means) until the reader acknowledges it
+NOTICE_BAR = ('<style>.ck-notice{position:fixed;z-index:50;bottom:max(20px,env(safe-area-inset-bottom,0px));left:var(--nvw,0px);right:0;margin:0 auto;width:min(600px,calc(100vw - var(--nvw,0px) - 32px));'
+              'display:flex;align-items:center;gap:14px;padding:14px 14px 14px 16px;border:1px solid var(--accent-line,var(--line-strong));border-radius:12px;'
+              'background:color-mix(in srgb,var(--accent,#7968fa) 12%,var(--surface));box-shadow:0 18px 44px rgba(0,0,0,.4);color:var(--muted);'
+              'font-size:13px;line-height:1.45;animation:ck-pop .25s ease-out}.ck-notice[hidden]{display:none}'
+              '.ck-ni{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent-soft,var(--sunk));color:var(--accent-text,var(--ink))}.ck-ni svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'
+              '.ck-nt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ck-nt b{font-size:14px;font-weight:650;color:var(--ink)}'
+              '.ck-notice button{flex:none;padding:7px 16px;border:0;border-radius:8px;background:var(--accent-fill,var(--ink));color:var(--accent-ink,var(--bg));font:inherit;font-weight:600;cursor:pointer}'
+              '.ck-notice button:hover{filter:brightness(1.1)}@keyframes ck-pop{from{opacity:0;transform:translateY(12px)}}'
+              'body.nv-none .ck-notice{left:0;width:min(600px,calc(100vw - 32px))}@media (max-width:900px){.ck-notice{left:0;width:calc(100vw - 32px)}}'
+              ':root:not([data-qa-corner^="t"]) body:has(#qfab):not(.ask-off):not(.qa-open) .ck-notice{bottom:calc(max(20px,env(safe-area-inset-bottom,0px)) + 64px)}'   # clear of the Ask Qodo launcher
+              '@media print{.ck-notice{display:none!important}}</style>'
+              '<aside role="note" class="ck-notice" id="ck-notice" hidden><span class="ck-ni" aria-hidden="true"><svg viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>'
+              '<span class="ck-nt"><b>{{TITLE}}</b><span>{{NOTICE}}</span></span><button type="button"'
+              ' onclick="this.parentNode.hidden=true;try{localStorage.setItem(\'cockpit:notice-ack\',\'1\')}catch(e){}">Got it</button></aside>'
+              '<script>{const n=document.getElementById("ck-notice");try{n.hidden=!!localStorage.getItem("cockpit:notice-ack")}catch(e){n.hidden=false}}</script>')
 
 
 def names(ready_only: bool = True) -> list[str]:
@@ -70,6 +86,48 @@ def _json_tag(obj, **attrs) -> str:
     a = "".join(f' {k.replace("_", "-")}="{v}"' for k, v in attrs.items())
     # inside <script>: escape every '<' so data can never close the tag or open a comment
     return f'<script type="application/json"{a}>' + json.dumps(obj, ensure_ascii=False).replace("<", "\\u003c") + "</script>"
+
+
+def evidence_limits(data: dict) -> dict:
+    """What the managed reads couldn't confirm, per PR: sections not read in full, a changed-file list not confirmed complete,
+    changed files missing from the review, patches not confirmed complete, overlap read warnings and a Qodo read error. `recorded` is false when the PR carries no completeness records at all (a package
+    collected before product reads recorded them), so the page says that once instead of flagging every file."""
+    prs = []
+    for pr in data.get('prs', []):
+        read = pr.get('read_evidence') or {}
+        files = pr.get('files', [])
+        def done(f):   # a returned patch counts only with complete, nonempty items, as local_patch_evidence() requires
+            ev = f.get('patch_evidence') or {}
+            return ev.get('complete') is True and bool(ev.get('items')) and all(x.get('patch_complete') is True for x in ev['items'])
+        listed = pr.get('files_complete', ((read.get('sections') or {}).get('files') or {}).get('complete'))
+        prs.append({'key': pr.get('key', ''), 'title': pr.get('title', ''), 'recorded': bool(read) or any(f.get('patch_evidence') for f in files),
+                    'files_list_complete': listed is True, 'files_missing': max(0, int(pr.get('files_missing') or 0)),
+                    'sections': [{'name': k, 'status': str(v.get('status') or ''), 'complete': v.get('complete') is True} for k, v in (read.get('sections') or {}).items()],
+                    'files': len(files), 'files_open': [f.get('path', '') for f in files if f.get('patch_evidence') and not done(f)],
+                    'files_unrecorded': sum(1 for f in files if not f.get('patch_evidence')),
+                    'overlaps': [str(w) for w in pr.get('overlap_read_warnings') or []], 'qodo_error': str(pr.get('qodo_read_error') or '')})
+    return {'prs': prs}
+
+
+def limits_block(lim: dict) -> str:
+    """Evidence limits for a style without the Work Package script (which shows them in its refresh details): one folded block, a line per PR."""
+    rows = []
+    for p in lim['prs']:
+        if not p['recorded']:
+            gaps = ['no completeness recorded, so no read can be confirmed complete']
+        else:
+            gaps = [f"{s['name']} not read in full ({s['status'] or 'unknown'})" for s in p['sections'] if not s['complete']]
+            if not p['files_list_complete'] and not any(s['name'] == 'files' and not s['complete'] for s in p['sections']):
+                gaps.append('changed-file list not confirmed complete')
+            if p['files_missing']:
+                gaps.append(f"{p['files_missing']} changed file(s) missing from the review")
+            if p['files_open'] or p['files_unrecorded']:
+                gaps.append(f"patches confirmed complete: {p['files'] - len(p['files_open']) - p['files_unrecorded']} of {p['files']}")
+        gaps += [f'overlapping work: {w}' for w in p.get('overlaps') or []] + ([f"Qodo findings: {p['qodo_error']}"] if p.get('qodo_error') else [])   # read failures show with or without completeness records
+        rows.append(f"<li><b>{_esc(p['key'])}</b>: {_esc('; '.join(gaps) or 'every section and patch read in full')}</li>")
+    return ('<details class="ck-limits" style="margin:16px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:13px">'
+            '<summary style="cursor:pointer;font-weight:600">Fetch requests</summary><p style="color:var(--muted)">Each PR is read through Qodo\'s managed tools, a page at a time. '
+            'Unread or unconfirmed evidence never counts as a clean review. Diagrams and fonts load from their public CDNs.</p><ul>' + ''.join(rows) + '</ul></details>')
 
 
 def _esc(s: str) -> str:
@@ -109,7 +167,7 @@ from .product import session_operation
 
 @session_operation
 def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None = None, data: dict | None = None,
-           links: dict[str, str] | None = None) -> str:
+           links: dict[str, str] | None = None, access_link: bool = False) -> str:
     """The style as a page fragment (title, fonts, styles, markup, scripts; no html/head/body).
     mode: "serve" (notes go to the local server) or "snapshot" (they stay in the reader's browser).
     links: in a snapshot, the other styles exported next to it (style -> file name)."""
@@ -130,32 +188,30 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
         host["app"] = {"keys": list(appstate.APP_KEYS), "state": appstate.load(), "path": str(appstate.path())}
     tpl = (STYLES_DIR / meta["template"]).read_text()
     if '{{PACKAGE_SCRIPT}}' in tpl:
-        tpl = tpl.replace('{{PACKAGE_SCRIPT}}', (STYLES_DIR / 'product-state.js').read_text() + '\n' + (STYLES_DIR / 'package.js').read_text())
+        script = (STYLES_DIR / 'package.js').read_text()
+        for mark, part in (('/*@READER@*/', 'reader.js'), ('/*@EVIDENCE@*/', 'evidence.js'), ('/*@WELCOME@*/', 'welcome.js'), ('/*@NAV@*/', 'nav.js')):   # parts in their own files keep package.js under the 512 KiB limit
+            script = script.replace(mark, (STYLES_DIR / part).read_text(), 1)
+        tpl = tpl.replace('{{PACKAGE_SCRIPT}}', (STYLES_DIR / 'product-state.js').read_text() + '\n' + script)
     kit = (STYLES_DIR / "kit.js").read_text()
     page_title = title or f"{view['title']} · {meta['name']}"
     from .product import enabled, NOTICE
     if enabled(data):
         host['product'] = True
         host['notice'] = NOTICE
-        tpl += '<aside role="note" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;background:var(--surface);color:var(--ink);border-top:1px solid var(--line);padding:6px 12px;font:12px sans-serif">' + NOTICE + '</aside>'
-    if enabled(data):
-        rows = []
-        for pr in data.get('prs', []):
-            sections = (pr.get('read_evidence') or {}).get('sections') or {}
-            gaps = [k + ': ' + str(v.get('status')) + ' / complete=' + str(v.get('complete')) for k, v in sections.items() if v.get('complete') is not True]
-            gaps += [f['path'] + ': patch completeness ' + str((f.get('patch_evidence') or {}).get('complete')) for f in pr.get('files', []) if any(x.get('patch_complete') is not True for x in (f.get('patch_evidence') or {}).get('items', [])) or (f.get('patch_evidence') or {}).get('complete') is not True]
-            gaps += pr.get('overlap_read_warnings') or []
-            if pr.get('qodo_read_error'):
-                gaps.append(pr['qodo_read_error'])
-            rows.append('<li>' + _esc(pr['key']) + ': ' + _esc('; '.join(gaps) or 'bounded source pages exhausted; mutable evidence observed per page') + '</li>')
-        tpl += '<details style="margin:16px;padding:12px"><summary>Managed source evidence and limits</summary><p>Review data is observed per page. Unknown or unavailable evidence does not establish a clean review. Diagrams and fonts may require their public CDNs.</p><ul>' + ''.join(rows) + '</ul></details>'
+        head, _, rest = NOTICE.partition('. ')   # the rule as its title, the rest below it
+        tpl += NOTICE_BAR.replace('{{TITLE}}', head).replace('{{NOTICE}}', rest)
+        host['limits'] = evidence_limits(data)   # shown in the refresh details, in full in a dialog
+        if '{{PACKAGE_SCRIPT}}' not in (STYLES_DIR / meta['template']).read_text():   # other styles have no refresh details: the limits as a block on the page
+            tpl += limits_block(host['limits'])
+    if mode == "serve" and access_link:   # served to a browser that already holds access: Open in external browser asks the server to open a one-time link (never in a snapshot, never a key in the page)
+        host['access_link'] = True
     if enabled(data) and (data.get('collection') or {}).get('complete') is False:
         coll = data['collection']
         gap = f"Work package collection incomplete: {len(coll.get('collected_refs') or [])} of {len(coll.get('requested_refs') or [])} requested changes retained. Omitted: {', '.join(coll.get('omitted_refs') or []) or 'some source evidence'}."
         tpl = tpl.replace('</title>', '</title><div role="status" style="padding:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line)">' + _esc(gap) + '</div>', 1)
     html = tpl.replace("{{TITLE}}", _esc(page_title), 1)
     extra = ""
-    if "{{WALKTHROUGH}}" in html:   # Execution walkthrough and Finding review: always drawn, with data only when the session has their files
+    if "{{WALKTHROUGH}}" in html:   # Execution paths, Code changes and Finding review: always drawn, with data only when the session has their files
         from .walkthrough import page_data
         wt = page_data(sdir, data)
         html = html.replace("{{WALKTHROUGH}}", (STYLES_DIR / "walkthrough.js").read_text().replace("</script", "<\\/script"), 1)

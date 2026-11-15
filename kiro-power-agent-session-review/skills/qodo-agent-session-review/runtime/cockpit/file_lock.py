@@ -6,12 +6,15 @@ import os
 @contextmanager
 def file_lock(path):
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open('a+b') as stream:
+    with path.open('a+b', buffering=0) as stream:   # unbuffered: a refused write leaves nothing queued to fail again on close
         if os.name == 'nt':
             import msvcrt
             if stream.seek(0, 2) == 0:
-                stream.write(b'\0')
-                stream.flush()
+                try:   # another process may create the byte and lock it first: then it already exists
+                    stream.write(b'\0')
+                    stream.flush()
+                except PermissionError:
+                    pass
             stream.seek(0)
             msvcrt.locking(stream.fileno(), msvcrt.LK_LOCK, 1)
             try:

@@ -189,7 +189,7 @@ def render(style: str, sdir: Path, *, mode: str = "snapshot", title: str | None 
     tpl = (STYLES_DIR / meta["template"]).read_text()
     if '{{PACKAGE_SCRIPT}}' in tpl:
         script = (STYLES_DIR / 'package.js').read_text()
-        for mark, part in (('/*@READER@*/', 'reader.js'), ('/*@EVIDENCE@*/', 'evidence.js'), ('/*@WELCOME@*/', 'welcome.js')):   # parts in their own files keep package.js under the 512 KiB limit
+        for mark, part in (('/*@READER@*/', 'reader.js'), ('/*@EVIDENCE@*/', 'evidence.js'), ('/*@WELCOME@*/', 'welcome.js'), ('/*@NAV@*/', 'nav.js')):   # parts in their own files keep package.js under the 512 KiB limit
             script = script.replace(mark, (STYLES_DIR / part).read_text(), 1)
         tpl = tpl.replace('{{PACKAGE_SCRIPT}}', (STYLES_DIR / 'product-state.js').read_text() + '\n' + script)
     kit = (STYLES_DIR / "kit.js").read_text()

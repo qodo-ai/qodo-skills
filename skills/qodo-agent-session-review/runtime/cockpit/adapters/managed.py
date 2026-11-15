@@ -53,6 +53,8 @@ def reset_wait(metadata):
             return max(0.0, float(value))
     at = metadata.get('reset_at')
     if isinstance(at, (int, float)) and not isinstance(at, bool):
+        if at <= 0:
+            return None   # QAR's sentinel for "no reset time given": use the backoff
         return max(0.0, (at / 1000 if at > 1e11 else at) - time.time())
     if isinstance(at, str):
         from datetime import datetime
@@ -214,15 +216,23 @@ class Client:
                 from ..cli_process import argv
                 command = argv(self.command) + ['read', group, tool, '--args-file', str(params), '--json']
                 result = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
-        except PermissionError as e:
-            raise PermissionDenied(f'{group}/{tool}: process permission denied; owner action required') from e
         except subprocess.TimeoutExpired as e:
-            budget.timeouts += 1   # several in a row stop the operation (see MAX_TIMEOUTS_IN_A_ROW)
+            budget.timeouts += 1; budget.throttled = 0   # several timeouts in a row stop the operation (see MAX_TIMEOUTS_IN_A_ROW)
             raise ReadError(f'{group}/{tool}: {type(e).__name__}') from e
+        except PermissionError as e:
+            budget.timeouts = budget.throttled = 0   # any other outcome breaks both runs
+            raise PermissionDenied(f'{group}/{tool}: process permission denied; owner action required') from e
         except OSError as e:
+            budget.timeouts = budget.throttled = 0
             raise ReadError(f'{group}/{tool}: {type(e).__name__}') from e
-        budget.timeouts = 0
-        out = decode_result(result, group, tool)
+        budget.timeouts = 0   # the process answered: not a timeout
+        try:
+            out = decode_result(result, group, tool)
+        except RateLimited:
+            raise   # a throttled attempt: read() decides whether the run of throttled reads grows
+        except Exception:
+            budget.throttled = 0   # a different failure breaks the run of throttled reads
+            raise
         budget.throttled = 0   # an answered read ends a run of throttled ones
         return out
 

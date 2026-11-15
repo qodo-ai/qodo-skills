@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "qodo-agent-session-review",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Optional interactive PR/work-package review with local notes, refresh/resume and export.",
   "author": {
     "name": "Qodo",

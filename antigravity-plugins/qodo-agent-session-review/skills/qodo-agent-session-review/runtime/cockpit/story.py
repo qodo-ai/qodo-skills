@@ -34,7 +34,7 @@ KINDS = {
                     "(2-4), contracts?: [{contract, change, affects: all|new|<who>, prs?}] (what changed, and who it reaches); "
                     "or skip: why this change needs none",
     "journey":      "steps: [{actor?, text, prs: [keys], status: new|changed|unchanged|gap}]",
-    "brief":        "paragraphs: [{label, text} | str] (2-4, <= 60 words each), contributions: [{pr, adds}], "
+    "brief":        "paragraphs: [{label, text} | str] (2-5, <= 60 words each; label them Today, Why, What, How and optionally Status), contributions: [{pr, adds}], "
                     "assets?: [{kind: prd|tickets|deck|prototype, title, url: https://...}] (the feature's product "
                     "links, shown in the Product assets widget); shown as a collapsed list",
     "notice":       "items: [{title, text, tone: risk|decision|gap|good, beat?: id, pr?: key of the chapter "
@@ -187,16 +187,16 @@ def normalize(beats: list[dict], *, where: str, prs: dict[str, dict], sdir: Path
                     warn.append(f"{tag}: item {j + 1} points at unknown beat {it['beat']!r}")
         if k == "brief":
             paras = b.get("paragraphs") or []
-            if not 1 <= len(paras) <= 4:
-                warn.append(f"{tag}: brief needs 1-4 paragraphs")
+            if not 1 <= len(paras) <= 5:
+                warn.append(f"{tag}: brief needs 1-5 paragraphs")
             for j, para in enumerate(paras):
                 para = para.get("text", "") if isinstance(para, dict) else para
                 if _words(para) > PARAGRAPH_WORDS:
                     warn.append(f"{tag}: paragraph {j + 1} has {_words(para)} words (aim for <= {PARAGRAPH_WORDS})")
             labels = {str(p.get("label", "")).strip().lower() for p in paras if isinstance(p, dict)}
-            missing = [x for x in ("Why", "What", "How") if x.lower() not in labels]
-            if missing:   # the overview swaps the one-liner for each of these
-                warn.append(f"{tag}: label the brief's paragraphs Why, What and How (missing: {', '.join(missing)})")
+            missing = [x for x in ("Today", "Why", "What", "How") if x.lower() not in labels]
+            if missing:   # Product summary shows Today, the change and Why; the overview swaps the one-liner for each
+                warn.append(f"{tag}: label the brief's paragraphs Today, Why, What and How (missing: {', '.join(missing)})")
             for j, a in enumerate(b.get("assets") or []):
                 if not isinstance(a, dict) or a.get("kind") not in ("prd", "tickets", "deck", "prototype"):
                     warn.append(f"{tag}: asset {j + 1} needs kind prd, tickets, deck or prototype")

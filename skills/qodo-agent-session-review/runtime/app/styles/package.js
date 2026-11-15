@@ -1119,8 +1119,9 @@ function prddPanel() {   // the global PR filter, in the work package menu: each
   const item = (p) => `<span class="prdd-n">#${esc(p.number)}</span><span class="prdd-t">${esc(strip(p.title))}</span>`;
   return `<div class="prdd-l" role="listbox" aria-multiselectable="true" aria-label="Pull requests">${repos.map((r, n) => `${n ? `<div class="prdd-sep" role="separator"></div>` : ""}<div class="prdd-g" data-repo="${esc(r)}">${GHICON}${esc(r)}</div>${C.prs.filter((p) => p.repo === r).map((p) => opt(p.key, item(p), prOn(p.key))).join("")}`).join("")}</div>`;
 }
-const prddDraw = (focusKey) => { const m = $("#wpk .wpk-m"); if (!m || WPKV !== "prs") return; m.classList.remove("wpk-fwd", "wpk-back"); m.innerHTML = wpkMenu();   // redraw the open filter, keeping the focus on what was ticked
-  (focusKey ? m.querySelector(`[data-prpick="${CSS.escape(focusKey)}"]`) : m.querySelector(".prdd-o")).focus(); };
+const prddDraw = (focusKey) => { const f = $("#wpk .wpk-fly"), r = $("#wpk .wpk-cur"); if (!f || f.hidden) return; f.innerHTML = prddPanel();   // redraw the open filter, keeping the focus on what was ticked
+  if (r) { const c = r.querySelector(".wpk-fn"), n = prCount(); if (c) c.remove(); if (n) r.querySelector(".wpk-fw").insertAdjacentHTML("beforebegin", `<span class="wpk-fn">${esc(n)}</span>`); }
+  (focusKey ? f.querySelector(`[data-prpick="${CSS.escape(focusKey)}"]`) : f.querySelector(".prdd-o")).focus(); };
 document.addEventListener("click", (e) => {
   if (e.target.closest && e.target.closest("[data-pr-all]")) { S.pr = "all"; S.file = null; save(); return render(); }   // the empty filter's way back
   const o = e.target.closest && e.target.closest("[data-prpick]");
@@ -1131,8 +1132,9 @@ document.addEventListener("click", (e) => {
     S.file = null; save(); render(); return prddDraw(k);
   }
 });
-document.addEventListener("keydown", (e) => {   // the arrows walk the search box and the PRs it shows; Escape closes the menu
-  const m = WPKV === "prs" && $("#wpk .wpk-m:not([hidden])"); if (!m) return;
+document.addEventListener("keydown", (e) => {   // the flyout: arrows walk the PRs, Left goes back
+  const m = $("#wpk .wpk-fly:not([hidden])"); if (!m || !m.contains(document.activeElement)) return;
+  if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); wpkFly(false); return $("#wpk .wpk-cur").focus(); }
   if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); e.stopPropagation();
     const os = [...m.querySelectorAll(".prdd-o")], i = os.indexOf(document.activeElement);
     os[(i + (e.key === "ArrowDown" ? 1 : -1) + os.length) % os.length].focus(); }
@@ -1216,23 +1218,22 @@ const HICON = {
   sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
   moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
   chev: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>' };
-let WPKS = [], WPKV = "list";   // the work packages on this machine, for the switcher beside the title; WPKV: the menu's view, the list or this package's PR filter
+let WPKS = [], WPKT = 0;   // the packages on this machine; WPKT closes the PR flyout
 const prFilterOk = () => C.prs.length > 1 && !curBlocks().includes("review");   // Your review publishes the whole package, so its page has no filter
-const FWD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>', BACK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+const FWD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
 const prCount = () => { const n = prs().length; return S.pr === "all" ? "" : `${n} of ${C.prs.length} PR${C.prs.length === 1 ? "" : "s"}`; };
 const wpkMeta = (s) => {   // the package in counts: PRs, repos and stacks, no names
   const repos = s.repos ?? new Set(s.prs.map((k) => String(k).split("#")[0])).size;
   return [pl1(s.prs.length, "PR"), pl1(repos, "repo"), pl1(s.stacks || 0, "stack")].join(" · ");
 };
-function wpkMenu() {   // the list of packages, or (after the current one's arrow) its PR filter with a way back
-  const me = WPKS.find((s) => s.id === KIT.host.session), local = WPKS.length === 1 && WPKS[0].local;
-  if (WPKV === "prs") return `<div class="wpk-top wpk-bkt"><button type="button" class="hsrow wpk-bk" data-wpk-back title="Back to the work packages">${BACK}<span>Back</span></button></div><div class="wpk-prs">${prddPanel()}</div>`;
+function wpkMenu() {   // hovering the current package flies out its PR filter
+  const local = WPKS.length === 1 && WPKS[0].local;
   const item = (s) => {
     const tag = s.dummy ? ["Dummy", "A copy with made-up PRs, for trying the page"] : s.demo ? ["Demo", ""]
       : s.story ? null : ["Refresh", `The agent hasn't written this package's story yet. Ask Claude Code: /review-prs refresh session ${s.id}`];
     const inner = `<i class="hrad" aria-hidden="true"></i><span class="wpk-tx"><b>${esc(s.title)}</b><small>${esc(wpkMeta(s))}</small></span>${tag ? `<span class="wpk-tag" title="${esc(tag[1])}">${tag[0]}</span>` : ""}`;
     const q = esc(`${s.title} ${s.prs.join(" ")}`.toLowerCase()), fw = s.id === KIT.host.session && prFilterOk(), n = prCount();
-    return s.id === KIT.host.session ? `<div class="hopt on${fw ? " wpk-cur" : ""}" role="menuitemradio" aria-checked="true" data-wpk-q="${q}"${fw ? ` data-wpk-prs tabindex="0" title="Filter this package's PRs"` : ""}>${inner}${fw ? `${n ? `<span class="wpk-fn">${esc(n)}</span>` : ""}<span class="wpk-fw" aria-label="Filter PRs">${FWD}</span>` : ""}</div>`
+    return s.id === KIT.host.session ? `<div class="hopt on${fw ? " wpk-cur" : ""}" role="menuitemradio" aria-checked="true" data-wpk-q="${q}"${fw ? ` data-wpk-prs tabindex="0" aria-haspopup="true"` : ""}>${inner}${fw ? `${n ? `<span class="wpk-fn">${esc(n)}</span>` : ""}<span class="wpk-fw" aria-label="Filter PRs">${FWD}</span>` : ""}</div>`
       : `<button type="button" class="hopt" role="menuitemradio" aria-checked="false" data-wpk-go="${esc(s.id)}" data-wpk-q="${q}">${inner}</button>`;
   };
   return `<div class="wpk-top"><div class="wpk-h"><span>${local ? "This work package" : "Work packages on this machine"}</span>${local ? "" : `<button type="button" class="wz-ic" data-wpk-manage aria-label="Manage work packages" title="Manage work packages">${MICON.gear}</button>`}</div>${local ? "" : `<input class="wpk-q" type="search" placeholder="Search work packages" aria-label="Search work packages" autocomplete="off">`}</div>${WPKS.map(item).join("")}<p class="wpk-none" hidden>No work package matches.</p>`;
@@ -1241,18 +1242,17 @@ function wpkDraw() {
   const box = $("#wpk"); if (!box || !WPKS.length) return;   // one package still gets the menu: its gear opens Manage work packages
   const me = WPKS.find((s) => s.id === KIT.host.session);
   box.innerHTML = `<button type="button" class="wpk-b" data-wpk aria-haspopup="menu" aria-expanded="false" aria-label="${esc(me ? me.title : C.title)}: switch work package or filter its PRs"><span>${esc(me ? me.title : C.title)}</span>${HICON.chev}</button>`
-    + `<div class="wpk-m" role="menu" aria-label="Work packages" hidden>${wpkMenu()}</div>`;
-  box.hidden = false; $("#ttl").hidden = true; crumb(); wpkMark();
-  try { if (sessionStorage.getItem("cockpit:wpk-reopen")) { sessionStorage.removeItem("cockpit:wpk-reopen"); wpkOpen("list"); } } catch (_) {}   // a renamed package's name reaches the header too
+    + `<div class="wpk-m" role="menu" aria-label="Work packages" hidden>${wpkMenu()}</div><div class="wpk-fly" role="group" aria-label="Filter this package's PRs" hidden></div>`;
+  box.hidden = false; $("#ttl").hidden = true; crumb(); wpkMark(); if (WPKS.some((s) => s.pending)) return;   // drawn at once with this package; the rest once the list arrives
+  navReady();   // a renamed package's name reaches the header too
 }
 function wpkMark() {   // under the package's name, while the PR filter is on: how many PRs show; it opens the filter
   const f = $("#wpkf"); if (!f) return; const n = prFilterOk() ? prCount() : "";
   f.hidden = !n || !WPKS.length; f.innerHTML = n ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>${esc(n)}` : ""; f.title = n ? `Showing ${n}: change the PR filter` : "";
 }
-function wpkOpen(view) {   // open the menu on the list or on the PR filter; switching while open slides the new view in
-  const m = $("#wpk .wpk-m"), b = $("#wpk [data-wpk]"); if (!m) return; const slide = !m.hidden && WPKV !== view; WPKV = view; m.innerHTML = wpkMenu(); m.hidden = false; b.setAttribute("aria-expanded", "true");
-  m.classList.remove("wpk-fwd", "wpk-back"); if (slide) { void m.offsetWidth; m.classList.add(view === "prs" ? "wpk-fwd" : "wpk-back"); }
-  if (view === "prs") return m.querySelector(".prdd-o").focus();
+function wpkOpen(filter) {   // filter: with the PR flyout focused
+  const m = $("#wpk .wpk-m"), b = $("#wpk [data-wpk]"); if (!m) return; m.innerHTML = wpkMenu(); m.hidden = false; b.setAttribute("aria-expanded", "true");
+  if (filter) return wpkFly(true, true);
   const q = m.querySelector(".wpk-q"); if (q) { q.value = ""; wpkFilter(""); q.focus(); } else { const c = m.querySelector("[data-wpk-prs]"); if (c) c.focus(); }
 }
 function wpkFilter(v) {   // the search box: keep packages whose name or PRs contain every word typed
@@ -1267,29 +1267,44 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") { const go = $("#wpk button.hopt:not([hidden])"); if (go) wpkGo(go.dataset.wpkGo); }
   if (e.key === "ArrowDown") { e.preventDefault(); const go = $("#wpk button.hopt:not([hidden])"); if (go) go.focus(); }
 }, true);
-const wpkClose = () => { const m = $("#wpk .wpk-m"); if (m && !m.hidden) { m.hidden = true; $("#wpk [data-wpk]").setAttribute("aria-expanded", "false"); } };
-async function wpkGo(id) {   // the server keeps the pick until it restarts; this tab then reloads onto it
-  try {
+function wpkFly(on, focus) {   // beside the menu, level with the current row
+  clearTimeout(WPKT); const f = $("#wpk .wpk-fly"), r = $("#wpk .wpk-cur"), m = $("#wpk .wpk-m"); if (!f) return;
+  if (!on || !r || m.hidden) { f.hidden = true; if (r) { r.classList.remove("wpk-on"); r.setAttribute("aria-expanded", "false"); } return; }
+  if (f.hidden) { f.innerHTML = prddPanel(); f.hidden = false; } r.classList.add("wpk-on"); r.setAttribute("aria-expanded", "true");
+  const o = $("#wpk").getBoundingClientRect(), mr = m.getBoundingClientRect(), rr = r.getBoundingClientRect(), top = Math.max(8, Math.min(rr.top - 7, innerHeight - 220));
+  f.style.left = `${Math.min(mr.right + 6, innerWidth - f.offsetWidth - 8) - o.left}px`; f.style.top = `${top - o.top}px`; f.style.maxHeight = `${innerHeight - top - 8}px`;
+  if (focus) f.querySelector(".prdd-o").focus();
+}
+const wpkSoon = () => { clearTimeout(WPKT); WPKT = setTimeout(() => wpkFly(false), 250); };   // time to cross into the flyout
+document.addEventListener("pointerover", (e) => { if (e.pointerType === "mouse" && e.target.closest && e.target.closest("#wpk .wpk-cur, #wpk .wpk-fly")) wpkFly(true); });
+document.addEventListener("pointerout", (e) => { const on = (n) => n && n.closest && n.closest("#wpk .wpk-cur, #wpk .wpk-fly");
+  if (e.pointerType === "mouse" && on(e.target) && !on(e.relatedTarget) && !$("#wpk .wpk-fly").contains(document.activeElement)) wpkSoon(); });
+const wpkClose = () => { const m = $("#wpk .wpk-m"); wpkFly(false); if (m && !m.hidden) { m.hidden = true; $("#wpk [data-wpk]").setAttribute("aria-expanded", "false"); } };
+async function wpkGo(id) {   // closes the menu; the server keeps the pick, this tab reloads onto it
+  wpkClose(); try {
     const r = await fetch("/api/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session: id }) });
     if (!r.ok) throw new Error((await r.json()).error || r.statusText);
-    try { sessionStorage.setItem("cockpit:wpk-reopen", "1"); } catch (_) {}   // the menu opens again after the reload, so the new package's PR filter is one click away
+    try { sessionStorage.setItem("cockpit:wpk-switch", "1"); } catch (_) {}   // the content fades out, then in
+    document.documentElement.classList.add("ck-leaving"); await new Promise((d) => setTimeout(d, 120));
     history.replaceState(null, "", location.pathname); location.reload();
-  } catch (err) { wpkClose(); toast(`Couldn't switch: ${err.message}`); }
+  } catch (err) { toast(`Couldn't switch: ${err.message}`); }
 }
-document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("[data-wpk-prs]")) { e.preventDefault(); wpkOpen("prs"); } });
+document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " " || e.key === "ArrowRight") && e.target.matches && e.target.matches("[data-wpk-prs]")) { e.preventDefault(); wpkFly(true, true); } });
 document.addEventListener("click", (e) => {
   const t = e.target.closest ? e.target : null; if (!t) return;
-  if (t.closest("[data-wpk-prs]")) { e.stopImmediatePropagation(); return wpkOpen("prs"); }   // the current package's arrow: its PR filter
-  if (t.closest("[data-wpk-back]")) { e.stopImmediatePropagation(); return wpkOpen("list"); }
-  if (t.closest("[data-wpk-flt]")) { e.stopImmediatePropagation(); return wpkOpen("prs"); }
+  if (t.closest(".wpk-fw")) { e.stopImmediatePropagation(); return wpkFly(true, true); }   // the arrow pins the flyout (no hover on touch)
+  if (t.closest("[data-wpk-prs]")) { e.stopImmediatePropagation(); return wpkClose(); }
+  if (t.closest("[data-wpk-flt]")) { e.stopImmediatePropagation(); return wpkOpen(true); }
   const go = e.target.closest && e.target.closest("[data-wpk-go]"); if (go) return wpkGo(go.dataset.wpkGo);
   if (e.target.closest && e.target.closest("[data-wpk-manage]")) { wpkClose(); return lDialog({ kind: "wpks" }); }
-  const box = e.target.closest && e.target.closest(".snav-wp"), b = e.target.closest && (e.target.closest("[data-wpk]") || (box && !e.target.closest(".wpk-m") ? box.querySelector("[data-wpk]") : null)), m = $("#wpk .wpk-m");   // anywhere on the grey box opens it
-  if (b && m) { if (m.hidden) return wpkOpen("list"); return wpkClose(); }
-  if (!(e.target.closest && e.target.closest(".wpk-m"))) wpkClose();
+  const box = e.target.closest && e.target.closest(".snav-wp"), b = e.target.closest && (e.target.closest("[data-wpk]") || (box && !e.target.closest(".wpk-m, .wpk-fly") ? box.querySelector("[data-wpk]") : null)), m = $("#wpk .wpk-m");   // anywhere on the grey box opens it
+  if (b && m) { if (m.hidden) return wpkOpen(); return wpkClose(); }
+  if (!(e.target.closest && e.target.closest(".wpk-m, .wpk-fly"))) wpkClose();
 });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#wpk .wpk-m:not([hidden])")) { e.stopPropagation(); wpkClose(); $("#wpk [data-wpk]").focus(); } }, true);
+document.addEventListener("keydown", (e) => { if (e.key !== "Escape" || !$("#wpk .wpk-m:not([hidden])")) return; e.stopPropagation();   // the flyout first, then the menu
+  const f = $("#wpk .wpk-fly"); if (f && !f.hidden) { if (f.contains(document.activeElement)) $("#wpk .wpk-cur").focus(); return wpkFly(false); } wpkClose(); $("#wpk [data-wpk]").focus(); }, true);
 { const solo = () => { WPKS = [{ id: KIT.host.session, title: C.title, prs: C.prs.map((p) => p.key), story: true, local: true }]; wpkDraw(); };   // a snapshot, or no list: this package alone, for its PR filter
+  if (KIT.served) queueMicrotask(() => { if (!WPKS.length) { WPKS = [{ id: KIT.host.session, title: C.title, prs: C.prs.map((p) => p.key), story: true, pending: true }]; wpkDraw(); } });   // right after this script, before the first paint: the side menu's box never swaps in late
   if (KIT.served) fetch("/api/sessions").then((r) => r.json()).then((j) => { WPKS = j.sessions || []; if (WPKS.length) wpkDraw(); else solo(); }).catch(solo); else setTimeout(solo); }   // after this script, once the layout exists
 const TKEY = "cockpit:theme", DARKQ = matchMedia("(prefers-color-scheme: dark)");
 const themeNow = () => document.documentElement.dataset.theme || (DARKQ.matches ? "dark" : "light");
@@ -2233,6 +2248,7 @@ let READER = null, RDAT = 0;   // READER: "scroll" or "step" while open; RDAT: t
 /*@READER@*/   // cockpit/styles.py puts app/styles/reader.js here, inside this scope
 /*@EVIDENCE@*/   // and app/styles/evidence.js here
 /*@WELCOME@*/   // and app/styles/welcome.js
+/*@NAV@*/
 const soloHtml = (s) => `<div class="rpart" id="blk-${s.id}"><div class="sec solo" role="region" aria-label="${esc(s.label)}"><div class="ssum"><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}</div><div class="sbody">${s.html}</div></div></div>`;   // a widget that doesn't fold: a page's only one, or every one in Always open
 function secHtml(s, cur, first) {   // the Overview's card: icon, title, a summary chip, folded until opened; every page uses it
   return `<div class="rpart" id="blk-${s.id}"><details class="sec" data-sec="${esc(s.id)}"${secOpen(s.id, cur, first) ? " open" : ""}><summary><span class="stile">${sico(s.icon)}</span><h2>${esc(s.label)}</h2>${s.sub ? `<span class="ssub">${s.sub}</span>` : ""}${wfullBtn(s)}<span class="chev" aria-hidden="true"></span></summary><div class="sbody">${s.html}</div></details></div>`;
@@ -2313,7 +2329,7 @@ function navHtml(c, parts) {   // while editing, the layout's own list (dividers
   const rows = EDIT ? navItems().map((x) => (x.widgets ? TABS.find((t) => t[0] === x.id) : x)).filter(Boolean) : TABS.flatMap((t) => [...(t[4] || []).map((label) => ({ label })), t])
     .concat(RECIPE && RECIPE.id === "package-layout" ? (LAYOUT.dividers || []).filter((d) => !LAYOUT.pages.some((p) => p.id === d.at)).map((d) => ({ label: d.label })) : []);   // a divider below the last page shows there too
   return rows.map((r, i) => (Array.isArray(r) ? navPage(r, i, parts) : navDiv(r, i))).join("")
-    + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button><button class="nv-add" data-ly="div-new"><b>${LYICON.div}Add divider</b><span>A name above a group of pages</span></button>` : "");
+    + (EDIT ? `<button class="nv-add" data-ly="page-new"><b>${LYICON.page}Add page</b><span>Starts with one widget</span></button><button class="nv-add" data-ly="div-new"><b>${LYICON.div}Add divider</b><span>A name above a group of pages</span></button><button class="nv-add" data-ly="tpl"><b>${LYICON.tpl}Help me build a layout</b><span>Three questions set up the pages</span></button>` : "");
 }
 const LYICON = {   // the layout editor's icons: more options, a page, a widget, a divider, editing
   div: '<svg class="sico" viewBox="0 0 24 24" aria-hidden="true"><path d="m16 16-4 4-4-4"/><path d="M3 12h18"/><path d="m8 8 4-4 4 4"/></svg>',
@@ -2426,7 +2442,8 @@ function crumb() {   // the header names the page, then the open section; with t
   const nm = document.body.classList.contains("nv-mini") ? (WPKS.find((s) => s.id === KIT.host.session) || {}).title || C.title : "";
   const pg = (TABS.find((x) => x[0] === S.tab) || TABS[0])[1], cur = SECT[S.tab], d = (cur && document.querySelector(`#panel details.sec[open][data-sec="${cur}"] > summary h2`)) || document.querySelector('#panel .wtab[aria-selected="true"] span');
   const ed = EDIT ? `<button class="ptl-ed" data-ly="page-edit" aria-label="Rename the page or change its icon" title="Rename page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button>` : "";
-  $("#ptl").innerHTML = `${nm ? `<span class="ptl-w">${esc(nm)}</span><span class="ptl-s" aria-hidden="true">›</span>` : ""}${esc(pg)}${ed}${d ? `<span class="ptl-s" aria-hidden="true">›</span><span class="ptl-c">${esc(d.textContent)}</span>` : ""}`;
+  if (!nm) ptlClose();   // the side menu is open again: no header switcher, so no menu
+  $("#ptl").innerHTML = `${nm ? `${ptlWp(nm)}<span class="ptl-s" aria-hidden="true">›</span>` : ""}${esc(pg)}${ed}${d ? `<span class="ptl-s" aria-hidden="true">›</span><span class="ptl-c">${esc(d.textContent)}</span>` : ""}`;
 }
 const WTAB = {};   // Tabs: each page's chosen widget
 function wtabsHtml(parts) {   // one tab per widget; only the chosen one's content, with no frame, header or fold around it
@@ -3465,9 +3482,8 @@ function tplLayout({ who, depth, type }) {   // the pages a template makes: an a
 function tplHtml() {
   const q = TPLQ.map(([k, title, opts]) => `<div class="tpl-q"><p class="tpl-qh">${title}</p><div class="tpl-os${opts.length > 2 ? " three" : ""}">${opts.map(([v, t, d, ic]) => `<button class="tpl-o" data-ly="tpl-pick" data-lyv="${k}:${v}" aria-pressed="${LD[k] === v}"><span class="tpl-i"><svg class="sico" viewBox="0 0 24 24" aria-hidden="true">${ic}</svg></span><b>${t}</b><span>${d}</span></button>`).join("")}</div></div>`).join("");
   return `<div class="lmod-c tpl-c" role="dialog" aria-modal="true" aria-label="Build your own review"><div class="lmod-h"><b>Build your own review</b><button class="wz-ic" data-ly="close" aria-label="Close">✕</button></div>
-    ${LD.first ? `<p class="lmod-p">Three questions set up this review's pages and widgets for you. Cancel keeps the default layout; the wizard is on the welcome page, which Settings opens any time.</p>` : ""}
-    <div class="tpl-qs">${q}</div><p class="tpl-gal">Prefer to browse? <button type="button" data-ly="lgal">View the Layout Marketplace →</button></p>
-    <div class="lmod-f"><button type="button" class="tpl-back" data-wc-back>← Back to the welcome page</button><span class="tpl-b"><button class="btn" data-ly="close">Cancel</button><button class="btn pri" data-ly="tpl-use">${LYICON.tpl}Use this layout</button></span></div></div>`;
+    <div class="tpl-qs">${q}</div><p class="tpl-gal">Prefer to browse? <button type="button" data-ly="lgal">Browse the templates →</button></p>
+    <div class="lmod-f"><span></span><span class="tpl-b"><button class="btn" data-ly="close">Cancel</button><button class="btn pri" data-ly="tpl-use">${LYICON.tpl}Use this layout</button></span></div></div>`;
 }
 /* the layout gallery: each review style's parts, in its order, rebuilt from Work Package's widgets */
 const LGAL = [

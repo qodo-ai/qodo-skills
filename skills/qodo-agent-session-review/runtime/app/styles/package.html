@@ -3,7 +3,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<script>{ let t; try { t = JSON.parse(localStorage.getItem("cockpit:theme")); } catch (_) {} document.documentElement.dataset.theme = t === "light" ? "light" : "dark"; }</script>
+<script>{ let t; try { t = JSON.parse(localStorage.getItem("cockpit:theme")); } catch (_) {} document.documentElement.dataset.theme = t === "light" ? "light" : "dark";
+  document.documentElement.classList.add("ck-hold");   // nothing paints until the script has drawn the page (see nav.js), so the skeleton never flashes
+  try { if (sessionStorage.getItem("cockpit:wpk-switch")) { sessionStorage.removeItem("cockpit:wpk-switch"); document.documentElement.classList.add("ck-boot"); } } catch (_) {} }</script>
 <style>
 /* Layout: calm. One column, one tab at a time. The overview holds the brief, the reading-plan bar, the Impact card (findings and tests per tool, then what the change reaches) and up to three places to start; everything else waits in its tab. Detail opens on demand. */
 :root{
@@ -161,6 +163,8 @@ main.wrap{margin-left:0}   /* the contents and the review start where the header
 body:not(.nv-none) main.wrap, body:not(.nv-none) header.top{margin-left:var(--nvw)}
 header.top{z-index:40} .hrow{padding-block:12px}
 .ptl-s{margin:0 8px; color:var(--faint)} .ptl-c{color:var(--ink)} .ptl-w{color:var(--ink); font-weight:600}
+.ptl-wb{display:inline-flex; align-items:center; gap:4px; margin:-4px 0; padding:4px 6px; border:0; border-radius:6px; background:none; font:inherit; font-weight:600; color:var(--ink); cursor:pointer} .ptl-wb:hover, .ptl-wb[aria-expanded="true"]{background:var(--sunk)} .ptl-wb svg{width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+.ptl-mm{min-width:min(300px, calc(100vw - 16px))} .ptl-mh{margin:2px 8px 6px; font-size:11.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--faint)}   /* the header's package switcher, with the side menu collapsed */
 .ptl{flex:1 1 auto; min-width:0; margin:0; font-size:14px; font-weight:500; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 @media (max-width:900px){ .snav{position:static; width:auto; border-right:0; border-bottom:1px solid var(--line)} .snav-menu{flex-direction:row; flex-wrap:wrap; overflow:visible} .nv-s, .nv-cat{display:none} body:not(.nv-none) main.wrap, body:not(.nv-none) header.top{margin-left:0} }
 .hrow{display:flex; align-items:center; gap:14px; padding-block:12px 6px}
@@ -1249,9 +1253,9 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 
 /* the PR filter */
 .prdd{position:relative}   /* Code changes' filter; the PR filter lives in the work package menu */
-.wpk-cur{cursor:pointer} .wpk-cur:hover, .wpk-cur:focus-visible{background:color-mix(in srgb, var(--accent) 22%, var(--surface)); outline:none} .wpk-fw{flex:none; display:grid; place-items:center; align-self:center; width:22px; height:22px; color:var(--accent-text)} .wpk-fw svg, .wpk-bk svg{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
-.wpk-fn{flex:none; align-self:center; font-size:12px; font-weight:600; color:var(--accent-text); white-space:nowrap} .wpk-bkh{justify-content:flex-start; padding-left:0} .wpk-bkh span{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.wpk-top.wpk-bkt{padding-bottom:2px; margin-bottom:0} .wpk-bk{gap:6px; color:var(--muted); font-size:13.5px} .wpk-bk:hover{color:var(--ink)} .wpk-prs .prdd-l{padding:0} .wpk-prs .prdd-g:first-child{padding-top:2px}   /* the PR filter, inside the menu: one Back row, then the PRs, close together */
+.wpk-cur{cursor:pointer} .wpk-cur:hover, .wpk-cur.wpk-on, .wpk-cur:focus-visible{background:color-mix(in srgb, var(--accent) 22%, var(--surface)); outline:none} .wpk-fw{flex:none; display:grid; place-items:center; align-self:center; width:22px; height:22px; color:var(--accent-text)} .wpk-fw svg{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+.wpk-fn{flex:none; align-self:center; font-size:12px; font-weight:600; color:var(--accent-text); white-space:nowrap}
+.wpk-fly{position:absolute; z-index:81; width:min(340px, calc(100vw - 16px)); box-sizing:border-box; overflow-y:auto; padding:6px; background:var(--surface); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); animation:wpkFly .14s ease-out} .wpk-fly .prdd-l{padding:0} .wpk-fly .prdd-g:first-child{padding-top:2px}   /* the PR filter flies out beside the menu, its PRs close together */
 .wpk-flt{display:inline-flex; align-items:center; gap:5px; margin-top:6px; padding:2px 8px; border:1px solid var(--accent-line); border-radius:999px; background:var(--accent-soft); color:var(--accent-text); font:600 11.5px var(--f-body); cursor:pointer} .wpk-flt[hidden]{display:none} .wpk-flt svg{width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round}   /* the filter is on */
 .prdd-b{position:relative; display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--muted); cursor:pointer}   /* an icon, like the header's other buttons */
 .prdd-fi{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round}   /* three lines narrowing like a funnel */ .prdd-b.on{color:var(--accent-text); border-color:var(--accent-line)}
@@ -1317,8 +1321,7 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .ev-cv{flex:none; width:7px; height:7px; border-right:1.5px solid var(--muted); border-bottom:1.5px solid var(--muted); transform:rotate(-45deg); transition:transform .15s} .ev-pr[open] .ev-cv{transform:rotate(45deg)}
 .ev-b{padding:0 2px 12px 16px; font-size:13.5px} .ev-b ul{margin:4px 0 8px; padding-left:18px} .ev-b li{margin:2px 0} .ev-b li .muted{margin-left:8px} .ev-l{margin:8px 0 2px; font-weight:600} .ev-b p{margin:4px 0} .ev-b code{font-size:12.5px}
 .ev-foot{margin:12px 0 0; padding-top:10px; border-top:1px solid var(--line); font-size:12.5px}
-.wpk-m.wpk-fwd > *{animation:wpkFwd .24s cubic-bezier(.2,.7,.3,1) both} .wpk-m.wpk-back > *{animation:wpkBack .24s cubic-bezier(.2,.7,.3,1) both}   /* the Workpackage menu: the PR filter slides in from the right, the list back from the left */
-@keyframes wpkFwd{from{opacity:0; transform:translateX(28px)}} @keyframes wpkBack{from{opacity:0; transform:translateX(-28px)}}
+@keyframes wpkFly{from{opacity:0; transform:translateX(-6px)}}
 /* the welcome page */
 .wcm{z-index:85} .wc-c{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.08fr); width:min(940px, 100%); height:auto; max-height:100%; padding:0; overflow:auto; animation:wcIn .32s cubic-bezier(.2,.7,.3,1) both}
 @keyframes wcIn{from{opacity:0; transform:translateY(14px) scale(.985)}}
@@ -1342,9 +1345,9 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .wc-f{list-style:none; margin:4px 0; padding:0; display:flex; flex-direction:column; gap:12px} .wc-f li{display:flex; gap:12px; align-items:flex-start} .wc-f li > span:last-child{display:flex; flex-direction:column; gap:1px; font-size:13.5px; color:var(--muted)} .wc-f b{font-size:14px; color:var(--ink)}
 .wc-fi{flex:none; display:grid; place-items:center; width:32px; height:32px; border-radius:9px; background:var(--accent-soft); color:var(--accent-text)} .wc-fi .sico{width:16px; height:16px}
 .wc-a{display:flex; flex-wrap:wrap; gap:10px; margin-top:8px} .wc-a .btn{padding:9px 18px; font-size:14.5px}
-.wc-ck{display:flex; align-items:center; gap:8px; margin-top:6px; font-size:13.5px; color:var(--ink); cursor:pointer} .wc-ck input{width:16px; height:16px; margin:0; accent-color:var(--accent)} .wc-note{margin:-8px 0 0 24px; font-size:12.5px; color:var(--faint)}
+.wc-foot{display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin-top:6px} .wc-ck{display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink); cursor:pointer} .wc-ck input{width:16px; height:16px; margin:0; accent-color:var(--accent)} .wc-note{font-size:12.5px; color:var(--faint)}   /* on the checkbox's line */
 @media (max-width:760px){ .wc-c{grid-template-columns:1fr} .wc-hero{border-right:0; border-bottom:1px solid var(--line); padding:22px} .wc-art{max-width:260px} .wc-b{padding:24px 22px} }
-@media (prefers-reduced-motion:reduce){ .wc-c, .wc-art, .wa-card, .wa-bar, .wa-badge > circle, .wa-diff, .wa-scan, .wpk-m > *{animation:none !important} .wa-diff, .wa-scan{display:none} }
+@media (prefers-reduced-motion:reduce){ .wc-c, .wc-art, .wa-card, .wa-bar, .wa-badge > circle, .wa-diff, .wa-scan, .wpk-fly{animation:none !important} .wa-diff, .wa-scan{display:none} }
 .wc-row{display:flex; flex-direction:column; align-items:flex-start; gap:10px} .wc-row > .hsrow{padding:0} .wc-row > .hsrow > span{flex:1; display:flex; flex-direction:column; gap:2px; text-align:left} .wc-row > .hsrow:hover{background:none} .wc-now{margin:0}   /* Settings: the welcome switch and its button, in one card */
 .tpl-back{border:0; background:none; padding:0; font:inherit; font-size:14px; color:var(--accent-text); cursor:pointer} .tpl-back:hover{text-decoration:underline}   /* the layout wizard: back to the welcome page */
 /* the tour: a spotlight on the part of the page, a card beside it */
@@ -1355,13 +1358,15 @@ body.ask-off #qfab, body.ask-off #qask, body.ask-off .askit, body.ask-off .selpo
 .wct-a{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px} .wct-a > span{display:flex; gap:8px} .wct-skip{border:0; background:none; padding:0; font:inherit; font-size:12.5px; color:var(--faint); cursor:pointer} .wct-skip:hover{color:var(--ink)}
 
 /* the … menu, the floating Save bar, the add placeholders */
-.nv-mm{position:fixed; z-index:70; width:max-content; min-width:min(220px, calc(100vw - 16px)); max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); overflow-y:auto; box-sizing:border-box; padding:6px; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface); box-shadow:var(--shadow)} .nv-mm[hidden]{display:none}
+.nv-mm, .ptl-mm{position:fixed; z-index:70; width:max-content; min-width:min(220px, calc(100vw - 16px)); max-width:calc(100vw - 16px); max-height:calc(100dvh - 16px); overflow-y:auto; box-sizing:border-box; padding:6px; border:1px solid var(--line-strong); border-radius:10px; background:var(--surface); box-shadow:var(--shadow)} .nv-mm[hidden], .ptl-mm[hidden]{display:none}
 .lsave{position:fixed; left:50%; bottom:20px; z-index:65; display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; border:1px solid var(--line-strong); border-radius:12px; background:var(--surface); box-shadow:var(--shadow); font-size:13.5px; color:var(--muted);
   transform:translate(-50%, calc(100% + 40px)); opacity:0; pointer-events:none; transition:transform .25s ease, opacity .25s ease}
 .lsave.on{transform:translate(-50%, 0); opacity:1; pointer-events:auto} .lsave .sico{width:16px; height:16px; color:var(--accent-text)}
 .nv-add{display:flex; flex-direction:column; align-items:center; gap:1px; text-align:center} .nv-add b{display:inline-flex; align-items:center; gap:8px; font-weight:600; color:var(--accent-text)} .nv-add span{font-weight:400; font-size:12.5px; color:var(--muted)} .nv-add .sico{width:15px; height:15px}   /* like Add a widget: the action, then a secondary line */
 .wadd b{display:inline-flex; align-items:center; gap:8px; font-weight:600} .wadd .sico{width:16px; height:16px}
 .nv-x .sico, .wz-ic .sico{width:14px; height:14px}
+html.ck-hold body > *{visibility:hidden; animation:ck-show 0s 2s forwards} @keyframes ck-show{to{visibility:visible}}   /* held until drawn: the browser keeps the previous page up meanwhile; shown after 2 s whatever happens */
+main.wrap{transition:opacity .16s ease} html.ck-leaving main.wrap, html.ck-boot main.wrap{opacity:0}   /* switching packages: only the page content fades out and back in; the header and side menu stay */
 </style>
 
 <header class="top"><div class="wrap">

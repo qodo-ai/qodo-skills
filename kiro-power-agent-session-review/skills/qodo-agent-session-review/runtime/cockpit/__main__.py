@@ -103,7 +103,7 @@ def main(argv=None):
     x.add_argument("--fragment", action="store_true", help="no html/head/body skeleton (for Claude Artifacts)")
     x.add_argument("--style", choices=style_names(), help=STYLE_HELP)
     x.add_argument("--with-styles", action="store_true", help="also write every other ready style next to it, linked from the style switcher")
-    wk = sub.add_parser("walkthrough", help="the Work Package's Execution walkthrough and Finding review pages: check builder.json and triage pages, copy them into the session")
+    wk = sub.add_parser("walkthrough", help="the Work Package's Execution paths, Code changes and Finding review pages: check builder.json and triage pages, copy them into the session")
     wk.add_argument("--session"); wk.add_argument("--builder", help="builder.json (files, parts and flows)")
     wk.add_argument("--triage-dir", help="a folder of triage-<n>.html, triage-<n>.json and findings-<n>.json")
     wk.add_argument("--check", action="store_true", help="only report what's wrong; copy nothing")
@@ -255,7 +255,7 @@ def main(argv=None):
             print("triage: " + ", ".join(f"{t['pr']} ({t['counts']['open']} open)" for t in triage))
         if not a.check and (bf or td):
             attach(sdir, bf, td)
-            print(f"Copied into {sdir.name}: the Work Package shows Execution walkthrough and Finding review on the next load")
+            print(f"Copied into {sdir.name}: the Work Package shows Execution paths, Code changes and Finding review on the next load")
     elif a.cmd in ("note", "mark"):
         from .server import append_events
         sdir = _session_dir(a.session)

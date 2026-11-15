@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "instructionMode": "embedded",
-  "packageVersion": "2.3.0",
+  "packageVersion": "2.3.1",
   "minimumCliVersion": "2.0.0",
   "repository": "https://github.com/qodo-ai/qodo-skills",
   "skills": {
