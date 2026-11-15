@@ -78,7 +78,7 @@ let CASEL = null;   // the file picked in Code map' map or tree: its Code change
 function caFileHtml() {
   if (!CASEL) return `<h4 class="ca-ttl">Code changes</h4><div class="ca-file ca-none"><p class="muted">Pick a file in the map or the tree, or click its eye, to see its code changes here.</p></div>`;   // nothing picked yet
   const f = BWF.find((x) => x.pr === CASEL.pr && x.path === CASEL.path);
-  const body = f ? bwFileHtml(f).replace(/ id="[^"]*"/g, "") : `<p class="muted">No code changes were written for this file. They come with the execution paths, from the code-review-master skill.</p>`;   // no ids: Code changes may share the page
+  const body = f ? bwFileHtml(f).replace(/ id="[^"]*"/g, "") : `<p class="muted">No code changes were written for this file. They come with the execution paths.</p>`;   // no ids: Code changes may share the page
   return `<h4 class="ca-ttl">Code changes</h4><details class="ca-file"${CASEL.open === false ? "" : " open"}><summary><code>${esc(base(CASEL.path))}</code>${C.prs.length > 1 ? `<span class="muted">${esc(shortPr(CASEL.pr))}</span>` : ""}<span class="chev" aria-hidden="true"></span></summary><div class="ca-b">${body}</div></details>`;
 }
 function caPick(x) {   // pick a file: its changes open (again) under the widget, the file marked where it was picked
@@ -3381,9 +3381,9 @@ const has = (w) => Object.hasOwn(BLOCKS, w);   // Execution paths and Finding re
 function layoutRecipe() {   // every page and every widget on it, whether or not this review has data for it: an empty widget says so
   return { ...RISKR, id: "package-layout", tabs: LAYOUT.pages.map((p) => ({ id: p.id, label: p.label, icon: p.icon, dividers: (LAYOUT.dividers || []).filter((d) => d.at === p.id).map((d) => d.label), blocks: p.widgets.slice() })) };
 }
-const WEMPTY = { builder: "No execution paths were written for this review. Ask the coding agent for one with the code-review-master skill.",
-  codechg: "No code changes tree was written for this review. Ask the coding agent for one with the code-review-master skill.",
-  triage: "No findings triage was built for these PRs. Ask the coding agent for one with the qodo-findings-triage skill.",
+const WEMPTY = { builder: "No execution paths were written for this review. Ask the coding agent for one.",
+  codechg: "No code changes tree was written for this review. Ask the coding agent for one.",
+  triage: "No findings triage was built for these PRs. Ask the coding agent for one.",
   system: "This review has no system map. It's drawn when the coding agent writes one with the review." };
 const wEmpty = (b) => `<p class="wempty">${esc(WEMPTY[b] || `${(WIDGETS[b] || [b])[0]} has nothing to show for this review yet.`)}</p>`;   // a widget with no data keeps its place and says why
 const curPage = () => LAYOUT.pages.find((p) => p.id === S.tab) || LAYOUT.pages[0];

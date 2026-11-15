@@ -228,7 +228,7 @@ function sBuilder(tree) {
   if (out.length === 1 && SECT[S.tab] === undefined) SECT[S.tab] = out[0].id;   // one section: open it
   return out;
 }
-const bwEmpty = (tree) => !CRM.builder ? `<p class="muted">The execution paths haven't been written for this review. Ask the coding agent for one with the code-review-master skill.</p>`
+const bwEmpty = (tree) => !CRM.builder ? `<p class="muted">The execution paths haven't been written for this review. Ask the coding agent for one.</p>`
   : `${bwHead(tree)}<p class="muted">${tree ? "Everything is hidden by the filters above." : "No flows were written for these PRs."}</p>`;
 
 /* Finding review: every PR's triaged Qodo findings as one review: summary, fix estimates, each finding with its code and an action, one prompt for the agent */
@@ -317,7 +317,7 @@ function triCard(x) {
     <div class="dbody">${body}${c ? "" : triAct(x)}</div></details>`;
 }
 function bTriage() {
-  if (!TRI.length) return `<p class="tri-none">No findings triage was built for these PRs. Ask the coding agent for one with the qodo-findings-triage skill.</p>`;
+  if (!TRI.length) return `<p class="tri-none">No findings triage was built for these PRs. Ask the coding agent for one.</p>`;
   const all = triAll(), open = all.filter((x) => !tClosed(x)), closed = all.length - open.length, quiet = TRI.filter((t) => prOn(t.pr) && !t.targets);
   const cnt = (f) => open.filter((x) => (f === "new" ? x.isNew : !x.isNew && x.verdict === f)).length;
   const fbtn = (v, t, n) => `<button class="pv" data-tfilt="${v}" aria-pressed="${TV.filter === v}">${t}<span class="dfn">${n}</span></button>`;
