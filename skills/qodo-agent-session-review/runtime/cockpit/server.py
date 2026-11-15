@@ -765,7 +765,7 @@ def _gh_error(e: Exception, what: str) -> str:
     return msg[:300]
 
 
-def serve(sdir: Path, port: int | None = None, open_browser: bool = True, style: str | None = None):
+def serve(sdir: Path, port: int | None = None, open_browser: bool = True, style: str | None = None, invite: bool = False):
     from .styles import require
     cfg = session_config(sdir)
     cfg.setdefault("emoji", EMOJI)
@@ -779,10 +779,13 @@ def serve(sdir: Path, port: int | None = None, open_browser: bool = True, style:
     httpd.access_key = secrets.token_urlsafe(32)
     httpd.access_invites, httpd.access_invites_lock = {}, threading.Lock()   # one-time links from Open in external browser (local_access.mint_invite)
     url = f"http://127.0.0.1:{port}/"
-    print(f"Agent Session Review: {url}  (session {sdir.name}, style {Handler.style}; Ctrl+C to stop)")
+    print(f"Agent Session Review: {url}  (session {sdir.name}, style {Handler.style}; Ctrl+C to stop)", flush=True)
     if Handler.style != "cockpit":
         print(f"  local notes and review: {url}index.html")
-    if open_browser:
+    if invite:   # for the coding agent's own integrated browser: a key that works once, never the server's own
+        from .local_access import INVITE_TTL, mint_invite
+        print(f"  Sign-in link for the integrated browser (works once, {INVITE_TTL // 60} minutes; don't show it to anyone): {url}_access#key={mint_invite(httpd)}", flush=True)
+    elif open_browser:
         import webbrowser
         access_url = url + '_access#key=' + httpd.access_key
         threading.Timer(0.5, lambda: webbrowser.open(access_url)).start()

@@ -78,6 +78,7 @@ def main(argv=None):
     sub.add_parser("packages", help="the saved work packages as JSON (id, title, PRs, created), newest first")
     s = sub.add_parser("serve"); s.add_argument("--session"); s.add_argument("--port", type=int); s.add_argument("--no-open", action="store_true")
     s.add_argument("--style", choices=style_names(), help=STYLE_HELP)
+    s.add_argument("--invite", action="store_true", help="print a one-time sign-in link for the agent's integrated browser instead of opening the default browser")
 
     e = sub.add_parser("enrich"); e.add_argument("file"); e.add_argument("--session")
 
@@ -183,7 +184,7 @@ def main(argv=None):
         from .server import serve
         sdir = _session_dir(a.session)
         _warn_missing(sdir, a.style)
-        serve(sdir, a.port, not a.no_open, a.style)
+        serve(sdir, a.port, not a.no_open and not a.invite, a.style, invite=a.invite)
     elif a.cmd == "style":
         from . import recipes as R
         if a.scmd == "list":

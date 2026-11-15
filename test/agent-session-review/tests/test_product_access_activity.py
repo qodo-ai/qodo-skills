@@ -120,6 +120,24 @@ class ProductAccessActivityTests(unittest.TestCase):
             self.assertNotIn(instance.access_key, output.getvalue())
             self.assertTrue(instance.product)
 
+    def test_invite_prints_a_one_time_link_for_the_integrated_browser(self):
+        with self.local_server() as (root, unused, cfg):
+            from urllib.parse import parse_qs, urlsplit
+            instance = ThreadingHTTPServer(('127.0.0.1', 0), server.Handler)
+            output = io.StringIO()
+            with mock.patch.object(server, 'session_config', return_value=cfg), \
+                 mock.patch.object(server, 'ThreadingHTTPServer', return_value=instance), \
+                 mock.patch.object(instance, 'serve_forever'), mock.patch('webbrowser.open') as browser, \
+                 mock.patch.dict(os.environ, {'REVIEW_COCKPIT_PRODUCT': '1'}), redirect_stdout(output):
+                server.serve(root / 'sessions' / 'a', open_browser=False, style='cockpit', invite=True)
+            browser.assert_not_called()   # the agent opens it in its own browser
+            line = next(l for l in output.getvalue().splitlines() if 'Sign-in link for the integrated browser' in l)
+            url = urlsplit(line.split(': ', 1)[1].strip())
+            self.assertEqual(url.path, '/_access')
+            key = parse_qs(url.fragment)['key'][0]
+            self.assertIn(key, instance.access_invites)   # a one-time invite, redeemed once
+            self.assertNotIn(instance.access_key, output.getvalue())   # never the server's own key
+
     def test_trash_refuses_another_tab_inflight_note_then_preserves_it_in_recoverable_trash(self):
         with self.local_server() as (root, httpd, cfg):
             entered, finish = threading.Event(), threading.Event()
