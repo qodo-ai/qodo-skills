@@ -4,6 +4,13 @@ Use this only for an explicitly authorized dismissal of findings from a complete
 Keep fixing, declining, and uncertainty distinct. Existing session authorization can cover the
 batch; a recommendation or a skipped edit alone does not authorize a status change.
 
+On MCP, inspect the live `pr-review-dismiss` schema.
+Supply the original finding IDs and their `local_review_id`, the authorized reason and explanation,
+and a stable `idempotency_key` for that batch when the schema advertises it.
+Read back every stored outcome. The identity and grouping rules below still apply.
+The CLI command-discovery and submission steps below apply only to the CLI path.
+Do not invent a missing write capability or omit required replay protection.
+
 1. Read each finding's `id` and look up `meta.local_review_ids[id]` in the local review result.
    Older results can store `local_review_id` on the finding instead. Keep findings from different
    local reviews in separate batches. If the reference is absent, report local dismissal as
@@ -13,7 +20,7 @@ batch; a recommendation or a skipped edit alone does not authorize a status chan
    for an understood concern the developer declines to fix. Record a concise explanation.
    Batch only findings sharing the same `local_review_id`, reason, and explanation. Use
    separate calls when their authorized reasons or explanations differ, even within one review.
-3. Inspect the dismissal input schema with `qodo tools help pr-review-session dismiss --json`.
+3. On CLI, inspect the dismissal input schema with `qodo tools help pr-review-session dismiss --json`.
    Check `parameters.properties.local_review_id` on the returned tool. If inspection fails or the
    tool or field is absent, run `qodo tools --refresh` once and repeat the same inspection. If the
    schema remains unreadable or unsupported, stop and report that local dismissal is unavailable;

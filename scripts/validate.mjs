@@ -281,8 +281,9 @@ for (const skill of catalog.skills ?? []) {
     }
   }
   if (skill.name === 'qodo-review') {
+    const executionText = readFileSync(join(root, 'skills', skill.name, 'references', 'cli-execution.md'), 'utf8');
     const completedResult = /0\) cat "\$QODO_REVIEW_TMP\/result\.json" \|\| exit 1; break ;;/;
-    if (!completedResult.test(skillText)) {
+    if (!skillText.includes('(references/cli-execution.md#preflight)') || !completedResult.test(executionText)) {
       fail('qodo-review: successful async polling must emit the completed result before cleanup');
     }
   }

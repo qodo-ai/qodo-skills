@@ -1,6 +1,7 @@
 # Context receipt field reference
 
-The canonical delivery limits and handling policy live in [SKILL.md](../SKILL.md).
+The delivery limits and field details live in [Session context](review-turn-context.md).
+The [main Skill](../SKILL.md) owns the review workflow.
 This dictionary explains the result shape; it does not define another review workflow.
 
 With matching Engine/Runtime support, completed CLI JSON results expose
