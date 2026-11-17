@@ -94,10 +94,14 @@ its raw instruction hashes to the stated signed commit, including in shallow or
 squash-merged checkouts. Artifact reads reject symlinked files and ancestors.
 Only release-owned version/provenance stamps are mapped to their evaluated values;
 the evidence retains its original exact hashes, not a claim of a new model run.
+The gate also compares every run's recorded fixture commit and complete case,
+prompt and grader fingerprint map. Updating the manifest alone cannot bless old answers.
 **CI validates the recorded evidence; CI does not execute the agent.**
 The standard Claude evaluation wrapper has only been staged/manifest-validated,
 not model-executed. Run models separately in a fresh-agent harness or explicitly
 opt into `claude plugin eval`; keep any billed CI integration opt-in.
+The optional `--run` wrapper requires a directly executable native Claude command.
+An npm-only Windows `claude.cmd` shim is not supported; staging remains available.
 Do not replace behavioral evaluation with text assertions or claim that package checks prove agent behavior.
 
 Grade the planned behavior and claims with concrete output citations.

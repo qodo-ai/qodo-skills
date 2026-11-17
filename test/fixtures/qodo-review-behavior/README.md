@@ -17,6 +17,8 @@ provenance retains both original and portable response hashes.
 The candidate matches the current instructions. The baseline is the preceding
 `6385a42` rewrite, not the original pre-rewrite Skill. Both configurations use
 the same case inputs captured at `59afaea`.
+Each run's recorded fixture commit and complete input-fingerprint map must match
+the current manifest; changing a case and only relabeling its manifest hash fails.
 Command proposals are synthetic. The agents ran, but Qodo reviews, installations,
 Git changes and finding-status writes shown in their answers did not execute.
 

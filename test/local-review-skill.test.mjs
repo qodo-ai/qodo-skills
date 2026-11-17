@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { inputPath, main, prepareReviewEvaluation, readGitEvaluationFiles,
   requireEvaluationSupport } from '../scripts/eval-review-skill.mjs';
-import { assertGrade, createEvaluationRepository } from './helpers/review-evaluation-fixtures.mjs';
+import { assertFixtureProvenance, assertGrade, createEvaluationRepository } from './helpers/review-evaluation-fixtures.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skill = join(root, 'skills/qodo-review');
@@ -373,11 +373,18 @@ test('recorded case setup changes invalidate evidence without a model run', () =
   const directory = mkdtempSync(join(tmpdir(), 'qodo-evidence-case-'));
   try {
     const item = { name: 'fixture', case_sha256: sha256('original setup'), prompt_sha256: sha256('prompt') };
+    const manifest = { fixture_source_commit: '1'.repeat(40), cases: [{ ...item, assertions: [] }] };
+    const provenance = { fixture_source_commit: manifest.fixture_source_commit,
+      fixture_fingerprints: { 'fixture/case.yaml': item.case_sha256, 'fixture/prompt.md': item.prompt_sha256 } };
+    assertFixtureProvenance(provenance, manifest);
     writeFileSync(join(directory, 'case.yaml'), 'original setup');
     writeFileSync(join(directory, 'prompt.md'), 'prompt');
     assertCaseInputs(directory, item, directory);
     writeFileSync(join(directory, 'case.yaml'), 'changed setup');
     assert.throws(() => assertCaseInputs(directory, item, directory), /Stale case setup/);
+    manifest.cases[0].case_sha256 = sha256('changed setup');
+    assertCaseInputs(directory, manifest.cases[0], directory);
+    assert.throws(() => assertFixtureProvenance(provenance, manifest), /Recorded fixture inputs/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -477,6 +484,7 @@ test('recorded behavior evidence covers current instructions and every assertion
       scores[configuration].passed += passed;
       scores[configuration].total += graders.length;
       const provenance = JSON.parse(fixtureFile(evidenceRoot, run.provenance));
+      assertFixtureProvenance(provenance, manifest);
       assert.equal(provenance.source_commit, manifest.snapshots[configuration].source_commit);
       assert.deepEqual(provenance.fingerprints, manifest.snapshots[configuration].fingerprints);
       assert.equal(provenance.response_sha256, sha256(fixtureFile(evidenceRoot, run.response)));

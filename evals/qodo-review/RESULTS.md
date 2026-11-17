@@ -74,6 +74,12 @@ Untracked selected cases/graders are now checked even when local/global excludes
 hide them; ignored non-input additions still do not block staging. Instructions,
 case inputs and recorded judgments did not change for that tooling fix, and no
 model comparison was repeated.
+The subsequent provenance correction compares each run's recorded fixture commit
+and complete case/prompt/grader fingerprint map with current evidence. A negative
+test changes a case and its manifest hash together; the untouched recorded run
+still rejects that relabeling. Original answers, grades and provenance are unchanged.
+The optional billed wrapper's npm-only Windows `claude.cmd` launch path remains
+unsupported; no shell-based workaround or installation change was added.
 
 [Original iteration 7](../../test/fixtures/qodo-review-behavior/history/iteration-7/)
 retains 96 hashed artifacts: original answers, judgments, fingerprints, exact

@@ -2,6 +2,7 @@
   "schema_version": 1,
   "method": "fresh-native-agents-with-anonymous-final-answer-grading",
   "iteration": 8,
+  "fixture_source_commit": "59afaeab0cfb1a247389bde5c8d197413956a98e",
   "snapshots": {
     "candidate": {
       "source_commit": "59afaeab0cfb1a247389bde5c8d197413956a98e",

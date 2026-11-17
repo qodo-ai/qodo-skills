@@ -3,6 +3,16 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+export function assertFixtureProvenance(provenance, manifest) {
+  assert.match(manifest.fixture_source_commit, /^[a-f0-9]{40}$/);
+  assert.equal(provenance.fixture_source_commit, manifest.fixture_source_commit);
+  const inputs = Object.fromEntries(manifest.cases.flatMap((item) => [
+    [`${item.name}/case.yaml`, item.case_sha256], [`${item.name}/prompt.md`, item.prompt_sha256],
+    ...item.assertions.map(({ file, sha256 }) => [`${item.name}/graders/${file}`, sha256]),
+  ]));
+  assert.deepEqual(provenance.fixture_fingerprints, inputs, 'Recorded fixture inputs differ from current evidence');
+}
+
 export function assertGrade(grade, assertions, candidate = false) {
   assert.deepEqual(grade.expectations.map((entry) => entry.text), assertions);
   assert.ok(grade.expectations.every((entry) => typeof entry.passed === 'boolean'),
