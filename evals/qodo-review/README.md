@@ -24,7 +24,10 @@ Commit selected case inputs before staging; without `--ref`, the Skill inputs
 must also be committed. The wrapper makes no commit or index change for you.
 All model-input bytes come from verified Git blobs, never copied checkout paths.
 Concurrent checkout replacements therefore cannot redirect model inputs to host files.
-Dirty selected inputs stop staging; a captured manifest names both exact commits
+Dirty selected inputs stop staging; unrelated README/results/agent-metadata edits
+do not block it. The same selectors govern model-input collection and dirty-input
+checks, including selected additions, deletions, renames and index-only changes.
+A captured manifest names both exact commits
 and every staged fixture fingerprint. Replace refs and lazy object fetching are disabled.
 First-use trust requires an interactive terminal. The command intentionally omits
 the evaluator's `--json` mode, which suppresses its trust prompt; aggregate JSON

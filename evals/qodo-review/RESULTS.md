@@ -46,6 +46,9 @@ settlement from whole-scope readiness; the prior answer still overclaims readine
 That qualitative difference is outside the counted finding assertion. Graders also
 flag protocol facts not independently established by their limited fixture inputs.
 Read `claims` and `eval_feedback`; 32/32 is not perfect grounding or reliability.
+The [grounding follow-up](GROUNDING.md) separately checks the MCP retry advice
+against a pinned source contract. It preserves the original unverified judgment;
+it neither expands the counted assertion nor relabels the old grading evidence.
 
 The evaluator's trust-mode, symlink-input, missing-snapshot and malformed-grade fixes
 are checked by deterministic negative tests, not by these proposal-only agent runs.
@@ -73,6 +76,10 @@ inputs stop; explicit refs require full commit IDs. Deterministic tests cover
 checkout replacements, committed symlinks and hex-named branch ambiguity.
 The recorded instruction answers and grades are unchanged; these are tooling checks,
 not a newly executed model comparison or a whole-host sandbox claim.
+The later dirty-input check uses the same selectors as staging: edits to README,
+results or agent metadata do not block a run, while selected additions, renames,
+deletions and index-only changes still stop. This is an operator-friction correction,
+not a change to the evaluated instructions or their recorded judgments.
 Safe provenance records model/timing/token/read-call fields, not reasoning text or raw
 session archives. Read-only inputs and tool counts are not an OS confinement audit.
 Cache-inclusive token counts and message timing do not establish cost or latency savings.

@@ -8,6 +8,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 export const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const json = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+const instructionInput = (name) => name === 'SKILL.md' || (name.startsWith('references/') && name.endsWith('.md'));
+const fixtureInput = (name) => /^[a-z][a-z0-9-]*\/(?:case\.yaml|prompt\.md|graders\/[a-zA-Z0-9._-]+\.md)$/.test(name);
 
 export function requireEvaluationSupport(help) {
   if (!help.includes('--disallow-tools')) {
@@ -45,14 +47,14 @@ export function readGitEvaluationFiles(root, commit, prefix, select = () => true
   const files = {};
   for (const entry of git(root, ['ls-tree', '-r', '-z', commit, '--', prefix]).split('\0').filter(Boolean)) {
     const tab = entry.indexOf('\t'), header = entry.slice(0, tab), path = entry.slice(tab + 1);
+    const name = path.slice(prefix.length);
+    if (!select(name)) continue;
     const match = header.match(/^100(?:644|755) blob ([a-f0-9]{40})$/);
     if (!match) throw new Error(`Evaluation snapshot input must be a regular Git file: ${path}`);
-    const name = path.slice(prefix.length);
     if (!path.startsWith(prefix) || /[\\:\r\n\t]/.test(name)
       || name.split('/').some((part) => ['', '.', '..'].includes(part))) {
       throw new Error('Unsafe evaluation snapshot path.');
     }
-    if (!select(name)) continue;
     const bytes = git(root, ['cat-file', 'blob', match[1]], 'buffer');
     const objectId = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
     if (objectId !== match[1]) throw new Error('Evaluation Git blob identity changed.');
@@ -61,11 +63,13 @@ export function readGitEvaluationFiles(root, commit, prefix, select = () => true
   return files;
 }
 
-function requireCommittedInputs(root, commit, paths) {
-  const changed = git(root, ['diff', '--no-ext-diff', '--no-textconv', '--name-only', commit, '--', ...paths])
-    || git(root, ['diff', '--cached', '--no-ext-diff', '--no-textconv', '--name-only', commit, '--', ...paths])
-    || git(root, ['ls-files', '--others', '--exclude-standard', '--', ...paths]);
-  if (changed.trim()) throw new Error('Commit the selected evaluation inputs before staging; working files are never copied.');
+function requireCommittedInputs(root, commit, paths, select) {
+  const diff = ['--no-ext-diff', '--no-textconv', '--no-renames', '--name-only', '-z', commit, '--', ...paths];
+  const changed = [git(root, ['diff', ...diff]), git(root, ['diff', '--cached', ...diff]),
+    git(root, ['ls-files', '--others', '--exclude-standard', '-z', '--', ...paths])];
+  if (changed.some((names) => names.split('\0').some((name) => name && select(name)))) {
+    throw new Error('Commit the selected evaluation inputs before staging; working files are never copied.');
+  }
 }
 
 export function prepareReviewEvaluation({ root = repositoryRoot, parent = tmpdir(), ref } = {}) {
@@ -80,12 +84,12 @@ export function prepareReviewEvaluation({ root = repositoryRoot, parent = tmpdir
   const fixtureCommit = git(root, ['rev-parse', '--verify', 'HEAD^{commit}']).trim();
   const sourceCommit = ref === undefined ? fixtureCommit : git(root, ['rev-parse', '--verify', `${ref}^{commit}`]).trim();
   if (ref !== undefined && sourceCommit !== ref) throw new Error('--ref must identify that exact commit object.');
-  const instructions = readGitEvaluationFiles(root, sourceCommit, 'skills/qodo-review/',
-    (name) => name === 'SKILL.md' || (name.startsWith('references/') && name.endsWith('.md')));
+  const instructions = readGitEvaluationFiles(root, sourceCommit, 'skills/qodo-review/', instructionInput);
   if (!instructions['SKILL.md']) throw new Error('Selected snapshot has no qodo-review/SKILL.md.');
-  requireCommittedInputs(root, fixtureCommit, ['evals/qodo-review', ...(ref === undefined ? ['skills/qodo-review'] : [])]);
-  const fixtures = readGitEvaluationFiles(root, fixtureCommit, 'evals/qodo-review/',
-    (name) => /^[a-z][a-z0-9-]*\/(?:case\.yaml|prompt\.md|graders\/[a-zA-Z0-9._-]+\.md)$/.test(name));
+  requireCommittedInputs(root, fixtureCommit, ['evals/qodo-review', ...(ref === undefined ? ['skills/qodo-review'] : [])],
+    (path) => (path.startsWith('evals/qodo-review/') && fixtureInput(path.slice('evals/qodo-review/'.length)))
+      || (ref === undefined && path.startsWith('skills/qodo-review/') && instructionInput(path.slice('skills/qodo-review/'.length))));
+  const fixtures = readGitEvaluationFiles(root, fixtureCommit, 'evals/qodo-review/', fixtureInput);
   const cases = [...new Set(Object.keys(fixtures).map((name) => name.split('/')[0]))].sort();
   if (!cases.length) throw new Error('The committed snapshot has no evaluation cases.');
   for (const name of cases) {

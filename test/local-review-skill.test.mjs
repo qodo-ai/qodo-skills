@@ -305,6 +305,28 @@ test('immutable evaluation refs reject hex-named branches and abbreviated object
   } finally { rmSync(parent, { recursive: true, force: true }); }
 });
 
+test('non-input edits do not block staging while selected additions, renames and index changes do', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-dirty-selection-'));
+  try {
+    const { source, head, git } = evaluationRepository(parent);
+    for (const path of ['evals/qodo-review/README.md', 'evals/qodo-review/RESULTS.md',
+      'skills/qodo-review/agents/openai.yaml']) writeFileSync(join(source, path), 'uncommitted non-input');
+    const staged = prepareReviewEvaluation({ root: source, parent });
+    assert.equal(staged.manifest.source_commit, head);
+    assert.ok(!Object.keys(staged.manifest.fixture_fingerprints).some((path) => path.endsWith('README.md')));
+    const extra = join(source, 'evals/qodo-review/compatibility-boundaries/graders/extra.md');
+    writeFileSync(extra, 'new selected input');
+    assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /Commit the selected evaluation inputs/);
+    rmSync(extra);
+    const prompt = 'evals/qodo-review/compatibility-boundaries/prompt.md';
+    const original = readFileSync(join(source, prompt));
+    git(['mv', prompt, 'evals/qodo-review/compatibility-boundaries/README.md']);
+    assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /Commit the selected evaluation inputs/);
+    writeFileSync(join(source, prompt), original);
+    assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /Commit the selected evaluation inputs/);
+  } finally { rmSync(parent, { recursive: true, force: true }); }
+});
+
 test('an immutable commit without the requested Skill is rejected before a prepared receipt', () => {
   const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-missing-test-'));
   try {

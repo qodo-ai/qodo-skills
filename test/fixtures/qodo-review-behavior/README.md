@@ -40,6 +40,8 @@ OpenCode executions are distinct methods; staging a plugin is not model executio
 One run per case/configuration cannot establish reliability, causal improvement,
 natural activation, installed-runtime compatibility or savings. Read grader
 `claims` and `eval_feedback`, including concerns outside the counted rubric.
+The later [grounding follow-up](../../../evals/qodo-review/GROUNDING.md) is separate
+source evidence, not a replacement grade or another agent execution.
 Read-only input files and runtime-reported read-tool inventories are not a complete
 operating-system confinement audit. Historical results remain in
 `evals/qodo-review/RESULTS.md`; a new report does not relabel those snapshots.
