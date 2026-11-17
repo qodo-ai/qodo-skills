@@ -1,10 +1,10 @@
-Only **`eligible`** supports a completed local assessment. The other continuations are **Review blocked**. All calls below are proposals only.
+**Proposals only; no calls, commands, edits or status writes are executed.**
 
-## Submission identity and collection
+## Common MCP handling
 
-The eligible collector satisfies the MCP requirements: the real worktree was completely enumerated, safety exclusions were applied, no omissions were reported, and the exact base is fetchable.
+Use the authenticated MCP connection and supplied schemas. Skip CLI preflight and installation. Preserve the exact supplied `params`, including context, base, diff and scope. Omit depth to retain **auto** effort.
 
-After the lost start response, the permitted replay is:
+While admission was uncertain, the permitted recovery was:
 
 ```text
 start-pre-pr-review({
@@ -13,11 +13,11 @@ start-pre-pr-review({
 })
 ```
 
-Here, `retainedParams` means the **exact supplied object**, unchanged—including the diff, base, HEAD, branch, context and verified stream ID. Omit depth for auto. Do not add an `idempotency_key`, recollect the worktree or alter the request.
+Here, `retainedParams` means the supplied object **unchanged**, not a newly collected snapshot. `request_id` is the logical retry key; do not add `idempotency_key`.
 
-Once the supplied working receipt establishes operation `41c730de-840d-4b87-a95e-165b8b94f56a`, **do not call start again**.
+The subsequent receipt already establishes acceptance as operation `41c730de-840d-4b87-a95e-165b8b94f56a`. **Do not start it again.**
 
-Wait the advertised two seconds between status polls:
+While it remains working, poll at the advertised two-second interval:
 
 ```text
 get-managed-agent-operation({
@@ -25,96 +25,80 @@ get-managed-agent-operation({
 })
 ```
 
-Check `isError` and the operation ID on every receipt. Continue within retention until completion is terminal and a result is available. A working receipt is not a completed assessment.
-
-Then collect:
+Check `isError` and operation identity on each receipt. Once completed, terminal and result-available, propose:
 
 ```text
 get-managed-agent-result({
-  operation_id: "41c730de-840d-4b87-a95e-165b8b94f56a",
-  extended: false
+  operation_id: "41c730de-840d-4b87-a95e-165b8b94f56a"
 })
 
 get-managed-agent-result({
   operation_id: "41c730de-840d-4b87-a95e-165b8b94f56a",
-  cursor: "page-two",
-  extended: false
+  cursor: "page-two"
 })
 ```
 
-Keep `extended` unchanged. Before parsing, verify:
+Keep `extended` omitted consistently. These are short lifecycle calls, not MCP Tasks.
 
-- Every receipt has `isError: false` and the retained operation ID.
-- Encoding, digest, total bytes and total chunks remain identical across pages.
-- Cursors terminate without cycles; offsets are contiguous from zero.
-- Collected chunk count, byte count and SHA-256 match the advertised values.
+Before parsing, verify:
+
+- Every receipt belongs to the retained operation.
+- Encoding, digest, total bytes and chunk count remain stable.
+- Cursors terminate without repetition.
+- Offsets are contiguous from zero: here, `0`, then `90`.
+- Exactly two chunks contain 148 joined ASCII bytes with the advertised SHA-256.
 - Snapshot and scope association match the retained submission.
-
-These are short lifecycle calls, not MCP Tasks.
 
 ## Independent continuations
 
-### 1. `eligible` — Ready locally for the reviewed snapshot
+### 1. `eligible` — ready locally for the supplied snapshot
 
-Both pages belong to the retained operation. Their offsets are **0 and 90**, with **two chunks totaling 148 ASCII bytes**. The verified digest matches:
+The tested collector establishes complete input enumeration, safety exclusions, no omissions and a fetchable exact base. The completed result passes identity, pagination, digest, byte-count and snapshot-association checks.
 
-```text
-6d7ca66f3ac0ed7c3a96f42f9ec05a8dde3f19520cb7c1699d790b82e779b11c
-```
-
-After validation, the artifact establishes:
+Qodo reports:
 
 - Complete finding inventory and assessed coverage.
 - No introduced or still-open findings.
-- Empty resolved and dismissed buckets.
-- Matching submitted snapshot and scope.
+- No resolved or dismissed findings.
 
-**Qodo’s completed local assessment reports no findings, with complete coverage of the submitted change; the supplied focused tests passed. This supports local handoff of that reviewed snapshot.**
+Focused tests passed. On the supplied evidence, the reviewed local snapshot is **ready locally for handoff**; another assessment is unnecessary.
 
-No live service was tested. Context was supplied, but reviewer consumption is not evidenced. Effective effort, checkpoint persistence/reuse and local-to-PR finding handoff are not established. CI, approval, release and deployment remain separate, unevidenced gates.
+Live-service behavior was not tested. CI, approval, release and deployment remain unverified. The artifact also does not establish reviewer consumption of the session context, checkpoint persistence, reusable coverage or hosted PR handoff.
 
-### 2. `incomplete-collector` — Review blocked before submission
+### 2. `incomplete-collector` — review blocked before submission
 
-Do not submit. Enumeration stopped early, included paths are unknown, and base fetchability was not verified.
+Do **not** submit or replay a start request in this continuation.
 
-MCP cannot safely establish coverage of the complete requested local change. Do not substitute an ad hoc diff, another checkout or an installation. Proceeding would require an eligible collector report for the authorized worktree and scope.
+Enumeration stopped early, included paths are unknown and base fetchability is unverified. The prepared input therefore cannot establish coverage of the requested complete local change.
 
-### 3. `bad-digest` — Review blocked
+Report **review blocked**, with no completed assessment or readiness claim. Proceeding requires a tested collector that establishes the intended scope, exclusions, omissions and fetchable base. Do not substitute an ad hoc diff, another checkout or an installation.
 
-Reject the artifact before interpreting findings. The advertised digest starts with `7d7ca66f`; the checker calculates the supplied `6d7ca66f…` digest.
+### 3. `bad-digest` — reject the artifact
 
-Successful receipts and otherwise consistent pages do not overcome failed integrity verification.
+The advertised digest begins `7d7…`, but the checker calculates `6d7…`. Matching operation IDs and byte counts do not repair that integrity failure.
 
-### 4. `bad-byte-count` — Review blocked
+Do not interpret the apparent empty findings. Use at most the permitted collection recovery below; otherwise report **review blocked**.
 
-Reject the artifact: **149 bytes advertised, 148 bytes collected**. A matching digest does not excuse inconsistent length metadata.
+### 4. `bad-byte-count` — reject the artifact
 
-No verified inventory or coverage conclusion is available.
+The envelope advertises 149 bytes, but the joined artifact contains 148. A matching digest alone is insufficient.
 
-### 5. `wrong-operation` — Review blocked
+Do not silently correct the metadata or claim coverage. Use at most the permitted collection recovery; otherwise report **review blocked**.
 
-Reject both pages. They identify:
+### 5. `wrong-operation` — reject the association
 
-```text
-92a3119c-a271-4e46-9e39-cd38d174feb7
-```
+The pages identify `92a3119c-a271-4e46-9e39-cd38d174feb7`, not the accepted operation. Internally valid bytes do not bind that other operation to this submission.
 
-That is not the accepted operation. Internally valid bytes do not establish association with this submission. Do not adopt the other operation or interpret its findings as this review’s result.
+Do not adopt or poll the other operation. Recover collection only through `41c730de-840d-4b87-a95e-165b8b94f56a`; otherwise report **review blocked**.
 
-### 6. `overlapping-pages` — Review blocked
+### 6. `overlapping-pages` — reject the pagination
 
-Reject the artifact. After the first 90-byte chunk, the second offset must be **90**, not **0**.
+The second offset is `0`, but must be `90`. Passing the joined digest and length does not establish valid pagination.
 
-A valid concatenated digest cannot repair overlapping page metadata. Do not silently correct offsets, reorder pages or accept the reconstructed JSON.
+Do not rewrite offsets, reorder pages or infer a correction. Use at most the permitted collection recovery; otherwise report **review blocked**.
 
-## Collection recovery
+## Bounded recovery for invalid results
 
-For cases 3–6, retain the original operation as the recovery handle:
+For each independent invalid-result continuation, propose **one collection-only recovery**: fetch again from the first page of the retained operation, follow its returned cursors once and repeat every validation above. Keep `extended` unchanged.
 
-```text
-41c730de-840d-4b87-a95e-165b8b94f56a
-```
-
-If the Skill’s collection-retry gate permits the optional recovery, make **at most one** fresh collection attempt against that operation, starting without a cursor, following its returned cursors and keeping `extended: false`. Revalidate the entire artifact; do not mix pages from different attempts.
-
-No successful recovery is supplied here, so these cases remain **Review blocked**. If recovery is not permitted or fails validation, stop. **No new review submission, finding changes or readiness claim is authorized.**
+Do not submit another review or rotate the request ID. If recovery supplies a fully verified result, assess that result. If it fails again, stop and retain the operation ID and precise validation failure. An accepted or completed operation alone cannot establish trustworthy assessment coverage or local readiness.

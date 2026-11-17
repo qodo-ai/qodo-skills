@@ -3,37 +3,37 @@
     {
       "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
       "passed": true,
-      "evidence": "A.md:5–32 reproduces the retained request, including request_id mcp-cart-r1, exact base, diff, stream ID, complete scope and all three context fields. A.md:34 states: \"Depth remains omitted for auto. There is no separate `idempotency_key`, new snapshot, or changed context.\" A.md:59 rejects CLI setup or installation."
+      "evidence": "A.md:5-16 specifies auto by omission, mcp-cart-r1 and the exact supplied JSON object, preserving context and scope; prohibits recollection, idempotency_key and CLI setup. A.md:18 correctly avoids another start after confirmed acceptance."
     },
     {
       "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
       "passed": true,
-      "evidence": "A.md:36–59 specifies retained-operation polling every two seconds, checking isError before interpreting every response, and both result calls with unchanged extended:false. A.md:65 confirms contiguous offsets 0 and 90, two chunks totaling 148 bytes, cursor termination and matching SHA-256. A.md:67–75 reports complete assessment with no findings while explicitly withholding CI, approval, release and deployment readiness."
+      "evidence": "A.md:18-41 specifies two-second polling, isError checks, both result calls, contiguous offsets, terminal cursor and integrity checks before interpretation. A.md:47-55 identifies offsets 0/90, 148 joined bytes and complete empty findings, while withholding CI, approval, release and deployment readiness."
     },
     {
       "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
       "passed": true,
-      "evidence": "A.md:79 says: \"Review blocked before submission. Do not call `start-pre-pr-review`\". A.md:81 identifies incomplete enumeration, unknown paths and unverified base fetchability, withholding assessment and coverage. A.md:83 explicitly prohibits another checkout, an ad hoc diff and installation."
+      "evidence": "A.md:57-63 blocks submission because enumeration, paths and base fetchability are unestablished; withholds completed assessment and readiness. It proposes qualifying collection rather than an improvised diff and prohibits silent scope narrowing, checkout substitution and installation."
     },
     {
       "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
       "passed": true,
-      "evidence": "A.md:87 contrasts advertised 7d7ca66f… with calculated 6d7ca66f…. A.md:89 prohibits interpreting the empty inventory or reporting complete coverage. A.md:91 allows one permitted recovery of the retained operation and prohibits a new submission. A.md:117–119 requires complete recollection and revalidation, retaining the original handle if recovery fails."
+      "evidence": "A.md:69 identifies advertised 7d7c… versus measured 6d7c…. A.md:74-78 prohibits interpreting findings or certifying coverage/readiness, limits recovery to one collection using the original operation and forbids a new submission."
     },
     {
       "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
       "passed": true,
-      "evidence": "A.md:95 identifies 149 advertised versus 148 measured bytes. A.md:97 states that a matching digest does not waive the byte-count requirement, prohibits interpreting findings or claiming readiness, and limits recollection to one permitted attempt against the retained operation. A.md:117–119 requires full revalidation and prohibits a new submission."
+      "evidence": "A.md:70 rejects 149 versus 148 despite the matching digest. A.md:74-78 withholds assessment certification and permits only one collection recovery on the retained operation, with no new submission."
     },
     {
       "text": "For wrong-operation, the response rejects the pages because their operation_id differs from the retained accepted operation, despite valid self-consistent bytes, and neither reports an assessment of the retained submission nor switches handles; any permitted recovery keeps the original operation without a new review submission.",
       "passed": true,
-      "evidence": "A.md:101 identifies the foreign operation 92a3119c-a271-4e46-9e39-cd38d174feb7. A.md:103 rejects internal digest/length consistency as proof of association and prohibits switching operations, relabeling pages or using their findings. A.md:105 requires recovery against original operation 41c730de-840d-4b87-a95e-165b8b94f56a and withholds assessment, coverage and readiness. A.md:119 prohibits a new submission."
+      "evidence": "A.md:71 rejects the other operation despite internally valid bytes. A.md:74 prohibits relabeling another operation or certifying assessment; A.md:76-78 keeps 41c730de-840d-4b87-a95e-165b8b94f56a for one recovery and forbids resubmission."
     },
     {
       "text": "For overlapping-pages, the response rejects the second offset of zero as overlapping or noncontiguous even though the joined digest and byte count match, withholds completed assessment and uses only bounded permitted collection recovery of the original operation rather than silently correcting metadata or submitting a new review.",
       "passed": true,
-      "evidence": "A.md:109 rejects second offset 0 because 90 is required. A.md:111 says valid concatenated digest and length do not repair contradictory offsets and prohibits correcting offsets, reordering pages or interpreting findings. A.md:113 permits at most one complete recollection of the original operation; A.md:117–119 requires revalidation and prohibits a new submission."
+      "evidence": "A.md:72 rejects offset 0 instead of 90 despite passing joined-byte checks. A.md:74-78 prohibits offset/metadata repair and assessment certification, retaining the original operation for one collection recovery without a new review."
     }
   ],
   "summary": {
@@ -44,49 +44,34 @@
   },
   "claims": [
     {
-      "claim": "Omitting depth selects auto.",
+      "claim": "Qodo’s completed assessment reports that focused tests passed and no live service was tested.",
       "type": "factual",
-      "verified": true,
-      "evidence": "A.md:34 agrees with prompt.md:14–17. qodo-auto-help.txt:62–64 independently confirms the CLI's no-effort-flag auto convention; it does not establish the effective tier selected by a reviewer."
+      "verified": false,
+      "evidence": "A.md:49-53 attributes these facts to Qodo’s assessment. They are supplied session-context notes in prompt.md:40, not fields in the result artifact at prompt.md:65-74. The facts are supported; their attribution to the assessment is not."
     },
     {
-      "claim": "The eligible artifact supports complete assessed coverage and no findings.",
+      "claim": "The eligible result supports a complete, finding-free local assessment of the supplied snapshot.",
       "type": "quality",
       "verified": true,
-      "evidence": "A.md:65–75 is supported conditionally by prompt.md:64–75: the supplied chunks contain empty finding buckets and complete coverage, with stipulated successful integrity and snapshot-association checks. No actual review execution was verified."
-    },
-    {
-      "claim": "Focused tests passed; no live service was tested.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "A.md:73 repeats the supplied session_context.notes in prompt.md:40. This verifies fidelity to the scenario, not an independently observed test run."
-    },
-    {
-      "claim": "Reviewer consumption and reusable checkpoint persistence are not evidenced.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "A.md:75 correctly limits its claims: neither the supplied artifact nor the other prompt facts demonstrate reviewer consumption or checkpoint persistence."
+      "evidence": "A.md:47-55 matches the supplied complete finding-state/coverage flags and verified snapshot association in prompt.md:65-75, and explicitly limits readiness."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "These assertions assess proposed behavior, not implementation. A separate execution-transcript evaluation would be needed to establish actual request replay, integrity verification, pagination handling and recovery-budget enforcement."
-      },
-      {
-        "reason": "Consider explicitly checking that requested auto effort is not represented as an observed effective reviewer tier, and that context consumption or checkpoint persistence is not inferred from submission alone."
+        "reason": "Add an evidence-provenance assertion: A.md:49-53 misattributes supplied test-context facts to the result artifact, while passing every existing assertion."
       }
     ],
-    "overall": "All assertions pass as proposal-level judgments. No operational command, service result, test execution or successful recovery was independently observed. Digest, length, collector eligibility and snapshot association are supplied scenario facts. The selected Skill's precise recovery gate cannot be independently verified within the authorized read scope; A consistently describes recovery as permitted and bounded."
+    "overall": "All seven proposal assertions pass. Test-result attribution is a material unsupported claim. Execution and Skill-dependent recovery permission are not independently verified by these allowed inputs."
   },
   "grader_provenance": {
-    "session_id": "ses_e1654577dffezC96V1rWpSKGOS",
+    "session_id": "ses_e160b45cefferzSRWWDaiqRShG",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e9abe32d001PYorZEYwKmqvex",
+    "message_id": "msg_1e9f5b20e001MUKQpmrq4AR0Iu",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

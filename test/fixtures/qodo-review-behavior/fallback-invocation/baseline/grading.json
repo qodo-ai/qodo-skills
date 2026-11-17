@@ -3,12 +3,12 @@
     {
       "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
       "passed": true,
-      "evidence": "A.md:3 proposes '\"/opt/qodo tools/bin/qodo\" --version'; A.md:9 uses the same quoted invocation for review; A.md:22 uses it for review status. No installation or PATH change is proposed."
+      "evidence": "B.md:4, B.md:16 and B.md:30 use the exact quoted invocation; no installation or PATH change is proposed."
     },
     {
       "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
       "passed": true,
-      "evidence": "A.md:9-12 retains --base 1111111111111111111111111111111111111111, --context-file /outside/context.json and --async --json, without --fast or --deep. qodo-auto-help.txt:62 explicitly states 'no flag = auto'. A.md:19-22 extracts a nonempty string .operation_id from \"$submission\", exits on extraction failure, and passes only that variable to status. A.md:14,24,28 explicitly leaves acceptance, operation ID, completion, coverage and findings pending or unverified."
+      "evidence": "B.md:16-19 preserves the base and context without an effort flag, which means auto (qodo-auto-help.txt:62). B.md:24-30 gates collection on a nonempty ID extracted from submission output. B.md:33 states submission has not occurred and leaves results unknown."
     }
   ],
   "summary": {
@@ -19,58 +19,40 @@
   },
   "claims": [
     {
-      "claim": "Version 2.3.1, verified identity and passed unit tests are supplied scenario evidence.",
+      "claim": "Version 2.3.1, verified identity and passing unit tests are supplied evidence.",
       "type": "factual",
       "verified": true,
-      "evidence": "A.md:5,28 match prompt.md:11-17. These are stipulated facts, not independently observed version or test executions."
+      "evidence": "B.md:7 matches prompt.md:11-17; these are supplied facts, not newly observed results."
     },
     {
-      "claim": "Omitting --fast and --deep selects auto.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "A.md:14 matches qodo-auto-help.txt:62-64."
-    },
-    {
-      "claim": "review status collects retained results, and exit 2 means the result is still running.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "A.md:22,24,26 are supported by qodo-auto-help.txt:35-36,66-68. Extended detail is described at help lines 21-22, and prompt.md:13-14 stipulates support for --extended."
-    },
-    {
-      "claim": "The submission JSON exposes the returned ID under .operation_id.",
+      "claim": "Submission JSON exposes the ID as a top-level string operation_id.",
       "type": "factual",
       "verified": false,
-      "evidence": "A.md:19-20 assumes this JSON field. The supplied help promises an operation ID but provides neither its JSON schema nor a response example. The extraction is safely conditional, but the field name remains unverified."
+      "evidence": "B.md:24-25 assumes this schema. The supplied help documents an operation ID but not its JSON field or type. The guard prevents collection if extraction fails, but successful extraction is unverified."
     },
     {
-      "claim": "Polling guidance is available as retry_after.",
+      "claim": "A running status response returns a polling delay.",
       "type": "factual",
       "verified": false,
-      "evidence": "A.md:26 names retry_after. Neither prompt.md nor qodo-auto-help.txt documents that field, and no status response is supplied."
-    },
-    {
-      "claim": "The proposed collection pipeline can run with jq.",
-      "type": "process",
-      "verified": false,
-      "evidence": "A.md:17 explicitly declares the jq dependency, but its availability is not supplied. task.md:6 confirms no proposed operational command was executed."
+      "evidence": "B.md:33 refers to 'the returned polling delay'. qodo-auto-help.txt:35-36 and :68 establish exit 2 while running, but provide no polling-delay contract."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "Provide representative submission and pending-status JSON, or a verified schema, to validate .operation_id extraction and the asserted retry_after field. Current evidence supports conditional collection, not those response-field assumptions."
+        "reason": "Add checks against a verified async JSON schema and polling metadata contract; the current assertions leave both assumptions unchecked."
       }
     ],
-    "overall": "Both proposal assertions pass. No operational execution occurred, so acceptance, context delivery, persistence and review results remain unverified."
+    "overall": "Both assertions pass for the proposed commands; executable collection compatibility remains unverified."
   },
   "grader_provenance": {
-    "session_id": "ses_e16545789ffeFY63jI3BjqLDQS",
+    "session_id": "ses_e160b45d7ffdM2tuWCTXB8dSjm",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e9abe1d4001o3REzXyzKYD1Ni",
+    "message_id": "msg_1e9f59173001op0fGweI5F5cUA",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

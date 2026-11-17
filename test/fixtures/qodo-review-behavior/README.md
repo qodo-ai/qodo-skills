@@ -1,19 +1,11 @@
 # Recorded qodo-review behavior evaluation
 
-Current evidence is intentionally pending. The root manifest below still records
-iteration10; it does not qualify the changed canonical instructions or fixtures.
-Original iteration12 is archived with147captured artifacts and failed40/41totals
-for both configurations. Its candidate failed prior-context preservation; its
-baseline overlooked the supplied comparison base. Only the changed follow-up
-case will be refreshed against concrete prior content, with unchanged instructions.
-Seven applicable records will retain their original immutable scope. This is not
-a newly executed complete matrix. Failed history is never replaced by a passing grade.
-
-Iteration 10 records 16 completed executions and eight anonymous graders over
-40 assertions. Candidate `841379dd3f1bc2d6927b5275fa8d8c1cad190ba8` and prior
-rewrite `6385a42e83ac028349ff1c153a788a812a850bf5` both pass 40/40.
-This establishes no rubric uplift or reliability. Original histories 6/7/8/9,
-including their answers, judgments, instructions and exact case inputs, are retained.
+The current manifest selects two disjoint scopes covering eight cases and41assertions:
+candidate41/41and baseline40/41. **This is not a newly executed complete matrix.**
+Seven unchanged cases retain their original iteration12/559input and run identities
+(candidate36/36, baseline35/36). Only the five-assertion follow-up was refreshed
+against concrete prior content at5295: two executions, one anonymous grader,5/5each.
+Candidate instruction bytes remain55976bc; baseline instructions remain6385a42.
 
 This directory contains fresh-agent answers, anonymous grader judgments and
 runtime-reported provenance for the exact instruction fingerprints in `manifest.json`.
@@ -23,13 +15,14 @@ No reasoning text, credentials, unrelated sessions or raw session archives are i
 Current responses retain the parent-captured bytes and their recorded hashes.
 Older archives retain their documented normalization and original/portable hashes.
 
-The candidate matches the current instructions. The baseline is the preceding
-`6385a42` rewrite, not the original pre-rewrite Skill. Both configurations use
-the same case inputs captured at `841379d`.
-Each run's recorded fixture commit and complete input-fingerprint map must match
-the current eight-group manifest; changing a case and only relabeling its manifest
-hash fails. Paths must match the case/configuration namespace, and the recorded
-case/configuration identity must match too. Empty assertion lists fail.
+The candidate matches current instructions. The baseline is a preceding rewrite,
+not the original pre-rewrite Skill. Each scope retains its complete57input map,
+including historical inputs for unselected cases. Selected inputs must match
+current fixtures; all runs must match their own original scope, not a fictional
+unified fixture commit. Full captured provenance is not trimmed to selected inputs.
+Case coverage must have no overlap or gaps. Paths, configuration labels, original
+session/artifact identities, response citations and one-based line bounds are checked.
+Empty assertions, stale inputs or instructions, missing artifacts and failed candidates stop the gate.
 Command proposals are synthetic. The agents ran, but Qodo reviews, installations,
 Git changes and finding-status writes shown in their answers did not execute.
 
@@ -40,22 +33,25 @@ Missing, stale or failing candidate evidence fails that integrity gate.
 Release preparation updates the catalog-owned Skill version and CLI attribution
 stamp. The gate maps only those stamps to the evaluated version before comparison;
 all other instruction bytes must match. Original raw fingerprints stay unchanged.
-The current manifest also fingerprints each `case.yaml`, verified against both
-original staged evaluation inputs. `snapshots/baseline.json` contains the original
+Each `case.yaml`, prompt and grader is fingerprinted against its scope's original
+staged inputs. `snapshots/baseline.json` contains the original
 signed commit and Skill blobs as text, plus readable path-tree entries. The
 integrity test reconstructs and hashes each object in a private temporary Git
 object store and compares the actual immutable source
 hashes, without requiring network access or retention of the PR's branch history.
 Artifact and adjudication reads reject symlinked files and ancestor directories.
-The current comparison is 40/40 for both versions. Common verified CLI help was
-supplied to every anonymous grader before grading; its hash is in `grading_evidence`.
-No iteration-10 adjudication occurred. `history/iteration-7/` retains the original
+Common verified CLI help was supplied to every anonymous grader before grading.
+Its identity remains recorded; anonymous mappings belong to the original scopes.
+No iteration12or13adjudication or answer repair occurred. `history/iteration-7/` retains the original
 32/32 comparison, both initial 31/32 judgments, actual help and 96 artifact hashes.
 `history/iteration-6/` preserves the earlier29/29 versus27/29 comparison at its
 original fingerprints. `history/iteration-8/` and `history/iteration-9/` retain
 the original 33/33 matrix and focused 5/5 MCP comparison, without regrading them.
-All four archive entries and 40/96/104/74 listed artifacts are mandatory integrity
-checks, not optional manifest branches. This does not certify unlisted history.
+Iteration10retains121artifacts. Failed11and12records retain122and147artifacts,
+respectively, with both original40/41totals. The focused13scope seals82captured
+artifacts separately. All seven histories and their inventories are mandatory,
+not optional manifest branches. Scope archive integrity includes timing, reports,
+instructions and the complete captured inputs. This does not certify unlisted history.
 `pre-correction/` retains the earlier exact-base failure.
 
 `npm run eval:qodo-review` prepares a minimal standard plugin evaluation.

@@ -28,8 +28,10 @@ function fixture() {
     snapshots, cases: [structuredClone({ ...alpha, evidence_scope: 'retained' }),
       structuredClone({ ...betaNew, evidence_scope: 'focused' })],
     evidence_scopes: [
-      { id: 'retained', cases: ['alpha'], record: { path: 'retained', sha256: '1'.repeat(64) } },
-      { id: 'focused', cases: ['beta'], record: { path: 'focused', sha256: '2'.repeat(64) } },
+      { id: 'retained', cases: ['alpha'], record: { path: 'retained', sha256: '1'.repeat(64) },
+        archive: { path: 'retained/archive.json', sha256: '1'.repeat(64) } },
+      { id: 'focused', cases: ['beta'], record: { path: 'focused', sha256: '2'.repeat(64) },
+        archive: { path: 'focused/archive.json', sha256: '2'.repeat(64) } },
     ] };
   return { records, manifest, check: () => assertEvidenceScopes(manifest, ({ path }) => records[path]) };
 }
@@ -54,6 +56,7 @@ test('scoped coverage rejects gaps, overlaps, duplicates and unsupported members
     ({ manifest }) => { manifest.cases[0].evidence_scope = 'focused'; },
     ({ manifest }) => manifest.cases.push(structuredClone(manifest.cases[0])),
     ({ manifest }) => { manifest.fixture_source_commit = '5'.repeat(40); },
+    ({ manifest }) => { delete manifest.evidence_scopes[0].archive; },
   ];
   for (const change of changes) {
     const value = fixture();

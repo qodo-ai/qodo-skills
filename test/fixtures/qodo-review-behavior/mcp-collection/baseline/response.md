@@ -1,119 +1,78 @@
-**Only `eligible` supports local readiness.** The incomplete collector blocks submission; the other four cases block a trustworthy result. All calls below are proposals only.
+Proposals only; no service calls, commands or changes have been made.
 
 ## Submission identity and collection
 
-For the eligible collector, the permitted uncertain-admission retry must repeat this exact request:
+The eligible collector satisfies the MCP collection requirements. Use the authenticated MCP connection without CLI preflight or installation. Leave depth omitted for **auto**.
+
+For the lost start response, the permitted recovery is:
 
 ```text
 start-pre-pr-review({
-  "request_id": "mcp-cart-r1",
-  "params": {
-    "repo_full_name": "example/cart",
-    "repo_host": "github.com",
-    "base_sha": "1111111111111111111111111111111111111111",
-    "commit_sha": "2222222222222222222222222222222222222222",
-    "branch": "feature/cart-review",
-    "diff": "diff --git a/src/cart.ts b/src/cart.ts\n--- a/src/cart.ts\n+++ b/src/cart.ts\n@@ -1 +1 @@\n-export const valid = n => n === 1;\n+export const valid = n => n > 0;\n",
-    "session_context": {
-      "decisions": ["The user selected positive cart counts."],
-      "notes": "The mandatory caller rejects non-numeric input. Focused tests passed; no live service was tested.",
-      "recent_work": ["Changed the cart-count predicate; this round changes behavior."]
-    },
-    "review_scope": {
-      "stream_id": "f1bcba4fd84bd7e271baea841b4e35e31958043c22e9c3ebc077d803f1ac8417",
-      "paths": [],
-      "excluded_files": [],
-      "skipped_files": [],
-      "allowed_sensitive_files": [],
-      "complete": true
-    }
-  }
+  request_id: "mcp-cart-r1",
+  params: retainedParams
 })
 ```
 
-Depth remains omitted for auto. There is no separate `idempotency_key`, new snapshot, or changed context.
+Here, `retainedParams` means the **exact supplied JSON object**, preserving its base, snapshot, diff, context and scope. Do not recollect the worktree or add an unsupported `idempotency_key`.
 
-The subsequent receipt establishes an accepted, **pending** operation—not a completed assessment. Once that receipt exists, do not repeat the start call. Poll the retained operation at its advertised two-second interval, within retention:
+The supplied receipt already confirms acceptance, so **do not repeat that start now**. After the advertised two-second interval, propose:
 
 ```text
 get-managed-agent-operation({
-  "operation_id": "41c730de-840d-4b87-a95e-165b8b94f56a"
+  operation_id: "41c730de-840d-4b87-a95e-165b8b94f56a"
 })
 ```
 
-Check `isError` before interpreting every response. Once completed/terminal with a result available, collect:
+Check `isError` and continue polling that operation at its returned interval while pending. Once terminal/completed with a result available:
 
 ```text
 get-managed-agent-result({
-  "operation_id": "41c730de-840d-4b87-a95e-165b8b94f56a",
-  "extended": false
+  operation_id: "41c730de-840d-4b87-a95e-165b8b94f56a",
+  extended: true
 })
 
 get-managed-agent-result({
-  "operation_id": "41c730de-840d-4b87-a95e-165b8b94f56a",
-  "cursor": "page-two",
-  "extended": false
+  operation_id: "41c730de-840d-4b87-a95e-165b8b94f56a",
+  cursor: "page-two",
+  extended: true
 })
 ```
 
-Follow returned cursors without changing `extended`. Before interpreting the JSON, verify operation identity, consistent metadata, complete chunk enumeration, contiguous byte offsets, joined byte count, and digest. These are short lifecycle calls, not MCP Tasks. No CLI setup or installation is needed.
+Keep `extended` unchanged. Before interpreting the assembled JSON, verify successful envelopes, the retained operation ID, consistent artifact metadata, two chunks, contiguous offsets, terminal cursor, byte count and digest. Then verify association with the retained submission.
 
-## Independent outcomes
+## Independent continuations
 
-### 1. `eligible`
+### 1. `eligible` — ready locally for the supplied snapshot
 
-Both pages belong to the retained operation. Their offsets are contiguous at 0 and 90; two chunks supply 148 bytes, terminate without another cursor, and pass the advertised SHA-256 check. The snapshot association also matches the submission.
+All supplied integrity and snapshot-association checks pass: offsets 0 and 90, 148 joined ASCII bytes, two chunks and the advertised SHA-256.
 
-The verified artifact establishes:
+Qodo’s completed assessment reports:
 
 - Complete finding inventory and assessed coverage.
-- No findings, including no introduced or still-open obligations.
-- No resolved or dismissed findings.
+- No findings: `introduced`, `still_open`, `resolved` and `dismissed` are all empty.
+- Focused tests passed; no live service was tested.
 
-**Ready locally for the retained snapshot:** Qodo’s completed assessment reports no findings, and the supplied facts establish that focused tests passed. No live service was tested.
+This supports **local readiness for that reviewed snapshot**, not newer changes. Context-consumption receipts, checkpoint persistence/reuse and hosted-review status are not supplied. CI, approval, release and deployment readiness remain unestablished.
 
-This does **not** establish CI success, approval, hosted PR review/handoff, release, or deployment readiness. Context was submitted, but reviewer consumption and reusable checkpoint persistence are not evidenced by this artifact.
+### 2. `incomplete-collector` — review blocked before submission
 
-### 2. `incomplete-collector`
+Do **not** call `start-pre-pr-review`.
 
-**Review blocked before submission.** Do not call `start-pre-pr-review`, including its uncertain-admission retry.
+Enumeration is incomplete, included paths are unknown and base fetchability is unverified. The collector therefore cannot establish coverage of the requested complete local change.
 
-Enumeration is incomplete, included paths are unknown, and base fetchability is unverified. The collector therefore cannot establish coverage of the complete requested local change. No assessment or local-readiness claim is justified.
+No completed assessment or local readiness can be reported. A qualifying collector must establish the intended scope, exclusions/omissions and fetchable base before submission. Do not narrow the scope silently, substitute a checkout or install anything.
 
-Proceeding requires an authorized collector that establishes complete intended scope, reports omissions, applies the required exclusions, and verifies the exact base is fetchable. Do not substitute another checkout, an ad hoc diff, or an installation.
+### 3–6. Invalid result collections — review blocked
 
-### 3. `bad-digest`
+| Continuation | Validation failure | Honest conclusion |
+|---|---|---|
+| `bad-digest` | Advertised digest starts `7d7c…`; measured digest starts `6d7c…`. | Artifact integrity failed. |
+| `bad-byte-count` | Advertised 149 bytes; measured 148. | Artifact length validation failed, despite the matching digest. |
+| `wrong-operation` | Both pages name `92a3119c-a271-4e46-9e39-cd38d174feb7`, not the retained operation. | Internally valid bytes do not establish association with this submission. |
+| `overlapping-pages` | Second offset is 0 rather than 90. | Pagination is inconsistent, despite passing concatenated-byte checks. |
 
-**Review blocked: artifact integrity failed.** The advertised digest begins `7d7ca66f…`, while the checker calculates `6d7ca66f…`.
+In each case, do not interpret the apparent empty findings as a valid assessment, certify coverage or report readiness. Do not repair offsets, replace advertised metadata or relabel another operation locally.
 
-Do not interpret the apparent empty finding inventory or report complete assessed coverage. A completed operation is not enough when its artifact fails verification.
+**One collection recovery per independent continuation is permitted:** retain operation `41c730de-840d-4b87-a95e-165b8b94f56a`, respect any returned retry delay, and re-fetch its complete artifact from the first page with the same `extended` setting. Validate the recovered page set independently; do not mix it with the invalid set.
 
-One permitted collection recovery may re-fetch the retained operation’s complete artifact. If verification still fails, stop without a new submission.
-
-### 4. `bad-byte-count`
-
-**Review blocked: artifact length failed verification.** The pages advertise 149 bytes; the checker measures 148.
-
-A matching digest does not waive the byte-count requirement. Do not interpret findings or claim readiness. Use at most one permitted complete recollection of the retained operation; stop if the mismatch persists.
-
-### 5. `wrong-operation`
-
-**Review blocked: the artifact is not bound to this submission.** Both pages identify `92a3119c-a271-4e46-9e39-cd38d174feb7`, not the accepted operation.
-
-Internal digest and length consistency do not establish relevance. Do not switch to that other operation, relabel its pages, or use its findings.
-
-One permitted recovery must request the original operation, `41c730de-840d-4b87-a95e-165b8b94f56a`. Without a correctly associated result, assessment, coverage, and readiness remain unverified.
-
-### 6. `overlapping-pages`
-
-**Review blocked: page continuity failed.** After the first 90-byte chunk, the next offset must be 90; the supplied second page instead reports 0.
-
-A valid concatenated digest and length do not repair contradictory offsets. Do not silently correct the offset, reorder pages, or interpret their findings.
-
-Use at most one permitted complete recollection of the original operation. If continuity remains invalid, stop.
-
-## Recovery boundary
-
-For each invalid-result continuation independently, the single collection recovery starts again with the first result call above and follows its returned cursors, keeping `extended: false` throughout. Revalidate the entire artifact before interpreting it.
-
-If recovery succeeds, report only what the verified result supports. If it fails, retain the original operation ID as the recovery handle and report **Review blocked**. No new review submission, finding-status change, code edit, or broader readiness claim is authorized.
+If recovery fails or remains invalid, stop with **Review blocked**, preserving the operation ID and exact validation failure. No new review submission is authorized.

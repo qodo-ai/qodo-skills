@@ -1,47 +1,41 @@
-### 1. `accepted` — collect the existing operation
+Commands below are proposals only; nothing was executed.
 
-Wait the requested **20 seconds**, then request its result and stored detail:
+### 1. `accepted` — collect, do not restart
 
+Wait the requested **20 seconds**, then:
 ```sh
 qodo review status op-accepted --extended --json
 ```
+Continue collecting that same operation if still working. `--extended` retrieves stored detail; it does not deepen or rerun the review.
 
-If still working, respect the next returned delay and poll the same operation. Do not resubmit or attach the changed checkout/context. `--extended` retrieves detail; it does not increase effort or rerun Qodo’s review.
-
-**Safe claim:** The operation was accepted and remains pending. Its eventual assessment concerns the original submitted snapshot and context, not the changed checkout. Verify the returned operation/snapshot association, coverage and inventory before interpreting it.
+**Safe claim:** the review is pending for its original submitted snapshot and context—not the changed checkout. Verify returned operation and snapshot identities before interpreting the result.
 
 ### 2. `uncertain` — recover the original submission
 
 Use the exact returned recovery command:
-
 ```sh
 qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111
 ```
+Do not append new base, scope, context or effort options. Recovery must use the retained original request, not the changed checkout. Once an operation ID is confirmed, collect that operation.
 
-Use the retained original request. Do not append a new base, scope, context or effort, and do not gather the changed checkout. If recovery returns an operation ID, collect that operation.
+**Safe claim:** acceptance is currently unknown. Neither failure nor permission to submit a replacement has been established.
 
-**Safe claim:** Acceptance is currently unknown—not confirmed failure or completion. Do not launch an independent replacement submission.
+### 3. `storage-gap` — ready locally, handoff incomplete
 
-### 3. `storage-gap` — ready locally, handoff unfinished
-
-**Ready locally:** The current intended snapshot has completed assessment, complete coverage and inventory, no required open findings, and passing tests.
+**Safe claim:** the current intended snapshot is **ready locally**: assessment, coverage, inventory, required findings and tests satisfy the stated gates.
 
 However:
+- Saving the reusable checkpoint failed; reusable coverage cannot be claimed.
+- PR finding handoff remains unverified.
+- Therefore, **not all local-to-Git work is finished**.
 
-- Saving the reusable checkpoint failed. Do not claim successful checkpoint persistence or guaranteed reuse.
-- PR handoff remains unverified. Local readiness does not establish finding handoff or hosted review status.
+Preserve the assessment and warning. Establish checkpoint persistence and verify handoff separately; another assessment is not justified merely to obtain a cleaner storage outcome.
 
-**Next:** Address/report checkpoint persistence separately and verify the intended PR candidate, base, scope and finding handoff when authorized. Do not rerun the assessment solely to remove a storage warning.
+### 4. `older-result` — certification blocked
 
-**Safe answer:** Local readiness is established, but **all local-to-Git work is not verified finished**.
+**Safe claim:** the older completed result returned no findings.
 
-### 4. `older-result` — certification blocked by missing evidence
-
-Stop short of certifying full final coverage.
-
-**Safe claim:** The older assessment completed and reported no findings. Coverage completeness, inventory completeness and persistence are **unknown**, not confirmed successful or failed.
-
-Retrieve retained supporting evidence, including an extended view if available, using the actual operation handle. Do not invent one or assume extended output supplies missing metadata. If evidence remains unavailable, missing required final coverage can justify another assessment within authorization and budget; it does not justify increasing effort automatically.
+Coverage, inventory completeness and persistence remain **unknown**, not implicitly successful. I cannot certify full final coverage. Obtain supporting retained evidence; if unavailable, required coverage remains blocked pending an authorized assessment that establishes it. Do not invent a recovery handle or assume `--extended` supplies missing metadata.
 
 ### 5. `entitlement` — stop
 
@@ -51,14 +45,10 @@ Retrieve retained supporting evidence, including an extended view if available, 
 
 > Ask your administrator to enroll the organization.
 
-**Next:** Stop. A new run requires confirmation that enrollment occurred. Do not retry now, log in again, or switch accounts/deployments.
+**Safe claim:** review is blocked by enrollment. Do not retry, change accounts/deployments or lower effort. A new run requires confirmation that enrollment occurred.
 
-**Safe claim:** Review is blocked by organization enrollment; verified identity does not establish review entitlement.
+### 6. `budget` — stop new assessments
 
-### 6. `budget` — stop further assessments
+**Budget reached; action remains required.** Both permitted assessments were used. Five status polls and one extended retrieval do not consume additional assessments, and resuming in another session does not reset the budget.
 
-**Budget reached: 2 of 2 new assessments used.** The five status polls and one extended retrieval consume no additional assessments, but resuming in another session does not reset the budget.
-
-`F-BLOCK` remains action-required. Do not dismiss it, claim readiness, or start a third assessment under the existing authorization.
-
-**Next:** Preserve the blocker and review history. Another assessment requires an explicit budget extension and a concrete review reason; the session restart supplies neither.
+Qodo finding **F-BLOCK remains action-required**. Do not claim readiness or start a third assessment without explicit additional authorization. Preserve the blocker and existing evidence in the handoff.

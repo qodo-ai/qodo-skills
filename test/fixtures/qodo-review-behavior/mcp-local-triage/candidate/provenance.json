@@ -1,6 +1,6 @@
 {
-  "session_id": "ses_e1656db97ffdXC4F21BqSGT9rb",
-  "configuration": "candidate",
+  "session_id": "ses_e160d4d8affeLyKMkWyqmdK97N",
+  "configuration": "with_skill",
   "evaluated_case": "mcp-local-triage",
   "models": [
     {
@@ -9,9 +9,9 @@
       "variant": "max"
     }
   ],
-  "source_commit": "841379dd3f1bc2d6927b5275fa8d8c1cad190ba8",
+  "source_commit": "55976bc01773c7910ab019aa8bf6cfaafab53d3d",
   "source_kind": "immutable Git commit",
-  "fixture_source_commit": "841379dd3f1bc2d6927b5275fa8d8c1cad190ba8",
+  "fixture_source_commit": "55976bc01773c7910ab019aa8bf6cfaafab53d3d",
   "fixture_fingerprints": {
     "compatibility-boundaries/case.yaml": "c172b17fe1c3fc06064d207027c8828341e2d6e8333121f309fda2fa5f4848f0",
     "compatibility-boundaries/graders/01-old-version-stop.md": "44b0be499891ee8d34631a2f176ea2bb450c4372b1469f215f971af31273bf5f",
@@ -40,12 +40,13 @@
     "mcp-collection/graders/06-reject-wrong-operation.md": "fdf9a1a208681a6b16dde171fbc4fa8c99b99abe9e6864c823d5f73146df65cc",
     "mcp-collection/graders/07-reject-overlapping-pages.md": "d5ff7344ce7f849ce95ae93ca63011f5ad887e943abfde5e5c004dd53abcd944",
     "mcp-collection/prompt.md": "3bf2bb212d70f36e4c420df2a4ccf27f3cc0c2462896fe12722745def86e1c00",
-    "mcp-local-triage/case.yaml": "3e61b1972d79b49609301226b7c693185bcebb8f903edadeec3ad95a3b218aad",
-    "mcp-local-triage/graders/01-metadata-key.md": "0bd28eae94f2a5f276e3d816b70aa05bdb7b7dbf96d9233ea6d218f71f9b938a",
+    "mcp-local-triage/case.yaml": "f1cd581d76bba4e70746a27a8dd2dfd8ed4f814d153563d85578816895ef8fbf",
+    "mcp-local-triage/graders/01-metadata-key.md": "9a5aa8f16fa97340a04274d134293fc88646cffa74d9100530bfb980f88dc020",
     "mcp-local-triage/graders/02-no-unsafe-fallback.md": "675b31255735476b9efc06d6eb100818e325afcb68640b21d1dc7f7d52bd0c50",
     "mcp-local-triage/graders/03-honest-prior-outcomes.md": "99d13d3530fb6143d2bc73f563a0842397e6648c59f47e37860fc1c0304c5ebd",
-    "mcp-local-triage/graders/04-saved-sync-pending.md": "7666dcad8a1c95d3739ee93d527b5bf586320843f2f1c8d1916a954e5c4ec71d",
-    "mcp-local-triage/prompt.md": "36b1b533dded366a8505c15d2cbe94421e4c771eb719a1ac030ee3c251ad5b9d",
+    "mcp-local-triage/graders/04-saved-sync-pending.md": "7a4975e39a7a3bcdaedb6c9074db069c6b89e8d2681dd7dec3189b8ab95c8725",
+    "mcp-local-triage/graders/05-uncertain-write-keeps-key.md": "ab59c11f5787299a9489cee97d74ccc82f81b832e6ad2d0ed313702572119298",
+    "mcp-local-triage/prompt.md": "a56c1e637d0322a8845e7a30903f9b0fcf54e01460340c5c0f59e2f236a93396",
     "milestone-and-final-scope/case.yaml": "e82ff751b5c08187469157855aab61f7831af6bfb248329e7010fb38a9b15ca0",
     "milestone-and-final-scope/graders/01-default-auto.md": "4c0230be857773a983419687f22fba1da178d2f72523075b1ca13392ad4b1b84",
     "milestone-and-final-scope/graders/02-clean-final-scope.md": "9b672a849b08f402f688a6ae4ff241f99fc5b59a2b173e22cd5ea66fbcb88ecf",
@@ -71,12 +72,12 @@
     "recovery-policy-guards/prompt.md": "fc047108124248dfa7f1b85af3c71dc83a904a7db55181dc958c0cd730e9244a"
   },
   "fingerprints": {
-    "SKILL.md": "757e975ff6230e96ffb9581efbb36620171e3f0230bbc295434f161000c296a4",
+    "SKILL.md": "1e8eaf1a2df17703d50365ad41324757f7bfde7222ce26c7bffd2a2ac7a8e421",
     "references/cli-execution.md": "f43352c17097bfde9469aaa899e5af5b552da9eb5d9afe0b27723588203e45a1",
     "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
     "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
     "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
-    "references/local-triage.md": "c1271955424a1af76527d1645492bb95e018ee1d5891e14fda386fdf0bb36104",
+    "references/local-triage.md": "3d9e70c9f3cbfb4a7ecee97d13f36e3519a520d84fee47fa89f7ed839bcb50c0",
     "references/mcp-review.md": "8ccc23546875f99ea4a66dc7f02bf04867bdc22725fa65456cbe3efcde782def",
     "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
     "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
@@ -87,19 +88,17 @@
     "read": 5
   },
   "tool_errors": 0,
-  "response_sha256": "1465963843f5b815bdaa8c251bf4d7461a12a1b2d7f72f207430bd967999f677",
-  "response_message_id": "msg_1e9a96a240011GQYfVg3RhEW2E",
-  "finished_at": "2026-11-17T13:19:53.102Z",
-  "duration_ms": 53048,
+  "response_sha256": "2267518435b0dde8f1c1d8c5861f694ad63de5295b877d9b4e81a524b74a7131",
+  "response_message_id": "msg_1e9f30c49001iuNaHzJmHEmpxo",
+  "finished_at": "2026-11-17T14:40:15.000Z",
+  "duration_ms": 54690,
   "token_usage": {
-    "input": 10716,
-    "output": 1082,
-    "reasoning": 1104,
-    "cache_read": 76416,
+    "input": 11506,
+    "output": 1151,
+    "reasoning": 959,
+    "cache_read": 125056,
     "cache_write": 0
   },
   "metric_scope": "Runtime-reported assistant messages for this completed child only; not a whole-host filesystem audit.",
-  "limits": "Synthetic operational commands were proposals. No installed-runtime or natural-activation qualification.",
-  "execution_configuration": "with_skill",
-  "anonymous_grading_label": "A"
+  "limits": "Synthetic operational commands were proposals. No installed-runtime or natural-activation qualification."
 }

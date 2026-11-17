@@ -1,31 +1,27 @@
 ### 1. `ordinary-update-check`
 
-Each result independently stops the update:
+Each result independently stops recovery:
 
-- **TLS error:** report the check failure. Do not bypass TLS or attempt the update.
-- **No update:** do not run the updater; no approved compatible target was offered.
-- **Version 3.0.0 offered:** do not install it; it is outside the approved compatible 2.x target.
+- **TLS error:** Report the check failure. Do not bypass TLS or treat it as missing credentials.
+- **No update:** Do not run the updater; no compatible target was offered.
+- **Version 3.0.0:** Reject the incompatible target. Do not install it.
 
-Keep version 1.6.0 and the recorded origin, version choices, and update holds unchanged. Do not switch to `latest-2`, an installer, another account, or another deployment. Check only whether `QODO_UPDATE_BASE_URL` is set—never disclose its value; if set, stop for user direction.
-
-**Pending:** a successful supported check offering a newer compatible 2.x target through the selected approved route. Identity, login, review, and managed-tool calls remain blocked.
+Do not switch to `latest-2`, an installer, another deployment or another account. Identity, login, review and managed-tool calls remain blocked on CLI 1.6.0. A verified compatible 2.x runtime remains pending.
 
 ### 2. `missing-cli`
 
-Stop the CLI path and report that neither trusted installed invocation is available. Review authorization does not authorize environment installation.
+**Review blocked:** Neither trusted installed invocation exists.
 
-Do not run a repository-local launcher, invent a checksum, use an unpinned installer, or change accounts or deployments.
+Do not use a repository-local launcher, download or install anything, or change accounts or deployments. Review authorization does not authorize installation. Installation would require separate approval and a Qodo/organization-supplied checksum-pinned installer; neither is present.
 
-**Pending:** separate installation approval and a Qodo/organization-supplied checksum-pinned installer for the intended deployment. After an authorized installation, compatibility and identity checks must succeed before review.
+The review remains pending a trusted, compatible runtime and successful preflight.
 
 ### 3. `user-no-retry`
 
-Do not resubmit automatically. The explicit no-retry instruction takes precedence over the normal recovery allowance, even though the error itself permits retries.
+**Stop before resubmission.** Your no-automatic-retry instruction overrides the otherwise available repository-identity recovery.
 
-The next allowed action is to ask:
+Retain the failed operation ID, error, original base, scope, context and auto effort. The failed run provides no completed review coverage.
 
-> May I make one cause-corrected resubmission using `--repo` with the known exact connected repository `full_name`, preserving the original base, scope, context, and auto effort?
+May I make one corrected resubmission using `--repo` with the known connected repository’s exact `full_name`, preserving all other review inputs?
 
-Retain the failed operation ID and error. There is no need to rediscover the repository identity or flag support; both are supplied facts.
-
-**Pending:** explicit approval for that corrected resubmission. If approved, use the single cause-corrected retry allowance, retain the new operation ID if accepted, and collect its result. Further failure stops; the failed run establishes no completed review coverage.
+Until you explicitly approve, no corrected submission occurs. If approved, collect the resulting operation rather than launching additional reviews; any further failure stops recovery.

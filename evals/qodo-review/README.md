@@ -95,8 +95,10 @@ The subsequent conditional-handle comparison is recorded below.
 Iteration12 completed at55976bc with both40/41. Both pass the corrected MCP-triage
 checks; the candidate fails prior-context preservation and the baseline overlooks
 the supplied base. Its147original captured artifacts remain unchanged.
-Only the follow-up case is being refreshed after supplying concrete prior context.
-The planned scoped gate checks an exact disjoint union, not a new full-matrix run.
+Only the follow-up case was refreshed after supplying concrete prior context:
+two executions and one anonymous grader,5/5for each version. The scoped current
+manifest combines those5assertions with seven unchanged12cases: candidate41/41,
+baseline40/41. It checks an exact disjoint union, not a new full-matrix run.
 Original iteration-8 33/33 and focused iteration-9 5/5 results remain archived unchanged.
 The preceding iteration-7 native-agent result is 32/32 for both corrected and prior `173cfc7`
 instructions after one documented auto-contract grading adjudication. Initial
@@ -111,10 +113,13 @@ its raw instruction hashes to the stated signed commit, including in shallow or
 squash-merged checkouts. Artifact reads reject symlinked files and ancestors.
 Only release-owned version/provenance stamps are mapped to their evaluated values;
 the evidence retains its original exact hashes, not a claim of a new model run.
-The gate compares every current run's recorded fixture commit and complete input
-map, exact artifact namespace and recorded case/configuration identity. Empty
+The gate compares each run against its own scope's original fixture commit and
+complete captured input map, not a synthetic unified snapshot. Scope records
+must use unchanged instruction identities; their selected inputs must match
+today's cases. Scope archives seal all captured files and reject extra/missing
+artifacts. Selected run identities and captured bytes must remain unchanged. Empty
 assertion cases fail. Each assertion needs an output citation with a valid line range.
-Anonymous `A.md`/`B.md` labels map through recorded provenance to the response.
+Anonymous `A.md`/`B.md` labels map through each scope's recorded mapping to the response.
 Citation syntax and bounds do not prove that the cited text supports the claim.
 Updating the manifest alone cannot bless old answers.
 History entries6/7/8/9/10/11/12 are required; their40/96/104/74/121/122/147artifacts and inventories

@@ -1,36 +1,31 @@
-Nothing was executed or changed. Below, `qodo` means the same trusted installed invocation used for the version probe, never a repository-local launcher.
+All commands and context below are **proposals only**. Nothing was executed, installed or written. `qodo` denotes the same trusted installed invocation used for each fixture’s version probe.
 
-### 1. `old-1-6` — blocked by the executable version
+## 1. `old-1-6`
 
-**1.6.0 is unsupported**, even though this deployment advertises review API v2. Cached credentials or catalogs do not bypass the **2.0.0 minimum**.
+**Blocked:** CLI 1.6.0 is below the required 2.0.0 floor, despite this deployment advertising review API v2.
 
-The next allowed diagnostic is offline updater-help inspection:
+- Do not run identity, login, review or managed-tool calls. Cached credentials/catalogs do not establish compatibility.
+- The update-source override is already known absent. Next, request approval for a specific recovery route; do not update automatically.
+- Any approved updater route must first successfully offer a newer compatible 2.x target, preserving origin, version policy and holds. Do not automatically select `latest-2`.
+- After one approved runtime attempt, repeat the unadorned version probe before proceeding.
 
-```sh
-qodo update --help
-```
+**Unverified:** a supported executable and any review assessment.
 
-No update is authorized. Before any runtime change, obtain approval for one recovery route at the recorded origin, preserving version selections and update holds. Every updater route requires a successful supported check offering a newer compatible **2.x** target. Do not assume `latest-2` is available or approved.
+## 2. `unparseable`
 
-Do not run identity, login, review or managed-tool calls.
+**Blocked:** `"custom build"` does not establish a supported version. This is not evidence of an authentication problem; do not log in or make authenticated calls.
 
-**Unverified:** supported recovery route, compatible target, identity and review coverage. The override is already known to be absent.
+**Next allowed action:** check only whether `QODO_UPDATE_BASE_URL` is set, without printing its value. If set, stop for the user. If absent, recovery requires separate installation approval and a Qodo/organization-supplied checksum-pinned installer. Neither is available, so no installation command can yet be proposed safely.
 
-### 2. `unparseable` — compatibility unknown
+After one authorized attempt, probe the version again. Do not invent a checksum, switch deployments or try speculative updater routes.
 
-`custom build` establishes no supported version. It is not evidence of missing credentials; **do not attempt login** or authenticated calls.
+**Unverified:** executable version, compatibility, identity and review coverage.
 
-Next, determine only whether `QODO_UPDATE_BASE_URL` is set, without printing its value. If set, stop for the user. Otherwise, recovery still requires a separately authorized Qodo/organization-supplied installer and checksum-verification procedure. Neither approval nor a verified checksum exists here, so no installer command can safely be proposed.
+## 3. `floor-2-0-summary`
 
-After one authorized installation attempt, repeat the same invocation’s unadorned `--version` probe. Failure or incompatibility stops recovery.
+**Next:** prepare the following context outside the reviewed worktree, then submit the first review. CLI 2.0.0 meets the floor; API v2 and identity are already verified.
 
-**Unverified:** version, review capability, installer provenance and identity.
-
-### 3. `floor-2-0-summary` — compatible; preserve context using `summary`
-
-Exactly **2.0.0 meets the floor**. API v2, identity and the required flags are verified; no update or repeat identity check is needed.
-
-Proposed context:
+Proposed `floor-2-0-summary.json`:
 
 ```json
 {
@@ -45,26 +40,23 @@ Proposed context:
 }
 ```
 
-Only the narrative field name changes from `notes` to `summary`; no accepted detail is dropped.
+Only the narrative field changes from `notes` to advertised `summary`; no accepted detail is removed.
 
-After preparing that JSON as a UTF-8, BOM-free file outside the reviewed worktree, the proposed submission is:
+After preparing that file at the proposed external location:
 
 ```sh
-qodo review \
-  --base 1111111111111111111111111111111111111111 \
-  --context-file "${TMPDIR:?}/floor-2-0-summary-context.json" \
-  --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$HOME/.qodo/review-context/floor-2-0-summary.json" --async --json
 ```
 
-Use that path only after preparing the file there and confirming `$TMPDIR` is outside the worktree. Omit effort flags for **auto**.
+Effort is **auto**, with neither depth flag.
 
-**Unverified:** submission acceptance, actual collected coverage, context delivery and findings. The fixture reports cancellation tests passed; live-load behavior remains untested.
+**Unverified:** submission acceptance, context delivery, completed coverage and findings. Live-load behavior remains untested.
 
-### 4. `current-2-3-1-paths` — review changed work without forcing full
+## 4. `current-2-3-1-paths`
 
-**2.3.1 is compatible**, and identity is verified. Changed code supplies the reason for another assessment—not the notes change alone.
+**Next:** submit changed work with the unchanged base, explicit paths and auto effort. Use the advertised `notes` field.
 
-Proposed context:
+Proposed `current-2-3-1-paths.json`:
 
 ```json
 {
@@ -79,40 +71,22 @@ Proposed context:
 }
 ```
 
-Confirm submission flags with offline help:
-
 ```sh
-qodo review --help
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$HOME/.qodo/review-context/current-2-3-1-paths.json" --async --json src/jobs/ test/jobs/
 ```
 
-If the illustrated flags are supported, after preparing the external context file:
+Do **not** add `--full`. Changed notes alone do not invalidate reuse; the Engine determines actual continuation eligibility and mode. Recent work includes new API behavior, not merely fixes.
 
-```sh
-qodo review \
-  --base 1111111111111111111111111111111111111111 \
-  --context-file "${TMPDIR:?}/current-2-3-1-paths-context.json" \
-  --async --json \
-  src/jobs/ test/jobs/
-```
+**Unverified:** actual reuse mode, context delivery, findings and coverage of the changed snapshot. These path restrictions do not establish coverage outside the two directories.
 
-Preserve both paths, the base and auto effort. **Do not add `--full`.** Let the Engine determine and report incremental, reused or full execution. This work includes new cancellation behavior, so it is not automatically fixes-only.
+For either accepted submission above, retain its returned operation ID and poll that operation—not a new review. Acceptance is not completion.
 
-**Unverified:** continuation mode, current-snapshot coverage, context delivery and findings. Coverage remains deliberately limited to the two requested paths.
+## 5. `mcp-no-collector`
 
-For either accepted CLI submission, retain its operation ID and collect that operation:
+**Review blocked:** the MCP schema cannot read this worktree. No safe submission can be assembled without a tested collector and prepared input.
 
-```sh
-qodo review status <returned-operation-id> --json
-```
+Proceed only when collection can preserve the intended scope, safety exclusions, omission reporting, fetchable base, submitted snapshot and context. Do not substitute an ad hoc `git diff`, another checkout or a remotely fetched repository. Installation is not authorized.
 
-Acceptance is not completion. Verify result identity, omissions, coverage and the complete finding inventory before making a readiness claim.
+Skip CLI preflight on this MCP-only path.
 
-### 5. `mcp-no-collector` — review blocked
-
-The MCP schema cannot read this worktree. Without a tested collector or suitable prepared input, **do not submit a review**.
-
-Report the coverage blocker. A suitable collector must preserve the intended snapshot and context, apply safety exclusions, report omissions and verify a fetchable comparison base. An ad hoc `git diff`, unrelated checkout or remotely fetched substitute is not equivalent.
-
-Do not install a CLI without authorization, and skip CLI version/identity probes on this MCP-only path.
-
-**Unverified:** the collected diff, exclusions, omissions, base fetchability and all review results.
+**Unverified:** local-input completeness, exclusions, omissions, base availability and all review results.

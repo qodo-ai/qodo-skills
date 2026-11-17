@@ -1,6 +1,35 @@
 # Agent-evaluation results
 
-## Current evidence status
+## Current applicable evidence: disjoint scopes
+
+The current manifest combines **41/41 candidate** and **40/41 baseline** assertions
+from two non-overlapping scopes. This is **not a fresh unified 41-assertion run**.
+
+| Scope | Executions / graders | Candidate | Baseline |
+|---|---:|---:|---:|
+| Seven unchanged iteration12 cases, original559inputs | 14 / 7 retained | 36/36 | 35/36 |
+| Refreshed follow-up case, concrete5295inputs | 2 / 1 fresh | 5/5 | 5/5 |
+
+Both scopes use candidate instructions
+`55976bc01773c7910ab019aa8bf6cfaafab53d3d` and baseline instructions
+`6385a42e83ac028349ff1c153a788a812a850bf5`. The refreshed fixture is from
+`5295dbba0c097bed3c79b8039d40dfb060c22589`; no instruction bytes changed.
+Both configurations retain each scope's complete57input map, original response,
+grade, provenance, timing and anonymous labels. The scoped gate checks exact
+coverage of all eight current cases and all41assertions with no overlap or gaps.
+
+The fresh follow-up retains both supplied decisions with natural ownership,
+admission/caller evidence, the untested-load limitation and original open
+F-TIMEOUT identity. recent_work covers the timeout correction and new API.
+Both pass5/5. The baseline's retained current-version case still fails for
+overlooking the supplied base; no answer or grade is repaired or regraded.
+
+All29focused source/staging/evidence checks pass, including the current gate.
+The full signed-head suite/native qualification is a separate next step.
+Original failed12and focused13standard benchmarks/static viewers are generated.
+The12viewer retains11as previous; the focused13viewer retains12as previous.
+
+### Retained failures and limitations
 
 Iteration12 at candidate/common inputs `55976bc` versus baseline instructions
 `6385a42` completed16executions/8anonymous graders: **40/41 for each**.
@@ -10,11 +39,9 @@ overlooking the supplied base. The [original failed comparison](../../test/fixtu
 retains all147captured artifacts, including unchanged responses, grades, provenance
 and timing. Its standard benchmark/static viewer12 is generated with11as previous.
 
-The follow-up fixture now supplies concrete prior decisions, caller evidence,
-limitations and the original timeout ID. Only that five-assertion case will be
-refreshed, with unchanged559instruction bytes. Seven unchanged cases retain their
-original12input/run scope. Disjoint coverage checks must qualify their union;
-no fresh unified41assertion run or passing current evidence is claimed yet.
+The full failed12record is unchanged. The new selected follow-up is a distinct
+case/input/run identity, not a passing replacement judgment for the failed answer.
+Its82captured artifacts are sealed separately under the focused scope.
 
 The preceding comparison, iteration11 at candidate `2e70a9a` versus `6385a42`,
 scored **40/41 for both**, not a passing current gate. Both failed metadata-only
@@ -26,6 +53,16 @@ No execution retry, adjudication or answer repair occurred.
 Canonical instructions and the scenario distinguish synchronous results
 without handles from operations with returned collection support. The comparison below is historical,
 not qualification of the new instructions.
+
+Passing proposals do not establish all extra claims. Retained baseline answers
+overstate helper-fixed readiness and attribute supplied tests to a Qodo result.
+Focused13judgments leave internal Engine reuse ownership unverified; one baseline
+also assumes no new evidence without supplied support. Parser fields, protocol
+names and recovery-policy claims remain unverified where grader inputs are insufficient.
+One execution per case/configuration establishes neither reliability nor causal uplift.
+Cache-inclusive tokens are not billed cost; child timing is not journey latency.
+No live service calls, finding writes, natural activation, full OS confinement,
+runtime interoperability, MP1 acceptance or billed Claude evaluation occurred.
 
 ## Preceding operation identity comparison (iteration 10)
 
@@ -60,8 +97,8 @@ The main Skill is **300 lines / 19,322 bytes**. Raw SHA-256:
 SKILL.md 757e975ff6230e96ffb9581efbb36620171e3f0230bbc295434f161000c296a4
 ```
 
-[The manifest](../../test/fixtures/qodo-review-behavior/manifest.json) binds every
-current instruction, all eight case/YAML/prompt/grader inputs, every response,
+[The historical manifest](../../test/fixtures/qodo-review-behavior/history/iteration-10/manifest.json) binds every
+then-current instruction, all eight case/YAML/prompt/grader inputs, every response,
 judgment and safe runtime provenance record. Every run retains the same complete
 56-input map and its actual case identity. Artifact paths must match the exact
 case/configuration namespace; recorded case/configuration must also match.

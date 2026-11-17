@@ -1,0 +1,76 @@
+{
+  "expectations": [
+    {
+      "text": "For mixed-followup, the complete next context retains both supplied decisions with their user/agent ownership, the shared admission-guard evidence, refreshed caller evidence, untested-live-load limitation and original open F-TIMEOUT identity. recent_work describes both this round's timeout correction and new cancellation API, not the obsolete pre-review work. The command uses the supplied base and unchanged scope with auto, without forcing --full merely because notes changed or F-TIMEOUT remains open.",
+      "passed": true,
+      "evidence": "B.md:10-16 preserves both owned decisions, guard/caller evidence, live-load limitation and open F-TIMEOUT, and refreshes both changes. B.md:24 uses the exact base; B.md:27 preserves scope and explicitly omits --fast, --deep and --full. No effort flag means auto (qodo-auto-help.txt:62-64)."
+    },
+    {
+      "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
+      "passed": true,
+      "evidence": "B.md:35-41 rejects another submission, retains original F-OLD as pending/action-required despite complete assessment/inventory and zero introduced findings, and reports 'Needs action—not ready.'"
+    },
+    {
+      "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+      "passed": true,
+      "evidence": "B.md:45-51 evaluates F-GUARD against the mandatory guard, recommends evidence-backed dismissal, leaves stored status unchanged, and rejects unnecessary code changes, scope expansion and another identical assessment."
+    },
+    {
+      "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
+      "passed": true,
+      "evidence": "B.md:55-61 accepts original F-HELPER's completed resolved/implemented verdict despite the unchanged line and rejects reassessment merely for that unchanged quote. B.md:71 confirms no finding-status writes were performed."
+    },
+    {
+      "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
+      "passed": true,
+      "evidence": "B.md:65-69 rejects disappearance as proof, keeps original F-QUOTE open, and requires tracing the renamed path with semantic evidence and relevant verification."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "For old-backlog, no meaningful new evidence exists.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:35 asserts absence of meaningful new evidence. prompt.md:37-40 establishes complete assessment, no subsequent code changes and an unresolved treatment decision, but does not explicitly establish absence of new evidence. This strengthens the supplied premise unnecessarily; the rubric's required conclusion still passes."
+    },
+    {
+      "claim": "The Engine determines eligibility for incremental continuation.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:27 attributes eligibility decisions to the Engine. The permitted inputs support the proposed flags but do not independently establish this internal responsibility. Unverified, not disproven."
+    },
+    {
+      "claim": "No commands, service calls, code edits or finding-status writes were performed.",
+      "type": "process",
+      "verified": true,
+      "evidence": "B.md:71 explicitly limits the answer to proposals; task.md:6 independently confirms that no proposed operational command was executed."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Add a check against inventing supporting task facts: B.md:35 strengthens 'no code changed' into 'no meaningful new evidence exists,' which the current assertions do not test."
+      },
+      {
+        "reason": "Auxiliary runtime claims about the Engine's reuse responsibility (B.md:27) require authoritative evidence or qualification; the supplied help establishes flag behavior, not internal ownership."
+      }
+    ],
+    "overall": "All five assertions pass for the proposal. Unsupported supporting claims remain outside the rubric; actual review execution and stored outcomes are not established."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15f71f60ffeTO9t4ZZOLF9ikc",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea0992a20014AFQIfuIISov57",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

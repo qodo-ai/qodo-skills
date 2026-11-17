@@ -22,28 +22,28 @@ function listFiles(root, path = '') {
   }).sort();
 }
 
+export function assertArtifactArchive(root, entry, directory, label) {
+  assert.ok(entry, `Missing required ${label} archive`);
+  assert.equal(entry.path, `${directory}/archive.json`);
+  assert.match(entry.sha256, /^[a-f0-9]{64}$/);
+  const bytes = readEvidenceFile(root, entry.path);
+  assert.equal(hashEvidence(bytes), entry.sha256, `Changed ${label} archive`);
+  const archive = JSON.parse(bytes), paths = Object.keys(archive.artifacts);
+  assert.ok(paths.length, 'Historical archive is empty');
+  assert.deepEqual(paths.sort(), listFiles(root, directory).map((path) => path.slice(directory.length + 1))
+    .filter((path) => path !== 'archive.json'), `Historical ${label} inventory changed`);
+  for (const [path, expected] of Object.entries(archive.artifacts)) {
+    assert.match(expected, /^[a-f0-9]{64}$/);
+    assert.equal(hashEvidence(readEvidenceFile(root, `${directory}/${path}`)), expected,
+      `Changed historical artifact: ${label}/${path}`);
+  }
+  return paths.length;
+}
+
 export function assertHistoryArchives(root, manifest) {
-  const counts = {};
-  for (const iteration of [6, 7, 8, 9, 10, 11, 12]) {
+  return Object.fromEntries([6, 7, 8, 9, 10, 11, 12].map((iteration) => {
     const entry = manifest.history?.[`iteration_${iteration}`];
     assert.ok(entry, `Missing required iteration${iteration} history`);
-    const directory = `history/iteration-${iteration}`;
-    assert.equal(entry.path, `${directory}/archive.json`);
-    assert.match(entry.sha256, /^[a-f0-9]{64}$/);
-    const bytes = readEvidenceFile(root, entry.path);
-    assert.equal(hashEvidence(bytes), entry.sha256, `Changed iteration${iteration} archive`);
-    const archive = JSON.parse(bytes);
-    const paths = Object.keys(archive.artifacts);
-    assert.ok(paths.length, 'Historical archive is empty');
-    assert.deepEqual(paths.sort(), listFiles(root, directory).map((path) => path.slice(directory.length + 1))
-      .filter((path) => path !== 'archive.json'),
-      `Historical iteration${iteration} inventory changed`);
-    for (const [path, expected] of Object.entries(archive.artifacts)) {
-      assert.match(expected, /^[a-f0-9]{64}$/);
-      assert.equal(hashEvidence(readEvidenceFile(root, `${directory}/${path}`)), expected,
-        `Changed historical artifact: iteration${iteration}/${path}`);
-    }
-    counts[iteration] = paths.length;
-  }
-  return counts;
+    return [iteration, assertArtifactArchive(root, entry, `history/iteration-${iteration}`, `iteration${iteration}`)];
+  }));
 }

@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inputPath } from '../../scripts/eval-review-skill.mjs';
 import { assertFixtureProvenance, assertGrade, assertRunIdentity, assertRunPaths, evaluatedReleaseStamps } from './review-evaluation-fixtures.mjs';
-import { assertHistoryArchives, hashEvidence as sha256 } from './review-evidence-archives.mjs';
+import { assertArtifactArchive, assertHistoryArchives, hashEvidence as sha256 } from './review-evidence-archives.mjs';
 import { assertEvidenceScopes } from './review-evidence-scopes.mjs';
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -96,6 +96,8 @@ export function assertCurrentEvidence(root, { skill, version, references, text }
   assert.equal(evaluatedReleaseStamps(releaseOnly, '999.0.0', version), text);
   assert.notEqual(evaluatedReleaseStamps(`${releaseOnly}\nChanged behavior.\n`, '999.0.0', version), text);
   const selections = assertEvidenceScopes(manifest, (reference) => {
+    const scope = manifest.evidence_scopes.find((entry) => entry.record === reference);
+    assertArtifactArchive(evidenceRoot, scope.archive, dirname(reference.path), scope.id);
     const bytes = fixtureFile(evidenceRoot, reference.path);
     assert.equal(sha256(bytes), reference.sha256, 'Scope record identity changed');
     return JSON.parse(bytes);

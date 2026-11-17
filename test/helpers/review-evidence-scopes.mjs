@@ -21,6 +21,8 @@ export function assertEvidenceScopes(manifest, loadRecord) {
     scopes.add(scope.id);
     assert.ok(Array.isArray(scope.cases) && scope.cases.length, 'Empty evidence scope');
     assert.match(scope.record.sha256, /^[a-f0-9]{64}$/);
+    assert.ok(scope.archive, 'Scope artifact archive is required');
+    assert.match(scope.archive.sha256, /^[a-f0-9]{64}$/);
     const record = loadRecord(scope.record);
     assert.equal(record.schema_version, 1);
     assert.equal(record.method, 'fresh-native-agents-with-anonymous-final-answer-grading');

@@ -1,30 +1,31 @@
-Commands below are proposals only. `qodo` means the resolved installed executable; context-file paths are illustrative files outside the reviewed changes. Nothing is submitted or changed.
+These are proposals only. No commands ran, files changed, or reviews were submitted. In command examples, `qodo` means the same trusted installed invocation used for the version probe.
 
 ### 1. `old-1-6` — blocked
 
-CLI **1.6.0** is below the required **2.0.0** floor. Review API v2, cached catalogs and credentials do not override that requirement.
+**Next allowed action:** ask for explicit runtime-recovery authorization. Version **1.6.0** is below the **2.0.0** floor, even though the deployment advertises review API v2.
 
-**Next allowed action:** request runtime-update approval or identification of an already-installed, verified compatible executable. The update-source override is already known to be absent.
+Do not run identity, login, review, or managed-tool calls. The absent update-source override does not authorize an update.
 
-Do not run identity, login, reviews or managed tools. Do not update without approval. An approved updater route must first successfully offer a newer compatible 2.x target at the recorded origin; preserve version pins and update holds. Do not assume `latest-2` is authorized.
+Any approved updater route must preserve the recorded origin and update policy, successfully check for a newer compatible 2.x target, make at most one approved update attempt, then repeat the unadorned version probe. Do not assume `latest-2` is the selected route.
 
-**Unverified:** a compatible executable, an eligible update target and review coverage.
+**Unverified:** an approved recovery route, eligible target, and compatible executable.
 
 ### 2. `unparseable` — blocked
 
-`custom build` does not establish compatibility. It also does not establish an authentication problem.
+**Next allowed action:** establish a verified compatible runtime or obtain separate authorization for a supplied checksum-pinned installer. Neither is currently available.
 
-**Next allowed action:** obtain a verifiable compatible installed invocation, or explicit approval and an organization-supplied checksum-pinned installer for the existing deployment. Before compatibility recovery, check only whether `QODO_UPDATE_BASE_URL` is set—never expose its value. If set, stop for the user.
+Before recovery, check only whether `QODO_UPDATE_BASE_URL` is set—never disclose its value. If set, stop for the user.
 
-No login, catalog refresh, authenticated call or guessed installer/update command is justified. After one authorized installation attempt, repeat the resolved invocation’s unadorned `--version`; stop if it remains incompatible or unparseable.
+Do not run authenticated calls or attempt login: `"custom build"` does not establish compatibility, and no authentication failure was reported. Do not invent an installer checksum.
 
-**Unverified:** executable compatibility, approved installer provenance/checksum and review coverage.
+**Unverified:** runtime version and provenance, override presence, installer integrity, and recovery authorization.
 
-### 3. `floor-2-0-summary` — eligible for first review
+### 3. `floor-2-0-summary` — eligible for submission
 
-Exactly **2.0.0** meets the floor. Review API v2 and identity are verified, so no repeated identity check is needed.
+Exactly **2.0.0** meets the floor; API v2 and identity are already verified. Preserve all context, changing only the supported narrative field name.
 
-**Next allowed action:** supply this context in an external UTF-8 file, without a BOM. Change only the narrative field name from `notes` to the advertised `summary`:
+Proposed external context file, not created:  
+`/private/var/folders/xt/yh2x_20j0f93qs1xjnc44w840000gn/T/opencode/review-2.0-context.json`
 
 ```json
 {
@@ -39,24 +40,19 @@ Exactly **2.0.0** meets the floor. Review API v2 and identity are verified, so n
 }
 ```
 
-Proposed submission:
+After preparing that file outside the reviewed changes, propose:
 
 ```sh
-qodo review \
-  --base 1111111111111111111111111111111111111111 \
-  --context-file /path/outside-worktree/review-2.0.0.json \
-  --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file /private/var/folders/xt/yh2x_20j0f93qs1xjnc44w840000gn/T/opencode/review-2.0-context.json --async --json
 ```
 
-Omit `--fast` and `--deep`: this uses default auto effort. Do not add `--full` for this first review.
+Effort is **auto**: omit `--fast` and `--deep`. Retain the returned operation ID and collect that operation rather than resubmitting.
 
-**Unverified:** submission acceptance, completed assessment, actual coverage/exclusions, context delivery and findings. Cancellation tests passed as supplied; live load remains untested.
+**Unverified:** submission acceptance, completed assessment, actual coverage, and context-delivery metadata. Live load remains untested.
 
-### 4. `current-2-3-1-paths` — continue with the same scope
+### 4. `current-2-3-1-paths` — preserve incremental eligibility
 
-**Reason for another assessment:** new timeout-guard and cancellation-API changes await review. Changed notes alone do not justify forcing a fresh assessment.
-
-Preserve both paths, the base and auto effort. Use the advertised `notes` field:
+**Next allowed action:** prepare the updated context and submit the changed work with the prior exact base, explicit paths `src/jobs/ test/jobs/`, and **auto** effort. Do not request `--full` merely because notes changed.
 
 ```json
 {
@@ -71,34 +67,18 @@ Preserve both paths, the base and auto effort. Use the advertised `notes` field:
 }
 ```
 
-Confirm submission and path options with `qodo review --help` if those options are not already verified, then propose:
+Keep this file outside the reviewed diff. The fixture does not print the previous base SHA; retrieve that retained value before constructing the runnable command rather than inventing one.
 
-```sh
-qodo review \
-  --base 1111111111111111111111111111111111111111 \
-  --context-file /path/outside-worktree/review-2.3.1.json \
-  --async --json \
-  src/jobs/ test/jobs/
-```
+The work includes new cancellation API behavior, not just fixes. Let the Engine determine reuse eligibility; report its actual `full`, `incremental`, or `reused` result.
 
-Do **not** add `--full`, `--fast` or `--deep`. Let the Engine determine and report incremental reuse or its actual fallback. The context includes new API behavior, so do not characterize this as fixes-only.
-
-**Unverified:** actual continuation mode, current coverage, context delivery and the complete finding inventory. This requested path-limited review does not certify files outside those paths.
-
-For either accepted CLI submission, retain its returned operation ID and collect that same operation:
-
-```sh
-qodo review status <returned-operation-id> --json
-```
-
-Respect returned polling delays. Acceptance is not completion; inspect coverage, warnings, context delivery and both introduced and still-open findings before claiming readiness.
+**Unverified:** the retained base’s literal value here, the new assessment’s coverage, context delivery, and actual reuse outcome. Path-limited coverage would not certify changes elsewhere.
 
 ### 5. `mcp-no-collector` — coverage blocked
 
-The MCP pre-PR schema cannot read this worktree. Without a tested collector or prepared input, it cannot safely provide the requested local review.
+**Next allowed action:** report that MCP-only review cannot safely cover this worktree without a tested collector and prepared input.
 
-**Next allowed action:** report the blocker. Proceed only when a tested collector can preserve the intended snapshot/context, enforce safety exclusions, report omissions and verify a fetchable comparison base.
+Do not submit an empty or ad hoc diff, substitute another checkout, or install the CLI without authorization. MCP schema availability does not provide worktree access. CLI version and identity probes are unnecessary for this MCP path.
 
-Do not submit an ad hoc `git diff`, substitute another checkout or install anything without authorization. MCP does not require CLI version or identity probes.
+A suitable collector must preserve the intended snapshot and context, apply safety exclusions, report omissions, and verify a fetchable base.
 
-**Unverified:** eligible local collection, prepared review input, base fetchability and all review coverage. No review has completed.
+**Unverified:** all required local collection and coverage evidence. No review is complete.
