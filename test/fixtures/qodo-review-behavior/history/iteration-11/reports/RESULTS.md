@@ -1,0 +1,3 @@
+# Iteration11: retained failure
+
+Candidate2e70a9a and baseline6385a42 each40/41 across8groups. Both failed metadata-only because their answers assumed an exposed collectible operation receipt not established by that case. Both passed saved-sync/new-key and uncertain-write/same-key checks. No execution retry, adjudication or answer repair. Some baseline proposals contain illustrative host-temp paths and overclaim helper-fixed readiness outside the rubric. Protocol/parser/recovery claims remain unverified where the grading evidence is insufficient. Billed Claude evaluation, runtime integration, reliability and causal improvement are unestablished.

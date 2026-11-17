@@ -100,9 +100,10 @@ they do not select different authority, compatibility or recovery policy.
   status was saved but synchronization is incomplete. Do not report that as a failed stored transition.
   Recover an uncertain invocation with its original request and transport key.
   On MCP, a completed same-key replay returns the stored result without retrying synchronization.
-  After verified storage, a separately authorized synchronization attempt needs a new operation and a new retained transport key.
+  After verified storage, a separately authorized synchronization attempt needs a new invocation and a new retained transport key.
   Keep the business arguments unchanged. Verify each new outcome.
   An unknown outcome does not authorize key rotation. Report unavailable recovery instead of claiming synchronization.
+  Collect only a returned, supported operation handle. A synchronous tool result does not establish polling support.
 - **Requested maintenance:** preview the complete affected installation scope and apply only covering approval.
   Runtime approval is not skills-installation approval. Do not widen owners, packages, origins or update policy.
 

@@ -5,3 +5,4 @@ expected_outcome: |
   Stops when no replay-safe transport exists and reports prior/conflicting outcomes honestly.
   Distinguishes a saved dismissal from pending downstream synchronization.
   Separates same-key uncertain-write recovery from a new authorized synchronization attempt.
+  Does not invent polling support for a synchronous dismissal result without a handle.

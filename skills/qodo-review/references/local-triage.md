@@ -43,11 +43,13 @@ qodo pr-review-session dismiss --finding-ids ID1,ID2 --local-review-id REVIEW_ID
    the request. If they differ, say the prior dismissal remains; do not claim the new reason
     or explanation was saved. For a returned saved transition, `reconciled: false` means
     the status is stored but downstream synchronization is incomplete; report both facts.
-   For uncertain invocation recovery, collect the original operation or replay its exact request/key.
+   If a supported collection handle was returned, use it to recover the original invocation.
+   Otherwise use the exact retained request/key through supported replay. Do not invent a polling handle.
    A completed same-key MCP replay returns the original result. It does not call the status service again.
    For a separately permitted synchronization attempt after verified storage, keep the business arguments unchanged.
    Submit them with a new retained transport key through the advertised argument or metadata path.
-   Retain both operation receipts. Collect the new result and verify each stored outcome again.
+   Retain both requests, keys and returned results. Retain operation handles only when the transport supplies them.
+   Read the new result and verify each stored outcome again.
    If the original outcome is unknown or the recovery capability is unavailable, report that gap.
    `conflict` or `not_found` is not success. For a stale review reference, review again and
    reassess the finding before acting on the new result.

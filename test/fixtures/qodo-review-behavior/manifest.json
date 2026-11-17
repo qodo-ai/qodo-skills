@@ -410,11 +410,15 @@
     "iteration_10": {
       "path": "history/iteration-10/archive.json",
       "sha256": "68a6f702542f4c0fc9bff25584a84615a1feeafa07ed596e7ae7de81158921fb"
+    },
+    "iteration_11": {
+      "path": "history/iteration-11/archive.json",
+      "sha256": "ca34776c2e0c78511ccb17f33be55828749cba0dea04240e88e4ab20c111857e"
     }
   },
   "limits": "One fresh proposal execution per group/configuration. No operational Qodo/MCP/Git/service writes, natural activation, runtime qualification, reliability, causal uplift or savings. Billed Claude evaluation unperformed. Original history6/7/8/9 remains unchanged.",
   "grading_evidence": {
     "artifacts": {"history/iteration-7/adjudication/qodo-review-auto-help-evidence.txt":"436db2735276b25d7c27c4261a91c20eb4a1f905cc7809e53913560c1b83df16"},
-    "use": "Same verified auto-default help supplied to every anonymous grader before grading. No iteration10 adjudication."
+    "use": "Same verified auto-default CLI help supplied to anonymous graders before grading. No iteration11 adjudication."
   }
 }

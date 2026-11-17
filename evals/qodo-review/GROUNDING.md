@@ -36,7 +36,7 @@ Checked on 2026-11-17 through read-only Qodo source retrieval:
 - `qodo-ai/qodo-agent-runtime@5ada587fa6d99c00651a894428e12bf9bbe11b15`,
   `src/qar/managed_tools/mcp_server.py:730–755,810–844`: a repeated mutating MCP key
   selects the prior operation. A completed operation returns its stored result.
-  The handler does not execute again.
+The handler does not execute again.
 - At that same QAR revision, `pr_review_session/specs.py:239–261` marks dismissal
   as mutating. `pr_review_session/tools.py:59–73` forwards its business arguments
   to the status client when the handler executes.
@@ -56,3 +56,19 @@ Its 40/40 totals show compliance with those synthetic inputs, not correct MCP co
 The [unchanged iteration10 report](../../test/fixtures/qodo-review-behavior/history/iteration-10/reports/RESULTS.md)
 and [grounding note](../../test/fixtures/qodo-review-behavior/history/iteration-10/reports/GROUNDING.md)
 remain inspectable. Fresh evidence must use the corrected scenario and instructions.
+
+## Synchronous-result boundary
+
+The fresh iteration11 candidate and baseline both scored 40/41. Both failed the
+metadata-only assertion because their proposals assumed an exposed collectible
+operation receipt that the case did not establish. The [original failed evidence](../../test/fixtures/qodo-review-behavior/history/iteration-11/manifest.json)
+and its report retain those judgments without adjudication or answer repair.
+
+The same pinned QAR revision's `src/qar/managed_tools/mcp_server.py:256–264`
+constructs a synchronous success result from the projected tool payload. It does
+not add a pollable operation handle. This supports a narrower instruction:
+collect only a returned, supported handle. Otherwise recover an uncertain
+synchronous reply through the supported exact same-key replay.
+The updated fixture explicitly supplies the tool name and no-handle synchronous
+contract. It requires the same original business identity and replay protection,
+not a relaxed passing grade. Live runtime execution remains unperformed.

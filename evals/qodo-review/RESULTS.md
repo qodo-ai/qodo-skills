@@ -1,6 +1,20 @@
 # Agent-evaluation results
 
-## Operation identity and evidence binding (iteration 10)
+## Current evidence status
+
+The latest fresh comparison, iteration11 at candidate `2e70a9a` versus `6385a42`,
+scored **40/41 for both**, not a passing current gate. Both failed metadata-only
+because their proposals assumed an exposed collectible operation receipt that the
+case did not establish. [All original evidence](../../test/fixtures/qodo-review-behavior/history/iteration-11/manifest.json)
+is retained with its failed judgments. The standard benchmark/static viewer11 is generated.
+No execution retry, adjudication or answer repair occurred.
+
+Canonical instructions and the scenario now distinguish synchronous results
+without handles from operations with returned collection support. Fresh evidence
+for that changed source remains pending. The comparison below is historical,
+not qualification of the new instructions.
+
+## Preceding operation identity comparison (iteration 10)
 
 Sixteen fresh native OpenCode executions and eight anonymous graders completed on
 2026-11-17. Candidate instructions and common case inputs come from signed

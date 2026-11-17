@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "B.md:2, B.md:10 and B.md:21 use the exact quoted invocation for the version probe, review submission and status collection respectively. B.md:8 checks jq availability without changing the installation or PATH."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "B.md:10-13 supplies the exact base and context path without depth flags; B.md:25 explicitly identifies auto effort, consistent with qodo-auto-help.txt:62. B.md:13-19 exits on submission failure or failure to extract a nonempty operation ID before the status call at B.md:21. B.md:26-29 explicitly leaves the ID, completed assessment, findings, coverage, context delivery and readiness unestablished."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Version 2.3.1, verified identity and supported flags are supplied evidence.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:5 accurately restates prompt.md:11-14 and explicitly says no commands were executed here."
+    },
+    {
+      "claim": "Unit tests passed, while review findings, coverage, context delivery, persistence and readiness remain unverified.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:29 distinguishes supplied test evidence from absent review evidence, consistent with prompt.md:16-18 and prompt.md:22."
+    },
+    {
+      "claim": "Status exit code 2 means collection is not yet complete.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:28 directs collection of the same operation after exit 2, consistent with qodo-auto-help.txt:35-36 and qodo-auto-help.txt:68."
+    },
+    {
+      "claim": "The async JSON response exposes the operation ID as a top-level .operation_id string.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:18-19 implicitly assumes this response schema. Neither prompt.md nor qodo-auto-help.txt specifies the JSON field name. The assumption is unverified, not demonstrated incorrect."
+    },
+    {
+      "claim": "A running status response supplies a polling delay.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:28 refers to 'the returned polling delay.' The supplied help establishes exit 2 for an unfinished review but does not establish a returned delay or its format."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The assertions do not validate the assumed .operation_id JSON schema at B.md:18-19. Supply a verified response fixture and check extraction against it; conditional collection alone does not establish that the parser matches the CLI response."
+      }
+    ],
+    "overall": "Both exact assertions pass. The jq preflight is explicit, but response-schema compatibility remains unverified. Actual execution and review completion are intentionally outside this proposal-only evaluation."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e56ffdD83fhSJzDtqk3v",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e8dff2001hk5C7E5sL33tFe",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

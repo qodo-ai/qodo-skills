@@ -1,0 +1,89 @@
+{
+  "expectations": [
+    {
+      "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
+      "passed": true,
+      "evidence": "A.md:5 explicitly says 1.6.0 fails the 2.0.0 minimum. A.md:7-9 requests approval, prohibits identity/login/review/managed-tool calls, and states that no runtime-changing command is authorized. Recovery remains conditional, preserves the recorded origin, and does not assert an available supported target."
+    },
+    {
+      "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
+      "passed": true,
+      "evidence": "A.md:14 says 'custom build' establishes neither a supported version nor an authentication problem. A.md:16-19 limits diagnostics to override presence, acknowledges missing approval/artifact/checksum, prohibits login/identity/review and blind installation, and lists the runtime version as unverified."
+    },
+    {
+      "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
+      "passed": true,
+      "evidence": "A.md:23 accepts exactly 2.0.0. A.md:29-36 preserves the exact decision, both recent_work entries, and the complete narrative under summary, including 'live load was not tested.' A.md:43 uses the exact supplied base; A.md:46 identifies the flag-free effort choice as auto, consistent with qodo-auto-help.txt:62-64."
+    },
+    {
+      "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
+      "passed": true,
+      "evidence": "A.md:60-67 preserves the supplied decision, notes and both mixed recent_work entries. A.md:74 includes both path arguments and the exact base without an effort override. A.md:77 explicitly preserves auto, prohibits --full, and leaves the execution outcome to the Engine. A.md:79 lists actual reuse and new-snapshot coverage as unverified."
+    },
+    {
+      "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "A.md:89-93 identifies blocked worktree coverage and prohibits submission without a tested collector or prepared input. A.md:94-95 rejects ad hoc git diff, unrelated/remote substitutes and unauthorized CLI installation. A.md:96 explicitly states that no worktree assessment has completed."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The commands are proposals, not completed operations or successful reviews.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:1 explicitly labels the answer fixture-based proposals with nothing executed or changed. This matches task.md:6. A.md:48,79,96 keeps review results and coverage unverified."
+    },
+    {
+      "claim": "Omitting --fast and --deep requests auto effort.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:43-46 and A.md:74-77 use and describe this selection. qodo-auto-help.txt:62 explicitly states 'no flag = auto.'"
+    },
+    {
+      "claim": "Both proposed contexts preserve the accepted content and the uncertainty about live-load testing.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:29-36 and A.md:60-67 match prompt.md:26-28, changing only the narrative field name for the older fixture."
+    },
+    {
+      "claim": "Recovery must preserve origin/update holds, use at most one approved attempt, and require a separately authorized checksum-pinned installer for the unparseable case.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:9 and A.md:17 assert these additional recovery-policy requirements. The permitted fixtures and CLI help do not establish that policy. These requirements are unverified, not shown to be false."
+    },
+    {
+      "claim": "The MCP schema cannot read this worktree.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:91 makes a categorical capability claim. Prompt.md:35-38 establishes an exposed schema without a tested collector or prepared input, which supports the current coverage blocker but does not independently establish the schema's inherent capabilities."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The answer adds detailed recovery-policy requirements at A.md:9,16-17 that the permitted evidence does not validate. If recovery correctness is part of the evaluation, provide a common authoritative policy reference and assert compliance with it."
+      },
+      {
+        "assertion": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
+        "reason": "The assertion correctly catches unsupported coverage claims, but does not distinguish the demonstrated lack of a tested collection path from the categorical capability claim at A.md:91. Require capability statements to remain bounded by the fixture evidence."
+      }
+    ],
+    "overall": "All five assertions pass on substantive proposal evidence. Actual execution, file preparation, submission and coverage remain unverified by design; additional recovery-policy and MCP-capability claims exceed the supplied evidence."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e5dffe7H9E53y1AjbL6u",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e8e8c4001h0RZVL6eWPXAl2",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

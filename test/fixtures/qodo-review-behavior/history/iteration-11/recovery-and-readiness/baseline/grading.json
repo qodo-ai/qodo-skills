@@ -1,0 +1,92 @@
+{
+  "expectations": [
+    {
+      "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
+      "passed": true,
+      "evidence": "A.md:5-10 says to wait 20 seconds, proposes `qodo review status op-accepted --extended --json`, and prohibits resubmission. A.md:12 explicitly preserves the original snapshot and context rather than certifying the current checkout."
+    },
+    {
+      "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
+      "passed": true,
+      "evidence": "A.md:16-19 reproduces the supplied recovery command exactly. A.md:21 prohibits appending base, context, scope or effort options and collecting the changed checkout. A.md:23 says acceptance is unknown and recovery does not authorize a fresh assessment."
+    },
+    {
+      "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+      "passed": true,
+      "evidence": "A.md:27 limits readiness to the supplied completed assessment, coverage, inventory, findings and tests. A.md:29-32 rejects overall completion and identifies failed checkpoint saving and unverified PR handoff. A.md:34 says to retain the result, verify handoff separately and not rerun merely to improve the storage outcome."
+    },
+    {
+      "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
+      "passed": true,
+      "evidence": "A.md:38 permits only the claim that the older result reported no findings. A.md:40 explicitly calls full final coverage, inventory completeness, successful persistence and reusable coverage unknown. A.md:42 keeps final certification blocked without supporting evidence."
+    },
+    {
+      "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
+      "passed": true,
+      "evidence": "A.md:48 reproduces `Review access is not enabled for this organization.` and A.md:50 reproduces `Ask your administrator to enroll the organization.` verbatim. A.md:52 prohibits retrying, logging in again and switching accounts or deployments, and requires confirmed enrollment before another run."
+    },
+    {
+      "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
+      "passed": true,
+      "evidence": "A.md:56 states that 2 of 2 assessments are used, excludes five polls and one extended retrieval from the assessment count, and preserves the budget across sessions. A.md:58 keeps F-BLOCK action-required and prohibits a third assessment without an explicit extension. A.md:60 explicitly says the work is not ready locally."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The commands are proposals, not executed operations.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:1 explicitly states this, consistent with task.md:6. No recovery, collection or persistence success is inferred."
+    },
+    {
+      "claim": "Extended collection retrieves stored detail rather than rerunning or deepening an assessment.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:7-12 uses the status command and distinguishes retrieval from assessment. qodo-auto-help.txt:21-22 describes extended detail, and qodo-auto-help.txt:35-36 describes status as collecting a retained result."
+    },
+    {
+      "claim": "Uncertain-submission recovery concerns the retained original request, not the changed checkout.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:18-23 preserves the exact recovery command and original inputs. This matches prompt.md:18-21 and the retained-request behavior in qodo-auto-help.txt:23-24."
+    },
+    {
+      "claim": "The supplied storage-gap evidence supports local readiness, but not completed checkpoint persistence or the entire Git/PR handoff.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:27-34 makes this conditional distinction. prompt.md:22-25 supplies the completed assessment and passing tests while explicitly identifying failed checkpoint saving and unverified PR handoff; no actual Git state is claimed verified."
+    },
+    {
+      "claim": "An empty older findings list does not establish omitted coverage, inventory or persistence properties.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:38-42 retains those properties as unknown, consistent with the missing metadata and lack of other evidence in prompt.md:26-28."
+    },
+    {
+      "claim": "The two-assessment budget remains exhausted after resume, and collection alone does not resolve F-BLOCK.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:56-60 preserves the assessment count and outstanding finding. prompt.md:32-35 explicitly supplies both completed assessments, the resumed session and the absence of newer assessment or authorization."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "All six assertions have substantive support. No clear material rubric gap was observed. These judgments assess proposed next operations and safe claims, not successful execution, repaired persistence or completed Git/PR handoff."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e4affeg7LoiYA1ygvVV5",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e8b960001PuY54Ttob215PJ",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

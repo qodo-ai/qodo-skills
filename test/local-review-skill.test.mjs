@@ -177,6 +177,7 @@ test('context compatibility and authority boundaries survive the rewrite', () =>
   assert.match(text, /A HEAD SHA alone does not identify a dirty snapshot/);
   assert.match(text, /Report status persistence separately from downstream synchronization/);
   assert.match(text, /An unknown outcome does not authorize key rotation/);
+  assert.match(text, /A synchronous tool result does not establish polling support/);
   assert.match(triage, /the status is stored but downstream synchronization is incomplete/);
   assert.match(text, /finding\/checkpoint persistence and local-to-PR handoff separately/);
   for (const group of ['compatibility-boundaries', 'followup-and-finding-state',
@@ -428,7 +429,7 @@ test('recorded behavior evidence covers current instructions and every assertion
   assert.equal(manifest.method, 'fresh-native-agents-with-anonymous-final-answer-grading');
   assert.equal(manifest.cases.length, 8);
   assertBaselineSnapshot(evidenceRoot, manifest.snapshots.baseline);
-  assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest), { 6: 40, 7: 96, 8: 104, 9: 74, 10: 121 });
+  assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest), { 6: 40, 7: 96, 8: 104, 9: 74, 10: 121, 11: 122 });
   for (const [path, expected] of Object.entries(manifest.adjudication?.artifacts ?? {})) {
     assert.equal(sha256(fixtureFile(evidenceRoot, path)), expected, path);
   }
