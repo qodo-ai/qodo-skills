@@ -1,28 +1,24 @@
+### Version probe
 ```sh
-# Version-probe form; supplied result: 2.3.1.
 "/opt/qodo tools/bin/qodo" --version
 ```
+Supplied evidence: `2.3.1`; identity already verified; relevant unit tests passed.
+
+### Auto submission and stored-result collection
+Proposed only; JSON extraction requires `jq`:
 
 ```sh
-# Proposed auto submission and collection; not executed.
-command -v jq >/dev/null 2>&1 || exit 1
-
-if ! submission=$("/opt/qodo tools/bin/qodo" review \
+submission=$("/opt/qodo tools/bin/qodo" review \
   --base 1111111111111111111111111111111111111111 \
   --context-file /outside/context.json \
-  --async --json); then
-  printf '%s\n' "$submission" >&2
-  exit 1
-fi
+  --async --json) || exit 1
 
-# Collect only with the operation ID actually returned by submission.
-if ! operation_id=$(printf '%s\n' "$submission" |
-  jq -er '.operation_id | select(type == "string" and length > 0)'); then
-  printf '%s\n' "$submission" >&2
-  exit 1
-fi
+operation_id=$(printf '%s\n' "$submission" |
+  jq -er '.operation_id | select(type == "string" and length > 0)') || exit 1
 
 "/opt/qodo tools/bin/qodo" review status "$operation_id" --extended --json
 ```
 
-**Evidence state:** Identity verified; unit tests passed. Submission, acceptance, operation ID, completed assessment, coverage and findings remain pending. If status exits `2`, respect the returned polling delay and collect the same operation again—do not resubmit.
+**Pending evidence:** submission acceptance, an actually returned operation ID, and the completed stored result. Collection is conditional on successful ID extraction; none is invented. Auto omits both depth flags. `--extended` retrieves detail without starting another assessment.
+
+If status exits `2`, respect the returned polling delay and collect the same operation again. Coverage, findings and readiness remain unverified.

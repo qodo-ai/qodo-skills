@@ -1,6 +1,37 @@
 # Agent-evaluation results
 
-## Current fixture qualification pending
+## Current applicable evidence: scoped15
+
+The current manifest selects six unchanged14cases and two freshly clarified15cases:
+**42/42 for both versions**. This is not a fresh unified42assertion run or uplift.
+
+| Original scope | Executions / graders | Candidate | Baseline |
+|---|---:|---:|---:|
+| Six unchanged14cases, common31d3e11inputs | 12 / 6 retained | 31/31 | 31/31 |
+| Two clarified15cases, commonfe1aa2ainputs | 4 / 2 fresh | 11/11 | 11/11 |
+
+Candidate instructions remain `31d3e11a388c36e19739b440e2f4dd75db8a920f`;
+baseline instructions remain `6385a42e83ac028349ff1c153a788a812a850bf5`.
+The refreshed inputs are from `fe1aa2a846d752cd7f11cf8f3a7cc56a24ccfbf2`.
+Both versions retain the exact supplied base and distinguish settled F-HELPER
+from original pending/action-required F-REMAIN, reporting overall Needs action.
+
+Every scope retains its original complete58input map, captured responses, grades,
+provenance, timing and anonymous labels. The gate checks disjoint/exhaustive current
+coverage, exact selected inputs, unchanged instruction/run identities and archive integrity.
+Original14seals147artifacts; the refreshed15scope seals93artifacts. Standard benchmark/
+static viewers14and15are generated, with13and14as their respective previous workspaces.
+
+An author-local publication helper first used a grading-help path for an unexecuted
+case and stopped before any evidence write. It now verifies the common help from
+each actually graded case; no output, grade or model input changed. Actual final-head
+full/native qualification and operational review remain separate next checks.
+All31focused source/staging/evidence checks pass, including the current scoped gate.
+A plain diff whitespace check flags a retained Markdown hard break in one captured
+baseline response; exact equality to its sealed14capture is verified. Non-response
+source whitespace checks pass. Captured answers are not normalized to silence it.
+
+### Original14 outcomes and rubric limitations
 
 Fresh14 completed16executions/8anonymous graders at candidate/common31d3e11inputs
 versus6385a42instructions: original42/42and41/42. Its147artifacts and standard
@@ -8,11 +39,15 @@ benchmark/viewer are retained unchanged. The apparent difference is confounded b
 an ambiguous path-case base; it is not uplift. The candidate also made an overall
 helper-fixed readiness claim outside the original resolution assertion.
 
-Two fixtures now make the base and remaining-finding obligation explicit. Instructions
-stay31d3e11. Only those11assertions will receive fresh two-version execution/grading;
-six unchanged14cases retain their own full58input map. No passing new scoped union
-or actual-head full qualification is claimed yet. See GROUNDING.md for the correction
-to the earlier missing-base interpretation; no original answer or grade is regraded.
+Two fixtures make the base and remaining-finding obligation explicit; only those
+11assertions were refreshed. See GROUNDING.md for the correction to the earlier
+missing-base interpretation. No original answer or grade is regraded.
+The fallback candidate in14does not check jq before submission, and both14MCP answers
+infer a local-readiness gate not fully specified to graders. Those limitations remain.
+Other protocol/update/retry and Engine-ownership claims remain unverified when withheld
+from graders; unverified does not necessarily mean false. Passing sampled proposals
+are not universal correctness, reliability, billed savings, runtime compatibility,
+natural activation, OS confinement or MP1/full-journey acceptance.
 
 ## Preceding source qualification at local393review
 

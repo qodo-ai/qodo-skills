@@ -2,26 +2,28 @@
 
 Each result independently stops recovery:
 
-- **TLS error:** Report the check failure. Do not bypass TLS or treat it as missing credentials.
-- **No update:** Do not run the updater; no compatible target was offered.
-- **Version 3.0.0:** Reject the incompatible target. Do not install it.
+- **TLS error:** Report the check failure. Do not weaken TLS or attempt the update.
+- **No update:** Report that no compatible target was offered. Do not run the updater.
+- **Version 3.0.0 offered:** Reject it as incompatible with the required 2.x target and outside the conditional approval.
 
-Do not switch to `latest-2`, an installer, another deployment or another account. Identity, login, review and managed-tool calls remain blocked on CLI 1.6.0. A verified compatible 2.x runtime remains pending.
+Do not switch to `latest-2`, an installer, another origin or another deployment. Preserve version choices and update holds.
+
+**Pending:** A successful supported check offering a newer compatible 2.x target through the approved ordinary-update route. Runtime changes, identity checks, login, reviews and managed-tool calls remain blocked on CLI 1.6.0.
 
 ### 2. `missing-cli`
 
-**Review blocked:** Neither trusted installed invocation exists.
+**Next allowed action:** Report that CLI review is blocked because neither trusted installed invocation exists.
 
-Do not use a repository-local launcher, download or install anything, or change accounts or deployments. Review authorization does not authorize installation. Installation would require separate approval and a Qodo/organization-supplied checksum-pinned installer; neither is present.
+Do not use a repository-local launcher, install anything, or change accounts or deployments. A review request does not authorize environment installation.
 
-The review remains pending a trusted, compatible runtime and successful preflight.
+**Pending:** Separate installation approval and a Qodo/organization-supplied checksum-pinned installer. After any authorized installation, verify CLI compatibility—2.0.0 or newer with review API v2—before authenticated calls or review.
 
 ### 3. `user-no-retry`
 
-**Stop before resubmission.** Your no-automatic-retry instruction overrides the otherwise available repository-identity recovery.
+**Next allowed action:** Stop and request explicit approval:
 
-Retain the failed operation ID, error, original base, scope, context and auto effort. The failed run provides no completed review coverage.
+> May I make one corrected resubmission using the known connected repository’s exact `full_name` through `--repo`, preserving the original base, scope, context and auto effort?
 
-May I make one corrected resubmission using `--repo` with the known connected repository’s exact `full_name`, preserving all other review inputs?
+The recoverable error does not override your prohibition on automatic submission retries. Preserve the failed operation’s ID and error; do not resubmit now.
 
-Until you explicitly approve, no corrected submission occurs. If approved, collect the resulting operation rather than launching additional reviews; any further failure stops recovery.
+**Pending:** Your approval, then at most one cause-corrected resubmission and collection of its result. The failed review provides no completed assessment or readiness evidence.

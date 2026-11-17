@@ -1,16 +1,21 @@
 # Recorded qodo-review behavior evaluation
 
-Original14 is archived with147artifacts,42/42candidate and41/42baseline under its
-original rubric. The apparent difference is confounded by an ambiguous case base;
-the resolution assertion also misses a candidate overall-readiness overclaim.
-Two fixtures now supply an explicit base and another required original open finding.
-Only those groups are being refreshed against unchanged31d3instruction bytes.
-No old answer/grade is regraded and no passing current scoped union is claimed yet.
+Current scoped15covers eight cases/42assertions:42/42for each version, not a new
+unified matrix or uplift. Six unchanged14cases retain original31d3input/run identities
+(31/31each); only the two clarified groups were refreshed againstfe1inputs
+(four executions/two anonymous graders,11/11each). Instructions remain31d3/6385.
+Each scope retains its complete58input map and exact captured bytes. The refreshed
+scope seals93artifacts. Full actual-head qualification remains a separate check.
 
-Current source qualification is pending after local393review identified supported
-collection-recipe gaps and a CLI identity-evidence limitation. Instructions and one
-compatibility scenario changed. The scoped13record below is archived with207artifacts;
-it is not relabeled as proof of those new bytes. Fresh applicable evidence is next.
+Original14 remains archived with147artifacts and original42/42candidate/41/42baseline
+grades. Its apparent difference is confounded by an ambiguous case base; the original
+resolution assertion misses a candidate readiness overclaim. No old grade is regraded.
+Other unsupported claims/rubric limits remain inspectable in the original benchmarks.
+
+## Historical scoped13
+
+Scoped13is archived with207artifacts after local393identified supported collection
+recipe gaps and an unavailable CLI identity check. It does not qualify the newer bytes.
 
 The preceding scoped13manifest selects two disjoint scopes covering eight cases and41assertions:
 candidate41/41and baseline40/41. **This is not a newly executed complete matrix.**

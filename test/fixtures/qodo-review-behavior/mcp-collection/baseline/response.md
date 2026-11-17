@@ -1,21 +1,41 @@
-Proposals only; no service calls, commands or changes have been made.
+**Only `eligible` supports a completed local review.** The other continuations remain blocked unless a permitted collection recovery produces a fully verified artifact. These are proposed calls only.
 
-## Submission identity and collection
+## Submission and collection
 
-The eligible collector satisfies the MCP collection requirements. Use the authenticated MCP connection without CLI preflight or installation. Leave depth omitted for **auto**.
+The eligible collector satisfies the MCP requirements: the real worktree, complete intended scope, safety exclusions, omission report and fetchable exact base are established. No CLI probe, login, installation or substitute checkout is needed.
 
-For the lost start response, the permitted recovery is:
+For the initially uncertain admission, replay only the original logical request:
 
 ```text
 start-pre-pr-review({
   request_id: "mcp-cart-r1",
-  params: retainedParams
+  params: {
+    repo_full_name: "example/cart",
+    repo_host: "github.com",
+    base_sha: "1111111111111111111111111111111111111111",
+    commit_sha: "2222222222222222222222222222222222222222",
+    branch: "feature/cart-review",
+    diff: "diff --git a/src/cart.ts b/src/cart.ts\n--- a/src/cart.ts\n+++ b/src/cart.ts\n@@ -1 +1 @@\n-export const valid = n => n === 1;\n+export const valid = n => n > 0;\n",
+    session_context: {
+      decisions: ["The user selected positive cart counts."],
+      notes: "The mandatory caller rejects non-numeric input. Focused tests passed; no live service was tested.",
+      recent_work: ["Changed the cart-count predicate; this round changes behavior."]
+    },
+    review_scope: {
+      stream_id: "f1bcba4fd84bd7e271baea841b4e35e31958043c22e9c3ebc077d803f1ac8417",
+      paths: [],
+      excluded_files: [],
+      skipped_files: [],
+      allowed_sensitive_files: [],
+      complete: true
+    }
+  }
 })
 ```
 
-Here, `retainedParams` means the **exact supplied JSON object**, preserving its base, snapshot, diff, context and scope. Do not recollect the worktree or add an unsupported `idempotency_key`.
+Do not add `idempotency_key`, change the snapshot or omit context. Leave depth absent for **auto** effort.
 
-The supplied receipt already confirms acceptance, so **do not repeat that start now**. After the advertised two-second interval, propose:
+**The supplied receipt already establishes acceptance, so do not replay start again now.** Poll the retained operation at its advertised two-second interval:
 
 ```text
 get-managed-agent-operation({
@@ -23,56 +43,48 @@ get-managed-agent-operation({
 })
 ```
 
-Check `isError` and continue polling that operation at its returned interval while pending. Once terminal/completed with a result available:
+Check `isError` and lifecycle fields. While it remains working, keep polling that operation—not a new submission. Once terminal/completed with a result available:
 
 ```text
 get-managed-agent-result({
   operation_id: "41c730de-840d-4b87-a95e-165b8b94f56a",
-  extended: true
+  extended: false
 })
 
 get-managed-agent-result({
   operation_id: "41c730de-840d-4b87-a95e-165b8b94f56a",
   cursor: "page-two",
-  extended: true
+  extended: false
 })
 ```
 
-Keep `extended` unchanged. Before interpreting the assembled JSON, verify successful envelopes, the retained operation ID, consistent artifact metadata, two chunks, contiguous offsets, terminal cursor, byte count and digest. Then verify association with the retained submission.
+Keep `extended` unchanged. Before interpreting JSON, verify:
 
-## Independent continuations
+- Every page succeeds and names the retained operation.
+- Encoding and artifact metadata agree across pages.
+- There are exactly two chunks, with contiguous byte offsets `0` and `90`, without gaps or overlaps.
+- Pagination ends with `next_cursor: null`.
+- Joined ASCII bytes total `148` and match SHA-256  
+  `6d7ca66f3ac0ed7c3a96f42f9ec05a8dde3f19520cb7c1699d790b82e779b11c`.
+- The result is associated with the retained submitted snapshot.
 
-### 1. `eligible` — ready locally for the supplied snapshot
+## Independent conclusions
 
-All supplied integrity and snapshot-association checks pass: offsets 0 and 90, 148 joined ASCII bytes, two chunks and the advertised SHA-256.
+| Continuation | Proposed action and honest conclusion |
+|---|---|
+| **1. `eligible`** | All supplied integrity and association checks pass. Parse the complete artifact: inventory and assessed coverage are complete; `findings`, `introduced`, `still_open`, `resolved` and `dismissed` are all empty. **Qodo returned a complete local assessment with no findings.** With the supplied passed focused tests, the reviewed snapshot is **ready locally** for the requested handoff. |
+| **2. `incomplete-collector`** | **Stop before submission.** Enumeration is incomplete, included paths are unknown and base fetchability is unverified. MCP cannot safely establish coverage of the complete local change. Report **review blocked**; a qualifying collector report is required before proceeding. Do not invent a collection mode, substitute a checkout or install anything. |
+| **3. `bad-digest`** | Reject the artifact: the advertised digest differs from the measured digest. Do not interpret its apparent empty inventory. Report **review blocked: artifact integrity failed** pending permitted recollection. |
+| **4. `bad-byte-count`** | Reject the artifact: advertised `149` bytes versus measured `148`. A matching digest does not excuse the independent length failure. Report **review blocked: artifact length mismatch**. |
+| **5. `wrong-operation`** | Reject the artifact: it names `92a3119c-a271-4e46-9e39-cd38d174feb7`, not the retained operation. Valid bytes do not establish submission identity. Do not adopt or follow the foreign operation. Report **review blocked: result association unverified**. |
+| **6. `overlapping-pages`** | Reject the artifact: the second page reports offset `0`, overlapping the first instead of continuing at `90`. Matching concatenated bytes do not validate page structure. Do not repair offsets or invent ordering. Report **review blocked: inconsistent pagination**. |
 
-Qodo’s completed assessment reports:
+For cases 3–6, successful input collection remains established, but the **assessment inventory and coverage cannot be verified**. A completed operation receipt alone does not establish readiness.
 
-- Complete finding inventory and assessed coverage.
-- No findings: `introduced`, `still_open`, `resolved` and `dismissed` are all empty.
-- Focused tests passed; no live service was tested.
+## Bounded collection recovery
 
-This supports **local readiness for that reviewed snapshot**, not newer changes. Context-consumption receipts, checkpoint persistence/reuse and hosted-review status are not supplied. CI, approval, release and deployment readiness remain unestablished.
+For each invalid-result continuation, use at most one permitted **collection-only** recovery against `41c730de-840d-4b87-a95e-165b8b94f56a`: recheck its receipt and retrieve a fresh, complete page chain from the beginning, retaining `extended: false`. Do not mix rejected and replacement chunks. Reapply every identity, pagination, digest, length and snapshot check.
 
-### 2. `incomplete-collector` — review blocked before submission
+Honor returned retry restrictions and delays. A status transport failure permits only the bounded collection retry—after its returned delay, or 15 seconds if none is supplied. No new review submission is authorized. If recovery fails or remains invalid, stop with the original operation ID and the precise blocker.
 
-Do **not** call `start-pre-pr-review`.
-
-Enumeration is incomplete, included paths are unknown and base fetchability is unverified. The collector therefore cannot establish coverage of the requested complete local change.
-
-No completed assessment or local readiness can be reported. A qualifying collector must establish the intended scope, exclusions/omissions and fetchable base before submission. Do not narrow the scope silently, substitute a checkout or install anything.
-
-### 3–6. Invalid result collections — review blocked
-
-| Continuation | Validation failure | Honest conclusion |
-|---|---|---|
-| `bad-digest` | Advertised digest starts `7d7c…`; measured digest starts `6d7c…`. | Artifact integrity failed. |
-| `bad-byte-count` | Advertised 149 bytes; measured 148. | Artifact length validation failed, despite the matching digest. |
-| `wrong-operation` | Both pages name `92a3119c-a271-4e46-9e39-cd38d174feb7`, not the retained operation. | Internally valid bytes do not establish association with this submission. |
-| `overlapping-pages` | Second offset is 0 rather than 90. | Pagination is inconsistent, despite passing concatenated-byte checks. |
-
-In each case, do not interpret the apparent empty findings as a valid assessment, certify coverage or report readiness. Do not repair offsets, replace advertised metadata or relabel another operation locally.
-
-**One collection recovery per independent continuation is permitted:** retain operation `41c730de-840d-4b87-a95e-165b8b94f56a`, respect any returned retry delay, and re-fetch its complete artifact from the first page with the same `extended` setting. Validate the recovered page set independently; do not mix it with the invalid set.
-
-If recovery fails or remains invalid, stop with **Review blocked**, preserving the operation ID and exact validation failure. No new review submission is authorized.
+Even in `eligible`, live-service behavior, CI, approval, hosted finding handoff, checkpoint persistence, release and deployment are not established. Reviewer-context consumption and execution details are also unreported; do not infer them from the submitted context or empty findings.

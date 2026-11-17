@@ -1,67 +1,63 @@
-All actions below are proposals only. No requests or state changes were made.
+Proposals only; no service calls or state changes performed.
 
 ### 1. `metadata-only`
 
-F-A and F-B can share one batch: both belong to L-ORIGINAL and have the same authorized reason and explanation.
+Submit one batch because both findings share the review, reason and explanation. Proposed MCP `tools/call` parameters:
 
-Proposed MCP request:
 ```json
 {
-  "method": "tools/call",
-  "params": {
-    "name": "pr-review-dismiss",
-    "arguments": {
-      "finding_ids": ["F-A", "F-B"],
-      "local_review_id": "L-ORIGINAL",
-      "reason": "false_positive",
-      "explanation": "The mandatory caller guard rejects this input."
-    },
-    "_meta": {
-      "io.qodo/idempotency-key": "triage-L-ORIGINAL-FA-FB-01"
-    }
+  "name": "pr-review-dismiss",
+  "arguments": {
+    "finding_ids": ["F-A", "F-B"],
+    "local_review_id": "L-ORIGINAL",
+    "reason": "false_positive",
+    "explanation": "The mandatory caller guard rejects this input."
+  },
+  "_meta": {
+    "io.qodo/idempotency-key": "<fresh unique invocation key>"
   }
 }
 ```
 
-Reserve that unique key before submission and retain the exact request, key and returned result. Do **not** add an unsupported `idempotency_key` tool argument.
+Choose the key once before submission and retain the exact request, key and response. `_meta` is request metadata, not a tool argument; do not invent an `idempotency_key` argument.
 
-Inspect the synchronous response for errors and each finding’s outcome. Read back both stored dispositions, verifying the finding IDs, local-review association, reason and explanation before claiming success. Report synchronization separately.
+Inspect both per-finding outcomes and read back each stored disposition. Confirm the finding/review identities and requested reason/explanation before reporting success. Report downstream synchronization separately from saved status.
 
-There is no pollable handle. If the response is lost, replay only the exact retained request with the same key; do not invent polling or rotate the key.
+If the response is lost, replay the exact retained request with the same key. This synchronous tool supplies no pollable handle; do not invent one.
 
 ### 2. `no-replay-transport`
 
-The write is blocked: neither the schema nor the host provides replay protection, and no trusted CLI is available.
+**Blocked: replay-safe writes are unavailable.** Do not submit an unprotected dismissal or invent a schema field.
 
-Do not submit an unprotected dismissal. Report that recording F-A and F-B remains unperformed. A supported replay-key transport is required; authorization and verified evidence alone do not remove that requirement.
+The next step is to obtain a supported metadata-capable host or an advertised replay-key argument. There is no trusted CLI fallback here. Neither F-A nor F-B’s requested dismissal has been performed.
 
 ### 3. `prior-outcomes`
 
-- **F-A:** Its existing dismissal remains `deferred`, with explanation “Awaiting a separate migration.” `already_dismissed` is not a newly saved `false_positive` decision.
-- **F-B:** `conflict` is not success; the requested transition was not established.
-- Readback verified these outcomes, but neither requested new disposition can be claimed as saved.
+The batch returned, and readback verified:
 
-Do not overwrite the prior decision or automatically retry the conflict. Neither a clean review nor overall readiness is established by these results.
+- **F-A:** already dismissed as `deferred`, with explanation **“Awaiting a separate migration.”** That prior decision remains; the requested `false_positive` reason was not saved.
+- **F-B:** `conflict`. This is not a successful dismissal.
+
+Outcome verification succeeded, but neither requested new transition is confirmed. Do not overwrite the prior decision or retry the conflict automatically. Neither the new requested reason nor a clean review can be claimed from this evidence.
 
 ### 4. `saved-sync-pending`
 
-F-C’s requested dismissal **was saved and verified**. `reconciled: false` means downstream synchronization remains incomplete—not that storage failed.
+**F-C’s dismissal was saved.** The returned `status: dismissed` and readback confirm the requested reason/explanation. `reconciled: false` means downstream synchronization remains incomplete—not that saving failed.
 
-The user permits one new synchronization attempt. Propose a new `pr-review-dismiss` invocation with the unchanged business arguments:
+The user authorized one new synchronization attempt:
 
-- `finding_ids: ["F-C"]`
-- `local_review_id: "L-CURRENT"`
-- `reason: "false_positive"`
-- The exact retained original explanation.
+- Invoke `pr-review-dismiss` with the **exact retained business arguments**: F-C, `L-CURRENT`, `false_positive`, and the original explanation.
+- Use a **new, unique transport key** through `_meta["io.qodo/idempotency-key"]`, retaining it before submission.
+- Preserve both original and new requests, keys and receipts.
 
-Send it using a **new, unique, retained** `_meta["io.qodo/idempotency-key"]`. Preserve both requests, keys and results.
+Replaying the completed original key would only return its stored response; it would not retry synchronization. The new invocation reaches the idempotent endpoint, preserves the stored decision and attempts synchronization again.
 
-Replaying the completed original key would only return its stored result; it would not retry synchronization. Inspect the new response and read back the disposition again. Claim synchronization only if the new evidence confirms it. Do not invent a polling handle or exceed the one authorized attempt.
+Inspect the new result and read back F-C. Report synchronization as completed only if the new evidence establishes that. An `already_dismissed` result is not a second saved transition. Do not invent polling support or make further new-key attempts beyond the authorized one.
 
 ### 5. `uncertain-write`
 
-F-C’s write outcome is unknown. Do not claim that it succeeded, failed or merely awaits synchronization.
+**The write outcome is unknown.** A lost response proves neither success nor failure.
 
-First collect the original operation using its retained supported receipt. Alternatively, recover through an exact replay of the retained request with its **original key**. Verify the resulting outcome and read back stored state.
+Collect the original operation using its retained receipt. Alternatively, use the supported recovery path to replay the **exact original request with its original key**. Inspect the terminal result and verify the stored disposition before claiming success.
 
-A new key is **not justified** while the original outcome remains unknown. It would initiate another handler invocation rather than recover the uncertain one.
+A new key is **not justified** while the original outcome is unknown. It would initiate another handler invocation rather than recover the uncertain one. Any later synchronization attempt requires verified storage and separate authorization, as in case 4.

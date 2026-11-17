@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: recovery-policy-guards
+expected_outcome: |
+  Stops updater changes without a verified compatible target and never switches routes after failure.
+  Preserves missing-install safety and the user's explicit no-auto-retry instruction.

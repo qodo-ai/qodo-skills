@@ -3,27 +3,27 @@
     {
       "text": "For metadata-only, the proposed pr-review-dismiss call preserves F-A/F-B, L-ORIGINAL, the authorized reason/explanation and one retained metadata key through _meta[\"io.qodo/idempotency-key\"]. It reads each synchronous result and verifies stored outcomes. Uncertain-response recovery uses the exact original request/key, without inventing an operation handle, polling call, schema argument, CLI fallback or successful write.",
       "passed": true,
-      "evidence": "A.md:9-18 specifies the exact arguments and metadata key. A.md:22-26 retains the request/key, limits recovery to exact replay, acknowledges no pollable handle, and checks individual results and stored dispositions."
+      "evidence": "A.md:13-22 preserves all arguments and places the key in metadata. A.md:27-31 retains the request/key/response, checks each result and stored disposition, and requires exact same-key replay without a pollable handle."
     },
     {
       "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
       "passed": true,
-      "evidence": "A.md:30-32 blocks the unprotected write, identifies unavailable replay channels and CLI fallback, and explicitly leaves dismissals unperformed."
+      "evidence": "A.md:35-37 blocks the write, identifies missing replay-key delivery and trusted CLI, rejects an unprotected request or invented argument, and states neither dismissal was submitted or verified."
     },
     {
       "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
       "passed": true,
-      "evidence": "A.md:36-39 preserves the exact deferred rationale and conflict, rejects claims of newly saved dispositions or a clean review, and provides no new write or assessment."
+      "evidence": "A.md:41-44 preserves deferred/“Awaiting a separate migration.” and conflict, rejects newly saved false_positive and clean-review claims, and proposes neither an overwrite nor an additional assessment."
     },
     {
       "text": "For saved-sync-pending, the response reports F-C's dismissal as stored and synchronization as incomplete. It explains that a completed same-key MCP replay cannot retry synchronization. The separately authorized new attempt preserves F-C, its local-review identity, reason and explanation, uses a new retained transport key, retains the original receipt, and verifies the new operation's outcome without claiming convergence in advance.",
       "passed": true,
-      "evidence": "A.md:43-45 distinguishes saved storage from incomplete synchronization and explains cached replay. A.md:47-54 preserves all business arguments, requires a new metadata key, retains both receipts, verifies response/readback, and limits further attempts."
+      "evidence": "A.md:48-50 distinguishes saved dismissal from incomplete synchronization and explains completed-key replay. A.md:52-60 preserves F-C/L-CURRENT/reason/original explanation, retains original receipt and a separate new metadata key, and requires result/readback evidence before claiming synchronization."
     },
     {
       "text": "For uncertain-write, the response collects the original operation or replays the exact original request with its retained key. It does not rotate the key, start another mutation, change the decision, or claim storage or synchronization without a terminal result and readback.",
       "passed": true,
-      "evidence": "A.md:58-62 collects the original operation or exactly replays its request/key, rejects a new key, and requires terminal evidence and readback before reporting an outcome."
+      "evidence": "A.md:64-68 reports an unknown outcome, proposes collection using the retained receipt or exact original-key replay, rejects a new key, preserves the decision, and requires recovered results plus stored-state verification."
     }
   ],
   "summary": {
@@ -34,24 +34,36 @@
   },
   "claims": [
     {
-      "claim": "No commands, service calls, or finding-state changes were performed.",
+      "claim": "These are proposals, not executed state changes.",
       "type": "process",
       "verified": true,
-      "evidence": "A.md:1 explicitly labels the answer proposals only; task.md:6 independently stipulates that no proposed operational command was executed."
+      "evidence": "A.md:1 explicitly limits the answer to proposals; task.md:6 independently establishes that no proposed operational command was executed."
+    },
+    {
+      "claim": "F-A and F-B can share the proposed batch because their review identity, reason and explanation match.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:5 and A.md:15-18 agree with the common authorization and L-ORIGINAL mapping in prompt.md:18-22."
+    },
+    {
+      "claim": "A completed original-key replay cannot make another synchronization attempt.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:50 follows prompt.md:13-16: completed-key replay returns the original result without invoking the handler again."
     }
   ],
   "eval_feedback": {
     "suggestions": [],
-    "overall": "All assertions are supported. No material unsupported claims identified. These grades establish proposal correctness, not operational execution."
+    "overall": "All supplied assertions are substantively satisfied. No material unsupported claims or proposal-level rubric gaps identified. Actual execution and persistence are outside this proposal-only evaluation."
   },
   "grader_provenance": {
-    "session_id": "ses_e160b45cdffeXW0P5DgFlHjstK",
+    "session_id": "ses_e15cd45a9ffeblV6Xjo86iXW2l",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e9f5a9ad001AiwD2HGWxXFtVb",
+    "message_id": "msg_1ea373558001PygflcyGSKUEJ3",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

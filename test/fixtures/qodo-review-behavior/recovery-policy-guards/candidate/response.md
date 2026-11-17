@@ -1,33 +1,31 @@
-### 1. `ordinary-update-check`
+## 1. `ordinary-update-check`
 
-Each subcase stops before any runtime change:
+Each subcase stops **before any runtime change**:
 
 | Check result | Next allowed action |
 |---|---|
-| TLS error | Report the check failure; preserve the TLS error. |
-| No update | Report that no compatible update was offered. |
-| Version `3.0.0` offered | Reject it as outside the approved compatible 2.x target. |
+| TLS failure | Report the failure. Do not bypass TLS or run the updater. |
+| No update | Report that no approved compatible target was offered. Do not run the updater. |
+| Version `3.0.0` offered | Report the incompatible target. Do not install it. |
 
-Do **not** run the update, switch to `latest-2`, or fall back to an installer. Preserve the deployment origin, version choices and update holds.
+Approval was conditional, and none satisfies the condition. Do not switch to `latest-2`, an installer, another account or another deployment. Preserve the recorded origin, version choices and update holds.
 
-**Pending:** compatibility recovery and review. CLI `1.6.0` cannot proceed to identity, login, review or managed-tool calls.
+**Pending:** a compatible runtime and the review. With version `1.6.0`, identity, login, review and managed-tool calls remain blocked.
 
-### 2. `missing-cli`
+## 2. `missing-cli`
 
-Stop the CLI path and report that neither trusted installed invocation is available. Review authorization does not authorize environment installation.
+**Next allowed action:** report that the CLI review path is blocked and stop.
 
-Do not use a repository-local launcher, invent an installer checksum, or change accounts or deployments.
+Neither trusted installed invocation exists. Do not use a repository-local launcher, install Qodo, invent a checksum or pipe an installer into a shell. Review authorization does not authorize environment installation or account/deployment changes.
 
-**Pending:** installation requires explicit covering approval and a Qodo/organization-supplied checksum-pinned installer. Review remains blocked until a trusted compatible runtime is available and preflight succeeds.
+**Pending:** the entire review. Continuing requires a trusted compatible installed runtime, or separate installation approval covering a Qodo/organization-supplied checksum-pinned installer. Neither is available here.
 
-### 3. `user-no-retry`
+## 3. `user-no-retry`
 
-Do not resubmit automatically. The explicit no-retry instruction takes precedence over the error’s recoverability.
+**Next allowed action:** report the terminal `repo_not_connected` failure and request explicit approval before resubmitting. The error’s lack of a retry prohibition does not override your instruction.
 
-Ask:
+> May I make one cause-corrected resubmission using the known connected repository’s exact `full_name` through `--repo`, preserving the original base, scope, context and auto effort?
 
-> May I make one corrected resubmission using `--repo` with the known exact connected repository `full_name`, retaining the current base, scope, context and auto effort?
+Retain the original operation ID and failure details. Do not treat the terminally failed operation as still running. If approved, the correction uses the single cause-corrected retry allowance; collect the new operation if accepted.
 
-Retain the failed operation ID and terminal error. If approved, that correction consumes the single cause-corrected resubmission allowance; collect its operation if accepted.
-
-**Pending:** explicit approval and completed review coverage. The failed assessment does not establish readiness.
+**Pending:** corrected submission approval and completed review coverage. No successful assessment or local-readiness claim is established.

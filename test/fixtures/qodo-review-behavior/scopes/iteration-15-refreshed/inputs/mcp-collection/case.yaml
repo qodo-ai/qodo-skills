@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: mcp-collection
+expected_outcome: |
+  Use an eligible prepared MCP snapshot without a CLI detour, preserve request
+  identity and context, bind result receipts to that operation, verify contiguous
+  result chunks, and withhold an
+  assessment when collection scope, artifact digest or byte count is invalid.

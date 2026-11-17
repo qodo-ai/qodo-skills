@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: recovery-and-readiness
+expected_outcome: |
+  Collects or recovers exact accepted work without a duplicate assessment.
+  Separates assessment, durability and handoff and preserves unknown older coverage.
+  Stops on entitlement and the user's explicit budget without hiding blockers.
