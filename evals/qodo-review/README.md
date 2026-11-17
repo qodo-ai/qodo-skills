@@ -1,9 +1,12 @@
 # Local-review Skill behavior checks
 
 These synthetic cases test coding-agent decisions, not reviewer quality or live integration.
+Current full17qualifies candidate296350e:42/42candidate and38/42baseline, one fresh
+execution per case/configuration and eight anonymous graders. Its147artifacts
+retain all original judgments and full58input maps. No causal uplift is claimed.
 Original16is archived unchanged:39/42candidate and42/42baseline, with three
-invalid-artifact recovery-permission failures and147artifacts. A narrow canonical
-clarification leaves fixtures/assertions unchanged; fresh applicable evidence is pending.
+invalid-artifact recovery-permission failures. The canonical clarification leaves
+fixtures/assertions unchanged. See RESULTS.md for grader-evidence limits.
 Behavioral runs execute the supplied Skill in fresh agent contexts against the fixtures.
 Only the proposed review commands and service operations are simulated, not the agent runs.
 They contain no service credentials and authorize no service, finding or repository writes.

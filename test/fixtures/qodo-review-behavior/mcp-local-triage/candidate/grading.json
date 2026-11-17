@@ -3,27 +3,27 @@
     {
       "text": "For metadata-only, the proposed pr-review-dismiss call preserves F-A/F-B, L-ORIGINAL, the authorized reason/explanation and one retained metadata key through _meta[\"io.qodo/idempotency-key\"]. It reads each synchronous result and verifies stored outcomes. Uncertain-response recovery uses the exact original request/key, without inventing an operation handle, polling call, schema argument, CLI fallback or successful write.",
       "passed": true,
-      "evidence": "B.md:9-18 preserves all arguments and the metadata key. B.md:22-26 chooses and retains one key/request/response, checks both results and stored identities/dispositions, and requires exact same-key replay without inventing a handle."
+      "evidence": "B.md:9-18 preserves the tool, business arguments and metadata key. B.md:22-32 retains the exact request/key and per-finding outcomes, proposes stored-state verification, and permits only exact same-key recovery without invented polling. B.md:1 marks all actions as proposals."
     },
     {
       "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
       "passed": true,
-      "evidence": "B.md:30-32 blocks unprotected dismissal, rejects invented schema fields, identifies the need for supported replay-key delivery and absence of trusted CLI, and states neither dismissal was performed."
+      "evidence": "B.md:36-40 explicitly prohibits submission, identifies both unavailable replay-key paths and the absent trusted CLI, requests capability support rather than inventing it, and says neither dismissal was performed."
     },
     {
       "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
       "passed": true,
-      "evidence": "B.md:36-41 preserves deferred/“Awaiting a separate migration.” and conflict, rejects requested-reason and clean-review claims, and prohibits overwriting the prior decision or automatically retrying the conflict."
+      "evidence": "B.md:46-51 preserves already_dismissed / deferred / “Awaiting a separate migration.” and conflict, denies both requested transitions succeeded, and rejects overwriting or another review merely to clear the outcomes. Neither a clean review nor readiness is claimed."
     },
     {
       "text": "For saved-sync-pending, the response reports F-C's dismissal as stored and synchronization as incomplete. It explains that a completed same-key MCP replay cannot retry synchronization. The separately authorized new attempt preserves F-C, its local-review identity, reason and explanation, uses a new retained transport key, retains the original receipt, and verifies the new operation's outcome without claiming convergence in advance.",
       "passed": true,
-      "evidence": "B.md:45 reports saved dismissal and incomplete synchronization. B.md:47-55 preserves F-C/L-CURRENT/false_positive/original explanation, retains both requests/keys/receipts, uses a new metadata key, explains why completed-key replay cannot retry, and requires new evidence before claiming convergence."
+      "evidence": "B.md:55-57 establishes storage, incomplete synchronization and ineffective completed-key replay. B.md:59-64 proposes one new invocation preserving F-C, L-CURRENT, false_positive and the retained explanation, with a distinct metadata key and both receipts retained. B.md:66 requires result/readback verification and confirming evidence before claiming synchronization."
     },
     {
       "text": "For uncertain-write, the response collects the original operation or replays the exact original request with its retained key. It does not rotate the key, start another mutation, change the decision, or claim storage or synchronization without a terminal result and readback.",
       "passed": true,
-      "evidence": "B.md:59-63 reports an unknown outcome, proposes original-operation collection or exact original-key replay, requires terminal-result and stored-disposition verification, rejects key rotation, and conditions later synchronization attempts on verified storage and separate authorization."
+      "evidence": "B.md:70-76 declares uncertainty, collects the retained original operation or exactly replays its request/key and unchanged metadata, requires terminal-result and readback verification, and explicitly prohibits key rotation, a separate attempt, or premature storage/synchronization claims."
     }
   ],
   "summary": {
@@ -34,36 +34,41 @@
   },
   "claims": [
     {
-      "claim": "These are proposals, not executed state changes.",
+      "claim": "The exact authorized F-C explanation is not supplied and must be copied from the retained request.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:62 accurately reflects prompt.md:37-43, which retains the request but does not provide F-C's explanation text."
+    },
+    {
+      "claim": "An authorized fresh invocation can preserve the existing dismissal while attempting synchronization again.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:59-66 matches the endpoint behavior and separate authorization in prompt.md:15-16 and 42-43; it does not guarantee convergence."
+    },
+    {
+      "claim": "Metadata-only verification can use a supported stored-state read mechanism.",
       "type": "process",
-      "verified": true,
-      "evidence": "B.md:1 explicitly limits the answer to proposals; task.md:6 independently establishes that no proposed operational command was executed."
-    },
-    {
-      "claim": "The new synchronization invocation preserves the stored decision and attempts synchronization again.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "B.md:53 matches the endpoint behavior supplied in prompt.md:15-16; B.md:55 correctly withholds any claim that synchronization will succeed."
-    },
-    {
-      "claim": "Readback verifies F-A's prior deferred decision, not the requested false_positive transition.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "B.md:36-41 agrees with the exact stored rationale and confirmed readback in prompt.md:31-36."
+      "verified": false,
+      "evidence": "B.md:28 proposes that mechanism, but the named inputs supply no read-tool schema or explicit availability for this case. Availability and execution remain unverified."
     }
   ],
   "eval_feedback": {
-    "suggestions": [],
-    "overall": "All supplied assertions are substantively satisfied. No material unsupported claims or proposal-level rubric gaps identified. Actual execution and persistence are outside this proposal-only evaluation."
+    "suggestions": [
+      {
+        "assertion": "For metadata-only, the proposed pr-review-dismiss call preserves F-A/F-B, L-ORIGINAL, the authorized reason/explanation and one retained metadata key through _meta[\"io.qodo/idempotency-key\"]. It reads each synchronous result and verifies stored outcomes. Uncertain-response recovery uses the exact original request/key, without inventing an operation handle, polling call, schema argument, CLI fallback or successful write.",
+        "reason": "Clarify whether trusted stored-state readback is available. B.md:28 assumes a supported read mechanism, while the case specifies only the dismissal tool and transport. The rubric checks the verification plan without establishing that dependency."
+      }
+    ],
+    "overall": "All five assertions pass as proposal semantics. No material invented outcome is present; operational execution and readback capability are not established."
   },
   "grader_provenance": {
-    "session_id": "ses_e15cd45a9ffeblV6Xjo86iXW2l",
+    "session_id": "ses_e157dd037ffeIr5qu2gOPCcNcP",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1ea373558001PygflcyGSKUEJ3",
+    "message_id": "msg_1ea8289db0013pbqzjlnGop0lG",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

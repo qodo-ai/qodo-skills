@@ -3,12 +3,12 @@
     {
       "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
       "passed": true,
-      "evidence": "B.md:2,10,24 use the exact quoted invocation for version, submission and status. B.md:8 checks jq without changing installation or PATH."
+      "evidence": "A.md:2,10,23 use the exact quoted invocation for version, submission and collection; no installation or PATH change is proposed."
     },
     {
       "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
       "passed": true,
-      "evidence": "B.md:10-13 retain the exact base and context path and omit depth flags, meaning auto per qodo-auto-help.txt:62. B.md:18-24 gate collection on successful nonempty ID extraction. B.md:27 explicitly leaves the ID, completion, findings, coverage and readiness unestablished."
+      "evidence": "A.md:10-13 preserve the exact base and context path without effort flags (auto per qodo-auto-help.txt:62). A.md:20-23 gate collection on successful extraction of a returned nonempty ID. A.md:26-28 explicitly leave submission, collection and completion unproven."
     }
   ],
   "summary": {
@@ -19,40 +19,43 @@
   },
   "claims": [
     {
-      "claim": "The supplied version, identity, supported flags and passing unit tests are established.",
+      "claim": "Version 2.3.1, verified invocation identity and passed unit tests are supplied evidence, not newly executed checks.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:5 accurately repeats prompt.md:11-17 and explicitly states nothing was executed here."
+      "evidence": "A.md:5 accurately attributes these facts to supplied evidence; prompt.md:11-18 supplies them."
     },
     {
-      "claim": "The submission JSON exposes its operation ID as a top-level .operation_id string.",
+      "claim": "Async JSON exposes the operation ID as a top-level operation_id string.",
       "type": "factual",
       "verified": false,
-      "evidence": "B.md:18-19 assume this schema. The allowed inputs provide no response or documented JSON field name."
+      "evidence": "A.md:20-21 assumes this schema. The supplied prompt and help establish an operation ID but do not establish its JSON field name or structure."
     },
     {
-      "claim": "A running status response provides retry_after.",
+      "claim": "Status provides retry_after, exits 1 for errors and exits 0 for assessable results.",
       "type": "factual",
       "verified": false,
-      "evidence": "B.md:27 names retry_after. qodo-auto-help.txt:35-36,68 establishes exit 2 means running, but supplies no retry_after field or polling-delay contract."
+      "evidence": "A.md:28 specifies this protocol. qodo-auto-help.txt:35-36,68 verifies only that exit 2 means unfinished; the remaining details are unsupported by the allowed inputs."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "The rubric does not check the assumed .operation_id response schema or retry_after field. Provide verified response examples or require explicit uncertainty about undocumented fields."
+        "reason": "Provide a verified async JSON example and assert extraction against its actual schema. A.md:20-21 could otherwise prevent collection despite successful submission."
+      },
+      {
+        "reason": "Supply and check the status protocol, including polling-delay fields and terminal exit codes. The existing assertions do not catch unsupported details in A.md:28."
       }
     ],
-    "overall": "Both assertions pass for this proposal. B.md:8 checks jq before submission, but protocol assumptions and actual collection remain unverified."
+    "overall": "Both assertions pass for this proposal; execution, JSON-schema compatibility and the full polling protocol remain unverified."
   },
   "grader_provenance": {
-    "session_id": "ses_e15cd45b1ffcI9Yt92peVRtTdF",
+    "session_id": "ses_e157dd043ffdD2CK0FZpRzyeVj",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1ea37292d001KK5VxFhICXPC2n",
+    "message_id": "msg_1ea82b307001CEaIFwKeH03uh8",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

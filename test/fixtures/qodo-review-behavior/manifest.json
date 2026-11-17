@@ -1,16 +1,16 @@
 {
   "schema_version": 2,
   "method": "scoped-native-agents-with-anonymous-final-answer-grading",
-  "iteration": 15,
+  "iteration": 17,
   "snapshots": {
     "candidate": {
-      "source_commit": "31d3e11a388c36e19739b440e2f4dd75db8a920f",
+      "source_commit": "296350ef828251eb696c14ac6617d28fc7c440c2",
       "source_kind": "immutable Git commit",
       "release_metadata_version": "1.10.15",
       "fingerprints": {
-        "SKILL.md": "e4ba04287690fe909991db2428eec7d955062a7dda41574127468b260eabe991",
+        "SKILL.md": "a6829397dfdf0b38b8b97cc7022502324b5caf3b9d2ecbc970a1f2c31db3449e",
         "references/cli-execution.md": "0f467d15eeee3da970d7d90f2bbfcd1316f07f857262a66b4ae599129994b587",
-        "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
+        "references/connected-progress.md": "9cc8b4ea109f4f1afd4faa5096af05cb7d7e2d368b7aab6e148494e0dcd95ea5",
         "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
         "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
         "references/local-triage.md": "3d9e70c9f3cbfb4a7ecee97d13f36e3519a520d84fee47fa89f7ed839bcb50c0",
@@ -81,16 +81,16 @@
           "response": "compatibility-boundaries/candidate/response.md",
           "grading": "compatibility-boundaries/candidate/grading.json",
           "provenance": "compatibility-boundaries/candidate/provenance.json",
-          "artifacts": {"compatibility-boundaries/candidate/response.md":"bdaa83c7be18533c18d781d9b44bad222841cb09dc476002b3cf3c2819bd946d","compatibility-boundaries/candidate/grading.json":"4b932c976c398b3bc5632fc4d786f06e1e6eaf36d39ab10e107b24e600da64a6","compatibility-boundaries/candidate/provenance.json":"dc89cf0495ebb625220b5afe4dae45d4269edcda74efdd5538903271c71753ee"}
+          "artifacts": {"compatibility-boundaries/candidate/response.md":"e56258cf0f32cc99c87db6803112a4b8bf58361ffc9e95246d8d8be305cbe9c2","compatibility-boundaries/candidate/grading.json":"8d07fc762c4ae224e3ea94a2d8c82b6225c8d08ed687d0ec20b8717b1ccfdbc5","compatibility-boundaries/candidate/provenance.json":"3fca7191787f66db4d5d546f8239263891caff40c97a1c12cf9d02e5912e4e04"}
         },
         "baseline": {
           "response": "compatibility-boundaries/baseline/response.md",
           "grading": "compatibility-boundaries/baseline/grading.json",
           "provenance": "compatibility-boundaries/baseline/provenance.json",
-          "artifacts": {"compatibility-boundaries/baseline/response.md":"74a426e691c8a43062a04080916d84de8f64d07db5241dcd67dcd6e3646eccd7","compatibility-boundaries/baseline/grading.json":"858cbfd32153d101d411cc36245bcc3440ec08972b673dc4ca96d1d7f4c60c53","compatibility-boundaries/baseline/provenance.json":"1d89b756a1b7b6353b25d3b423bc57d337484956cc7a0cf142eeae2f1e9b4cdd"}
+          "artifacts": {"compatibility-boundaries/baseline/response.md":"cd5be1b0449d09c2700aac25b84dd32ceb7edcedef3e93293689368658520b29","compatibility-boundaries/baseline/grading.json":"3db7c05ee6bfdb110f485cc53f27ede39a2dcb8961bc854ac9a12143022562c8","compatibility-boundaries/baseline/provenance.json":"4dcc98b2b999506fef86a848af0f43de2909459c8970c0b96a8cb58adeb91fb9"}
         }
       },
-      "evidence_scope": "iteration-15-refreshed"
+      "evidence_scope": "iteration-17-full"
     },
     {
       "name": "fallback-invocation",
@@ -111,16 +111,16 @@
           "response": "fallback-invocation/candidate/response.md",
           "grading": "fallback-invocation/candidate/grading.json",
           "provenance": "fallback-invocation/candidate/provenance.json",
-          "artifacts": {"fallback-invocation/candidate/response.md":"057b45245f9db2306672dd1aa9292d08e1c969b9b2d04c20598d381f5bf75b60","fallback-invocation/candidate/grading.json":"0d1915ebc1141b3439532ebc2a9b9ed834e61aed650b7d585d491fac9a557982","fallback-invocation/candidate/provenance.json":"699706dae89c0376228187fc26bf26ffd79f3e4338527b4cb416433b7ffd4ef7"}
+          "artifacts": {"fallback-invocation/candidate/response.md":"7dcfb02ad7467642a51e441676a8cec97319e1bc12dbfd20e27193ed0a79cb0e","fallback-invocation/candidate/grading.json":"6b31b5544e2a108f0d8ae3d478867c6f284902ef364805ab95c71ebd8dcaa2c6","fallback-invocation/candidate/provenance.json":"3a1a27ca96c6679fc8c4399872b923e6783fd3d6e87228d9801f719d7675d7f4"}
         },
         "baseline": {
           "response": "fallback-invocation/baseline/response.md",
           "grading": "fallback-invocation/baseline/grading.json",
           "provenance": "fallback-invocation/baseline/provenance.json",
-          "artifacts": {"fallback-invocation/baseline/response.md":"938eaec88c78d5cd22453e14e02ca34052538787a7e376edd9146c3760928da2","fallback-invocation/baseline/grading.json":"7a817bd60fe33a88234e347f5f8e0bf9c46638894cf4d875af6fde38e3e5eed7","fallback-invocation/baseline/provenance.json":"194a7389335731e1fe37d4fa8d77abb8ec9922592e65d3e16df00ae70a08d573"}
+          "artifacts": {"fallback-invocation/baseline/response.md":"1e52113aa3e5141ed19b7e14bd1c933d309c3edb9bfe71992f7147acf84bbbfe","fallback-invocation/baseline/grading.json":"00cf94beb38aa741c8cbe46f59a246c9cf3e908a71f7e295ef1dd6a236b08a4f","fallback-invocation/baseline/provenance.json":"470fdd54df602754ac043465b00823eac2d909138d61e0ba36f24f8d16924387"}
         }
       },
-      "evidence_scope": "iteration-14-retained"
+      "evidence_scope": "iteration-17-full"
     },
     {
       "name": "followup-and-finding-state",
@@ -153,16 +153,16 @@
           "response": "followup-and-finding-state/candidate/response.md",
           "grading": "followup-and-finding-state/candidate/grading.json",
           "provenance": "followup-and-finding-state/candidate/provenance.json",
-          "artifacts": {"followup-and-finding-state/candidate/response.md":"2faa9ce2eedac5cf66acafce9c91576cf89b134992f0dd98b5121cf7ac534e93","followup-and-finding-state/candidate/grading.json":"4c09bb3adefd305f2f6a9fc19af4c7a3fdc7c19bfcd10508d621a77d5b45a0ec","followup-and-finding-state/candidate/provenance.json":"fe1cfe939ed4a54bb551f9cb2768e70ddf216310d9d9e0576e02282e97e37778"}
+          "artifacts": {"followup-and-finding-state/candidate/response.md":"498c78aa6b317a10c2fb8a8c5a281b430d93931680a34d4cb0f5353274dd7f23","followup-and-finding-state/candidate/grading.json":"466847488aefc7809eb23ca58c184c3c89206c5667562abfd6dad81011c24904","followup-and-finding-state/candidate/provenance.json":"4669be40abba2575c519ad62595f126a2d0d18aa7621edd6b00dd56380845ef0"}
         },
         "baseline": {
           "response": "followup-and-finding-state/baseline/response.md",
           "grading": "followup-and-finding-state/baseline/grading.json",
           "provenance": "followup-and-finding-state/baseline/provenance.json",
-          "artifacts": {"followup-and-finding-state/baseline/response.md":"7a3ef987f4cf303e324c426c6c5eea14bbfe92ddc8ff4bdf9703bbd43ca7cb40","followup-and-finding-state/baseline/grading.json":"7dfca36557f576ede9a66d074bca52e1c4f4b1d1e13edef3d57e81b2e3faacf9","followup-and-finding-state/baseline/provenance.json":"7389e2e0b4bd696cb26d421cd6695e9091da3cd264dcfac63488d9349adf6ac8"}
+          "artifacts": {"followup-and-finding-state/baseline/response.md":"d32a54ced3b5933ccb600bc8d8c344dfda6f930e401cb7b998b36cf91c9ff853","followup-and-finding-state/baseline/grading.json":"058f424e90bca9a12a2a28963838c6ef700bdf97211e595a3df67a6c0d52762e","followup-and-finding-state/baseline/provenance.json":"20b1e683fbb536a6a25fe6ab046c37ce149b66580373ae40cd99dea987e688e5"}
         }
       },
-      "evidence_scope": "iteration-15-refreshed"
+      "evidence_scope": "iteration-17-full"
     },
     {
       "name": "mcp-collection",
@@ -203,16 +203,16 @@
           "response": "mcp-collection/candidate/response.md",
           "grading": "mcp-collection/candidate/grading.json",
           "provenance": "mcp-collection/candidate/provenance.json",
-          "artifacts": {"mcp-collection/candidate/response.md":"bb0d7a9d1d1664be7d4fee6ae0c6ce3f016b9ee0dd1c08aa15e3870b10c0b865","mcp-collection/candidate/grading.json":"5b51f7edbe7d1ffaa40cd85ddb03bcb5574569f1371c2edd821dac2d6d6aadcc","mcp-collection/candidate/provenance.json":"976e6eefdc17de5bc861a3f356ca82982481e4759e992a07d63f033ff0b922c7"}
+          "artifacts": {"mcp-collection/candidate/response.md":"fc3a12dc4f9b4cf4f8ecbc7ca83b8e7710086e5f20a1afedafca67791f0f504b","mcp-collection/candidate/grading.json":"8a6dc87625e83005ca6081eacf43513aeac75014cd05a625ec96f60722097132","mcp-collection/candidate/provenance.json":"aac8127fc1033c609f1c5cf845e9c8626afbd461dc024af999eb72acc0a5890f"}
         },
         "baseline": {
           "response": "mcp-collection/baseline/response.md",
           "grading": "mcp-collection/baseline/grading.json",
           "provenance": "mcp-collection/baseline/provenance.json",
-          "artifacts": {"mcp-collection/baseline/response.md":"299e1fc7a3e25449a6add96fb9d16c09b7c9f1652dbee66b3e567900ece74d48","mcp-collection/baseline/grading.json":"73fcd161db26f35d88eb03754e22f8da336337be8afb14ae249c2e414dc371fb","mcp-collection/baseline/provenance.json":"6e929df4d5824a202247b7fd80a0150b10bd51b751d0ceaba4018d73bff1b60f"}
+          "artifacts": {"mcp-collection/baseline/response.md":"da3f2df3accd91bca6a78b6e1bf41b744832d42698255c0b3ee83d01953537a5","mcp-collection/baseline/grading.json":"302290020bf342e98e0a80a43f2e9fbfa858ccccc2c09f0abe7c47a8d5fcad94","mcp-collection/baseline/provenance.json":"b6dde78493635d912e923f107270f96c77c93cc241d9b79997c173b9d5ac760e"}
         }
       },
-      "evidence_scope": "iteration-14-retained"
+      "evidence_scope": "iteration-17-full"
     },
     {
       "name": "mcp-local-triage",
@@ -245,16 +245,16 @@
           "response": "mcp-local-triage/candidate/response.md",
           "grading": "mcp-local-triage/candidate/grading.json",
           "provenance": "mcp-local-triage/candidate/provenance.json",
-          "artifacts": {"mcp-local-triage/candidate/response.md":"6b36d5d0486e34ab01fa3c45972c3e901e9728f7cd518486c1285785af2cc93f","mcp-local-triage/candidate/grading.json":"e554de840529f4ecc9420c0b5d8853e6c24efcc996e0d1c005a13f1db800632f","mcp-local-triage/candidate/provenance.json":"98e1859fa26167ef1eafb415ed6d55c3f4096df41488c2ae19d5c3bda4db5706"}
+          "artifacts": {"mcp-local-triage/candidate/response.md":"3f9d1c26788c4bf437de9d89b4bee8e545628b1421f4cf7c2b9f5e5249e02f77","mcp-local-triage/candidate/grading.json":"01e3150543985e08e38429399b6c43c1dabb65967cdc94e31a2e69d18ff077e5","mcp-local-triage/candidate/provenance.json":"1d24e78e049ea30cf3600d4969f4956c0f0fddc3b33a5228b50ecdc320a3fdc0"}
         },
         "baseline": {
           "response": "mcp-local-triage/baseline/response.md",
           "grading": "mcp-local-triage/baseline/grading.json",
           "provenance": "mcp-local-triage/baseline/provenance.json",
-          "artifacts": {"mcp-local-triage/baseline/response.md":"2e3e3691004ce95564afe633e194edf2d8f4c89f49219e321a2bc0b4a42b2510","mcp-local-triage/baseline/grading.json":"a8eab47f7012489db5427aa80f575a0a602aa16672bde88e82c704bf006a0b4c","mcp-local-triage/baseline/provenance.json":"d5c42f04672da334e03eb1d5b6135831224e95459f80f186dbb9190e08b2dfbe"}
+          "artifacts": {"mcp-local-triage/baseline/response.md":"000220044cc64ae9ce6dc936089fab92654c432cb8e5b79f4cd1988a1f1833c8","mcp-local-triage/baseline/grading.json":"d3744841c046bcbf0ef8c4b28c545ce21855d9c32b335cd01a61ab1bd0723988","mcp-local-triage/baseline/provenance.json":"867f42b1fb17c980c0b19e821d8a08b25f9573deef70d7be04afc33bc26e5382"}
         }
       },
-      "evidence_scope": "iteration-14-retained"
+      "evidence_scope": "iteration-17-full"
     },
     {
       "name": "milestone-and-final-scope",
@@ -299,16 +299,16 @@
           "response": "milestone-and-final-scope/candidate/response.md",
           "grading": "milestone-and-final-scope/candidate/grading.json",
           "provenance": "milestone-and-final-scope/candidate/provenance.json",
-          "artifacts": {"milestone-and-final-scope/candidate/response.md":"5bbcfba27542cb51fbca0738477be42ab2670df4542a51e3c8118e4ce56c4a0b","milestone-and-final-scope/candidate/grading.json":"d7c3ffb1ef4c65c8e6b0efd9bbccfeac248ac8ee9223d2af13633450ed6db2e6","milestone-and-final-scope/candidate/provenance.json":"2d5e1b0170e7e785b3d61d3421acc14ec5c99ec0e90c5fa42d14991b7e905c63"}
+          "artifacts": {"milestone-and-final-scope/candidate/response.md":"5b0c21153af52c4787ad0c111c32b226df31591438306e0817c8f2126dca3b42","milestone-and-final-scope/candidate/grading.json":"d06ad5ba386bc1f79f43227238043245b77781b32336520942b4c5a4ffef05f5","milestone-and-final-scope/candidate/provenance.json":"9d837199e6d74045a111fc15d33f0e06f1c8bdcd155950b4f553c860c18536d5"}
         },
         "baseline": {
           "response": "milestone-and-final-scope/baseline/response.md",
           "grading": "milestone-and-final-scope/baseline/grading.json",
           "provenance": "milestone-and-final-scope/baseline/provenance.json",
-          "artifacts": {"milestone-and-final-scope/baseline/response.md":"e63a15c8af83a04316e7813a0e815ba21f7130c49e6c865e795f397ba3345cb4","milestone-and-final-scope/baseline/grading.json":"96f24bee79b13cbb4e5feb853b6e013e90db929e9838b190286d32ab2b3adb2d","milestone-and-final-scope/baseline/provenance.json":"f528640424bdb915730de13ba3b292f4d8d22c0cb7ef244a87f1a310ae046279"}
+          "artifacts": {"milestone-and-final-scope/baseline/response.md":"9ea526bf9ccd3bed22b9a7ee59d1f043995effb8ad92f82d3c145e8619f1652c","milestone-and-final-scope/baseline/grading.json":"bd804d3c92be9e669a7a87e34e6748e0921840c84203d23ef8190294d818ce17","milestone-and-final-scope/baseline/provenance.json":"ec9eb042cf871e16bcc2f7f1d5c945134bf1f1e10f9d62d55463378051de4f4e"}
         }
       },
-      "evidence_scope": "iteration-14-retained"
+      "evidence_scope": "iteration-17-full"
     },
     {
       "name": "recovery-and-readiness",
@@ -345,16 +345,16 @@
           "response": "recovery-and-readiness/candidate/response.md",
           "grading": "recovery-and-readiness/candidate/grading.json",
           "provenance": "recovery-and-readiness/candidate/provenance.json",
-          "artifacts": {"recovery-and-readiness/candidate/response.md":"ce17c04b980fdd18a7be56a767206925a1d0b77784477460e06ff10f5c6d14a5","recovery-and-readiness/candidate/grading.json":"7a8dd37ec428fc569a7774260856695986b40b3385611998d4e286682819bbb9","recovery-and-readiness/candidate/provenance.json":"e02edac1b4b4b07362c4fee72a617ead1ed609e68a983c07ff6f8322d344a661"}
+          "artifacts": {"recovery-and-readiness/candidate/response.md":"4aec64a4a9ea44fde462a1f6c7187de88949def9145accdcb8b6ca0ce2586ade","recovery-and-readiness/candidate/grading.json":"ab6b84523a7c38ff07565d39122eb3afdf1715baa1db4040d69a0e7904e09236","recovery-and-readiness/candidate/provenance.json":"dd16de951f404092bdafba84d0fa8a178d4a6342d8c655ae6831619fef9461e3"}
         },
         "baseline": {
           "response": "recovery-and-readiness/baseline/response.md",
           "grading": "recovery-and-readiness/baseline/grading.json",
           "provenance": "recovery-and-readiness/baseline/provenance.json",
-          "artifacts": {"recovery-and-readiness/baseline/response.md":"c0cd719d1838a21dfcbf5e26db20b79494b19ebaa0af0a213a0b952de010b51d","recovery-and-readiness/baseline/grading.json":"79d8718bcd0d4b5672d1edaef394e7f27f351c83fc3b72f2d20a2710e8c6320a","recovery-and-readiness/baseline/provenance.json":"2ec1a17e58b2137620d509d1ae331022213b80583e3f0fb3b471aaf4204080db"}
+          "artifacts": {"recovery-and-readiness/baseline/response.md":"a402987416e57eded726832ffe14f4aeab0d6ef0aaa4d95755306c80c6e13933","recovery-and-readiness/baseline/grading.json":"52a0611da3326b6c2a1ed07bb4c5e1a49c9e269508df00b14a1921fd929fe9b0","recovery-and-readiness/baseline/provenance.json":"0706eea9d69fa227808c2098f6c5bd51a5552313888e3f9066e2878dd5e9f67b"}
         }
       },
-      "evidence_scope": "iteration-14-retained"
+      "evidence_scope": "iteration-17-full"
     },
     {
       "name": "recovery-policy-guards",
@@ -379,23 +379,25 @@
           "response": "recovery-policy-guards/candidate/response.md",
           "grading": "recovery-policy-guards/candidate/grading.json",
           "provenance": "recovery-policy-guards/candidate/provenance.json",
-          "artifacts": {"recovery-policy-guards/candidate/response.md":"8fcc8cf517168ffd5e9d4790e01c586a9352a133fc0d6569849f577aa9bc1de9","recovery-policy-guards/candidate/grading.json":"8fe609033886763b84422cd14c46d3b21b25342baf6b350b8b44164d55390b01","recovery-policy-guards/candidate/provenance.json":"881abd42efca645daed39e60d8b4d8a4bb02e2a91117e741f6535c43518e62ff"}
+          "artifacts": {"recovery-policy-guards/candidate/response.md":"a69766d750cd9615ce31bc6ff88ad872d4abffe05c98e8e42cf873d358e86be6","recovery-policy-guards/candidate/grading.json":"809d09042ca903d15aa276c7546341f13e7672a3a1e8e625deb20702084fc8c7","recovery-policy-guards/candidate/provenance.json":"0a281df6e8562df6827be506ce09aaa2ebbe49c2d8f16d0589163d14bbfe07c9"}
         },
         "baseline": {
           "response": "recovery-policy-guards/baseline/response.md",
           "grading": "recovery-policy-guards/baseline/grading.json",
           "provenance": "recovery-policy-guards/baseline/provenance.json",
-          "artifacts": {"recovery-policy-guards/baseline/response.md":"06a6d9cd69fd2ebf05afe0c654f0771624c365d51afdad0828fd902db4b1f1a4","recovery-policy-guards/baseline/grading.json":"deee4ee5bd7053531f85db86c86baff34550f60b962c39f2b80772ec86d16bdf","recovery-policy-guards/baseline/provenance.json":"7dd69e5a3bf2401a117e536e80eeeb5bee7ac4d8bddbdf4ee30617109410312c"}
+          "artifacts": {"recovery-policy-guards/baseline/response.md":"c231b94b4324ab5144cb5032f9980fed3b28f1482e3f4dba1c9c5306f6276332","recovery-policy-guards/baseline/grading.json":"b13698a2da44c05685cbbd34bcb6d9bb08799df675cc7a4796f0361de254021d","recovery-policy-guards/baseline/provenance.json":"e47292a2abeb27c39296b5dc8bd5e42d39ce00cd15331cb9a6346de018883997"}
         }
       },
-      "evidence_scope": "iteration-14-retained"
+      "evidence_scope": "iteration-17-full"
     }
   ],
   "evidence_scopes": [
     {
-      "id": "iteration-14-retained",
+      "id": "iteration-17-full",
       "cases": [
+        "compatibility-boundaries",
         "fallback-invocation",
+        "followup-and-finding-state",
         "mcp-collection",
         "mcp-local-triage",
         "milestone-and-final-scope",
@@ -403,27 +405,12 @@
         "recovery-policy-guards"
       ],
       "record": {
-        "path": "history/iteration-14/manifest.json",
-        "sha256": "e86e238afcfc0f1756aaefd13cc2cc505abf43c8d57aeb98151e595aeead35a8"
+        "path": "scopes/iteration-17-full/manifest.json",
+        "sha256": "7f615cb2f25419b8cdb0e6d6a58ecc48fb952b1aa869b33bcabba1178e1b561a"
       },
       "archive": {
-        "path": "history/iteration-14/archive.json",
-        "sha256": "a1004ebdec2cf321fe2bdaf510d095829c9faafaec17cfcc44912a78cb5a259f"
-      }
-    },
-    {
-      "id": "iteration-15-refreshed",
-      "cases": [
-        "compatibility-boundaries",
-        "followup-and-finding-state"
-      ],
-      "record": {
-        "path": "scopes/iteration-15-refreshed/manifest.json",
-        "sha256": "1e6f8a354bebd03fd66a64fa45cfe0cc4be9bb255d52a11efbcd8268ae2a5500"
-      },
-      "archive": {
-        "path": "scopes/iteration-15-refreshed/archive.json",
-        "sha256": "f1637bd45d5bab21ba7680584ed3686c2ee049b2f3f8aae653b8724615526827"
+        "path": "scopes/iteration-17-full/archive.json",
+        "sha256": "0f123a71e383fd68d90d46e4ff960b0d1d974a06305a252525652fbdf355aa18"
       }
     }
   ],
@@ -433,7 +420,7 @@
       "total": 42
     },
     "baseline": {
-      "passed": 42,
+      "passed": 38,
       "total": 42
     }
   },
@@ -491,5 +478,5 @@
     "artifacts": {"history/iteration-7/adjudication/qodo-review-auto-help-evidence.txt":"436db2735276b25d7c27c4261a91c20eb4a1f905cc7809e53913560c1b83df16"},
     "use": "Same verified auto-default CLI help supplied to anonymous graders before grading. No iteration11 adjudication."
   },
-  "limits": "Six unchanged14cases plus two freshly clarified15cases, not a new unified42assertion run. Each original full58input map and run identity remains. Original14base ambiguity/readiness overclaim and prior failures remain; no regrading, causal uplift or runtime/MP1 acceptance."
+  "limits": "One fresh eight-case/42-assertion comparison selected as one full evidence scope; preceding scoped records, original confounded14grades and failed11/12 remain historical. Author-recorded proposals, not independent model attestation or runtime/MP1 acceptance."
 }

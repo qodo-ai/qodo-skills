@@ -1,71 +1,64 @@
-Proposed actions only; nothing has been executed.
+Commands below are **proposals only**; nothing was executed.
 
 ### 1. `accepted` — collect the existing operation
 
-Wait the requested **20 seconds**, then:
+After the requested **20-second delay**:
 
 ```sh
 qodo review status op-accepted --extended --json
 ```
 
-If still working, honor the next polling delay and keep collecting **the same operation**. Do not resubmit.
+If still working, respect the next polling delay and keep using `op-accepted`. `--extended` retrieves stored detail; it does not rerun or deepen the review.
 
-- `--extended` retrieves stored detail; it does not deepen or rerun the assessment.
-- The result concerns the **original submitted snapshot and context**, not the changed branch or edited context.
-- Pending is not completed. On completion, verify exposed operation/snapshot associations; report unavailable identity checks as unverified.
+Verify returned identities and snapshot metadata against the original submission; disclose unavailable checks. Branch/context changes do not modify that submission.
+
+**Safe claim:** Qodo accepted the review and it remains pending. It does not yet establish completion, readiness, or coverage of your changed checkout.
 
 ### 2. `uncertain` — recover the original submission
 
-Use the returned command unchanged:
+Use the exact returned recovery command:
 
 ```sh
 qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111
 ```
 
-Use the retained original request. Do not append new scope, base, context or effort options, or gather the changed checkout.
+Do not append new base, scope, context or effort options, or collect a replacement snapshot. Recovery must use the retained original request despite checkout changes. If it returns an operation ID, collect that operation.
 
-Once an operation ID is returned, collect that operation. The recovery token is not an operation ID.
+**Safe claim:** Acceptance is currently unknown. Neither successful admission nor completed review is established.
 
-**Safe claim:** acceptance is currently unknown—not confirmed failure, completion or permission for a fresh submission.
+### 3. `storage-gap` — ready locally, not finished end to end
 
-### 3. `storage-gap` — ready locally, handoff not established
+**Safe claim:** The current intended snapshot is **ready locally**: assessment, coverage and inventory are complete, required findings are settled, and tests passed.
 
-**No, all local-to-Git work cannot be declared finished.**
+But **no**, all local-to-Git work cannot be called finished:
 
-The supplied evidence supports **Ready locally**: the intended snapshot has complete assessment coverage and inventory, no required open findings, and passing tests.
+- Saving the reusable checkpoint failed; successful persistence and reusable coverage are not established.
+- PR handoff remains unverified; local readiness does not establish hosted review or handoff success.
 
-Separately:
-- Reusable checkpoint storage **failed**; successful persistence or future reuse cannot be claimed.
-- PR handoff remains **unverified**.
+Use only a supported persistence-recovery mechanism if one is provided. Otherwise report the gap. Do not rerun an already sufficient assessment merely to chase storage success, or invent a recovery command.
 
-Retain the result and warning, pursue only supported and authorized persistence recovery, and verify PR handoff separately. Do not buy another unchanged assessment merely to remove the storage warning.
+### 4. `older-result` — certification blocked
 
-### 4. `older-result` — stop the full-coverage certification
+**Safe claim:** “The older completed result reported no findings.”
 
-**Review blocked for the requested certification.**
+Missing coverage, inventory-completeness and persistence metadata remain **unknown**. Zero findings does not prove full final coverage, successful storage or reusable coverage.
 
-The supported statement is: **“The older completed result reported no findings.”**
-
-Coverage, inventory completeness and persistence are **unknown**, not successful. Zero findings does not establish final coverage or local readiness.
-
-Retrieve supporting evidence if it remains available. If it cannot establish the required current coverage, that gap must be addressed before certification. Any necessary new assessment must respect authorization and budget; ordinary effort remains auto.
+Do not certify. Establish missing final coverage through an authorized assessment if continuing; this is a concrete reason for another assessment, not for increased effort. Do not assume `--extended` can manufacture absent evidence.
 
 ### 5. `entitlement` — stop
 
-`closed_preview`
+`closed_preview`:
 
 > Review access is not enabled for this organization.
 
 > Ask your administrator to enroll the organization.
 
-Do not start another review until enrollment is confirmed. Verified identity does not establish review entitlement. Do not retry by logging in again, changing accounts/deployments, stripping context or lowering effort.
+**Safe claim:** Review is blocked by enrollment. Do not submit again until enrollment is confirmed. Do not switch accounts/deployments, repeat login, strip context or lower effort to bypass it.
 
-**Safe claim:** review access is blocked; no completed assessment is established.
+### 6. `budget` — stop new assessments
 
-### 6. `budget` — no third assessment
+Your explicit **two-assessment budget is exhausted**. Five status polls and one extended retrieval are not additional assessments; resuming in another session does not reset the budget.
 
-**Budget reached: 2 of 2 new assessments used.** Resuming in another session does not reset it. The five status polls and one extended retrieval do not consume additional assessment slots.
+**Safe claim:** **Budget reached; needs action.** `F-BLOCK` remains action-required, so readiness is not established.
 
-**F-BLOCK remains action-required**, so the work is not ready despite the budget being exhausted.
-
-Preserve the blocker, existing results and any coverage gaps. Do not start another assessment without explicit authorization extending the budget, and do not dismiss the blocker merely to finish.
+Do not launch a third assessment or dismiss the blocker. Preserve the outstanding finding and obtain explicit budget extension before another assessment; any fixes still require covering edit authority.

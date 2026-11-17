@@ -3,42 +3,42 @@
     {
       "text": "For milestone, the response proposes a useful context-attached review with auto effort, without --fast, --deep or --full, and retains the operation for later collection.",
       "passed": true,
-      "evidence": "A.md:5-18 proposes the checkpoint with attached context and no effort/freshness flags; A.md:110-116 retains and collects the returned operation."
+      "evidence": "A.md:10-15 proposes an auto checkpoint with context, async collection and no effort/full flags. A.md:23 supplies context; A.md:30 retains the operation and snapshot."
     },
     {
       "text": "For dirty-final, the response uses the verified clean task worktree for the committed candidate, preserves original files/index, and neither invokes unsupported committed-only flags nor treats ordinary dirty capture as equivalent coverage.",
       "passed": true,
-      "evidence": "A.md:24-29 uses the clean task worktree and complete intended scope; explicitly rejects original dirty capture, preserves files/index, and acknowledges no committed-only option."
+      "evidence": "A.md:34-40 selects the verified clean worktree and full committed candidate, preserves original files/index, and rejects unsupported committed-only flags. A.md:54 excludes unrelated content."
     },
     {
       "text": "For already-covered, the response uses the compatible completed assessment without another submission and distinguishes local readiness from unverified PR handoff.",
       "passed": true,
-      "evidence": "A.md:45-47 reuses completed compatible coverage without resubmission and limits readiness to local status, not hosted review, CI or merge status."
+      "evidence": "A.md:65-69 reuses the completed assessment without submission and limits readiness to local status, excluding hosted review, finding handoff, CI and merge readiness."
     },
     {
       "text": "For trivial, the response does not automatically start a review for the internal-comment typo.",
       "passed": true,
-      "evidence": "A.md:49-51 explicitly says not to automatically review the typo."
+      "evidence": "A.md:73-75 explicitly continues without review or review context."
     },
     {
       "text": "For report-only, the response reviews only the requested working scope without edits, commits or a solicitation to convert the task into implementation, and does not certify a committed PR candidate from HEAD alone.",
       "passed": true,
-      "evidence": "A.md:55-68 limits collection to requested uncommitted working changes without edits or commits; A.md:70 requires reporting then stopping without soliciting implementation. No committed-candidate certification is made."
+      "evidence": "A.md:79 specifies the requested working scope without edits, commits or PR preparation. A.md:90-99 preserves report-only intent and prohibits implementation solicitation; no committed-candidate certification is made."
     },
     {
       "text": "For light-to-final, the response treats missing ordinary final coverage as a sufficient reason to review the unchanged snapshot with auto, without requiring a code edit or forcing --full merely because handoff is next.",
       "passed": true,
-      "evidence": "A.md:74-90 identifies missing ordinary final coverage despite unchanged full-scope fast coverage, proposes the auto submission, and explicitly omits --fast, --deep and --full."
+      "evidence": "A.md:103-108 proposes ordinary auto review because final coverage is missing, without --full. A.md:118 explicitly preserves the unchanged-snapshot premise."
     },
     {
       "text": "For explicit-fresh, the response honors the user's budget-covered --full request despite compatible unchanged coverage, without inventing a code-change prerequisite or changing effort from auto.",
       "passed": true,
-      "evidence": "A.md:94-107 honors the within-budget request using --full without effort flags; context explicitly acknowledges unchanged compatible coverage and distinguishes freshness from deeper effort."
+      "evidence": "A.md:127-132 honors the within-budget fresh request despite unchanged code, distinguishes --full from deep effort, and omits --fast/--deep."
     },
     {
       "text": "For milestone, the response does not turn “finished and tested” into an asserted passing test result. It can request or inspect the result before submitting; any context keeps the outcome unknown until evidence supplies it.",
       "passed": true,
-      "evidence": "A.md:15 states that the slice was tested but check names and pass/fail results were not supplied."
+      "evidence": "A.md:23 explicitly states that test commands/outcomes were not supplied and passing tests are not established."
     }
   ],
   "summary": {
@@ -49,30 +49,43 @@
   },
   "claims": [
     {
-      "claim": "Commands without --fast or --deep use auto effort; --full requests freshness rather than deeper effort.",
+      "claim": "The proposed commands retain auto effort; --full requests freshness rather than deep effort.",
       "type": "factual",
       "verified": true,
-      "evidence": "A.md:8,97,105 matches qodo-auto-help.txt:19-26,62-64."
+      "evidence": "A.md:15 and A.md:129-132 match qodo-auto-help.txt:19-26,62-64."
     },
     {
-      "claim": "The already-covered case is ready locally, without establishing hosted-review, CI or merge status.",
-      "type": "quality",
+      "claim": "These are proposals, not completed reviews or context-file writes.",
+      "type": "process",
       "verified": true,
-      "evidence": "A.md:45-47 follows the synthetic completed-coverage facts in prompt.md:26-29 and expressly limits the conclusion."
+      "evidence": "A.md:1,5 uses explicitly prospective language; task.md:6 confirms that proposed operational commands were not executed. Successful writes, submissions and coverage are not claimed."
+    },
+    {
+      "claim": "The Engine determines continuation eligibility.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:123 names this runtime responsibility. The supplied help establishes auto effort and incremental/fresh semantics, but not continuation eligibility mechanics. Unverified, not contradicted; no resulting coverage is asserted."
     }
   ],
   "eval_feedback": {
-    "suggestions": [],
-    "overall": "No material unsupported claims or rubric gaps identified. These grades establish proposal compliance, not execution or successful review completion."
+    "suggestions": [
+      {
+        "reason": "No assertion explicitly checks that every proposed submission uses the supplied literal base SHA and valid, faithful context. A.md:15,43,82,108,132 does so, but incorrect bases or fabricated non-milestone context could escape this rubric."
+      },
+      {
+        "reason": "Collection correctness beyond retaining an operation is not tested. A.md:149-155 appropriately requires completion, complete inventory, coverage and context-delivery inspection; an answer omitting these checks could still pass."
+      }
+    ],
+    "overall": "All eight assertions pass as proposal grading. No unsupported operational-success claim appears; the Engine eligibility detail remains unverified. Actual execution and achieved coverage are outside this evaluation."
   },
   "grader_provenance": {
-    "session_id": "ses_e15cd45a9ffde63smdTkON0Wvx",
+    "session_id": "ses_e157dd036ffeC6T3xOWROMte0R",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1ea33f9d9001I1iTopOocZosEt",
+    "message_id": "msg_1ea82f202001VUxyp9FF6ufxrh",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

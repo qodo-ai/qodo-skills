@@ -3,32 +3,32 @@
     {
       "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
       "passed": true,
-      "evidence": "B.md:5-10 identifies the minimum, stops protected calls, requires recovery approval and preserves deployment without performing an update."
+      "evidence": "A.md:7-11 states the exact version floor, prohibits identity/login/managed-tool/review calls, requires update authorization and preserves deployment policy."
     },
     {
       "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
       "passed": true,
-      "evidence": "B.md:16-23 preserves unknown compatibility, stops protected calls, rejects a credential diagnosis and proposes no installation command without an artifact, checksum and approval."
+      "evidence": "A.md:15-21 preserves unknown compatibility, prohibits protected calls, rejects an authentication diagnosis and proposes no installation without approval and verified artifacts."
     },
     {
       "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
       "passed": true,
-      "evidence": "B.md:27 accepts 2.0.0; B.md:33-40 preserves the exact decision, summary uncertainty and both recent_work entries; B.md:49-52 proposes the exact base with auto effort."
+      "evidence": "A.md:25 accepts 2.0.0; A.md:31-38 preserves the exact decision, summary and both recent_work entries, including untested live load. A.md:45-51 uses the exact base and no effort flags, meaning auto under qodo-auto-help.txt:62-64."
     },
     {
       "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
       "passed": true,
-      "evidence": "B.md:58 specifies auto; B.md:64-71 preserves all accepted context; B.md:78 includes the exact base and both paths without effort overrides; B.md:81-83 rejects --full and leaves the actual mode unverified."
+      "evidence": "A.md:63-70 retains all exact context. A.md:77-84 preserves the supplied base, both paths and auto without --full; A.md:86 explicitly leaves full/incremental/reused selection unverified."
     },
     {
       "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
       "passed": true,
-      "evidence": "B.md:87-93 identifies the collector/input blocker, prohibits submission, remote substitutes, ad hoc collectors and unauthorized installation, and leaves coverage unverified."
+      "evidence": "A.md:90-94 identifies the missing tested collector, prohibits submission/ad hoc input/substitute checkout, states installation is unauthorized and says no worktree review is completed."
     },
     {
       "text": "For cli-identity-gap, the response distinguishes the matching returned snapshot metadata and completed assessment from the unavailable operation-response identity check. It does not substitute OP-REQUESTED or REVIEW-RESULT for a returned transport operation ID, claim that hidden comparison passed, invent a read API, change the runtime or submit another assessment to conceal the gap.",
       "passed": true,
-      "evidence": "B.md:97 rejects a passed-check claim; B.md:101-106 separates reported assessment/snapshot evidence from the missing transport identity comparison; B.md:110-112 preserves the limitation and prohibits runtime changes, invented APIs or resubmission."
+      "evidence": "A.md:98-107 distinguishes complete assessment and matching snapshot from absent transport identity and rejects identifier substitution. A.md:109-111 prohibits runtime/API/resubmission workarounds and labels identity unverified, not failed."
     }
   ],
   "summary": {
@@ -39,40 +39,46 @@
   },
   "claims": [
     {
-      "claim": "The proposed review commands use auto effort without --fast or --deep.",
+      "claim": "The proposed contexts preserve the accepted content and live-load uncertainty.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:31-38 and A.md:63-70 exactly preserve prompt.md:26-28, changing only the advertised narrative-field name."
+    },
+    {
+      "claim": "Matching snapshot metadata does not establish the unavailable operation-response identity comparison.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:49-52 and B.md:58-78; qodo-auto-help.txt:62 explicitly establishes no flag = auto."
+      "evidence": "A.md:102-111 accurately distinguishes the evidence and gap supplied in prompt.md:41-48."
     },
     {
-      "claim": "Recovery requires a check offering a newer compatible 2.x target, excludes automatic latest-2 fallback and permits at most one approved runtime attempt.",
+      "claim": "An unparseable runtime requires a Qodo/organization-supplied checksum-pinned installer route.",
       "type": "factual",
       "verified": false,
-      "evidence": "B.md:8-10 introduces these policy details. Neither prompt.md nor qodo-auto-help.txt establishes them; they remain unverified, not disproven."
+      "evidence": "A.md:19 asserts a mandatory recovery policy. Named inputs establish missing approval/checksum, but provide no policy proving this is the required or exclusive route; unverified, not disproved."
     },
     {
-      "claim": "An unparseable runtime necessarily requires a separately authorized, checksum-pinned installer route.",
+      "claim": "The MCP server schema cannot read the local worktree.",
       "type": "factual",
       "verified": false,
-      "evidence": "B.md:20 states this categorical requirement. The supplied inputs establish missing version evidence and approval, but do not establish installation as the mandatory recovery route."
+      "evidence": "A.md:92 makes a categorical capability claim. prompt.md:37-40 establishes no tested collector or prepared input, but supplies no schema/capability contract to verify that broader claim."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "Provide verified recovery-policy evidence or explicitly assess conditional recovery advice. B.md:8-10 and B.md:20 add target-version, attempt-limit and mandatory-installer rules outside the supplied evidence and current assertions."
+        "reason": "Supply authoritative recovery-policy and MCP-capability evidence if categorical claims such as A.md:19 and A.md:92 are intended to be validated; the current assertions can pass while those claims remain unsupported."
       }
     ],
-    "overall": "All six assertions pass for these proposals; installed-runtime behavior and the additional recovery rules are not verified."
+    "overall": "All six proposal-level assertions pass. Actual context preparation, submission and coverage remain untested, as intended by the fixture."
   },
   "grader_provenance": {
-    "session_id": "ses_e15a1b619ffetLJpm1Sz48sAbm",
+    "session_id": "ses_e157dd051ffeG2ZXUdYUlaca42",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1ea5f0c79001ba3cz6M6p56YHx",
+    "message_id": "msg_1ea82fa99001v87YmfIxyVYJ0u",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

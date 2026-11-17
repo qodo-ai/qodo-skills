@@ -1,6 +1,36 @@
 # Agent-evaluation results
 
-## Current status: recovery-permission clarification
+## Current applicable evidence: full17
+
+Fresh17 completed16executions/8anonymous graders against candidate/common
+`296350ef828251eb696c14ac6617d28fc7c440c2` and baseline
+`6385a42e83ac028349ff1c153a788a812a850bf5`: **42/42candidate,38/42baseline**.
+All58fixture-input blobs match16. Only the canonical recovery-permission
+clarification changed instructions; no old answer or grade was repaired/regraded.
+
+Seven groups pass all assertions for both versions (35/35each). MCP collection
+passes7/7candidate and3/7baseline: the candidate rejects invalid artifacts and
+stops without an applicable recovery permission; the baseline proposes recovery.
+All147capture artifacts retain original responses, judgments, full input maps,
+provenance, timing and anonymous labels. The current manifest selects this one
+full scope. The standard benchmark/static viewer17 retains16as previous.
+
+The grader lacks a neutral Skill-policy excerpt; its recovery-permission judgments
+and composite-assertion interpretation differ across16/17. Preserve both originals.
+This one sample is not causal uplift or reliability evidence. The standard summary
+averages group pass rates; the assertion totals above count42assertions separately.
+Extra unverified parser/status/update/retry/Engine/readback-capability claims remain
+in the original grades and benchmark. Unverified does not necessarily mean false.
+No live services, finding writes, runtime interoperability, natural activation,
+full OS confinement, billed Claude evaluation or MP1acceptance is established.
+
+The connected/async allocation guards have separate deterministic setup-only tests;
+these proposals do not execute those recipes. Exact final-head full/native/staging
+qualification and the changed-source operational review remain separate next checks.
+All31focused source/staging/evidence checks pass, including the current gate.
+Non-response source whitespace checks pass; captured responses remain verbatim.
+
+## Preceding recovery-permission failure: full16
 
 Fresh16 completed16 executions and8 anonymous graders against candidate/common
 `4b389e47ea4af9522e8e3ab26b0fec34bd23bdd6` and baseline6385a42instructions:
@@ -14,11 +44,11 @@ count and overlapping pages; the baseline keeps recovery conditional. Boundednes
 and retention of the original handle do not grant permission. The grader lacks
 direct Skill-policy evidence; its original judgments and this limitation remain.
 
-Canonical policy now clarifies that failed identity/integrity verification is not
+Canonical policy clarifies that failed identity/integrity verification is not
 a status transport failure. Preserve rejected evidence and retry only through an
 applicable permitted recovery. A source guard checks that distinction. Fixtures
-and assertions are unchanged. Fresh applicable evidence is pending; no answer is
-repaired/regraded, and original16is not relabeled as passing.
+and assertions are unchanged. The new17evidence above has its own identity; no answer
+is repaired/regraded, and original16is not relabeled as passing.
 
 Extra unverified claims remain inspectable: recovery rules, parser fields, Engine
 ownership and an ambiguous pending-identity label. The baseline follow-up also

@@ -1,5 +1,5 @@
 {
-  "session_id": "ses_e15a42227ffeHKgM2F5qBrviiI",
+  "session_id": "ses_e15818e88ffddeP7HmsoXJZ4B1",
   "configuration": "with_skill",
   "evaluated_case": "compatibility-boundaries",
   "models": [
@@ -9,9 +9,9 @@
       "variant": "max"
     }
   ],
-  "source_commit": "31d3e11a388c36e19739b440e2f4dd75db8a920f",
+  "source_commit": "296350ef828251eb696c14ac6617d28fc7c440c2",
   "source_kind": "immutable Git commit",
-  "fixture_source_commit": "fe1aa2a846d752cd7f11cf8f3a7cc56a24ccfbf2",
+  "fixture_source_commit": "296350ef828251eb696c14ac6617d28fc7c440c2",
   "fixture_fingerprints": {
     "compatibility-boundaries/case.yaml": "41fe789fa9a5a7f50eebbc66ec343a51bafecb63b8d8b855c1e7fe7eaa4b2ad6",
     "compatibility-boundaries/graders/01-old-version-stop.md": "44b0be499891ee8d34631a2f176ea2bb450c4372b1469f215f971af31273bf5f",
@@ -73,9 +73,9 @@
     "recovery-policy-guards/prompt.md": "fc047108124248dfa7f1b85af3c71dc83a904a7db55181dc958c0cd730e9244a"
   },
   "fingerprints": {
-    "SKILL.md": "e4ba04287690fe909991db2428eec7d955062a7dda41574127468b260eabe991",
+    "SKILL.md": "a6829397dfdf0b38b8b97cc7022502324b5caf3b9d2ecbc970a1f2c31db3449e",
     "references/cli-execution.md": "0f467d15eeee3da970d7d90f2bbfcd1316f07f857262a66b4ae599129994b587",
-    "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
+    "references/connected-progress.md": "9cc8b4ea109f4f1afd4faa5096af05cb7d7e2d368b7aab6e148494e0dcd95ea5",
     "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
     "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
     "references/local-triage.md": "3d9e70c9f3cbfb4a7ecee97d13f36e3519a520d84fee47fa89f7ed839bcb50c0",
@@ -86,18 +86,18 @@
     "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
   },
   "tool_counts": {
-    "read": 6
+    "read": 7
   },
   "tool_errors": 0,
-  "response_sha256": "bdaa83c7be18533c18d781d9b44bad222841cb09dc476002b3cf3c2819bd946d",
-  "response_message_id": "msg_1ea5ce010001DZ8ih07iexCDJS",
-  "finished_at": "2026-11-17T16:36:07.831Z",
-  "duration_ms": 115831,
+  "response_sha256": "e56258cf0f32cc99c87db6803112a4b8bf58361ffc9e95246d8d8be305cbe9c2",
+  "response_message_id": "msg_1ea802436001yPxMoIsLxKDeEH",
+  "finished_at": "2026-11-17T17:14:57.537Z",
+  "duration_ms": 178974,
   "token_usage": {
-    "input": 23413,
-    "output": 1736,
-    "reasoning": 1386,
-    "cache_read": 147840,
+    "input": 16729,
+    "output": 1743,
+    "reasoning": 2436,
+    "cache_read": 186752,
     "cache_write": 0
   },
   "metric_scope": "Runtime-reported assistant messages for this completed child only; not a whole-host filesystem audit.",

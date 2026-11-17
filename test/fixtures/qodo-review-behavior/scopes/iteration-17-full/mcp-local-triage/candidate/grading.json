@@ -1,0 +1,74 @@
+{
+  "expectations": [
+    {
+      "text": "For metadata-only, the proposed pr-review-dismiss call preserves F-A/F-B, L-ORIGINAL, the authorized reason/explanation and one retained metadata key through _meta[\"io.qodo/idempotency-key\"]. It reads each synchronous result and verifies stored outcomes. Uncertain-response recovery uses the exact original request/key, without inventing an operation handle, polling call, schema argument, CLI fallback or successful write.",
+      "passed": true,
+      "evidence": "B.md:9-18 preserves the tool, business arguments and metadata key. B.md:22-32 retains the exact request/key and per-finding outcomes, proposes stored-state verification, and permits only exact same-key recovery without invented polling. B.md:1 marks all actions as proposals."
+    },
+    {
+      "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
+      "passed": true,
+      "evidence": "B.md:36-40 explicitly prohibits submission, identifies both unavailable replay-key paths and the absent trusted CLI, requests capability support rather than inventing it, and says neither dismissal was performed."
+    },
+    {
+      "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
+      "passed": true,
+      "evidence": "B.md:46-51 preserves already_dismissed / deferred / “Awaiting a separate migration.” and conflict, denies both requested transitions succeeded, and rejects overwriting or another review merely to clear the outcomes. Neither a clean review nor readiness is claimed."
+    },
+    {
+      "text": "For saved-sync-pending, the response reports F-C's dismissal as stored and synchronization as incomplete. It explains that a completed same-key MCP replay cannot retry synchronization. The separately authorized new attempt preserves F-C, its local-review identity, reason and explanation, uses a new retained transport key, retains the original receipt, and verifies the new operation's outcome without claiming convergence in advance.",
+      "passed": true,
+      "evidence": "B.md:55-57 establishes storage, incomplete synchronization and ineffective completed-key replay. B.md:59-64 proposes one new invocation preserving F-C, L-CURRENT, false_positive and the retained explanation, with a distinct metadata key and both receipts retained. B.md:66 requires result/readback verification and confirming evidence before claiming synchronization."
+    },
+    {
+      "text": "For uncertain-write, the response collects the original operation or replays the exact original request with its retained key. It does not rotate the key, start another mutation, change the decision, or claim storage or synchronization without a terminal result and readback.",
+      "passed": true,
+      "evidence": "B.md:70-76 declares uncertainty, collects the retained original operation or exactly replays its request/key and unchanged metadata, requires terminal-result and readback verification, and explicitly prohibits key rotation, a separate attempt, or premature storage/synchronization claims."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The exact authorized F-C explanation is not supplied and must be copied from the retained request.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:62 accurately reflects prompt.md:37-43, which retains the request but does not provide F-C's explanation text."
+    },
+    {
+      "claim": "An authorized fresh invocation can preserve the existing dismissal while attempting synchronization again.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:59-66 matches the endpoint behavior and separate authorization in prompt.md:15-16 and 42-43; it does not guarantee convergence."
+    },
+    {
+      "claim": "Metadata-only verification can use a supported stored-state read mechanism.",
+      "type": "process",
+      "verified": false,
+      "evidence": "B.md:28 proposes that mechanism, but the named inputs supply no read-tool schema or explicit availability for this case. Availability and execution remain unverified."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "For metadata-only, the proposed pr-review-dismiss call preserves F-A/F-B, L-ORIGINAL, the authorized reason/explanation and one retained metadata key through _meta[\"io.qodo/idempotency-key\"]. It reads each synchronous result and verifies stored outcomes. Uncertain-response recovery uses the exact original request/key, without inventing an operation handle, polling call, schema argument, CLI fallback or successful write.",
+        "reason": "Clarify whether trusted stored-state readback is available. B.md:28 assumes a supported read mechanism, while the case specifies only the dismissal tool and transport. The rubric checks the verification plan without establishing that dependency."
+      }
+    ],
+    "overall": "All five assertions pass as proposal semantics. No material invented outcome is present; operational execution and readback capability are not established."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e157dd037ffeIr5qu2gOPCcNcP",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea8289db0013pbqzjlnGop0lG",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

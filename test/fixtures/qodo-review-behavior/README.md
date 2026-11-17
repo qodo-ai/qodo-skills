@@ -1,6 +1,13 @@
 # Recorded qodo-review behavior evaluation
 
-Current evidence is pending after the recovery-permission clarification.
+Current full17selects one fresh8case/42assertion comparison:
+42/42candidate296350e,38/42baseline6385a42. Its147artifacts retain every original
+answer, grade, complete58input map, provenance, timing and anonymous label.
+All fixture bytes match16; only the canonical recovery-permission clarification
+changed instructions. This sample is not reliability or causal-uplift evidence.
+The grader's limited policy evidence and composite-assertion differences remain
+disclosed in RESULTS.md. Actual-head full/runtime qualification is separate.
+
 Failed16is archived unchanged with147artifacts:39/42candidate,42/42baseline.
 The candidate assumes invalid-artifact recollection permission; all three failures,
 extra claims and full58input maps remain. No answer or grade is repaired/regraded.

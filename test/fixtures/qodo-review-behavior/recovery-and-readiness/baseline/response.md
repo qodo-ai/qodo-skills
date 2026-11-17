@@ -1,49 +1,64 @@
-*Proposals only; nothing executed.*
+Commands below are proposals only; nothing was executed.
 
 ### 1. `accepted` — collect the existing operation
-Wait the requested **20 seconds**, then:
+
+Wait the requested **20 seconds**, then request its stored detail:
+
 ```sh
 qodo review status op-accepted --extended --json
 ```
-Keep polling that operation as instructed; do not resubmit. `--extended` retrieves stored detail without changing effort or rerunning review.
 
-**Safe claim:** The review is still working on its original submitted snapshot and context. It does not establish coverage of the changed checkout or context.
+If still working, respect the next returned delay and continue polling **op-accepted**. Do not resubmit or attach the changed checkout/context. `--extended` changes output detail, not effort or execution.
 
-### 2. `uncertain` — recover the original submission
-Use the exact returned command:
+**Safe claim:** The original request was accepted and remains pending. Its eventual result concerns the submitted snapshot, not automatically the current branch or edited context.
+
+### 2. `uncertain` — recover the exact submission
+
+Use the returned command unchanged:
+
 ```sh
 qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111
 ```
-Do not append new base, scope, context or effort options. Preserve the recovery ID, then collect the returned operation ID.
 
-**Safe claim:** Acceptance is currently unknown. This recovers the retained original request; it does not review the changed checkout.
+Do not append new base, scope, context or effort options, or gather a replacement snapshot. Retain the recovery ID; once an operation ID is returned, collect that operation.
+
+**Safe claim:** Acceptance is currently unknown. Recovery preserves the exact original request; it does not establish coverage of the changed checkout.
 
 ### 3. `storage-gap` — ready locally, handoff unfinished
-The supplied evidence supports **Ready locally**: the intended snapshot has complete assessment, coverage and inventory, settled required findings, and passing tests.
 
-However, reusable-checkpoint saving failed, and PR handoff remains unverified. Preserve the result and warning; verify handoff separately. Do not buy another assessment merely to address the storage warning.
+**Ready locally:** The current intended snapshot has completed assessment, complete coverage and inventory, no required open findings, and passing tests.
 
-**Safe claim:** Local readiness is established. Successful checkpoint storage, reusable coverage and completion of all local-to-Git work are not established.
+But **not all local-to-Git work is finished**:
 
-### 4. `older-result` — certification blocked
-Retrieve any available retained metadata for the same result first. If that cannot establish final coverage and inventory completeness, a properly scoped assessment is needed within existing authorization and budget. Any new submission defaults to auto effort.
+- Saving the reusable checkpoint failed; successful persistence and future reuse are not established.
+- PR handoff remains unverified.
 
-**Safe claim:** The older completed result reported no findings. Full final coverage, complete inventory and successful persistence remain unknown. It cannot certify the current final change.
+Next, reconcile the storage failure through supported recovery, if available, and verify PR-candidate base/snapshot/scope and finding handoff. Do not buy another assessment merely to repair a storage claim. Verify hosted review separately before claiming hosted Qodo-clean status.
+
+### 4. `older-result` — full final coverage cannot be certified
+
+**Review blocked for final certification.** The completed older result reports no findings, but coverage, inventory completeness and persistence are **unknown**, not successful.
+
+Retrieve retained evidence for the same assessment if available. If those properties cannot be established, report the gap. A further authorized assessment can be justified by missing required final coverage—not by a desire for another zero-finding result.
+
+**Safe claim:** “The older completed result reported no findings.” Nothing establishes full final coverage, complete inventory, successful persistence or reusable coverage.
 
 ### 5. `entitlement` — stop
+
 `closed_preview`
 
 > Review access is not enabled for this organization.
 
 > Ask your administrator to enroll the organization.
 
-Do not retry before confirmation that enrollment occurred. Do not switch accounts or deployments, or treat another login as enrollment.
+Do not retry before confirmation that enrollment occurred. Do not switch accounts or deployments, strip context, lower effort, or log in again as a workaround.
 
-**Safe claim:** Review is blocked by entitlement; no completed assessment is established.
+**Safe claim:** Review is blocked by organization entitlement; no completed assessment is established.
 
-### 6. `budget` — stop new assessments
-**Budget reached.** Both permitted assessments have run. Five status polls and one extended retrieval consume no additional assessments, but resuming in another session does not reset the budget.
+### 6. `budget` — stop at the existing limit
 
-Preserve **F-BLOCK** as action-required. A third assessment requires explicit additional authorization.
+**Budget reached: two of two new assessments used.** Five status polls and one extended retrieval are collection operations, not additional assessments. Resuming in a new session does not reset the budget.
 
-**Safe claim:** The review budget is exhausted, and required action remains. The work is not ready locally.
+Do not launch a third assessment. **F-BLOCK remains action-required**, so the work is not ready locally. Preserve it in the handoff; do not silently dismiss or waive it.
+
+Further assessment requires an explicit budget extension. Existing-result collection does not consume another assessment, but cannot manufacture newer coverage or settle F-BLOCK.

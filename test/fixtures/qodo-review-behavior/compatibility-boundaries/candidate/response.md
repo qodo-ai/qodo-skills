@@ -1,30 +1,32 @@
-No commands were executed, installations changed, or files written. Below, `qodo` means the resolved installed invocation—not a repository-local launcher. Context-file paths are proposed locations outside the reviewed worktree.
+Proposals only; no commands executed, files written or services called. Below, `qodo` means the trusted installed invocation, never a repository-local launcher.
 
-### 1. `old-1-6` — blocked by the CLI version floor
+### 1. `old-1-6`
 
-CLI **1.6.0 is unsupported**; deployment review API v2, cached catalogs and credentials do not override the **2.0.0 minimum**.
+**Blocked:** 1.6.0 is below the required CLI 2.0.0 floor. Review API v2 does not override that requirement.
 
-**Next action:** request runtime-update approval. Do not run identity, login, reviews or managed tools.
+Stop before identity, login, review or managed-tool calls. The update-source override is already known absent. Obtain authorization for one recovery route that preserves the recorded origin and update policy.
 
-The update-source override is already known to be absent. If recovery is authorized, preserve the recorded origin and update holds, select one supported route, and require a successful check offering a newer compatible 2.x target before changing anything. `latest-2` is not an automatic fallback. Allow one approved runtime attempt, then repeat the unadorned version probe.
+For an approved updater route, inspect its supported check first. Proceed only if that check successfully offers a newer compatible 2.x target. Do not automatically select `latest-2`, change deployment or install anything. After one approved runtime attempt, repeat the unadorned version probe.
 
-**Unverified:** availability of a compatible update target and successful recovery. No review has occurred.
+**Unverified:** eligible update route/target, replacement runtime compatibility, identity and review coverage.
 
-### 2. `unparseable` — compatibility unknown
+### 2. `unparseable`
 
-`custom build` does not establish a supported version. This is **not evidence of missing credentials**; do not attempt login or authenticated calls.
+**Blocked:** `"custom build"` does not establish compatibility. It is not evidence of missing credentials; do not attempt login.
 
-**Next action:** check only whether `QODO_UPDATE_BASE_URL` is set, without revealing its value. If set, stop for user guidance. Obtain trustworthy version evidence; if compatibility cannot be established, recovery requires separately authorized installation using a Qodo/organization-supplied artifact and checksum-verification procedure.
+The next permitted local diagnostic is checking **only whether** `QODO_UPDATE_BASE_URL` is set, without displaying its value. If set, stop for the user.
 
-No installer command is justified by the supplied evidence. Do not invent a checksum or try an updater route speculatively.
+An unparseable runtime requires the separately authorized, Qodo/organization-supplied checksum-pinned installer route. Neither approval nor a verified checksum exists, so propose no installation or updater execution.
 
-**Unverified:** CLI compatibility, override presence and any authorized recovery artifact. No review has occurred.
+**Unverified:** override presence, executable version, approved installer provenance/checksum and review compatibility.
 
-### 3. `floor-2-0-summary` — compatible; propose the first review
+### 3. `floor-2-0-summary`
 
-Exactly **2.0.0 meets the floor**. API v2 and identity are verified; no update or repeated identity check is needed.
+**Allowed:** exactly 2.0.0 meets the floor; API v2 and identity are already verified. No redundant identity check is needed.
 
-Proposed complete UTF-8 context file, outside the reviewed worktree:
+Reason for submission: the coherent tested slice awaits its first review.
+
+Proposed context—rename only the narrative field to the advertised `summary`:
 
 ```json
 {
@@ -39,25 +41,19 @@ Proposed complete UTF-8 context file, outside the reviewed worktree:
 }
 ```
 
-Use `summary` only for the narrative; retain both other fields unchanged.
-
-**Proposed submission**, after preparing that file at the indicated external path:
+After preparing this complete UTF-8, BOM-free JSON outside the reviewed worktree and setting `QODO_REVIEW_CONTEXT` to its path:
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file /absolute/path/outside-worktree/review-context-summary.json --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$QODO_REVIEW_CONTEXT" --async --json
 ```
 
-This uses **auto effort**, without `--fast` or `--deep`.
+Effort is **auto**, with neither `--fast` nor `--deep`.
 
-**Unverified:** acceptance, actual coverage, findings and context delivery/consumption. Cancellation tests passed; live load remains untested.
+**Unverified:** submission acceptance, reviewed snapshot/scope, exclusions, context delivery, inventory and coverage. Live load remains untested. Retain any accepted operation ID and collect that operation rather than submitting again.
 
-### 4. `current-2-3-1-paths` — preserve scope and permit continuation
+### 4. `current-2-3-1-paths`
 
-**Next action:** submit the changed work with the retained base, explicit paths and auto effort. Confirm submission flags in installed help if not already established:
-
-```sh
-qodo review --help
-```
+**Allowed:** submit a continuation because new code awaits review. Preserve the exact base, explicit paths and auto effort.
 
 Proposed context:
 
@@ -74,43 +70,37 @@ Proposed context:
 }
 ```
 
-With async/context-file flags confirmed:
+After preparing this case’s external context file and setting `QODO_REVIEW_CONTEXT` accordingly:
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file /absolute/path/outside-worktree/review-context-notes.json --async --json src/jobs/ test/jobs/
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$QODO_REVIEW_CONTEXT" --async --json src/jobs/ test/jobs/
 ```
 
-Do **not** add `--full`: changed notes alone do not invalidate reuse. The recent work includes both a correction and added behavior; do not label it fixes-only. The Engine determines continuation eligibility.
+Do **not** add `--full` merely because notes changed. Do not describe this as fixes-only: it includes new cancellation API behavior. The Engine decides continuation eligibility and reports actual `full`, `incremental` or `reused` behavior; reuse is not guaranteed.
 
-**Unverified:** actual execution mode (`full`, `incremental` or `reused`), new coverage, findings and context delivery. Any resulting coverage remains limited to the two requested paths.
+**Unverified:** acceptance, actual analysis mode/fallback, context delivery and coverage of the new snapshot. Any resulting coverage remains limited to the two requested paths.
 
-For cases 3–4, retain the returned operation ID with base, snapshot, scope and context, then collect that same operation. Acceptance alone is not completion.
+### 5. `mcp-no-collector`
 
-### 5. `mcp-no-collector` — worktree coverage blocked
+**Review blocked:** the MCP schema accepts prepared inputs; it cannot collect this worktree itself.
 
-The MCP schema cannot read this worktree. **Do not submit a review.**
+Do not submit an ad hoc `git diff`, substitute another checkout or remotely fetched repository, or install the CLI without authorization. MCP does not require CLI version or identity probes.
 
-**Next action:** report the missing tested collector. Resumption requires prepared input from a collector that preserves the intended scope and safety exclusions, reports omissions, verifies a fetchable base, and retains snapshot/context identity.
+The next step is obtaining suitable prepared input from a tested collector that preserves intended scope, safety exclusions, omitted-file reporting, a fetchable base, and retained snapshot/context.
 
-Do not substitute an ad hoc `git diff`, another checkout or a remotely fetched repository. Installation is not authorized; skip CLI preflight.
+**Unverified:** all local collection and review coverage. Schema availability alone establishes none of it.
 
-**Unverified:** all worktree review coverage. No review has occurred.
+### 6. `cli-identity-gap`
 
-### 6. `cli-identity-gap` — identity comparison unavailable
-
-**No, you cannot claim the operation-response identity check passed.**
+**No—the operation-response identity check cannot be claimed passed.**
 
 Known evidence:
 
-- Status was requested for retained operation `OP-REQUESTED`.
-- The returned assessment reports complete coverage/inventory and no findings.
-- `meta.run.snapshot` matches the intended base, commit and tree.
-- The result exposes review-run ID `REVIEW-RESULT`.
+- The retained requested operation is `OP-REQUESTED`.
+- Qodo’s returned result reports complete coverage and inventory, with no findings.
+- The returned snapshot matches the intended base, commit and tree.
+- `REVIEW-RESULT` is a review-run ID, not a returned transport operation ID.
 
-The returned **transport operation ID is absent**, and the renderer does not compare that hidden ID against the requested handle. Neither `REVIEW-RESULT`, the requested handle itself, nor matching snapshot metadata supplies that missing comparison.
+The returned transport operation ID is absent, and the renderer does not compare it internally. Consequently, the operation-response identity comparison is **unavailable/unverified**. Matching snapshot metadata does not establish that separate check.
 
-**Next action:** retain the result and report:
-
-> Qodo’s returned assessment reports complete coverage and no findings, with matching snapshot metadata. Operation-response identity comparison remains unverified because the returned transport operation ID is unavailable.
-
-Do not change runtimes, invent another read API or submit again to conceal this gap.
+Retain the handle and result, and report the gap explicitly. Do not substitute either known ID for the missing returned ID, change runtimes, invent another read API or submit again. This is missing verification evidence—not proof of a mismatch, and not grounds for an unqualified clean/ready claim.

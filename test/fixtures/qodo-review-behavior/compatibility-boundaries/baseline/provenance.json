@@ -1,5 +1,5 @@
 {
-  "session_id": "ses_e15a42217ffdNfbd5iFpVT0WaC",
+  "session_id": "ses_e15818e86ffdRg7lkr6XAS6adC",
   "configuration": "old_skill",
   "evaluated_case": "compatibility-boundaries",
   "models": [
@@ -11,7 +11,7 @@
   ],
   "source_commit": "6385a42e83ac028349ff1c153a788a812a850bf5",
   "source_kind": "immutable Git commit",
-  "fixture_source_commit": "fe1aa2a846d752cd7f11cf8f3a7cc56a24ccfbf2",
+  "fixture_source_commit": "296350ef828251eb696c14ac6617d28fc7c440c2",
   "fixture_fingerprints": {
     "compatibility-boundaries/case.yaml": "41fe789fa9a5a7f50eebbc66ec343a51bafecb63b8d8b855c1e7fe7eaa4b2ad6",
     "compatibility-boundaries/graders/01-old-version-stop.md": "44b0be499891ee8d34631a2f176ea2bb450c4372b1469f215f971af31273bf5f",
@@ -89,15 +89,15 @@
     "read": 7
   },
   "tool_errors": 0,
-  "response_sha256": "74a426e691c8a43062a04080916d84de8f64d07db5241dcd67dcd6e3646eccd7",
-  "response_message_id": "msg_1ea5cb4f5001LuMO4Bxg1PDJLe",
-  "finished_at": "2026-11-17T16:35:51.490Z",
-  "duration_ms": 99502,
+  "response_sha256": "cd5be1b0449d09c2700aac25b84dd32ceb7edcedef3e93293689368658520b29",
+  "response_message_id": "msg_1ea7f1967001fzLFkadITMmhU8",
+  "finished_at": "2026-11-17T17:13:55.798Z",
+  "duration_ms": 117240,
   "token_usage": {
-    "input": 16249,
-    "output": 1864,
-    "reasoning": 1141,
-    "cache_read": 184704,
+    "input": 27077,
+    "output": 1767,
+    "reasoning": 1974,
+    "cache_read": 173440,
     "cache_write": 0
   },
   "metric_scope": "Runtime-reported assistant messages for this completed child only; not a whole-host filesystem audit.",

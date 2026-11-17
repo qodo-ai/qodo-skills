@@ -1,0 +1,74 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "A.md:7-36 reproduces the retained request and context exactly, omits depth for auto, and prohibits an idempotency_key or snapshot/context changes. A.md:77 accepts the supplied collector/base evidence."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "A.md:42-71 specifies two-second polling, isError/identity checks, both page calls, contiguous offsets, cursor termination and pre-parse integrity verification. A.md:77-86 confirms 148 bytes, complete assessment/no findings and explicitly excludes CI, approval, release and deployment."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "A.md:90-94 blocks submission and verified coverage because enumeration, paths and base fetchability are unestablished; expressly prohibits substitute checkout, ad hoc diff and installation."
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:98-100 identifies 7d7c versus 6d7c and rejects interpretation. A.md:122-124 retains the original operation, proposes no automatic recovery and forbids new submission. Recovery is optional in the prompt."
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:104-106 rejects 149 versus 148 despite the matching digest and withholds certification. A.md:122-124 retains the original operation without automatic recovery or new submission."
+    },
+    {
+      "text": "For wrong-operation, the response rejects the pages because their operation_id differs from the retained accepted operation, despite valid self-consistent bytes, and neither reports an assessment of the retained submission nor switches handles; any permitted recovery keeps the original operation without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:110-112 identifies both operation IDs, rejects association despite valid bytes and prohibits adopting/polling the foreign operation. A.md:122-124 preserves the original operation and forbids new submission."
+    },
+    {
+      "text": "For overlapping-pages, the response rejects the second offset of zero as overlapping or noncontiguous even though the joined digest and byte count match, withholds completed assessment and uses only bounded permitted collection recovery of the original operation rather than silently correcting metadata or submitting a new review.",
+      "passed": true,
+      "evidence": "A.md:116-118 rejects offset 0 instead of 90 despite matching joined bytes/digest, blocks review and prohibits correction/reordering. A.md:122-124 retains the original operation without automatic recovery or new submission."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The Skill permits collection retry only for status transport failure, using the returned delay or a 15-second fallback.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:122-124 asserts these Skill rules. Neither the permitted prompt nor common CLI help establishes them; unverifiable, not disproven. The conservative no-retry proposal does not require this claim to satisfy the optional recovery boundary."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Supply a neutral excerpt defining collection-recovery eligibility and delay. The named inputs cannot verify A.md:122-124's precise Skill-policy claims."
+      },
+      {
+        "reason": "Separate invalid-artifact rejection from recovery-policy assertions. Composite passes can conceal unsupported policy explanations even when the proposed action is conservative."
+      }
+    ],
+    "overall": "All asserted observable behaviors pass; the claimed reason for denying recovery remains unverified."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e157dd03cffdGmTZ60Jad02f8r",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea83088e0011XPu3Uv8lfimjx",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

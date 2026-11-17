@@ -1,120 +1,155 @@
-No real review would run. Here, `qodo` means the verified installed invocation. Context files below would live outside the reviewed worktrees; their contents are proposals only.
+These are proposals only; I would not run a review here. Compatibility, identity and flag discovery are already satisfied.
 
-### 1. `milestone`: start an auto checkpoint
+For the commands below:
+- `qodo` means the verified installed invocation.
+- `CONTEXT_DIR` would identify a unique directory outside all reviewed worktrees. Each context file would contain the proposed JSON below.
+- Every submission uses the verified merge-base literally.
 
-This is a coherent, previously unreviewed slice. Review the committed slice now, then continue independent integration work while it runs. No reason calls for fast or deep effort.
+### 1. `milestone`
+
+**Submit one auto-effort checkpoint now**, then continue the independent integration work. This is a useful, tested implementation slice—not an every-edit review. No reason justifies forcing fast or deep.
+
+Scope: the task changes in the clean task worktree, without invented path restrictions.
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$TMPDIR/qodo-review-milestone.json" --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/milestone.json" --async --json
 ```
 
 Context:
+
 ```json
 {
   "decisions": [],
-  "notes": "The API implementation slice is complete and the worktree is clean after its task commit. The slice was tested, but check names and pass/fail results were not supplied. Independent integration work remains. This is a midwork checkpoint, not final coverage of that future work.",
-  "recent_work": ["Completed the coherent API implementation slice awaiting its first review."]
+  "notes": "A coherent API implementation slice is complete and has been tested. Test commands and outcomes were not supplied, so passing tests are not established. Independent integration work remains. No implementation-specific requirements, guards or design rationale were supplied.",
+  "recent_work": [
+    "Implemented the coherent API slice now awaiting its first review."
+  ]
 }
 ```
 
-Retain the submitted snapshot identity. Integration changes made afterward need reconciliation before final handoff.
+Retain the accepted operation and submitted snapshot. Collect its result at a natural pause; if integration work changes the code meanwhile, reassess findings against current code. This checkpoint does not automatically cover subsequent work.
 
-### 2. `dirty-final`: use the verified clean task-only worktree
+### 2. `dirty-final`
 
-Run from the available clean worktree at the intended PR-candidate commit, covering **every intended changed path** against the base.
+**Review from the available, verified task-only clean worktree at the intended commit.** Ordinary capture in the original worktree would include unrelated changes, even after a task-only commit.
 
-Do not run ordinary capture in the original dirty worktree. Path filtering cannot separate unrelated staged edits within the same file. Do not stash, reset, commit, or otherwise alter the original files or index; no committed-only option is available.
+Preserve the original files and index completely: no staging, stashing, resetting or committing. Do not invent an unsupported committed-only flag.
+
+Scope: the entire committed candidate relative to the verified base, with no temporary path restrictions.
+
+Run from that clean worktree:
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$TMPDIR/qodo-review-dirty-final.json" --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/dirty-final.json" --async --json
 ```
 
 Context:
+
 ```json
 {
-  "decisions": ["The user requested final review of the committed PR candidate while preserving all original working files and the index."],
-  "notes": "Collection runs from the verified clean task-only worktree at the intended commit. It excludes the original worktree's unrelated staged and unstaged edits and private untracked scratch file. Verification results and implementation details were not supplied.",
-  "recent_work": ["The committed PR candidate awaits final review; its detailed changes and prior-review delta were not supplied."]
+  "decisions": [
+    "The user requested final review of the committed PR candidate and preservation of all original working files and the index.",
+    "The coding agent selected the verified task-only clean worktree because ordinary capture in the original worktree includes unrelated changes and committed-only collection is unavailable."
+  ],
+  "notes": "Review the full committed candidate from the isolated clean worktree. Unrelated staged edits, unrelated unstaged work and private untracked scratch content remain outside this collection. Test outcomes and implementation-specific requirements were not supplied.",
+  "recent_work": [
+    "The committed PR candidate is awaiting final assessment; its implementation details were not supplied."
+  ]
 }
 ```
 
-Final status alone does not justify `--deep` or `--full`.
+Use ordinary auto effort—not deep or `--full` merely because this is final review. Verify returned coverage matches the intended candidate before claiming it was assessed.
 
-### 3. `already-covered`: reuse the completed assessment
+### 3. `already-covered`
 
-**Ready locally.** The exact intended snapshot, base, full scope and policy already have complete compatible auto coverage; required findings are settled and tests passed.
+**Hand over the work without another assessment.** The exact snapshot, base, full scope and relevant policy already have complete compatible auto coverage; required findings are settled and tests passed.
 
-Do not submit another review. Hand over the existing assessment and its snapshot/coverage references. This establishes local readiness, not hosted-review, CI or merge status.
+Reuse the completed assessment and its existing reference. No new submission or context file is needed.
 
-### 4. `trivial`: continue without review
+Outcome: **Ready locally.** This does not independently establish hosted review cleanliness, successful finding handoff, CI or merge readiness.
 
-Do not automatically review the internal-comment typo. No submission or review context is needed.
+### 4. `trivial`
 
-### 5. `report-only`: review the uncommitted working scope
+**Continue the task without a review.** An internal-comment typo with no behavior change does not warrant an automatic checkpoint.
 
-Collect the requested safe working scope without committing or editing anything. Use default auto effort.
+No review command or review context is needed.
+
+### 5. `report-only`
+
+**Review the requested safe working scope without editing or committing.** Do not isolate away the requested uncommitted code or turn this into PR preparation.
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$TMPDIR/qodo-review-report-only.json" --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/report-only.json" --async --json
 ```
 
 Context:
+
 ```json
 {
-  "decisions": ["The user requested review only, with no edits or commits and no PR preparation."],
-  "notes": "Review the requested uncommitted working scope, which is safe to collect. Implementation requirements and verification results were not supplied.",
-  "recent_work": ["The requested uncommitted changes await their first review; detailed code changes were not supplied."]
+  "decisions": [
+    "The user requested report-only review of uncommitted code, without edits or commits."
+  ],
+  "notes": "Assess the requested working scope, which is safe to collect. PR preparation is not requested. Implementation requirements, design decisions and test outcomes were not supplied.",
+  "recent_work": [
+    "The requested uncommitted changes await their first review; their behavior was not described in the supplied evidence."
+  ]
 }
 ```
 
-Assess and report the findings, then stop. Do not apply fixes, write dismissals, or solicit permission to turn this into implementation.
+Assess and report the findings, then stop. Do not edit, commit, store dismissals or solicit permission to convert this report-only task into implementation.
 
-### 6. `light-to-final`: request ordinary auto final coverage
+### 6. `light-to-final`
 
-**Reason for another assessment:** the completed fast checkpoint does not establish ordinary final coverage, even though it covered every path and nothing changed.
+**Proceed with an ordinary auto final assessment.** The concrete reason is missing ordinary final coverage: an unchanged fast checkpoint alone is insufficient.
+
+Keep the same verified base and full intended scope. Remove `--fast`; do not add `--deep` or automatically force `--full`.
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$TMPDIR/qodo-review-light-to-final.json" --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/light-to-final.json" --async --json
 ```
 
-Use the full intended scope, with no temporary path restrictions.
+Context:
 
 ```json
 {
-  "decisions": ["The user now requests ordinary final review before handoff."],
-  "notes": "A purposeful fast checkpoint completed for the full intended snapshot. No code or evidence changed afterward. Ordinary auto final coverage is still missing; the review budget is not exhausted.",
+  "decisions": [
+    "The user requested ordinary final review before handoff."
+  ],
+  "notes": "A purposeful fast checkpoint completed for this full intended snapshot. No code or evidence changed afterward. There is no completed auto final assessment, and the review budget is not exhausted. Test outcomes were not supplied.",
   "recent_work": []
 }
 ```
 
-Omit `--fast`, `--deep` and `--full`. Let the Engine determine continuation or reuse, then verify the returned effort and coverage actually satisfy the final requirement.
+Let the Engine determine continuation eligibility. Inspect the actual effort, analysis mode and coverage; do not claim that reused light evidence establishes ordinary final coverage without supporting results.
 
-### 7. `explicit-fresh`: honor the requested `--full`
+### 7. `explicit-fresh`
 
-**Reason for another assessment:** the user explicitly requests a fresh assessment within budget.
+**Honor the explicit fresh-assessment request using `--full`.** This is justified despite unchanged code because the user specifically requested it within budget.
+
+Keep the existing base and full scope. `--full` requests fresh assessment, not deep effort.
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$TMPDIR/qodo-review-explicit-fresh.json" --full --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/explicit-fresh.json" --full --async --json
 ```
 
-Keep the same base and full intended scope.
+Context:
 
 ```json
 {
-  "decisions": ["The user explicitly requested a fresh assessment with --full within the review budget."],
-  "notes": "The unchanged snapshot already has complete compatible auto coverage and settled findings. This submission requests freshness, not deeper effort. No new evidence appeared.",
+  "decisions": [
+    "The user explicitly requested a fresh assessment with --full within the available review budget."
+  ],
+  "notes": "The unchanged current snapshot already has complete compatible auto coverage and settled findings. This submission honors the explicit fresh-assessment request. No new evidence or test outcomes were supplied.",
   "recent_work": []
 }
 ```
 
-### Collection for each new submission
+### Collecting any submitted review
 
-Retain its returned operation ID, base, snapshot, scope and context. Collect that same operation rather than resubmitting:
+Retain the returned operation ID with its base, scope, snapshot and submitted context. Collect that operation rather than submitting again:
 
 ```sh
-qodo review status "$operation_id" --json
+qodo review status "$operation_id" --extended --json
 ```
 
-Respect returned polling delays. For additional stored detail, use `--extended`, not another assessment.
-
-Before claiming readiness, inspect complete inventory and coverage, warnings, reviewer commentary, earlier open findings and relevant check results. Acceptance is not completion; zero new findings alone is not readiness.
+Respect returned polling delays. Acceptance is not completion. Read warnings, reviewer commentary, complete inventory, coverage and context-delivery metadata. Separate introduced and still-open findings from resolved and dismissed findings, and report any missing evidence. Review authority alone does not authorize edits, commits, dismissals, pushes or PR creation.
