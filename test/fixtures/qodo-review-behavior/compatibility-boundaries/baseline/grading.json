@@ -3,60 +3,60 @@
     {
       "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
       "passed": true,
-      "evidence": "B.md:5-7: '1.6.0 is below the required 2.0.0 floor'; 'Do not run identity, login, managed tools, or review commands.' B.md:21-25 requires authorization, preserves customer origin, and stops rather than switching recovery routes."
+      "evidence": "B.md:5: 'CLI 1.6.0 is below the required 2.0.0 floor'; B.md:7-9 requires approval and preserves deployment origin; B.md:11: 'Do not run identity, login, review or managed tools now.'"
     },
     {
       "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
       "passed": true,
-      "evidence": "B.md:35-39: 'establishes no compatible version' and 'not evidence of an authentication problem'; identity, login and review are prohibited, and the installer artifact, checksum and approval must first be obtained."
+      "evidence": "B.md:17 marks compatibility blocked and says 'not evidence of an authentication problem'; B.md:19-23 proposes only an override-presence check and approval request, rejects login and unverified updating, and leaves a verified runtime pending."
     },
     {
       "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
       "passed": true,
-      "evidence": "B.md:47 accepts 'CLI 2.0.0'; B.md:54-59 reproduces the exact decision and both recent_work entries, with summary retaining 'live load was not tested.' B.md:69-72 uses base 1111111111111111111111111111111111111111 and auto effort."
+      "evidence": "B.md:27: '2.0.0 meets the floor' and 'auto effort'; B.md:34-39 literally preserves the decision, both recent_work entries and summary ending 'live load was not tested.' B.md:48 supplies '--base 1111111111111111111111111111111111111111'."
     },
     {
       "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
-      "passed": false,
-      "evidence": "B.md:103-106 uses '--base \"$PREVIOUS_BASE\"', described only as 'the retained exact SHA from the previous review'; it never explicitly binds that variable to 1111111111111111111111111111111111111111. Context, paths and reuse qualifications are otherwise preserved at B.md:90-109."
+      "passed": true,
+      "evidence": "B.md:57 specifies the same base, both paths and 'auto effort'; B.md:64-69 reproduces the exact context. B.md:78-81 contains the literal supplied base and 'src/jobs/ test/jobs/'; B.md:84 rejects '--full' and fixes-only classification; B.md:86 leaves reuse behavior unverified."
     },
     {
       "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
       "passed": true,
-      "evidence": "B.md:117-121 reports 'no tested collector or prepared input exists' and prohibits invented input, ad hoc git diff, remote substitutes and unauthorized installation. B.md:130 states 'No review was performed, and no local-readiness claim is supported.'"
+      "evidence": "B.md:96-98 blocks review and requests a 'tested collector/prepared input'; B.md:105 rejects ad hoc git diff, unrelated or remotely fetched repositories, and unauthorized installation; B.md:107: 'No review-completion claim is supported.'"
     }
   ],
   "summary": {
-    "passed": 4,
-    "failed": 1,
+    "passed": 5,
+    "failed": 0,
     "total": 5,
-    "pass_rate": 0.8
+    "pass_rate": 1
   },
   "claims": [
     {
-      "claim": "Both supported-version contexts retain the exact accepted decision, narrative uncertainty and mixed recent_work entries.",
+      "claim": "Only the narrative field changes from notes to summary; no accepted detail is removed.",
       "type": "quality",
       "verified": true,
-      "evidence": "B.md:54-59 and B.md:91-96 reproduce the supplied strings, using summary for 2.0.0 and notes for 2.3.1."
+      "evidence": "B.md:34-40 matches prompt.md:26-28 literally, using 'summary' while retaining the exact decision, recent_work entries and live-load uncertainty."
     },
     {
-      "claim": "The current-version command preserves the exact supplied comparison base.",
-      "type": "quality",
+      "claim": "The Engine determines reuse eligibility.",
+      "type": "factual",
       "verified": false,
-      "evidence": "B.md:103-106 names '$PREVIOUS_BASE' but provides no explicit binding to the supplied SHA; the literal at B.md:69 belongs to the independent 2.0.0 case."
+      "evidence": "B.md:57 assigns reuse eligibility to the Engine; prompt.md:30-34 establishes only prior scope and the absence of an invalidating service verdict, not this protocol responsibility."
     }
   ],
   "eval_feedback": {
-    "overall": "The current-version proposal leaves its exact base unresolved. State the supplied SHA literally or explicitly bind PREVIOUS_BASE to it. The remaining assertions pass at proposal level; actual runtime behavior, command acceptance and review outcomes remain untested."
+    "overall": "All assertions are supported by the proposals and literal fixture values. These synthetic files cannot verify command acceptance, version-specific default effort, actual collection coverage or Engine reuse behavior."
   },
   "grader_provenance": {
-    "session_id": "ses_e1742bdd7ffdoWvgHd3XGXgKUJ",
+    "session_id": "ses_e1721d34affdsQ3ZjtIWIuJE4v",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e8bdd893001E7c6Kvi7L1LbYw",
+    "message_id": "msg_1e8de8551001ENuPTAafTiysH4",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

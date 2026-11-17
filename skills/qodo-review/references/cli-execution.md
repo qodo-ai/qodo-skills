@@ -4,78 +4,41 @@ Read preflight before the first CLI review.
 Read collection or recovery when that path applies.
 The [main Skill's execution policy](../SKILL.md#execution-and-recovery-policy) owns all compatibility,
 authority and stop/retry gates. This reference supplies their CLI command sequence and result syntax.
-The CLI owns credentials, transport and runtime updates. Do not reproduce them in scripts.
+Apply the canonical gates before selecting any command below.
 
 ## Preflight
 
 1. Resolve the installed executable. On POSIX, if `qodo` is absent, try
    `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`.
-   Keep the first working invocation.
    On Windows, read [shell guidance](windows-shells.md) first.
    Use [launcher recovery](windows-launcher.md) only if invocation fails.
-   Do not execute repository-local launchers.
-   If neither installed invocation works, report the missing CLI and stop this path.
-   An installation needs covering approval and Qodo's or the organization's checksum-pinned installer.
-   Never invent a digest or pipe an installer into a shell.
 2. Run the resolved invocation with only `--version`, before authenticated commands.
    In every example here and in linked references, `qodo` stands for that invocation.
-   After fallback succeeds, do not return to the unavailable bare command.
-   Require the main Skill's minimum version and review API v2.
-   An old or unparseable version follows [compatibility recovery](#compatibility-recovery).
-   It is not an authentication diagnosis.
-3. Run the main Skill's provenance-stamped `qodo read whoami` unless a successful check still covers this context.
-   Missing credentials can mean inaccessible keychain access in a sandbox.
-   When plausible, request one exact read-only identity retry through the host's approval flow.
-   Stop on denial. That approval covers no other command.
-   Reuse a successful identity check only for the same invocation, workspace, deployment and execution context.
-4. Only explicit missing credentials justify login.
-   Preserve the organization's exact login endpoint. Never switch a customer deployment to Cloud.
-   `No tool catalog cached` does not mean credentials are missing.
-   Refresh once with `qodo tools --refresh`, then repeat the identity check.
-   Preserve network, TLS, service and authorization errors instead of relabeling them as login failures.
-5. After identity succeeds, an unknown managed command permits one catalog refresh and schema recheck.
-   If it remains absent or returns `tool_unavailable`, report the missing capability.
-   An unknown built-in `qodo review` needs runtime recovery, not login or catalog refresh.
-6. Confirm review options with offline `qodo review --help`.
+   Use [compatibility commands](#compatibility-recovery) only if canonical recovery permits them.
+3. When the identity gate requires a check, use the main Skill's provenance-stamped `qodo read whoami`.
+   For its approved sandbox diagnostic, submit that exact read-only command through the host's approval flow.
+   For an authorized login, use the organization's supplied exact login command/endpoint.
+4. When the canonical discovery gate permits refresh, run `qodo tools --refresh`
+   and repeat the failed identity check or managed-command schema inspection.
+5. Confirm review options with offline `qodo review --help`.
    Resolve the base and prepare context under the main Skill's scope rules.
    Use complete UTF-8 files without a BOM and `--json` for parsed output.
    Use `--args-file` for structured managed-tool inputs.
 
-Treat `QODO_NOTICE` updates as passive, even when an older CLI asks for action.
-Do not interrupt the task with inventory or update questions.
-Mention each notice at most once. Updated instructions load next session.
-Dismissal does not change recorded maintenance policy or opt-outs.
-For a user-requested update, follow [skill updates](skill-updates.md).
+Notice handling belongs to the main Skill's passive-update section.
+For requested maintenance, [skill updates](skill-updates.md) supplies command mechanics.
 
 ## Compatibility recovery
 
-Only when an update is needed, check whether `QODO_UPDATE_BASE_URL` is set.
-Never print its value. If set, stop for the user to resolve the source override.
-Do not change it or assume it matches the recorded origin.
+Apply the canonical compatibility-recovery gate first, including override presence,
+route selection, target verification, installation authority and the single-attempt limit.
 
-If the version is old or unparseable, do not run identity, login, reviews or managed tools yet.
-Choose one deployment-approved upgrade route.
-Reuse covering runtime-update authorization or ask once before changing the installation.
-For every updater route, first require its supported check to return a newer compatible 2.x target.
-This includes ordinary `qodo update`, not only `latest-2`.
-A failed check, no update or an incompatible target means stop without changing the runtime or trying another route.
-
-- For parsed 1.x, ordinary `qodo update` can reach approved 2.x when the recorded origin supports migration.
-- If legacy aliases still serve 1.x, check that origin's supported `latest-2` recovery route.
-  Select this route before its check, not after a failed ordinary-route check.
-  Require a compatible newer 2.x target from its update check.
-  Only then propose `qodo update --channel latest-2`.
-- This exception permits approved 1.x-to-stable-2.x migration, not another major migration or a future-update policy change.
-- Preserve the recorded origin, explicit version choices and update holds.
-  Do not substitute a channel for an exact version.
-- For an unparseable runtime or no supported updater, use an organization-supplied, checksum-pinned installer with covering authority.
-  Never switch to public service, invent a digest or pipe an installer into a shell.
-
-Make one approved runtime attempt.
-Repeat the unadorned version probe.
-Continue only when it meets the Skill's minimum.
-On denial, failure or continued incompatibility, stop without changing skill or user files.
-Do not try another route.
+| Canonically selected path | Command mechanics |
+|---|---|
+| Ordinary updater at the recorded origin | Inspect `qodo update --help`; use its advertised check before the approved `qodo update`. |
+| Verified legacy same-origin route | Use that route's supported check; an approved target can use `qodo update --channel latest-2`. |
+| Separately authorized pinned installer | Use only the supplied artifact and checksum-verification procedure; no generic installer command is supplied here. |
+| Post-attempt compatibility probe | Repeat the resolved invocation with only `--version`, then apply the canonical compatibility gate. |
 
 ## Submit and collect
 
@@ -155,22 +118,14 @@ Never reuse or remove shared `.qodo/review.*` paths.
 
 ## Recover a review
 
-For a status transport failure, retry collection once after the returned delay, or 15 seconds.
-If collection still fails, preserve the operation ID and report the gap.
-Never start another assessment merely to poll.
-
-For a confirmed terminal failure, correct a recoverable cause and retry once with the same selected effort and context.
-Stop on entitlement, authentication, permission, rate-limit or further failure.
-Report expired evidence and coverage gaps.
-An `MT-TOOL-LOOP` or `MT-RATE-LIMITED` error means stop or change approach, not repeat the call.
+Classify the structured error under the main Skill's collection/retry gates.
+An allowed collection retry uses `qodo review status <original-operation-id> --json`.
+An allowed cause-corrected submission uses the retained original base, scope, context and effort.
 
 Distinguish a killed connected client, cancellation after connection loss, a lost final stream message,
 and an explicit backend failure. A transport failure does not establish a diff-size or complexity limit.
-Collect any retained result using the CLI's recovery hint before another submission.
-If the run is confirmed canceled or unrecoverable, allow at most one uninterrupted retry.
-This is the same terminal-recovery attempt above, not an additional retry allowance.
-Keep selected effort and context.
-A pending run is not a reason to restart. Never lower effort or remove context to obtain a result.
+Use the CLI's retained-result recovery hint when present. The canonical retry allowance
+is shared across these failure symptoms; this section creates no separate allowance.
 
 ### Repository credentials
 
@@ -180,14 +135,11 @@ For `repo_not_connected`, `MT-REPO-NO-CREDENTIAL` or “could not obtain reposit
 2. Use a known exact repository `full_name`. Self-hosted names can include a host.
    Codebase Wisdom suggestions do not prove connectivity.
 3. Confirm `--repo` support with `qodo review --help`.
-   If user/task instructions or the returned error forbid automatic retries, stop and obtain explicit approval for the corrected command first.
-4. Retry the failed submission once with `--repo <full_name>`, preserving other inputs.
+4. If canonical retry/authority gates permit the correction, add `--repo <full_name>` to the retained submission.
    Collect the new operation ID if accepted.
    Do not treat uncertain acceptance as a confirmed failure.
 
-If identity is uncertain or the retry fails, stop.
-Ask an administrator to check the integration instead of asserting disconnection.
-This is the bounded cause-correction retry, not an extra independent retry budget.
+Apply the main Skill's identity and retry stop gates to the result.
 
 ### Closed preview
 
@@ -195,8 +147,6 @@ A deployment can reject unenrolled organizations with `closed_preview`.
 With `--json`, the structured error contains `code`, `message` and `hint`.
 CLI prose removes terminal control characters.
 
-Show the returned message and hint unchanged.
-Stop. Entitlement is not a transient fault, so retrying or watching cannot repair it.
-Do not submit again unless the user confirms enrollment.
+Apply the main Skill's closed-preview stop/reporting gate.
 Enrollment can take about ten minutes to activate without another login.
 Identity and other Qodo commands are not themselves review entitlement checks.

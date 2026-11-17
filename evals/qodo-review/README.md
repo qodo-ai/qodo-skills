@@ -11,12 +11,16 @@ The staging command puts these folders in the temporary plugin's `evals/`.
 ## Run
 
 `npm run eval:qodo-review -- --output-parent <directory-outside-the-repo>` stages
-the current Skill, all six cases and their graders as a minimal plugin. It prints
+the current Skill, all seven cases and their graders as a minimal plugin. It prints
 the exact `claude plugin eval` command and an instruction fingerprint manifest.
 Staging does not run a model. Add `--run` only to opt into billed evaluation on
 your Claude account; normal plugin trust prompts remain enabled. The installed
 CLI must expose `claude plugin eval` (Claude Code 2.1.269 or later).
 `--ref <commit-sha>` uses that immutable Skill snapshot with the current cases.
+First-use trust requires an interactive terminal. The command intentionally omits
+the evaluator's `--json` mode, which suppresses its trust prompt; aggregate JSON
+still goes into the output directory. It never supplies `--trust-plugin` for you.
+Symlinked inputs are rejected, and a selected commit must contain the Skill.
 
 The standard harness executes each case with its LLM graders, emits JSON and HTML,
 and gates shell/write tools. Inputs are read-only; real MCP servers, scaffolds,
@@ -47,16 +51,20 @@ The first four groups cover:
 `fallback-invocation` is a later focused regression for reusing a trusted executable
 whose path contains a space. `recovery-policy-guards` checks updater-target validation, a missing CLI
 and user-forbidden automatic retries after the hosted review's recovery findings.
-Both are included in the current six-group, 29-assertion comparison. Historical
+Both were included in the six-group, 29-assertion comparison. Historical
 23-assertion and focused results remain tied to their earlier snapshots.
+`mcp-local-triage` adds metadata-only replay protection, a missing-transport stop
+and honest prior/conflicting outcomes to the current seven-group, 32-assertion comparison.
 
 ## Recorded evidence and CI
 
 [RESULTS.md](RESULTS.md) gives current and historical snapshot-specific results.
 [Recorded evidence](../../test/fixtures/qodo-review-behavior/README.md) includes
 final answers, anonymous judgments, exact fingerprints and safe runtime provenance.
-The current native-agent result is candidate 29/29 versus baseline 27/29; these
-totals do not cover every claim or establish reliability.
+The current native-agent result is 32/32 for both corrected and prior `173cfc7`
+instructions after one documented auto-contract grading adjudication. Initial
+31/32 judgments and the CLI help used to reassess them remain inspectable.
+These totals do not cover every claim, establish reliability or demonstrate uplift.
 
 Default `npm test` runs offline source/package/staging checks and verifies that
 the recorded candidate evidence passes, covers every assertion and matches current

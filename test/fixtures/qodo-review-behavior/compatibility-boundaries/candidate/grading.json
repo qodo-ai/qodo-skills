@@ -3,27 +3,27 @@
     {
       "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
       "passed": true,
-      "evidence": "A.md:5,9: '1.6.0 is below the required 2.0.0 floor'; 'Do not run identity, login, review, catalog refresh or managed tools.' A.md:11-21 makes updates and identity conditional on approval and verified compatibility."
+      "evidence": "A.md:5: 'Version **1.6.0** fails the **2.0.0** minimum'; A.md:7-9 requests approval, preserves the origin and states 'No login, review or catalog refresh now.'"
     },
     {
       "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
       "passed": true,
-      "evidence": "A.md:32: 'establishes no supported version' and 'not evidence of missing credentials.' A.md:39-41: 'neither approval nor a verified checksum exists'; authenticated calls wait until compatibility is verified."
+      "evidence": "A.md:13: 'Stop before identity, login, review or managed-tool calls' and 'not evidence of an authentication problem'; A.md:15-17 requires installation approval and a verified checksum, explicitly refusing to invent a digest."
     },
     {
       "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
       "passed": true,
-      "evidence": "A.md:47 accepts 'Exactly 2.0.0'; A.md:60-65 reproduces the exact decision and both recent_work entries under summary, including 'live load was not tested.' A.md:75-80 uses base 1111111111111111111111111111111111111111 and specifies auto by omitting effort flags."
+      "evidence": "A.md:21 accepts 'Exactly **2.0.0**'; A.md:29-34 literally preserves the supplied decision, both recent_work strings and summary ending 'live load was not tested.' A.md:43 supplies '--base 1111111111111111111111111111111111111111'; A.md:48 specifies 'Auto effort'."
     },
     {
       "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
       "passed": true,
-      "evidence": "A.md:88 explicitly reuses case 3's complete context, changing 'only summary to notes.' A.md:97-102 supplies the exact base and 'src/jobs/ test/jobs/', prohibits effort overrides and --full, and says 'Let the Engine determine eligibility.'"
+      "evidence": "A.md:52 specifies 'both explicit paths, the base and auto effort' without forcing '--full'; A.md:60-65 reproduces the exact accepted context. A.md:72-74 includes the literal supplied base and 'src/jobs/ test/jobs/'; A.md:77 says 'do not label it fixes-only or promise reuse.'"
     },
     {
       "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
       "passed": true,
-      "evidence": "A.md:120-122: 'Review blocked by collection coverage' and 'report the missing tested collector.' A.md:129-131 prohibits ad hoc git diff, another checkout and unauthorized installation; 'all worktree collection and review coverage' remain unverified."
+      "evidence": "A.md:83: 'Review blocked by collection coverage'; A.md:85 requires a 'tested collector/prepared input' and rejects 'ad hoc `git diff`, another checkout or a remote repository'; A.md:87 proposes no submission or installation and leaves collection pending."
     }
   ],
   "summary": {
@@ -34,29 +34,29 @@
   },
   "claims": [
     {
-      "claim": "Both supported-version proposals preserve the complete accepted context, including the live-load uncertainty.",
+      "claim": "Only the narrative field changes from notes to summary; no accepted detail is dropped.",
       "type": "quality",
       "verified": true,
-      "evidence": "A.md:60-65 reproduces all supplied values; A.md:88 explicitly reuses that complete context with only the narrative key renamed."
+      "evidence": "A.md:29-35 matches prompt.md:26-28 literally, with 'summary' replacing 'notes' and 'live load was not tested.' preserved."
     },
     {
-      "claim": "The proposed post-update identity command has valid Skill attribution using version 1.10.15.",
+      "claim": "The Engine determines actual incremental/reused/full behavior.",
       "type": "factual",
       "verified": false,
-      "evidence": "A.md:23 specifies '--skill-version 1.10.15'; the permitted fixture files provide no Skill-version constant or command schema validating this attribution."
+      "evidence": "A.md:52 states this responsibility, but prompt.md:30-34 provides no protocol definition or execution evidence establishing Engine ownership."
     }
   ],
   "eval_feedback": {
-    "overall": "All five proposal-level boundaries pass. The assertions do not validate the additional hard-coded Skill version 1.10.15. Synthetic proposals cannot establish actual command acceptance, runtime compatibility after recovery, or completed review coverage."
+    "overall": "All assertions are supported by the proposals and literal fixture values. These synthetic files cannot verify command acceptance, version-specific default effort, actual collection coverage or Engine reuse behavior."
   },
   "grader_provenance": {
-    "session_id": "ses_e1742bdd7ffdoWvgHd3XGXgKUJ",
+    "session_id": "ses_e1721d34affdsQ3ZjtIWIuJE4v",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e8bdd893001E7c6Kvi7L1LbYw",
+    "message_id": "msg_1e8de8551001ENuPTAafTiysH4",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

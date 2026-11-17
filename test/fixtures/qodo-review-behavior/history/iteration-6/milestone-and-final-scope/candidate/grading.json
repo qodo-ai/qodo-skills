@@ -1,0 +1,71 @@
+{
+  "expectations": [
+    {
+      "text": "For milestone, the response proposes a useful context-attached review with auto effort, without --fast, --deep or --full, and retains the operation for later collection.",
+      "passed": true,
+      "evidence": "B.md:23: \"Submit one auto checkpoint now\"; B.md:28: command uses \"--context-file\" without effort/full flags; B.md:13: \"Retain each accepted operation ID\"."
+    },
+    {
+      "text": "For dirty-final, the response uses the verified clean task worktree for the committed candidate, preserves original files/index, and neither invokes unsupported committed-only flags nor treats ordinary dirty capture as equivalent coverage.",
+      "passed": true,
+      "evidence": "B.md:47: \"Use the available verified task-only clean worktree\"; B.md:49: \"Leave the original worktree and index untouched\"; B.md:55: \"Do not invent a committed-only flag.\""
+    },
+    {
+      "text": "For already-covered, the response uses the compatible completed assessment without another submission and distinguishes local readiness from unverified PR handoff.",
+      "passed": true,
+      "evidence": "B.md:67: \"Do not submit another review\"; B.md:71: \"Ready locally\"; B.md:73: \"Do not imply that hosted PR review, CI, publication or other downstream gates succeeded.\""
+    },
+    {
+      "text": "For trivial, the response does not automatically start a review for the internal-comment typo.",
+      "passed": true,
+      "evidence": "B.md:77: \"Continue the task without an automatic review\"; B.md:79: \"No Qodo command or review context is needed.\""
+    },
+    {
+      "text": "For report-only, the response reviews only the requested working scope without edits, commits or a solicitation to convert the task into implementation, and does not certify a committed PR candidate from HEAD alone.",
+      "passed": true,
+      "evidence": "B.md:83: \"requested working scope directly, without editing or committing\"; B.md:98: \"not a committed PR candidate\"; B.md:105 prohibits fixing, committing or soliciting implementation."
+    },
+    {
+      "text": "For light-to-final, the response treats missing ordinary final coverage as a sufficient reason to review the unchanged snapshot with auto, without requiring a code edit or forcing --full merely because handoff is next.",
+      "passed": true,
+      "evidence": "B.md:109: \"Proceed with one ordinary auto final assessment\"; B.md:111: \"missing required final coverage\" despite unchanged code; B.md:119: do not \"add --full automatically\"."
+    },
+    {
+      "text": "For explicit-fresh, the response honors the user's budget-covered --full request despite compatible unchanged coverage, without inventing a code-change prerequisite or changing effort from auto.",
+      "passed": true,
+      "evidence": "B.md:131: \"Honor the explicit fresh-assessment request\" within budget; B.md:134: command includes \"--full\"; B.md:137: \"Keep the same full intended scope and auto effort.\""
+    },
+    {
+      "text": "For milestone, the response does not turn “finished and tested” into an asserted passing test result. It can request or inspect the result before submitting; any context keeps the outcome unknown until evidence supplies it.",
+      "passed": true,
+      "evidence": "B.md:36: \"The author reports that it was tested; test commands and pass/fail results were not supplied.\""
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The fixture does not supply milestone test commands or pass/fail results.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:36 explicitly preserves that uncertainty; prompt.md:17-20 supplies only \"finished and tested\" and a clean worktree."
+    }
+  ],
+  "eval_feedback": {
+    "overall": "All assertions are supported at proposal level. The synthetic fixture cannot verify actual scope isolation, operation retention, context delivery or returned final coverage."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1742bddeffdp342HR5Bdy9Dt3",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8bdcab6001y8b73sFS8h6hsN",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "expectations": [
+    {
+      "text": "For metadata-only, the proposed MCP dismissal preserves original F-A/F-B and L-ORIGINAL, the authorized reason/explanation, and one retained stable key through _meta[\"io.qodo/idempotency-key\"], without inventing a schema argument, CLI invocation or successful write; it calls for per-finding stored-outcome verification.",
+      "passed": true,
+      "evidence": "B.md:11-17 preserves both original finding IDs, review ID, authorized reason/explanation and documented metadata key. B.md:23-28 rejects an unsupported argument, retains the exact request and key across resumes, requires both stored-disposition readbacks, and claims no successful dismissal."
+    },
+    {
+      "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
+      "passed": true,
+      "evidence": "B.md:32-36 says \"Stop before submission\", identifies missing replay-safe capability, rejects omitting protection or inventing an argument, and states neither dismissal \"has been performed or verified\". A supported transport is required, not claimed present."
+    },
+    {
+      "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
+      "passed": true,
+      "evidence": "B.md:44-49 preserves F-A's `deferred` rationale and exact explanation, records F-B's `conflict`, says the requested batch did not succeed, prohibits overwriting or automatic conflict resubmission, and rejects both a clean-review claim and another assessment."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "A returned `reconciled: false` requires an exact-request synchronization retry with the same key.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:26 introduces this conditional response field and retry rule. prompt.md:12-28 does not establish either; their validity cannot be verified from the permitted artifacts."
+    },
+    {
+      "claim": "The confirmed prior disposition and conflict do not establish the requested false-positive dismissals.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "prompt.md:23-26 supplies those exact outcomes; B.md:44-49 preserves them without claiming a newly stored rationale or clean review."
+    }
+  ],
+  "eval_feedback": {
+    "overall": "All three assertions pass. B.md:26 adds an unverified response-field and retry rule; this is not an invented request-schema argument, but exposes a gap: the assertions do not check unsupported response-schema or recovery claims. Execution and persistence remain outside this proposal-only evaluation."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1721d33ffferpfz4auburQS9X",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8de892f001dR0Nd0PQGUjtcN",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

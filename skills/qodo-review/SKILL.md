@@ -292,4 +292,5 @@ Follow [bounded recovery](references/cli-execution.md#recover-a-review), not ano
 Preserve context, selected effort and authority.
 Stop on permission/auth/entitlement failures and tool-loop or rate-limit errors.
 For `closed_preview`, show the returned message and hint unchanged and stop.
+A new run requires confirmation that enrollment occurred.
 Do not switch accounts/deployments, strip context or lower effort to obtain a passing result.

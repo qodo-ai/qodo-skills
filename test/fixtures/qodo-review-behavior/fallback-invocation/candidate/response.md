@@ -2,20 +2,31 @@
 "/opt/qodo tools/bin/qodo" --version
 ```
 
-Evidence supplied: version `2.3.1`; identity and supported flags already verified. No probe executed here.
+Supplied result: `2.3.1`; identity and supported flags already verified.
 
 ```sh
-"/opt/qodo tools/bin/qodo" review --base 1111111111111111111111111111111111111111 --context-file /outside/context.json --async --json
-```
+command -v jq >/dev/null 2>&1 || exit 1
 
-Pending: submission and acceptance. This requests ordinary auto effort by omitting `--fast` and `--deep`.
+if ! submission=$("/opt/qodo tools/bin/qodo" review \
+  --base 1111111111111111111111111111111111111111 \
+  --context-file /outside/context.json \
+  --async --json); then
+  printf '%s\n' "$submission" >&2
+  exit 1
+fi
 
-Only after successful submission returns a nonempty `operation_id`, bind `operation_id` to that exact returned value, then collect:
+if ! operation_id=$(printf '%s\n' "$submission" |
+  jq -er '.operation_id | select(type == "string" and length > 0)'); then
+  printf '%s\n' "$submission" >&2
+  exit 1
+fi
 
-```sh
 "/opt/qodo tools/bin/qodo" review status "$operation_id" --extended --json
 ```
 
-Pending: an actual operation ID, completed stored result, complete finding inventory and coverage metadata. If still working, respect the returned polling delay and collect the same operation—do not resubmit.
+Pending evidence:
+- `jq` availability, submission acceptance and an actually returned operation ID.
+- Completed assessment, full finding inventory, coverage, context delivery and persistence.
+- If status exits `2`, respect `retry_after` and repeat only the status command for that same ID; do not resubmit.
 
-Unit tests passed according to the fixture. No review has been executed; findings, completion and local readiness remain unverified.
+No commands executed; no review result or readiness claim established.

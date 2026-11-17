@@ -1,0 +1,41 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "B.md:2,8,16: each call uses '\"/opt/qodo tools/bin/qodo\"'; no installation or PATH changes proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "B.md:8: exact base/context; B.md:11: auto by omitting '--fast' and '--deep'; B.md:13: bind only the returned nonempty operation_id; B.md:19-21: results and readiness remain pending/unverified."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Passing unit tests are supplied evidence, not newly executed validation.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:21: 'Unit tests passed according to the fixture'; prompt.md:16-17: 'Relevant unit tests explicitly passed.'"
+    }
+  ],
+  "eval_feedback": {
+    "overall": "Both assertions pass when the conditional prose is treated as part of the proposed procedure. The snippets are not a standalone guarded script; actual CLI defaults, response schema and collection success remain untested."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1742bdbfffds3eNS5ZG0X6N7j",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8bdabab001yjrZOUc2XplzKv",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

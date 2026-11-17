@@ -3,12 +3,12 @@
     {
       "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
       "passed": true,
-      "evidence": "A.md:2,10,22: each call uses '\"/opt/qodo tools/bin/qodo\"'; no installation or PATH changes proposed."
+      "evidence": "A.md:2,4,10 use '\"/opt/qodo tools/bin/qodo\"' for every proposed CLI call. No installation or PATH change is proposed."
     },
     {
       "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
       "passed": true,
-      "evidence": "A.md:11-16: exact base/context and checked extraction of '.operation_id'; A.md:19: 'Auto effort is selected by omitting depth flags'; A.md:25: collection only after extraction, with completion/findings/coverage unverified."
+      "evidence": "A.md:4-7 omits both --fast and --deep; qodo-review-auto-help-evidence.txt:62 states 'no flag = auto'. A.md:5-6 supplies '--base 1111111111111111111111111111111111111111' and '--context-file /outside/context.json'. A.md:8-10 guards collection on returned '.operation_id'; A.md:17 leaves acceptance and review results pending."
     }
   ],
   "summary": {
@@ -19,23 +19,29 @@
   },
   "claims": [
     {
-      "claim": "Passing unit tests are supplied evidence, not newly executed validation.",
+      "claim": "The proposed submission retains auto depth by omitting both depth overrides.",
       "type": "factual",
       "verified": true,
-      "evidence": "A.md:19: 'Supplied evidence confirms ... passing unit tests'; prompt.md:16-17: 'Relevant unit tests explicitly passed.'"
+      "evidence": "A.md:4-7 includes neither override; qodo-review-auto-help-evidence.txt:62-64 explicitly documents 'no flag = auto' and the --deep/--fast overrides."
+    },
+    {
+      "claim": "The proposed collection requires successful submission and a nonempty returned operation ID.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:4-11 nests status inside successful submission and '.operation_id | select(type == \"string\" and length > 0)' extraction guards. This establishes proposal semantics, not execution."
     }
   ],
   "eval_feedback": {
-    "overall": "Both assertions pass for the proposal. Execution remains untested: CLI auto defaults, the .operation_id response schema, jq availability and successful collection cannot be independently verified from these files."
+    "overall": "The original 1/2 grade depended on an unprovided auto default. The additional verified help contract at qodo-review-auto-help-evidence.txt:62-64 establishes that omission of both overrides selects auto, changing assertion 2 to pass and the grade to 2/2. No other assertion failures were found. Runtime acceptance and completed results remain unverified; these are synthetic proposals."
   },
   "grader_provenance": {
-    "session_id": "ses_e1742bdbfffds3eNS5ZG0X6N7j",
+    "session_id": "ses_e1721d340ffejiV0h37cdneP30",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e8bdabab001yjrZOUc2XplzKv",
+    "message_id": "msg_1e8e149f1001yJQE8cuE3ViC1D",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

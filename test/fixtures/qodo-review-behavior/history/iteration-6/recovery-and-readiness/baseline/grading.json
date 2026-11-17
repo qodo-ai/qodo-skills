@@ -1,0 +1,61 @@
+{
+  "expectations": [
+    {
+      "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
+      "passed": true,
+      "evidence": "B.md:5 'Wait the requested **20 seconds**'; :8 'qodo review status op-accepted --extended --json'; :13 'original submitted snapshot and context' and 'Do not submit again merely to obtain its result'."
+    },
+    {
+      "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
+      "passed": true,
+      "evidence": "B.md:20 'qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111'; :23 'retained original request' and no new input options; :33 report the gap 'rather than automatically submitting anew'."
+    },
+    {
+      "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+      "passed": true,
+      "evidence": "B.md:37 'not all local-to-Git work is finished'; :40–43 lists completed assessment, coverage, inventory, settled required findings and tests; :45 storage 'failed' and handoff 'unverified'; :47 'No additional assessment is justified solely' for storage."
+    },
+    {
+      "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
+      "passed": true,
+      "evidence": "B.md:51 'Review blocked for full-final-coverage certification'; :55–60 coverage, inventory and persistence are not established, including 'reusable checkpoint availability'; 'Missing metadata is unknown, not success'."
+    },
+    {
+      "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
+      "passed": true,
+      "evidence": "B.md:75 'Review access is not enabled for this organization.'; :77 'Ask your administrator to enroll the organization.'; :79 'Stop' and 'Do not retry ... log in again, switch accounts/deployments'."
+    },
+    {
+      "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
+      "passed": true,
+      "evidence": "B.md:85 'Stop new assessments: budget reached'; :87 polls/retrieval are not assessments and resume does not reset budget; :89 'F-BLOCK' remains 'action-required' and 'Local readiness remains unmet'; :91 renewed authorization required."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The supplied storage-gap scenario does not establish reusable checkpoint availability or verified PR handoff.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:45 explicitly preserves both gaps, matching prompt.md:24–25. This verifies the scenario interpretation, not actual storage or handoff."
+    }
+  ],
+  "eval_feedback": {
+    "overall": "All six assertions pass as proposal checks, not execution evidence. The older-result assertion does not check whether a proposed new assessment explicitly awaits authorization despite prompt.md:13; B.md:62–69 proposes one without stating that gate. Its additional command flags are not validated by the supplied help facts."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1742bdbfffeAByDpVYc5sPZDc",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8bdac8b001FY7OE50y65g1Kb",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

@@ -9,6 +9,10 @@ batch; a recommendation or a skipped edit alone does not authorize a status chan
 On MCP, inspect the live `pr-review-dismiss` schema.
 Supply the original finding IDs and their `local_review_id`, the authorized reason and explanation,
 and a stable `idempotency_key` for that batch when the schema advertises it.
+For a metadata-only server, send the same key through the host's supported
+`_meta["io.qodo/idempotency-key"]` request metadata instead. If both forms are sent,
+their values must match. If neither the argument nor host metadata is available,
+report the missing replay-safe write capability; do not submit an unprotected write.
 Read back every stored outcome. The identity and grouping rules below still apply.
 The CLI command-discovery and submission steps below apply only to the CLI path.
 Do not invent a missing write capability or omit required replay protection.

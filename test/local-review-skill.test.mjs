@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync,
+  rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
@@ -22,6 +24,18 @@ function evaluatedReleaseStamps(body, currentVersion, evaluatedVersion) {
   return body.replace(`  version: "${currentVersion}"`, `  version: "${evaluatedVersion}"`)
     .replaceAll(`--skill-version ${currentVersion} --distribution`,
       `--skill-version ${evaluatedVersion} --distribution`);
+}
+
+function assertGrade(grade, assertions, candidate = false) {
+  assert.deepEqual(grade.expectations.map((entry) => entry.text), assertions);
+  assert.ok(grade.expectations.every((entry) => typeof entry.passed === 'boolean'),
+    'Every assertion verdict must be a boolean');
+  const passed = grade.expectations.filter((entry) => entry.passed === true).length;
+  assert.deepEqual(grade.summary, { passed, failed: assertions.length - passed,
+    total: assertions.length, pass_rate: passed / assertions.length });
+  assert.ok(grade.expectations.every((entry) => typeof entry.evidence === 'string' && entry.evidence.trim()));
+  if (candidate) assert.ok(grade.expectations.every((entry) => entry.passed === true), 'Candidate evidence failed');
+  return passed;
 }
 
 function headings(markdownText) {
@@ -61,17 +75,15 @@ test('execution mechanics remain reachable and completed async results are emitt
   assert.ok(text.includes('(references/connected-progress.md)'));
   const execution = readReference('cli-execution.md');
   assert.match(execution, /0\) cat "\$QODO_REVIEW_TMP\/result\.json" \|\| exit 1; break ;;/);
-  assert.match(execution, /same terminal-recovery attempt/);
-  assert.match(execution, /QODO_UPDATE_BASE_URL/);
-  assert.match(execution, /Never print its value/);
-  assert.match(execution, /Show the returned message and hint unchanged/);
+  assert.match(text, /not another retry per symptom/);
+  assert.match(text, /QODO_UPDATE_BASE_URL/);
+  assert.match(text, /never print its value/);
+  assert.match(text, /show the returned message and hint unchanged/);
   assert.match(execution, /Run the resolved invocation with only `--version`/);
-  assert.match(execution, /After fallback succeeds, do not return to the unavailable bare command/);
-  assert.match(execution, /If neither installed invocation works, report the missing CLI and stop/);
-  assert.match(execution, /Never invent a digest or pipe an installer into a shell/);
-  assert.match(execution, /For every updater route, first require its supported check/);
-  assert.match(execution, /A failed check, no update or an incompatible target means stop/);
-  assert.match(execution, /If user\/task instructions or the returned error forbid automatic retries, stop/);
+  assert.match(text, /If neither installed invocation works, stop the CLI path/);
+  assert.match(text, /Never invent a digest, pipe an installer into a shell/);
+  assert.match(text, /Every updater route, including ordinary update, needs a successful check/);
+  assert.match(text, /Failure, no update or an incompatible target stops/);
   assert.match(text, /In every command example, replace `qodo` with that resolved invocation/);
   assert.match(readReference('mcp-review.md'), /tested local collector/);
   assert.match(readReference('connected-progress.md'), /reap the child/);
@@ -113,10 +125,13 @@ test('context compatibility and authority boundaries survive the rewrite', () =>
   const triage = readReference('local-triage.md');
   assert.match(triage, /On MCP, inspect the live `pr-review-dismiss` schema/);
   assert.match(triage, /stable `idempotency_key`/);
+  assert.match(triage, /_meta\["io\.qodo\/idempotency-key"\]/);
+  assert.match(triage, /do not submit an unprotected write/);
   assert.match(text, /A HEAD SHA alone does not identify a dirty snapshot/);
   assert.match(text, /finding\/checkpoint persistence and local-to-PR handoff separately/);
   for (const group of ['compatibility-boundaries', 'followup-and-finding-state',
-    'milestone-and-final-scope', 'recovery-and-readiness', 'fallback-invocation', 'recovery-policy-guards']) {
+    'milestone-and-final-scope', 'recovery-and-readiness', 'fallback-invocation', 'recovery-policy-guards',
+    'mcp-local-triage']) {
     const prompt = readFileSync(join(root, 'evals/qodo-review', group, 'prompt.md'), 'utf8');
     assert.match(prompt, /allowed_tools: \[Read, Glob, Grep, Skill\]/);
     assert.doesNotMatch(prompt.split('---', 3)[1], /\b(?:Write|Edit|Bash)\b/);
@@ -133,10 +148,11 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     assert.equal(readFileSync(join(staged.plugin, 'skills/qodo-review/SKILL.md'), 'utf8'), text);
     assert.equal(statSync(join(staged.plugin, 'skills/qodo-review/SKILL.md')).mode & 0o222, 0);
     assert.equal(staged.manifest.source_kind, 'current working instruction bytes');
-    assert.equal(staged.manifest.cases.length, 6);
-    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 29);
+    assert.equal(staged.manifest.cases.length, 7);
+    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 32);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
     assert.ok(!staged.args.includes('--allow-real-servers') && !staged.args.includes('--trust-plugin'));
+    assert.ok(!staged.args.includes('--json'), 'Machine mode must not suppress a first-run trust prompt');
     const boundary = readFileSync(join(staged.plugin, 'evals/compatibility-boundaries/prompt.md'), 'utf8');
     for (const version of ['1.6.0', '"custom build"', '2.0.0', '2.3.1']) assert.ok(boundary.includes(version));
     assert.ok(boundary.includes('summary, not notes') && boundary.includes('decisions=['));
@@ -147,13 +163,76 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
   }
 });
 
+test('evaluation rejects symlinked files and ancestors instead of staging host inputs', (t) => {
+  const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-input-test-'));
+  try {
+    const source = join(parent, 'source');
+    mkdirSync(join(source, 'skills'), { recursive: true });
+    mkdirSync(join(source, 'evals'));
+    cpSync(skill, join(source, 'skills/qodo-review'), { recursive: true });
+    cpSync(join(root, 'evals/qodo-review'), join(source, 'evals/qodo-review'), { recursive: true });
+    const outside = join(parent, 'outside.txt');
+    writeFileSync(outside, 'private-fixture-marker');
+    for (const path of ['skills/qodo-review/SKILL.md',
+      'skills/qodo-review/references/review-turn-context.md',
+      'evals/qodo-review/compatibility-boundaries/prompt.md',
+      'evals/qodo-review/compatibility-boundaries/case.yaml']) {
+      const target = join(source, path), backup = `${target}.backup`;
+      renameSync(target, backup);
+      try { symlinkSync(outside, target); } catch (error) {
+        if (['EPERM', 'ENOTSUP'].includes(error.code)) { t.skip('Host cannot create test symlinks'); return; }
+        throw error;
+      }
+      assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /symlink/);
+      rmSync(target); renameSync(backup, target);
+    }
+    const refs = join(source, 'skills/qodo-review/references');
+    renameSync(refs, `${refs}.backup`);
+    symlinkSync(`${refs}.backup`, refs, 'dir');
+    assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /symlink/);
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test('an immutable commit without the requested Skill is rejected before a prepared receipt', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-missing-test-'));
+  try {
+    const git = (args, input) => execFileSync('git', args, { cwd: parent, encoding: 'utf8', input }).trim();
+    git(['init', '--quiet']);
+    const tree = git(['hash-object', '-w', '-t', 'tree', '--stdin'], '');
+    // Synthetic Git object only: no user commit, branch, signing setting or hook is changed.
+    const ref = git(['hash-object', '-w', '-t', 'commit', '--stdin'],
+      `tree ${tree}\nauthor Fixture <fixture@qodo.invalid> 0 +0000\ncommitter Fixture <fixture@qodo.invalid> 0 +0000\n\nEmpty snapshot fixture\n`);
+    const output = mkdtempSync(join(tmpdir(), 'qodo-eval-missing-output-'));
+    try { assert.throws(() => prepareReviewEvaluation({ root: parent, parent: output, ref }), /has no qodo-review\/SKILL\.md/); }
+    finally { rmSync(output, { recursive: true, force: true }); }
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
+test('recorded grade validation rejects truthy non-boolean verdicts and inconsistent summaries', () => {
+  const make = (passed) => ({ expectations: [{ text: 'Check', passed, evidence: 'response.md:1 evidence' }],
+    summary: { passed: 1, failed: 0, total: 1, pass_rate: 1 } });
+  for (const invalid of ['false', 'true', 1, [], {}, null, undefined]) {
+    assert.throws(() => assertGrade(make(invalid), ['Check'], true), /must be a boolean/);
+  }
+  assert.equal(assertGrade(make(true), ['Check'], true), 1);
+  assert.throws(() => assertGrade(make(false), ['Check'], true));
+});
+
 test('recorded behavior evidence covers current instructions and every assertion, with inspectable passing candidate results', () => {
   const evidenceRoot = join(root, 'test/fixtures/qodo-review-behavior');
   const manifest = JSON.parse(readFileSync(join(evidenceRoot, 'manifest.json'), 'utf8'));
   const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
   assert.equal(manifest.schema_version, 1);
   assert.equal(manifest.method, 'fresh-native-agents-with-anonymous-final-answer-grading');
-  assert.equal(manifest.cases.length, 6);
+  assert.equal(manifest.cases.length, 7);
+  for (const [path, expected] of Object.entries(manifest.adjudication?.artifacts ?? {})) {
+    assert.ok(!path.includes('..') && !path.startsWith('/'));
+    assert.equal(sha256(readFileSync(join(evidenceRoot, path))), expected, path);
+  }
   assert.deepEqual(Object.keys(manifest.snapshots.candidate.fingerprints).sort(),
     ['SKILL.md', ...references.map((name) => `references/${name}`)].sort());
   assert.deepEqual(manifest.cases.map((item) => item.name).sort(),
@@ -170,6 +249,7 @@ test('recorded behavior evidence covers current instructions and every assertion
   assert.equal(evaluatedReleaseStamps(releaseOnly, '999.0.0', version), text);
   assert.notEqual(evaluatedReleaseStamps(`${releaseOnly}\nChanged behavior.\n`, '999.0.0', version), text);
   let assertionCount = 0, candidatePasses = 0;
+  const scores = { candidate: { passed: 0, total: 0 }, baseline: { passed: 0, total: 0 } };
   for (const item of manifest.cases) {
     const fixture = join(root, 'evals/qodo-review', item.name);
     assert.equal(sha256(readFileSync(join(fixture, 'prompt.md'))), item.prompt_sha256);
@@ -187,21 +267,20 @@ test('recorded behavior evidence covers current instructions and every assertion
         assert.equal(sha256(readFileSync(join(evidenceRoot, path))), hash, path);
       }
       const grade = JSON.parse(readFileSync(join(evidenceRoot, run.grading), 'utf8'));
-      assert.deepEqual(grade.expectations.map((entry) => entry.text), graders.map((file) =>
-        readFileSync(join(fixture, 'graders', file), 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '').trim()));
+      const passed = assertGrade(grade, graders.map((file) =>
+        readFileSync(join(fixture, 'graders', file), 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '').trim()),
+      configuration === 'candidate');
+      scores[configuration].passed += passed;
+      scores[configuration].total += graders.length;
       const provenance = JSON.parse(readFileSync(join(evidenceRoot, run.provenance), 'utf8'));
       assert.deepEqual(provenance.fingerprints, manifest.snapshots[configuration].fingerprints);
       assert.equal(provenance.response_sha256, sha256(readFileSync(join(evidenceRoot, run.response))));
-      assert.equal(grade.expectations.length, graders.length);
-      assert.equal(grade.summary.passed, grade.expectations.filter((expectation) => expectation.passed).length);
-      assert.equal(grade.summary.total, graders.length);
-      assert.ok(grade.expectations.every((expectation) => expectation.evidence.trim()));
       if (configuration === 'candidate') {
-        candidatePasses += grade.summary.passed;
-        assert.ok(grade.expectations.every((expectation) => expectation.passed), `Behavior evidence failed: ${item.name}`);
+        candidatePasses += passed;
       }
     }
   }
-  assert.equal(assertionCount, 29);
-  assert.equal(candidatePasses, 29);
+  assert.equal(assertionCount, 32);
+  assert.equal(candidatePasses, 32);
+  assert.deepEqual(manifest.scores, scores);
 });

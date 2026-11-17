@@ -1,5 +1,5 @@
 {
-  "session_id": "ses_e17475b23ffeNUKiEK75YBxcY2",
+  "session_id": "ses_e1724d36cffe0vZKj5Onjj0zSl",
   "configuration": "old_skill",
   "models": [
     {
@@ -8,39 +8,39 @@
       "variant": "max"
     }
   ],
-  "source_commit": "44ed636386f6b289f9b5bd0db510f204deb10507",
+  "source_commit": "173cfc700e4ee8a83c20e47abc1edfcd75612354",
   "source_kind": "immutable Git commit",
   "fingerprints": {
-    "SKILL.md": "b34cc9ccc940bc3a189cd02c8b94abcbb14dab084b90421c1e8b31c5ce7460b3",
-    "references/cli-execution.md": "adbe32a1b6576572ade8c0cfcca1f3c3d041683f27e33b6a4197840849db3a65",
+    "SKILL.md": "ce8da4f08ceb1a4de6682153b30e81fe3d75f2d7a7832b71c7591b82bd5aaad5",
+    "references/cli-execution.md": "2415c565714cf1f91b3b86f706db56388fb8229921eba4d4156d0d0d4093ec2c",
     "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
     "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
     "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
-    "references/local-triage.md": "190e90a856460b96e802c2731a35ecc6ac6ff60dd6b3ec8015807d71d5bd2885",
-    "references/mcp-review.md": "622e35b07423ed75c3f90eda49c8c0ae7d1788ab2de47260a564d634ed7745e2",
+    "references/local-triage.md": "70f786a5bd8d88a3b6be52f4a0bc1e4bee033349d6225bec95bdc1da99d6628c",
+    "references/mcp-review.md": "515aec12ec37f630a27170c16236d066efc51ac666e299e13f5bd3f6b6bd4c68",
     "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
     "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
     "references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
     "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
   },
   "tool_counts": {
-    "read": 8
+    "read": 5
   },
   "tool_errors": 0,
-  "response_sha256": "89ead57523b10dcf43c5af24249e297a91f1322ae61549ef59bae4aa599089ee",
-  "response_message_id": "msg_1e8b977b4001QdEG7Hyt2E3rSg",
-  "finished_at": "2026-11-17T08:58:35.524Z",
-  "duration_ms": 136717,
+  "response_sha256": "b70b2eb236650f5681fff0772362e8bf3297b92efd5f6296d8c66efad8a582d1",
+  "response_message_id": "msg_1e8db8203001Oh71NvbDQ3tIk7",
+  "finished_at": "2026-11-17T09:35:26.316Z",
+  "duration_ms": 84816,
   "token_usage": {
-    "input": 15768,
-    "output": 1981,
-    "reasoning": 1943,
-    "cache_read": 219136,
+    "input": 16499,
+    "output": 1464,
+    "reasoning": 2070,
+    "cache_read": 134016,
     "cache_write": 0
   },
   "metric_scope": "Runtime-reported assistant messages for this completed child only; not a whole-host filesystem audit.",
   "limits": "Synthetic operational commands were proposals. No installed-runtime or natural-activation qualification.",
-  "original_response_sha256": "89ead57523b10dcf43c5af24249e297a91f1322ae61549ef59bae4aa599089ee",
-  "path_redaction": "Host-specific temporary root replaced with /outside; no reasoning text or raw session archive retained.",
+  "original_response_sha256": "fbe7c62d2fc95c5aefaa86dca5f9f97600bbb3df80c069ffe26f2c7faee540e1",
+  "path_redaction": "Host-specific temporary root replaced with /outside and trailing line whitespace removed; original/portable hashes remain separate. No reasoning text or raw session archive retained.",
   "anonymous_label": "B"
 }

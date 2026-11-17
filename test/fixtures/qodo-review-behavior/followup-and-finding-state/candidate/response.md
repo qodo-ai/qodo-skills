@@ -1,105 +1,58 @@
-These are proposed actions only; nothing was executed. CLI and identity checks need not be repeated.
+All actions below are **proposals only**. No commands, edits or finding-status writes were executed. Assessments use the supplied Qodo results and code evidence.
 
-## 1. `mixed-followup`
+### 1. `mixed-followup`
 
-**Submit one follow-up:** changed code—including a new API—awaits review. This is not automatically a fixes-only round.
+**Next action:** Submit one auto-effort follow-up because changed code needs assessment. This is **mixed work**, not fixes-only. Preserve the base, scope and any existing path arguments. Refreshed notes do not justify `--full`; let the Engine determine incremental eligibility.
 
-Proposed context, stored outside the reviewed tree:
-
+**Proposed context:**
 ```json
 {
-  "decisions": [],
-  "notes": "The base and requested scope are unchanged. Relevant tests passed. Notes were refreshed with new caller evidence, but the fixture supplies neither that evidence's contents nor file/function locations. Design-choice ownership and rationale were not supplied. The timeout correction is an author-reported fix, not a verified finding-resolution verdict.",
+  "decisions": [
+    "The comparison base and requested scope remain unchanged. Ownership and rationale for the implementation choices were not supplied."
+  ],
+  "notes": "Review one completed with complete coverage and inventory. Relevant tests passed after the timeout correction and cancellation API addition. Notes were refreshed with new caller evidence, but the detailed evidence and code citations were not supplied here. The original timeout finding remains open; the reported correction is not a verified finding-resolution verdict.",
   "recent_work": [
-    "Corrected timeout behavior identified by the previous review.",
-    "Added a new cancellation API; this round includes new behavior.",
-    "Refreshed notes with new caller evidence."
+    "Corrected the timeout behavior identified by the earlier finding.",
+    "Added a new cancellation API."
   ]
 }
 ```
 
-Proposed command, once that context file exists:
+The parent would place this context in a UTF-8 file outside the reviewed changes and bind `QODO_REVIEW_CONTEXT` to its absolute path.
 
 ```sh
-qodo review \
-  --base 1111111111111111111111111111111111111111 \
-  --context-file /outside/mixed-followup-context.json \
-  --async --json
+qodo review --base 1111111111111111111111111111111111111111 --context-file "$QODO_REVIEW_CONTEXT" --async --json
 ```
 
-Retain any original explicit path arguments unchanged; none are supplied here. Omit `--fast`, `--deep`, and `--full`. Updated notes alone do not justify forcing full assessment. Let the Engine determine eligibility and report its actual analysis mode.
-
-Retain the returned operation ID with the submitted scope, snapshot and context. Collect that operation rather than submitting again:
+Retain any original path arguments verbatim; none were supplied here. After acceptance, retain the returned operation ID and collect that operation:
 
 ```sh
 qodo review status "$operation_id" --json
 ```
 
-Here, `operation_id` must be bound to the actual returned ID. Read coverage, inventory, warnings and reviewer comment; assess both introduced and still-open findings. Preserve the timeout finding’s original ID.
+**Status:** Follow-up assessment pending. Do not claim reuse, timeout resolution or readiness before receiving the complete result and coverage metadata.
 
-**Status:** changed work awaits completed assessment; not ready yet. Earlier coverage does not certify the cancellation API. No reuse, resolution, model or timing outcome can be claimed in advance.
+### 2. `old-backlog`
 
-## 2. `old-backlog`
+- **Next action:** Do not submit again. Neither code nor evidence changed.
+- **Context:** No findings were introduced, but original **F-OLD remains pending/action-required**. Both completeness flags are true; this is earlier backlog, not a newly discovered issue.
+- **Status: Needs action.** The assessment is complete, but the work is not ready while the required finding and decision remain unresolved.
 
-**Do not submit again.** Nothing changed, coverage and inventory are complete, and no fresh assessment was requested.
+### 3. `unsupported-repeat`
 
-Report:
+- **Next action:** Stop this review loop. Make no code change and purchase no identical assessment.
+- **Context:** The supplied evidence proves every caller traverses the unchanged mandatory token guard. That enforced guard contradicts F-GUARD’s alleged bypass.
+- **Recommendation:** Recommend dismissal of **F-GUARD** with that evidence, preserving its original identity. Fix authority does **not** authorize a stored dismissal.
+- **Status:** Unsupported code concern; no dismissal was written or verified. Overall readiness is not established by this assessment alone.
 
-- Newly introduced findings: none.
-- Earlier backlog: **F-OLD**, still pending/action-required.
-- Assessment and inventory: complete.
-- Finding disposition: outstanding.
+### 4. `helper-fixed`
 
-The next action is to assess/present F-OLD and obtain the necessary decision—not purchase another unchanged assessment. Its impact, category and code location were not supplied, so do not invent them. No edit or stored dismissal is authorized by these facts.
+- **Next action:** Accept the confirmed semantic resolution. Do not reopen the finding merely because its originally quoted line remains unchanged, and do not submit another unchanged review.
+- **Context:** The corrected helper rejects unsafe input before the vulnerable line. Tests passed, and the completed result explicitly reports original **F-HELPER resolved/implemented**, with complete coverage and inventory.
+- **Status:** **F-HELPER is settled.** No further assessment is justified on these facts. Overall local readiness still requires every other required obligation in the inventory to be settled; this resolution alone does not establish that.
 
-**Status: Needs action.** Zero new findings does not settle F-OLD or establish readiness.
+### 5. `quote-gone`
 
-## 3. `unsupported-repeat`
-
-Qodo surfaced **F-GUARD**, but the supplied current-code evidence contradicts its triggering condition: every caller passes through the unchanged mandatory token guard.
-
-**Proposed action:** explain that guard evidence and recommend dismissal as `false_positive`. No code correction is justified. Keep the original finding reference and distinguish its reported category/action level from this independent recommendation; those fields were not supplied.
-
-Do **not**:
-
-- Modify guarded code merely to appease the review.
-- Add unrelated refactors.
-- Submit another identical assessment.
-- Invoke a dismissal command: code-fix authority does not authorize finding-status writes.
-
-This is an evidence-backed conversational assessment, **not a stored dismissal**. The original stored state remains unchanged.
-
-**Status:** stop the unproductive loop. The finding has an unsupported-concern assessment but no authorized persisted disposition. Overall local readiness is not established by the supplied coverage/check evidence; do not call the review clean.
-
-## 4. `helper-fixed`
-
-**Accept F-HELPER as settled.** The helper now rejects unsafe input before the unchanged vulnerable line. Resolution concerns behavior, not whether the quoted line changed.
-
-The evidence includes:
-
-- A semantic correction on the input path.
-- Passing current tests.
-- A current completed result explicitly reporting original **F-HELPER** as `resolved/implemented`.
-- Complete coverage and inventory.
-- No subsequent code or evidence changes.
-
-Do not manually dismiss or “mark fixed,” and do not submit another assessment merely because the original line remains unchanged.
-
-**Status: Ready locally for the supplied scope.** Report F-HELPER separately as resolved/implemented, not newly introduced or still open. This does not establish hosted PR review, persistence/checkpoint success, CI, merge or release readiness.
-
-## 5. `quote-gone`
-
-**Keep F-QUOTE open.** The supported claim is only that a rename removed the quoted text. There is no verified semantic-fix verdict or evidence that the unsafe path disappeared.
-
-Proposed next actions:
-
-1. Trace the renamed path and its callers/guards against the original triggering condition.
-2. Identify evidence showing whether unsafe input can still reach the affected behavior.
-3. Propose a regression check for that condition; no test command or result is supplied.
-4. If a supported correction is needed, establish edit authority before changing code.
-
-Do not manually resolve the finding, infer safety from text disappearance, or claim tests passed. Conversely, the missing quote alone does not prove the vulnerability persists unchanged.
-
-A follow-up assessment needs a concrete reason—such as an authorized semantic correction or meaningful new evidence—not another attempt to obtain zero findings.
-
-**Status: Needs action.** F-QUOTE remains open; a semantic fix and readiness cannot be claimed.
+- **Next action:** Investigate the renamed unsafe path and obtain semantic evidence before claiming a fix. Do not mark resolved or dismiss it.
+- **Context:** The quote disappeared after a rename; neither disappearance of the unsafe behavior nor a verified semantic-fix verdict is established.
+- **Status: Needs action. F-QUOTE remains open.** Only the textual change can be claimed—not a fix, safety or readiness. Another assessment needs a concrete reason, such as changed code, meaningful new evidence or missing required coverage.

@@ -3,27 +3,27 @@
     {
       "text": "For mixed-followup, recent_work includes both the timeout fix and new cancellation API, preserves decisions/notes context and the original finding identity, uses auto, and does not force --full merely because notes changed or a finding remains open.",
       "passed": true,
-      "evidence": "A.md:11-16 preserves supplied context without inventing decisions: 'Corrected timeout behavior' and 'Added a new cancellation API'; A.md:30 omits '--fast', '--deep', and '--full'; A.md:38 says 'Preserve the timeout finding’s original ID.'"
+      "evidence": "A.md:5 proposes an 'auto-effort follow-up' and says notes 'do not justify --full'; A.md:10-16 includes decisions, notes, both changes, and 'The original timeout finding remains open.'"
     },
     {
       "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
       "passed": true,
-      "evidence": "A.md:44: 'Do not submit again'; A.md:49: 'F-OLD, still pending/action-required'; A.md:55: 'Needs action. Zero new findings does not settle F-OLD or establish readiness.'"
+      "evidence": "A.md:37 says 'Do not submit again'; A.md:38 retains 'F-OLD remains pending/action-required'; A.md:39 states 'Needs action' and 'the work is not ready.'"
     },
     {
       "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
       "passed": true,
-      "evidence": "A.md:59-61: 'every caller passes through the unchanged mandatory token guard' and recommends 'false_positive'; A.md:65-70 prohibits refactors, identical assessments, and dismissal commands; 'not a stored dismissal'."
+      "evidence": "A.md:43 says 'Make no code change and purchase no identical assessment'; A.md:44 identifies the mandatory guard; A.md:45-46 recommends dismissal but states 'no dismissal was written or verified.'"
     },
     {
       "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
       "passed": true,
-      "evidence": "A.md:76: 'Accept F-HELPER as settled'; A.md:82 cites 'resolved/implemented'; A.md:86: 'Do not manually dismiss or “mark fixed,” and do not submit another assessment'."
+      "evidence": "A.md:50 says 'Accept the confirmed semantic resolution' despite the unchanged quoted line and forbids another unchanged review; A.md:51-52 accepts 'F-HELPER resolved/implemented' while distinguishing that finding from overall readiness. A.md:1 states no finding-status writes occurred."
     },
     {
       "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
       "passed": true,
-      "evidence": "A.md:92: 'Keep F-QUOTE open' and 'no verified semantic-fix verdict'; A.md:96-98 proposes tracing the renamed path, checking unsafe-input reachability, and a regression check."
+      "evidence": "A.md:56 proposes investigating 'the renamed unsafe path' and obtaining semantic evidence; A.md:57 notes no verified semantic-fix verdict; A.md:58 states 'F-QUOTE remains open' and 'Only the textual change can be claimed—not a fix.'"
     }
   ],
   "summary": {
@@ -34,29 +34,29 @@
   },
   "claims": [
     {
-      "claim": "The supplied completed result supports accepting F-HELPER as resolved/implemented despite the unchanged quoted line.",
+      "claim": "The supplied completed result settles F-HELPER despite its unchanged quoted line.",
       "type": "factual",
       "verified": true,
-      "evidence": "A.md:76-84 matches prompt.md:31-35: the helper rejects unsafe input, tests passed, and the completed result explicitly resolves original F-HELPER."
+      "evidence": "A.md:51-52 reports 'F-HELPER resolved/implemented' and 'F-HELPER is settled'; prompt.md:31-35 explicitly supplies the helper correction and completed implemented verdict."
     },
     {
-      "claim": "The helper-fixed work is ready locally for the supplied scope.",
-      "type": "quality",
-      "verified": false,
-      "evidence": "A.md:88: 'Ready locally for the supplied scope.' Prompt.md:31-35 establishes F-HELPER's resolution, passing tests, and assessment completeness, but supplies neither other finding dispositions nor an overall readiness verdict."
+      "claim": "The mandatory token guard contradicts F-GUARD's alleged bypass.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:44 states every caller traverses the mandatory guard; prompt.md:26-30 explicitly supplies proof that all callers pass through that unchanged guard."
     }
   ],
   "eval_feedback": {
-    "overall": "All five assertions pass. The helper assertion does not catch the added whole-scope readiness claim, which exceeds the supplied finding-specific verdict despite external-readiness caveats. Context preservation is supported only for supplied summaries: no original decision contents or caller details were provided. These proposals do not verify command execution."
+    "overall": "All assertions pass against the synthetic evidence; commands remain proposals, not verified execution. The helper-fixed assertion should explicitly distinguish finding resolution from whole-scope readiness, which requires settlement of all required inventory obligations. A makes that distinction."
   },
   "grader_provenance": {
-    "session_id": "ses_e1742bdc3ffeKO0yXOJ26zAXu4",
+    "session_id": "ses_e1721d344ffdEOsBTOXbDB0XUs",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e8bd9d8f0011FIHgbGKg6rAxz",
+    "message_id": "msg_1e8de9c530015whZU7KYuxYDTj",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

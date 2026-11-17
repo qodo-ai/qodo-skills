@@ -3,69 +3,75 @@
     {
       "text": "For milestone, the response proposes a useful context-attached review with auto effort, without --fast, --deep or --full, and retains the operation for later collection.",
       "passed": true,
-      "evidence": "A.md:16: \"qodo review --base \"$BASE\" --context-file \"$CTX_MILESTONE\" --async --json\"; A.md:24: \"Retain the operation ID\"."
+      "evidence": "B.md:11 proposes 'one auto checkpoint now' without --fast, --deep or --full; B.md:14 attaches context asynchronously; B.md:22 supplies milestone context; B.md:141 says 'retain the returned operation ID' and collect that operation."
     },
     {
       "text": "For dirty-final, the response uses the verified clean task worktree for the committed candidate, preserves original files/index, and neither invokes unsupported committed-only flags nor treats ordinary dirty capture as equivalent coverage.",
       "passed": true,
-      "evidence": "A.md:34: \"Use the available verified, task-only clean worktree\"; A.md:49: \"Do not reset, stash, alter the index\" or \"collect from the dirty checkout\"."
+      "evidence": "B.md:33 selects the 'verified task-only clean worktree at the intended commit'; B.md:35 rejects unsupported committed-only collection and same-file path filtering, and says not to alter 'the original files or index'; B.md:56 requires verifying returned candidate coverage."
     },
     {
       "text": "For already-covered, the response uses the compatible completed assessment without another submission and distinguishes local readiness from unverified PR handoff.",
       "passed": true,
-      "evidence": "A.md:53: \"Reuse the completed assessment\" and \"submit nothing\"; A.md:59: \"This does not establish hosted PR review\"."
+      "evidence": "B.md:60 says 'Reuse the completed assessment and hand over; submit nothing'; B.md:62 establishes 'Ready locally'; B.md:64 says not to infer 'successful local-to-PR finding transfer, hosted Qodo status, CI, merge or deployment'."
     },
     {
       "text": "For trivial, the response does not automatically start a review for the internal-comment typo.",
       "passed": true,
-      "evidence": "A.md:63: \"Continue coding without automatic review.\""
+      "evidence": "B.md:68 says 'Skip automatic review and continue the task' and 'No command or context submission'."
     },
     {
       "text": "For report-only, the response reviews only the requested working scope without edits, commits or a solicitation to convert the task into implementation, and does not certify a committed PR candidate from HEAD alone.",
       "passed": true,
-      "evidence": "A.md:69: \"without editing or committing\"; A.md:82: \"Do not ... ask to convert this into implementation\"; A.md:84: \"HEAD alone cannot identify uncommitted content.\""
+      "evidence": "B.md:72 selects the 'uncommitted working scope' and prohibits editing, committing, PR preparation or soliciting implementation permission; B.md:92 says 'report findings, then stop'; B.md:149 keeps proposed assessments pending rather than certifying a committed candidate."
     },
     {
       "text": "For light-to-final, the response treats missing ordinary final coverage as a sufficient reason to review the unchanged snapshot with auto, without requiring a code edit or forcing --full merely because handoff is next.",
       "passed": true,
-      "evidence": "A.md:88: \"Submit ordinary auto review\" because fast lacks \"ordinary final coverage\"; A.md:94: \"Do not add --full automatically\"; A.md:99: \"No code changes\"."
+      "evidence": "B.md:96 proposes 'ordinary auto final review' because final coverage is missing 'even for unchanged code'; B.md:98 says not to add --full or escalate to deep; B.md:101 proposes the default-effort command."
     },
     {
       "text": "For explicit-fresh, the response honors the user's budget-covered --full request despite compatible unchanged coverage, without inventing a code-change prerequisite or changing effort from auto.",
       "passed": true,
-      "evidence": "A.md:108: command includes \"--full --async --json\" without effort flags; A.md:111: \"does not request deep effort\"; A.md:115: \"Nothing changed\" and \"within the user’s review budget\"."
+      "evidence": "B.md:121 says 'Honor the explicit fresh-assessment request with --full, retaining auto effort' despite compatible coverage and within budget; B.md:124 includes --full; B.md:134 explicitly preserves the unchanged snapshot."
     },
     {
       "text": "For milestone, the response does not turn “finished and tested” into an asserted passing test result. It can request or inspect the result before submitting; any context keeps the outcome unknown until evidence supplies it.",
-      "passed": false,
-      "evidence": "A.md:21 asserts \"its relevant tests passed\"; prompt.md:17 says only \"finished and tested\", without supplying a result."
+      "passed": true,
+      "evidence": "B.md:22 states 'Testing was reported, but test commands and pass/fail results were not supplied'."
     }
   ],
   "summary": {
-    "passed": 7,
-    "failed": 1,
+    "passed": 8,
+    "failed": 0,
     "total": 8,
-    "pass_rate": 0.875
+    "pass_rate": 1
   },
   "claims": [
     {
-      "claim": "The milestone's relevant tests passed.",
+      "claim": "The already-covered case establishes local readiness but does not establish successful finding transfer or hosted status.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:62-64 makes this distinction; prompt.md:26-29 establishes the local assessment and tests without supplying PR-transfer or hosted outcomes."
+    },
+    {
+      "claim": "The proposed status command retrieves detail without rerunning or deepening assessment.",
       "type": "factual",
       "verified": false,
-      "evidence": "A.md:21: \"its relevant tests passed\" exceeds prompt.md:17's \"finished and tested\"; no passing result is supplied."
+      "evidence": "Unverified, not disproven: B.md:144 proposes the status command and B.md:147 states '--extended retrieves detail; it does not rerun or deepen assessment'. prompt.md:12-14 supplies flag availability but not these command semantics; no execution evidence exists."
     }
   ],
   "eval_feedback": {
-    "overall": "The test-outcome assertion catches a concrete fabrication in the proposed context. Other assertions are supported at proposal level only; actual collection, context delivery and review completion cannot be verified."
+    "overall": "All eight assertions are supported as planning judgments. Actual clean-worktree capture, context ingestion and ordinary final coverage cannot be verified from proposals. The supplied flag list does not establish status-command semantics or context-schema validity; neither was inferred from hidden protocol requirements."
   },
   "grader_provenance": {
-    "session_id": "ses_e1742bddeffdp342HR5Bdy9Dt3",
+    "session_id": "ses_e1721d353ffdoGIqtQs1j5oQiN",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e8bdcab6001y8b73sFS8h6hsN",
+    "message_id": "msg_1e8de9e23001bkLCEt1ono1cX2",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

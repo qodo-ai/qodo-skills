@@ -7,12 +7,12 @@
       "source_kind": "current working instruction bytes",
       "release_metadata_version": "1.10.15",
       "fingerprints": {
-        "SKILL.md": "ce8da4f08ceb1a4de6682153b30e81fe3d75f2d7a7832b71c7591b82bd5aaad5",
-        "references/cli-execution.md": "2415c565714cf1f91b3b86f706db56388fb8229921eba4d4156d0d0d4093ec2c",
+        "SKILL.md": "94d6bb1ad3f74a9397575ed5edcae778bc667732464a94e6daa07d8c438c3cce",
+        "references/cli-execution.md": "f43352c17097bfde9469aaa899e5af5b552da9eb5d9afe0b27723588203e45a1",
         "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
         "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
         "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
-        "references/local-triage.md": "70f786a5bd8d88a3b6be52f4a0bc1e4bee033349d6225bec95bdc1da99d6628c",
+        "references/local-triage.md": "9b22313f9009433b1f25cf9899b334f600a7c3c4e35353c1e9c9d9f37b9bbac5",
         "references/mcp-review.md": "515aec12ec37f630a27170c16236d066efc51ac666e299e13f5bd3f6b6bd4c68",
         "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
         "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
@@ -21,16 +21,17 @@
       }
     },
     "baseline": {
-      "source_commit": "44ed636386f6b289f9b5bd0db510f204deb10507",
+      "source_commit": "173cfc700e4ee8a83c20e47abc1edfcd75612354",
       "source_kind": "immutable Git commit",
+      "release_metadata_version": "1.10.15",
       "fingerprints": {
-        "SKILL.md": "b34cc9ccc940bc3a189cd02c8b94abcbb14dab084b90421c1e8b31c5ce7460b3",
-        "references/cli-execution.md": "adbe32a1b6576572ade8c0cfcca1f3c3d041683f27e33b6a4197840849db3a65",
+        "SKILL.md": "ce8da4f08ceb1a4de6682153b30e81fe3d75f2d7a7832b71c7591b82bd5aaad5",
+        "references/cli-execution.md": "2415c565714cf1f91b3b86f706db56388fb8229921eba4d4156d0d0d4093ec2c",
         "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
         "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
         "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
-        "references/local-triage.md": "190e90a856460b96e802c2731a35ecc6ac6ff60dd6b3ec8015807d71d5bd2885",
-        "references/mcp-review.md": "622e35b07423ed75c3f90eda49c8c0ae7d1788ab2de47260a564d634ed7745e2",
+        "references/local-triage.md": "70f786a5bd8d88a3b6be52f4a0bc1e4bee033349d6225bec95bdc1da99d6628c",
+        "references/mcp-review.md": "515aec12ec37f630a27170c16236d066efc51ac666e299e13f5bd3f6b6bd4c68",
         "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
         "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
         "references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
@@ -70,9 +71,9 @@
           "grading": "compatibility-boundaries/candidate/grading.json",
           "provenance": "compatibility-boundaries/candidate/provenance.json",
           "artifacts": {
-            "compatibility-boundaries/candidate/response.md": "21b9c7c75172bb427ebbc0494cd386a6c320afd5212a0d95b88492c85d16202f",
-            "compatibility-boundaries/candidate/grading.json": "d93a6df7cba37984d612e09316e70e77e0aaf7ff913f4142f31f9a26f5d4bdc8",
-            "compatibility-boundaries/candidate/provenance.json": "6807604e6951694d098fa6d24fda78ebb9185d8f917391a62250efbf7082b484"
+            "compatibility-boundaries/candidate/response.md": "2d87de492367dcbe17ce70b848c3dc663f36f5b0c79080b704c91c20b1b71dd7",
+            "compatibility-boundaries/candidate/grading.json": "29fc90ddda09eac02c5710f525e8a8ede3a33efcd951a1260f3e05d9b7826ddf",
+            "compatibility-boundaries/candidate/provenance.json": "927fab1b5d385b989ad6dff4d270dccb7ba5301c200348faca34bc44a4c92d82"
           }
         },
         "baseline": {
@@ -80,9 +81,9 @@
           "grading": "compatibility-boundaries/baseline/grading.json",
           "provenance": "compatibility-boundaries/baseline/provenance.json",
           "artifacts": {
-            "compatibility-boundaries/baseline/response.md": "89ead57523b10dcf43c5af24249e297a91f1322ae61549ef59bae4aa599089ee",
-            "compatibility-boundaries/baseline/grading.json": "da34b4879a11fe15ad15136dd346bc820f86dfc0fc9bc26f5c3c265bda11c908",
-            "compatibility-boundaries/baseline/provenance.json": "dc6d167554639fc4a47e79faaba10c7f48e5aba6e6e6519c44f5ef9bed5dc378"
+            "compatibility-boundaries/baseline/response.md": "b70b2eb236650f5681fff0772362e8bf3297b92efd5f6296d8c66efad8a582d1",
+            "compatibility-boundaries/baseline/grading.json": "b46b80cccd1e7bc7d643a412b5321729ac3cdfccdc3cd016dfc15126c6db73a7",
+            "compatibility-boundaries/baseline/provenance.json": "e82707e303edc1b28edb3e41c9dd912c3b1bf7237ba6ce24d537c7c557d3977c"
           }
         }
       }
@@ -106,9 +107,9 @@
           "grading": "fallback-invocation/candidate/grading.json",
           "provenance": "fallback-invocation/candidate/provenance.json",
           "artifacts": {
-            "fallback-invocation/candidate/response.md": "dd608be927365cb5535804d2f036e5138fc5672738c082dfcbd71f4a9989bf2d",
-            "fallback-invocation/candidate/grading.json": "a79c288dfa483f93761c84659db8448908a1e92010b70b2a0eaf508ab7c8b8b7",
-            "fallback-invocation/candidate/provenance.json": "b8eb7ed331bae64576024a1d609d8d321fa8255a83b243101ba39a03ac2f78d6"
+            "fallback-invocation/candidate/response.md": "3c64014a4d683580a1cabc180629501ab886461fd8cbac8aba905d059e7d5e29",
+            "fallback-invocation/candidate/grading.json": "b55ed3eaac84f934b2ed6cbad0d05f3e3d9c1c575b40ca4ec224d0601fa5bcb6",
+            "fallback-invocation/candidate/provenance.json": "c84179e94ec32011b34188e85838fa07b36f1343722c539b37740ae7bce3f7a5"
           }
         },
         "baseline": {
@@ -116,9 +117,9 @@
           "grading": "fallback-invocation/baseline/grading.json",
           "provenance": "fallback-invocation/baseline/provenance.json",
           "artifacts": {
-            "fallback-invocation/baseline/response.md": "d787996c9db8b008ef8d5220c5347b86ae42fa3435fa1008098f0f39543da794",
-            "fallback-invocation/baseline/grading.json": "7cba45b7fa422aa35eef454218b2252491e7a61f53ddde54a64fa99c5ef78f9d",
-            "fallback-invocation/baseline/provenance.json": "5c5284b27f8df48461eceef4117285bce9428af9ba0a49651c49f7cd12095144"
+            "fallback-invocation/baseline/response.md": "cd7aad28a1407cf7ddbe6af191f6fb4bc4fca32ab08b0cdf7aaedb97ac13dae2",
+            "fallback-invocation/baseline/grading.json": "5a865705d5cc86cfe4a8016cbb8e86ec5022107c60b71cb03c9c09ca80958daf",
+            "fallback-invocation/baseline/provenance.json": "3b7b30646f56497f629186c9bfc78be772cbb1a99470e126a9a0a6ef2f259643"
           }
         }
       }
@@ -154,9 +155,9 @@
           "grading": "followup-and-finding-state/candidate/grading.json",
           "provenance": "followup-and-finding-state/candidate/provenance.json",
           "artifacts": {
-            "followup-and-finding-state/candidate/response.md": "06951d5f341e7774653d932bb956a283bd59bbb675ee5e606558bed142e19cc0",
-            "followup-and-finding-state/candidate/grading.json": "951f54b183b806f0715a2bab5a763330e714ec2cbef097065d02ab2c75fe9c65",
-            "followup-and-finding-state/candidate/provenance.json": "428732449e4ed24b84cd6b5a405d86fe5905cba692860314d6492b9219046040"
+            "followup-and-finding-state/candidate/response.md": "8926b5f12fbbe50e78e6011d354cc39125fb1a56cde415bc92cae67f74078a53",
+            "followup-and-finding-state/candidate/grading.json": "995a85e03d0b0b327b6dd9569effe76b08b8572b413fe01b6d5ef4134adb8565",
+            "followup-and-finding-state/candidate/provenance.json": "47d6f7b299412463f637d165d2fe9126b240f8f46cdad9461c066ff03261edf4"
           }
         },
         "baseline": {
@@ -164,9 +165,49 @@
           "grading": "followup-and-finding-state/baseline/grading.json",
           "provenance": "followup-and-finding-state/baseline/provenance.json",
           "artifacts": {
-            "followup-and-finding-state/baseline/response.md": "7b0fdcb79c655f9ef2cfe322fc70026ccf27776398bb33d3bb49ea990e7fab8e",
-            "followup-and-finding-state/baseline/grading.json": "0a111928121af9e44454f714cc0cf4711ae483d58bb3e4a5f5b7358e922f94e8",
-            "followup-and-finding-state/baseline/provenance.json": "901f8a9dca1ba54d09890eae392b868fe4bff7f34042f42855358413855628a5"
+            "followup-and-finding-state/baseline/response.md": "41b1b5ee0f1e677467693cfdd3427845de32b396460f8837bbcc5ce4effaed35",
+            "followup-and-finding-state/baseline/grading.json": "a545de77305acf85f18fdb20173a658b996d415d003de328a6969db8b0db3280",
+            "followup-and-finding-state/baseline/provenance.json": "6ecf5357c9da9f1b0ea53d30e3477c9e9b0afb28983886c19a9b66a7dec64812"
+          }
+        }
+      }
+    },
+    {
+      "name": "mcp-local-triage",
+      "prompt_sha256": "f2e2b7158db9dc97a270fb8935b06873130b3d7c8e0a77f5510effb398b0c496",
+      "assertions": [
+        {
+          "file": "01-metadata-key.md",
+          "sha256": "f843bbc9198fab144a11b03b5043e03998e344f0cb7907e24ef4d0661b860e9f"
+        },
+        {
+          "file": "02-no-unsafe-fallback.md",
+          "sha256": "675b31255735476b9efc06d6eb100818e325afcb68640b21d1dc7f7d52bd0c50"
+        },
+        {
+          "file": "03-honest-prior-outcomes.md",
+          "sha256": "99d13d3530fb6143d2bc73f563a0842397e6648c59f47e37860fc1c0304c5ebd"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "mcp-local-triage/candidate/response.md",
+          "grading": "mcp-local-triage/candidate/grading.json",
+          "provenance": "mcp-local-triage/candidate/provenance.json",
+          "artifacts": {
+            "mcp-local-triage/candidate/response.md": "13fcd183f7bc9b795121ef9b879555a49d946be51aaedbc642fca10f2f6b0868",
+            "mcp-local-triage/candidate/grading.json": "df5321592e1f06c9e2ee8f643b80661f7f7d19d3ec654bc2751a1e83d45105f8",
+            "mcp-local-triage/candidate/provenance.json": "82d98912bb9f1172a791c52ef2bab461bfda27d7e9e0c20de6e815c70b22f99d"
+          }
+        },
+        "baseline": {
+          "response": "mcp-local-triage/baseline/response.md",
+          "grading": "mcp-local-triage/baseline/grading.json",
+          "provenance": "mcp-local-triage/baseline/provenance.json",
+          "artifacts": {
+            "mcp-local-triage/baseline/response.md": "9831e748e2ee577a3cc74262cee3c2fb364d545d7d5a14b34bb184f7fdc69193",
+            "mcp-local-triage/baseline/grading.json": "128d2f10bb851034b97d83bf0e6847ef0e22ceb7b39bf664e72800673d91ea07",
+            "mcp-local-triage/baseline/provenance.json": "89d450a2ef48d1e9160fe34930345a7d4282c70af027057243337cab28913c1c"
           }
         }
       }
@@ -214,9 +255,9 @@
           "grading": "milestone-and-final-scope/candidate/grading.json",
           "provenance": "milestone-and-final-scope/candidate/provenance.json",
           "artifacts": {
-            "milestone-and-final-scope/candidate/response.md": "462993f78b03a8733167bd835e14bbd2f10c4ed114e384b066d0ea6c9a935293",
-            "milestone-and-final-scope/candidate/grading.json": "4f7ade9b723dc448d94666dba614e5b9ce1eb3c4f58a33a55340f436e08e682a",
-            "milestone-and-final-scope/candidate/provenance.json": "5c27672e2bd43660026c80c55bb48b9787d281680600e45336e9f439c75bfc71"
+            "milestone-and-final-scope/candidate/response.md": "17a962d5a9f0467df575f736dd7fd635e55564c10ffbdb0c5081e016ade206c5",
+            "milestone-and-final-scope/candidate/grading.json": "97c9e949d8785e015b37625e154aee65f3312ea3f403441642066c7ef3ce64ea",
+            "milestone-and-final-scope/candidate/provenance.json": "d0e9bfd622f7295f4476ad4e78af93670c9efa4fae6123d7a2771182b5111a1e"
           }
         },
         "baseline": {
@@ -224,9 +265,9 @@
           "grading": "milestone-and-final-scope/baseline/grading.json",
           "provenance": "milestone-and-final-scope/baseline/provenance.json",
           "artifacts": {
-            "milestone-and-final-scope/baseline/response.md": "ac6360648a989b81063ecbcedb21838812c73302c21bb62f361e5d4e72ab6679",
-            "milestone-and-final-scope/baseline/grading.json": "0631906bead3e87d719fd323352b73305ea2442b5dc803bc849645eb2aaefdf1",
-            "milestone-and-final-scope/baseline/provenance.json": "08ee5abb6aff23b027bcd1808fc41519c18aefe92395cc1a78a34a5cc4be3bf0"
+            "milestone-and-final-scope/baseline/response.md": "90a007133bd8c0dc81047b70e202c9113674d7fa91ff90dd7d73bf67139c6776",
+            "milestone-and-final-scope/baseline/grading.json": "8ccc2bb030a77b0e16e406b42beed953991952650fe93617ffb7f122a962c94b",
+            "milestone-and-final-scope/baseline/provenance.json": "255e5f3d2f4bb89b10e8bb1f86299756bbabcdabf2965b589f914a876b1fbd34"
           }
         }
       }
@@ -266,9 +307,9 @@
           "grading": "recovery-and-readiness/candidate/grading.json",
           "provenance": "recovery-and-readiness/candidate/provenance.json",
           "artifacts": {
-            "recovery-and-readiness/candidate/response.md": "c824faf687495e15cbd039f5d8d71ea43503036e195a80eb25d15d5f97fb0a3e",
-            "recovery-and-readiness/candidate/grading.json": "023a18c902b0e8d2236f8053ab2684376795966807f11e69e82310f574317f4e",
-            "recovery-and-readiness/candidate/provenance.json": "b095162c53a3986ed4744574e0fa6b8ab239fc260f5b8ce5cf8960854be45c43"
+            "recovery-and-readiness/candidate/response.md": "74a1f2fd1e12d4538eb13b8c67946b8b4a454af8430e4e088e0bc923e0459b12",
+            "recovery-and-readiness/candidate/grading.json": "b33b9bba6002752164ac20992faed9573d35881ff616e772cd5317d204af693c",
+            "recovery-and-readiness/candidate/provenance.json": "bd56c43c4caf9a17d5ddeeca6dfba880bf4f6e23c17475afeb580042f1f8a97f"
           }
         },
         "baseline": {
@@ -276,9 +317,9 @@
           "grading": "recovery-and-readiness/baseline/grading.json",
           "provenance": "recovery-and-readiness/baseline/provenance.json",
           "artifacts": {
-            "recovery-and-readiness/baseline/response.md": "6351a96d6b5a9a637ea4815fb82da84f7c875897afe4d04bd156ccbeb9ebe941",
-            "recovery-and-readiness/baseline/grading.json": "3d2686fb6c2610a2cb8fe9755fad18f6bd840e1ff0ddd351a945e9a1fb625cb4",
-            "recovery-and-readiness/baseline/provenance.json": "b0800c7450732f755aa22c8a2df9bb5ed2d1e508bd39ad39973f627031db163a"
+            "recovery-and-readiness/baseline/response.md": "9d4dfb466697a8c4808cbef08e4778bd3687bf0bb8abe97517f7118959d75ba4",
+            "recovery-and-readiness/baseline/grading.json": "d776ab34769f0b8d0b1454e35f0e3dc964f4cc48704df8dd69fdc487ccbf6266",
+            "recovery-and-readiness/baseline/provenance.json": "2fbea42ad9d5d7f3eaa5d9e1d42588900124e8fc8be80c59cd6982e61a241f23"
           }
         }
       }
@@ -306,9 +347,9 @@
           "grading": "recovery-policy-guards/candidate/grading.json",
           "provenance": "recovery-policy-guards/candidate/provenance.json",
           "artifacts": {
-            "recovery-policy-guards/candidate/response.md": "b4dcbd6b8fb5c703dc70e61bff6eace5d07c9ae627c5470528413d1514f06bd6",
-            "recovery-policy-guards/candidate/grading.json": "3524001625a602fab27d8c87be0593015555dc255ef11aaf033dc064bddc16c4",
-            "recovery-policy-guards/candidate/provenance.json": "6ec51ff687bffa1515569ccd974eff34e19ddd374eaac8f1f9be1d52538eb584"
+            "recovery-policy-guards/candidate/response.md": "732317f4f197eab90c016e21afef1a371a3899b0a5173b3d43aceabc192f8a5f",
+            "recovery-policy-guards/candidate/grading.json": "54bbce160c676b86a1fc659c3fcb0311fb9444385ef34beb982d057484561fc7",
+            "recovery-policy-guards/candidate/provenance.json": "51e3e9f8c5e30142815e2e1d8f4227f4f8b31f9956e91ba902af9e660fd15aed"
           }
         },
         "baseline": {
@@ -316,9 +357,9 @@
           "grading": "recovery-policy-guards/baseline/grading.json",
           "provenance": "recovery-policy-guards/baseline/provenance.json",
           "artifacts": {
-            "recovery-policy-guards/baseline/response.md": "61eda6a141d15b43a9f737e1ef4be1981515117fc0a5142dcebe988c4185bba4",
-            "recovery-policy-guards/baseline/grading.json": "70d42437e88b7516e364cc30c30a7b2f9720e85725055ce74d84e20164552d26",
-            "recovery-policy-guards/baseline/provenance.json": "962a1965ce05652a4927b42c386bfa6dfd368867278367b64348c23556b612a5"
+            "recovery-policy-guards/baseline/response.md": "6d4d317a9922f14b4fea747806ec9c7af1cbfce96d23e40a589db34522315361",
+            "recovery-policy-guards/baseline/grading.json": "a665723066d924e710272ead0deb6d4a1c072f2270aafc11763fde7af5f1b545",
+            "recovery-policy-guards/baseline/provenance.json": "94fa1565b413a9a752f1533290ba7434ec8d028cd6522af5681e0b9f64a5d945"
           }
         }
       }
@@ -326,15 +367,27 @@
   ],
   "scores": {
     "candidate": {
-      "passed": 29,
-      "total": 29
+      "passed": 32,
+      "total": 32
     },
     "baseline": {
-      "passed": 27,
-      "total": 29
+      "passed": 32,
+      "total": 32
     }
   },
   "status": "passed",
+  "adjudication": {
+    "reason": "The original anonymous fallback grades treated omitted effort flags as unknown. The same grader reassessed against actual CLI help documenting no flag=auto, without rerunning or changing either answer.",
+    "original_assertion_totals": {
+      "candidate": "31/32",
+      "baseline": "31/32"
+    },
+    "artifacts": {
+      "adjudication/baseline-original-grading.json": "e1d8fe008de266b6c01e68f3856cb3f65bc0c62c74c58a41600d0c03fb74e816",
+      "adjudication/candidate-original-grading.json": "238c25b1f3ff029bb1d64983efb63a1634581a0d003a6af260c9effaada6a091",
+      "adjudication/qodo-review-auto-help-evidence.txt": "436db2735276b25d7c27c4261a91c20eb4a1f905cc7809e53913560c1b83df16"
+    }
+  },
   "pre_correction": {
     "source_fingerprints": {
       "SKILL.md": "494e7ddae3f06a1a7f83c90e2c1c4ad8d5651d50c24ddd65f23f2d90816582dd",

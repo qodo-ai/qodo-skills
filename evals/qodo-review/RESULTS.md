@@ -1,6 +1,73 @@
 # Agent-evaluation results
 
-## Current readiness comparison (iteration 6)
+## Current safety-correction comparison (iteration 7)
+
+Fourteen fresh OpenCode executions on 2026-11-17 consulted the corrected instructions
+or the preceding signed `173cfc700e4ee8a83c20e47abc1edfcd75612354` instructions.
+Seven anonymous graders evaluated the final-answer proposals. Each configuration
+has one run per group; no operational Qodo/Git/installer/finding commands ran.
+
+| Group | Candidate | Prior `173cfc7` |
+|---|---:|---:|
+| Milestone and final scope | 8/8 | 8/8 |
+| Compatibility boundaries | 5/5 | 5/5 |
+| Follow-up and finding state | 5/5 | 5/5 |
+| Recovery and readiness | 6/6 | 6/6 |
+| Fallback invocation | 2/2 | 2/2 |
+| Recovery policy guards | 3/3 | 3/3 |
+| MCP local triage | 3/3 | 3/3 |
+| **Assertion total** | **32/32** | **32/32** |
+
+Initial anonymous totals were **31/32 for both**. The fallback grader treated the
+auto default as unspecified. The same grader reassessed the unchanged outputs
+against actual CLI help documenting “no flag = auto”; neither command used an
+effort override. Its revised judgments and the
+[original judgments/help evidence](../../test/fixtures/qodo-review-behavior/adjudication/)
+are retained. No execution was rerun or failed answer silently edited to obtain 32/32.
+
+The candidate main is **296 lines / 18,958 bytes**:
+
+```text
+main       94d6bb1ad3f74a9397575ed5edcae778bc667732464a94e6daa07d8c438c3cce
+with refs  9a1e179726950faba1d6b8766b0c126df25db0061b7cdd11d6d07698fc2a5924
+```
+
+[The manifest](../../test/fixtures/qodo-review-behavior/manifest.json) identifies every
+instruction, prompt, assertion and retained artifact. Candidate/baseline final answers,
+judgments and runtime-reported provenance are inspectable under
+[the evidence directory](../../test/fixtures/qodo-review-behavior/).
+The new MCP case covers metadata-only replay keys, a host lacking replay transport,
+and preservation of prior/conflicting outcomes. Both versions passing these explicit
+fixtures is not evidence that the prior wording reliably handled those cases.
+
+All counted assertions pass in both configurations, so these scores establish no
+rubric uplift. In the finding case, the current answer distinguishes F-HELPER's
+settlement from whole-scope readiness; the prior answer still overclaims readiness.
+That qualitative difference is outside the counted finding assertion. Graders also
+flag protocol facts not independently established by their limited fixture inputs.
+Read `claims` and `eval_feedback`; 32/32 is not perfect grounding or reliability.
+
+The evaluator's trust-mode, symlink-input, missing-snapshot and malformed-grade fixes
+are checked by deterministic negative tests, not by these proposal-only agent runs.
+The standard Claude wrapper omits machine JSON mode so first-use trust can prompt
+normally; it never auto-trusts the plugin. Staging/manifest validation ran, but
+**its billed model execution remains unperformed**. First-use execution requires an
+interactive terminal. No natural activation or real old-runtime qualification is claimed.
+
+Default CI checks recorded-evidence integrity/freshness, exact assertion text,
+boolean verdicts and consistent summaries. It does not execute a model or independently
+reproduce these author-recorded runs. Only catalog-owned release version/attribution
+stamps are normalized; original raw instruction hashes remain intact.
+Safe provenance records model/timing/token/read-call fields, not reasoning text or raw
+session archives. Read-only inputs and tool counts are not an OS confinement audit.
+Cache-inclusive token counts and message timing do not establish cost or latency savings.
+
+The standard skill-creator viewer was generated with iteration 6 as its previous
+workspace. [Iteration 6 artifacts](../../test/fixtures/qodo-review-behavior/history/iteration-6/)
+and the pre-correction iteration 5 failure remain preserved. No older score is
+relabeled as validation of these newer instruction bytes.
+
+## Historical readiness comparison (iteration 6, `173cfc7`)
 
 On 2026-11-17, twelve fresh OpenCode agents consulted exact candidate or baseline
 instructions across six groups. Six independent graders received anonymous A/B
@@ -34,10 +101,10 @@ with refs  1086c348a628993d67ae970b89c6b751184007ea0509f52c8b824cda21bc427d
 ```
 
 These identify the instruction bytes, independently of the eventual source commit.
-The [evidence manifest](../../test/fixtures/qodo-review-behavior/manifest.json)
+The [evidence manifest](../../test/fixtures/qodo-review-behavior/history/iteration-6/manifest.json)
 records every instruction, prompt, assertion and retained-answer fingerprint.
 Each case has candidate/baseline `response.md`, `grading.json` and `provenance.json`
-under [the evidence directory](../../test/fixtures/qodo-review-behavior/).
+under [the evidence directory](../../test/fixtures/qodo-review-behavior/history/iteration-6/).
 Grader A/B labels are retained in each run's provenance.
 Host-specific temporary roots were normalized to `/outside`; original and retained
 response hashes are separate. No reasoning text, secrets or raw session archives
