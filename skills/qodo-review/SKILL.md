@@ -20,7 +20,7 @@ Use this skill for local changes, including unpushed work on an existing PR. Use
 
 ## Prerequisites
 
-- An authenticated Qodo CLI is available, or a connected QAR MCP server and a tested local input collector are available; review capability is enabled.
+- An authenticated Qodo CLI is available, or a connected QAR MCP server and ordinary local Git tools are available. Review capability is enabled.
 - The comparison base exists on the remote; local changes and context need not be pushed.
 - The coding-session context and any ticket or design references are ready to attach.
 
@@ -76,14 +76,16 @@ For authorized notes maintenance, use `qodo-review-notes` during planning and de
 ## Instructions
 ### Choose the execution path
 
-Prefer `qodo review` when available: it gathers and filters tracked and untracked local changes, resolves the remote base, attaches context, and manages checkpoint state. The QAR MCP
-`start-pre-pr-review` tool instead accepts a prepared `diff`, `base_sha`, repository locator, and context; it cannot read this worktree. Use that MCP tool only when a tested local collector
-has produced the same intended scope and exclusions, reported omitted files, and verified that the base SHA is fetchable. Do not assemble an ad hoc `git diff` and call it equivalent coverage.
-If no collector is available, report that MCP-only local review cannot safely cover this worktree; do not claim a completed review.
+For MCP, read [native collection and repeat reviews](references/mcp-local-review.md) before preparing inputs.
+Use the trusted connected QAR server and ordinary local tools to collect the diff, scope and advertised history.
+No Qodo CLI, additional MCP server or collector program is required.
+The remote server cannot read this worktree from a path. Stop if local collection cannot establish the requested coverage.
+When using the CLI, `qodo review` gathers and filters local changes, resolves the remote base, attaches context and manages checkpoint state.
 
-For a prepared MCP review, inspect the live schema. Set `review_scope.stream_id` to exactly 64 lowercase hexadecimal characters: SHA-256 of a JSON array containing the resolved real worktree root, plus the resolved working directory for path-limited reviews. Reuse it across checkpoints; a UUID is invalid.
-Retain the same `request_id` and exact arguments for an uncertain start: `request_id` is this start tool's logical-action retry key, and no separate `idempotency_key` argument is declared. Poll `get-managed-agent-operation` at its advertised interval, then fetch all `get-managed-agent-result` chunks and verify their reported digest and byte count before interpreting the artifact.
-These are short lifecycle calls, not MCP Tasks. Check `isError` before reading a receipt. Apply the same context, depth, coverage, finding, and authority rules below. CLI version, identity, and command instructions below apply only to the CLI path.
+Apply the same context, depth, coverage, finding and authority rules below. CLI version and command instructions apply only to the CLI path.
+For MCP, send `depth="fast"` for automatic checkpoints, omit depth for auto, and use `depth="deep"` only with the same justification.
+Always send the full current diff. Retain completed checkpoint receipts and the exact submitted snapshots for repeat reviews.
+Missing local state does not prove the server lacks history. Do not force full merely because a local receipt is unavailable.
 
 Preserve notices, attach self-contained context, show progress, use a suitable timeout,
 read the structured result, and act on findings.
