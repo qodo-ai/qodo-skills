@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { inputPath, main, prepareReviewEvaluation } from '../scripts/eval-review-skill.mjs';
+import { inputPath, main, prepareReviewEvaluation, requireEvaluationSupport } from '../scripts/eval-review-skill.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skill = join(root, 'skills/qodo-review');
@@ -32,18 +32,33 @@ function assertCaseInputs(directory, item, boundary = root) {
 
 function assertBaselineSnapshot(evidenceRoot, snapshot) {
   assert.match(snapshot.source_commit, /^[a-f0-9]{40}$/);
-  const archive = fixtureFile(evidenceRoot, snapshot.git_objects.path);
-  assert.equal(sha256(archive), snapshot.git_objects.sha256, 'Baseline object archive changed');
+  const bytes = fixtureFile(evidenceRoot, snapshot.git_objects.path);
+  assert.equal(sha256(bytes), snapshot.git_objects.sha256, 'Baseline object snapshot changed');
+  const archive = JSON.parse(bytes);
+  assert.equal(archive.schema_version, 1);
+  assert.equal(archive.source_commit, snapshot.source_commit);
   const temporary = mkdtempSync(join(tmpdir(), 'qodo-evidence-baseline-'));
   try {
-    // A minimal Git object archive keeps the exact signed source inspectable after squash merges.
+    // Readable Git objects keep the exact signed source inspectable after squash merges.
     // Only this temporary object store is written; no refs, hooks or signing settings are changed.
     const git = (args, input, encoding = 'utf8') => execFileSync('git', args, {
       cwd: temporary, input, encoding, stdio: ['pipe', 'pipe', 'pipe'],
       env: Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^GIT_/i.test(name))),
     });
     git(['init', '--bare', '--quiet']);
-    git(['index-pack', '--stdin'], archive);
+    for (const object of archive.objects) {
+      assert.ok(['commit', 'tree', 'blob'].includes(object.type));
+      assert.match(object.sha1, /^[a-f0-9]{40}$/);
+      const content = object.type === 'tree' ? Buffer.concat(object.entries.map((entry) => {
+        assert.match(entry.mode, /^(?:040000|100644|100755|120000|160000)$/);
+        assert.ok(entry.name && !/[/\0]/.test(entry.name));
+        assert.match(entry.sha1, /^[a-f0-9]{40}$/);
+        return Buffer.concat([Buffer.from(`${entry.mode.replace(/^0+/, '')} ${entry.name}\0`),
+          Buffer.from(entry.sha1, 'hex')]);
+      })) : Buffer.from(object.content_utf8);
+      assert.equal(git(['hash-object', '-w', '-t', object.type, '--stdin'], content).trim(), object.sha1,
+        'Baseline Git object identity changed');
+    }
     const commit = snapshot.source_commit;
     assert.equal(git(['rev-parse', '--verify', `${commit}^{commit}`]).trim(), commit);
     const prefix = 'skills/qodo-review/';
@@ -206,6 +221,11 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }
+});
+
+test('paid evaluator execution requires the tool-exclusion capability while staging remains offline', () => {
+  assert.throws(() => requireEvaluationSupport('Usage: claude plugin eval [--runs]'), /2\.1\.299/);
+  assert.doesNotThrow(() => requireEvaluationSupport('Usage: claude plugin eval --disallow-tools <tools>'));
 });
 
 test('evaluation rejects symlinked files and ancestors instead of staging host inputs', (t) => {

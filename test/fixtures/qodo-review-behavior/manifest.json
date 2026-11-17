@@ -38,9 +38,9 @@
         "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
       },
       "git_objects": {
-        "path": "snapshots/baseline.pack",
-        "sha256": "bacf1d3a0b4c4a72a6e05c84f3f6a3c5957509657aa154587b2fb46e3463fd17",
-        "description": "Minimal signed commit, path trees and Skill blobs. Git verifies object identities offline; unrelated history is not included."
+        "path": "snapshots/baseline.json",
+        "sha256": "b3dda8206a45dcd1ce1023637bf7e73171eeab0b6ae7e8c8f0950ab0c6e68cb6",
+        "description": "Original signed commit and source blobs as text, plus readable tree entries. Git verifies every object identity offline; unrelated history is not included."
       }
     }
   },
@@ -427,5 +427,5 @@
     "Only final answers and safe metadata from these current-task children were retained; host-specific temporary paths were explicitly normalized.",
     "Default CI checks artifact/source freshness and judgments; it does not execute a model. The standard evaluator is separately opt-in and has only been staged/validated here."
   ],
-  "integrity_correction": "Case YAML hashes were verified against both original staged iteration-7 inputs. A minimal Git object archive binds baseline hashes to the original immutable source without a new model execution."
+  "integrity_correction": "Case YAML hashes were verified against both original staged iteration-7 inputs. Readable Git objects bind baseline hashes to the original immutable source without a new model execution. The earlier binary archive was excluded from review input and is replaced by this explicit text representation."
 }

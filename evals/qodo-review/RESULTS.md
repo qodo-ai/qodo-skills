@@ -59,9 +59,14 @@ boolean verdicts and consistent summaries. It does not execute a model or indepe
 reproduce these author-recorded runs. Only catalog-owned release version/attribution
 stamps are normalized; original raw instruction hashes remain intact.
 The later integrity correction adds case-YAML hashes checked against both original
-staged inputs, a minimal Git object archive proving the immutable baseline's file
+staged inputs, a readable Git object snapshot proving the immutable baseline's file
 hashes, and symlink-safe artifact reads. Instructions, case inputs, answers and grades
 did not change, and no agent execution was repeated for that tooling correction.
+The first binary representation of those Git objects was excluded from local
+review input; coverage was reported incomplete. It was replaced with readable
+commit/blob text and tree entries rather than treating the omission as full coverage.
+The evaluator prerequisite is2.1.299+ with `--disallow-tools`, checked through offline
+help before a billed run; staging still does not execute a model or require Claude.
 Safe provenance records model/timing/token/read-call fields, not reasoning text or raw
 session archives. Read-only inputs and tool counts are not an OS confinement audit.
 Cache-inclusive token counts and message timing do not establish cost or latency savings.

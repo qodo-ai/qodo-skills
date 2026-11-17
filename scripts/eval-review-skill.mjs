@@ -10,6 +10,12 @@ export const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const json = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 
+export function requireEvaluationSupport(help) {
+  if (!help.includes('--disallow-tools')) {
+    throw new Error('--run requires Claude Code 2.1.299 or newer with plugin eval --disallow-tools; staging alone does not require it.');
+  }
+}
+
 export function inputPath(root, path, kind) {
   const location = relative(root, path);
   if (!location || isAbsolute(location) || location === '..' || location.startsWith(`..${sep}`)) {
@@ -150,6 +156,7 @@ export function main(argv = process.argv.slice(2)) {
     console.log('Prepared only. --run opts into billed model evaluation on your Claude account; normal trust prompts remain enabled.');
     return 0;
   }
+  requireEvaluationSupport(execFileSync('claude', ['plugin', 'eval', '--help'], { encoding: 'utf8' }));
   const result = spawnSync('claude', prepared.args, { stdio: 'inherit', cwd: prepared.directory });
   if (result.error) throw result.error;
   console.log(JSON.stringify({ status: 'evaluator_exited', exit_code: result.status,

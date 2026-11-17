@@ -15,7 +15,9 @@ the current Skill, all seven cases and their graders as a minimal plugin. It pri
 the exact `claude plugin eval` command and an instruction fingerprint manifest.
 Staging does not run a model. Add `--run` only to opt into billed evaluation on
 your Claude account; normal plugin trust prompts remain enabled. The installed
-CLI must expose `claude plugin eval` (Claude Code 2.1.269 or later).
+CLI must expose `claude plugin eval --disallow-tools` (Claude Code 2.1.299 or later).
+Before `--run`, the wrapper checks that option through offline help; it never
+silently drops tool restrictions for an older evaluator. Staging itself needs no Claude CLI.
 `--ref <commit-sha>` uses that immutable Skill snapshot with the current cases.
 First-use trust requires an interactive terminal. The command intentionally omits
 the evaluator's `--json` mode, which suppresses its trust prompt; aggregate JSON
@@ -69,7 +71,7 @@ These totals do not cover every claim, establish reliability or demonstrate upli
 Default `npm test` runs offline source/package/staging checks and verifies that
 the recorded candidate evidence passes, covers every assertion and matches current
 instructions and prompts. Missing, stale or failed evidence fails that gate.
-Case YAML is fingerprinted too. The baseline's minimal Git object archive binds
+Case YAML is fingerprinted too. The baseline's readable Git object snapshot binds
 its raw instruction hashes to the stated signed commit, including in shallow or
 squash-merged checkouts. Artifact reads reject symlinked files and ancestors.
 Only release-owned version/provenance stamps are mapped to their evaluated values;
