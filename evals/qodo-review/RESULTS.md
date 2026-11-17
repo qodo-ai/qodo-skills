@@ -58,6 +58,10 @@ Default CI checks recorded-evidence integrity/freshness, exact assertion text,
 boolean verdicts and consistent summaries. It does not execute a model or independently
 reproduce these author-recorded runs. Only catalog-owned release version/attribution
 stamps are normalized; original raw instruction hashes remain intact.
+The later integrity correction adds case-YAML hashes checked against both original
+staged inputs, a minimal Git object archive proving the immutable baseline's file
+hashes, and symlink-safe artifact reads. Instructions, case inputs, answers and grades
+did not change, and no agent execution was repeated for that tooling correction.
 Safe provenance records model/timing/token/read-call fields, not reasoning text or raw
 session archives. Read-only inputs and tool counts are not an OS confinement audit.
 Cache-inclusive token counts and message timing do not establish cost or latency savings.

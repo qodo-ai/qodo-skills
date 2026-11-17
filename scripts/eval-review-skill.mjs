@@ -10,7 +10,7 @@ export const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const json = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 
-function inputPath(root, path, kind) {
+export function inputPath(root, path, kind) {
   const location = relative(root, path);
   if (!location || isAbsolute(location) || location === '..' || location.startsWith(`..${sep}`)) {
     throw new Error('Evaluation input must be inside the source repository.');

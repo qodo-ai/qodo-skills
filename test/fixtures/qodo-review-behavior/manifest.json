@@ -36,6 +36,11 @@
         "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
         "references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
         "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
+      },
+      "git_objects": {
+        "path": "snapshots/baseline.pack",
+        "sha256": "bacf1d3a0b4c4a72a6e05c84f3f6a3c5957509657aa154587b2fb46e3463fd17",
+        "description": "Minimal signed commit, path trees and Skill blobs. Git verifies object identities offline; unrelated history is not included."
       }
     }
   },
@@ -86,7 +91,8 @@
             "compatibility-boundaries/baseline/provenance.json": "e82707e303edc1b28edb3e41c9dd912c3b1bf7237ba6ce24d537c7c557d3977c"
           }
         }
-      }
+      },
+      "case_sha256": "c172b17fe1c3fc06064d207027c8828341e2d6e8333121f309fda2fa5f4848f0"
     },
     {
       "name": "fallback-invocation",
@@ -122,7 +128,8 @@
             "fallback-invocation/baseline/provenance.json": "3b7b30646f56497f629186c9bfc78be772cbb1a99470e126a9a0a6ef2f259643"
           }
         }
-      }
+      },
+      "case_sha256": "5e276667fd16a184130d0f8060ea11522d125aced722fd8cea5571e1ade67779"
     },
     {
       "name": "followup-and-finding-state",
@@ -170,7 +177,8 @@
             "followup-and-finding-state/baseline/provenance.json": "6ecf5357c9da9f1b0ea53d30e3477c9e9b0afb28983886c19a9b66a7dec64812"
           }
         }
-      }
+      },
+      "case_sha256": "f1225b1f7bbba5dae6e64759afd3517879f8d34267dbf5ba3caa6d2915624871"
     },
     {
       "name": "mcp-local-triage",
@@ -210,7 +218,8 @@
             "mcp-local-triage/baseline/provenance.json": "89d450a2ef48d1e9160fe34930345a7d4282c70af027057243337cab28913c1c"
           }
         }
-      }
+      },
+      "case_sha256": "6de835d90706e124f5ff8db9b3459f6d2771348306165fd3c5c617a7e23c26bf"
     },
     {
       "name": "milestone-and-final-scope",
@@ -270,7 +279,8 @@
             "milestone-and-final-scope/baseline/provenance.json": "255e5f3d2f4bb89b10e8bb1f86299756bbabcdabf2965b589f914a876b1fbd34"
           }
         }
-      }
+      },
+      "case_sha256": "e82ff751b5c08187469157855aab61f7831af6bfb248329e7010fb38a9b15ca0"
     },
     {
       "name": "recovery-and-readiness",
@@ -322,7 +332,8 @@
             "recovery-and-readiness/baseline/provenance.json": "2fbea42ad9d5d7f3eaa5d9e1d42588900124e8fc8be80c59cd6982e61a241f23"
           }
         }
-      }
+      },
+      "case_sha256": "c8962e6a2f35ecd5f67ea086851c1959d3889ba1e3a5631fd7c74e9eb9968b5d"
     },
     {
       "name": "recovery-policy-guards",
@@ -362,7 +373,8 @@
             "recovery-policy-guards/baseline/provenance.json": "94fa1565b413a9a752f1533290ba7434ec8d028cd6522af5681e0b9f64a5d945"
           }
         }
-      }
+      },
+      "case_sha256": "9384383358856d640f51809f2edb4830a66a04a271c2882738a76506cb4ec30c"
     }
   ],
   "scores": {
@@ -414,5 +426,6 @@
     "Metrics and read-tool counts are runtime-reported, not an OS filesystem confinement audit.",
     "Only final answers and safe metadata from these current-task children were retained; host-specific temporary paths were explicitly normalized.",
     "Default CI checks artifact/source freshness and judgments; it does not execute a model. The standard evaluator is separately opt-in and has only been staged/validated here."
-  ]
+  ],
+  "integrity_correction": "Case YAML hashes were verified against both original staged iteration-7 inputs. A minimal Git object archive binds baseline hashes to the original immutable source without a new model execution."
 }

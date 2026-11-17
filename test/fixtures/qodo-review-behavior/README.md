@@ -20,6 +20,12 @@ Missing, stale or failing candidate evidence fails that integrity gate.
 Release preparation updates the catalog-owned Skill version and CLI attribution
 stamp. The gate maps only those stamps to the evaluated version before comparison;
 all other instruction bytes must match. Original raw fingerprints stay unchanged.
+The current manifest also fingerprints each `case.yaml`, verified against both
+original staged evaluation inputs. `snapshots/baseline.pack` contains only the
+original signed commit, path trees and Skill blobs. The integrity test unpacks it
+in a private temporary Git object store and compares the actual immutable source
+hashes, without requiring network access or retention of the PR's branch history.
+Artifact and adjudication reads reject symlinked files and ancestor directories.
 The current comparison is32/32 for both versions after the documented auto-default
 adjudication. `adjudication/` retains both initial31/32 judgments and actual CLI help.
 `history/iteration-6/` preserves the earlier29/29 versus27/29 comparison at its
