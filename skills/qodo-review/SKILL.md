@@ -181,6 +181,8 @@ Keep the process alive. Never combine `--async` with `--progress`.
 
 An accepted operation is not a completed assessment.
 Poll the existing operation ID. Do not submit a new review to check progress or obtain more detail.
+Validate returned identities and artifact integrity before interpreting a result.
+Reject mismatched operation/snapshot associations and incomplete or noncontiguous result pages.
 If acceptance is uncertain, use the CLI's returned recovery command and retained original request.
 Do not gather a different worktree snapshot for that recovery.
 Preserve operation and recovery IDs across resumes. See [collection and recovery](references/cli-execution.md#submit-and-collect).
