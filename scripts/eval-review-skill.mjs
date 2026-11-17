@@ -1,7 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, copyFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
-  realpathSync, writeFileSync } from 'node:fs';
+import { chmodSync, lstatSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -33,17 +32,40 @@ export function inputPath(root, path, kind) {
   return current;
 }
 
-function copyTree(root, source, target) {
-  inputPath(root, source, 'directory');
-  mkdirSync(target, { recursive: true });
-  for (const entry of readdirSync(source, { withFileTypes: true })) {
-    if (entry.isDirectory()) copyTree(root, join(source, entry.name), join(target, entry.name));
-    else if (entry.isFile()) {
-      inputPath(root, join(source, entry.name), 'file');
-      copyFileSync(join(source, entry.name), join(target, entry.name));
-      chmodSync(join(target, entry.name), 0o444);
-    } else throw new Error(`Evaluation input is not a regular file: ${entry.name}`);
+function git(root, args, encoding = 'utf8') {
+  return execFileSync('git', ['--no-replace-objects', '-c', 'core.fsmonitor=false', ...args], {
+    cwd: root, encoding, maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^GIT_/i.test(name))),
+      GIT_NO_LAZY_FETCH: '1', GIT_OPTIONAL_LOCKS: '0' },
+  });
+}
+
+export function readGitEvaluationFiles(root, commit, prefix, select = () => true) {
+  if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('Evaluation inputs require a full 40-character commit SHA.');
+  const files = {};
+  for (const entry of git(root, ['ls-tree', '-r', '-z', commit, '--', prefix]).split('\0').filter(Boolean)) {
+    const tab = entry.indexOf('\t'), header = entry.slice(0, tab), path = entry.slice(tab + 1);
+    const match = header.match(/^100(?:644|755) blob ([a-f0-9]{40})$/);
+    if (!match) throw new Error(`Evaluation snapshot input must be a regular Git file: ${path}`);
+    const name = path.slice(prefix.length);
+    if (!path.startsWith(prefix) || /[\\:\r\n\t]/.test(name)
+      || name.split('/').some((part) => ['', '.', '..'].includes(part))) {
+      throw new Error('Unsafe evaluation snapshot path.');
+    }
+    if (!select(name)) continue;
+    const bytes = git(root, ['cat-file', 'blob', match[1]], 'buffer');
+    const objectId = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+    if (objectId !== match[1]) throw new Error('Evaluation Git blob identity changed.');
+    files[name] = bytes;
   }
+  return files;
+}
+
+function requireCommittedInputs(root, commit, paths) {
+  const changed = git(root, ['diff', '--no-ext-diff', '--no-textconv', '--name-only', commit, '--', ...paths])
+    || git(root, ['diff', '--cached', '--no-ext-diff', '--no-textconv', '--name-only', commit, '--', ...paths])
+    || git(root, ['ls-files', '--others', '--exclude-standard', '--', ...paths]);
+  if (changed.trim()) throw new Error('Commit the selected evaluation inputs before staging; working files are never copied.');
 }
 
 export function prepareReviewEvaluation({ root = repositoryRoot, parent = tmpdir(), ref } = {}) {
@@ -54,59 +76,40 @@ export function prepareReviewEvaluation({ root = repositoryRoot, parent = tmpdir
   if (!location || (location !== '..' && !location.startsWith(`..${sep}`) && !isAbsolute(location))) {
     throw new Error('Evaluation output must be outside the source repository.');
   }
-  const directory = mkdtempSync(join(canonicalParent, 'qodo-review-eval-'));
-  const plugin = join(directory, 'plugin');
-  const skill = join(plugin, 'skills/qodo-review');
-  mkdirSync(join(plugin, '.claude-plugin'), { recursive: true });
-  mkdirSync(skill, { recursive: true });
-  const prefix = 'skills/qodo-review/';
-  let paths;
-  let sourceCommit = null;
-  const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
-  if (ref) {
-    if (!/^[a-f0-9]{7,40}$/.test(ref)) throw new Error('--ref requires an immutable Git commit SHA.');
-    sourceCommit = git('rev-parse', '--verify', `${ref}^{commit}`);
-    paths = git('ls-tree', '-r', '-z', sourceCommit, '--', prefix).split('\0').filter(Boolean).map((entry) => {
-      const [header, path] = entry.split('\t');
-      if (!/^100(?:644|755) blob [a-f0-9]+$/.test(header)) {
-        throw new Error(`Evaluation snapshot input must be a regular file: ${path}`);
-      }
-      return path;
-    });
-  } else {
-    inputPath(canonicalRoot, join(root, prefix, 'references'), 'directory');
-    paths = [`${prefix}SKILL.md`, ...readdirSync(join(root, prefix, 'references'))
-      .filter((name) => name.endsWith('.md')).map((name) => `${prefix}references/${name}`)];
+  if (ref !== undefined && !/^[a-f0-9]{40}$/.test(ref)) throw new Error('--ref requires a full 40-character commit SHA.');
+  const fixtureCommit = git(root, ['rev-parse', '--verify', 'HEAD^{commit}']).trim();
+  const sourceCommit = ref === undefined ? fixtureCommit : git(root, ['rev-parse', '--verify', `${ref}^{commit}`]).trim();
+  if (ref !== undefined && sourceCommit !== ref) throw new Error('--ref must identify that exact commit object.');
+  const instructions = readGitEvaluationFiles(root, sourceCommit, 'skills/qodo-review/',
+    (name) => name === 'SKILL.md' || (name.startsWith('references/') && name.endsWith('.md')));
+  if (!instructions['SKILL.md']) throw new Error('Selected snapshot has no qodo-review/SKILL.md.');
+  requireCommittedInputs(root, fixtureCommit, ['evals/qodo-review', ...(ref === undefined ? ['skills/qodo-review'] : [])]);
+  const fixtures = readGitEvaluationFiles(root, fixtureCommit, 'evals/qodo-review/',
+    (name) => /^[a-z][a-z0-9-]*\/(?:case\.yaml|prompt\.md|graders\/[a-zA-Z0-9._-]+\.md)$/.test(name));
+  const cases = [...new Set(Object.keys(fixtures).map((name) => name.split('/')[0]))].sort();
+  if (!cases.length) throw new Error('The committed snapshot has no evaluation cases.');
+  for (const name of cases) {
+    if (!fixtures[`${name}/case.yaml`] || !fixtures[`${name}/prompt.md`]
+      || !Object.keys(fixtures).some((path) => path.startsWith(`${name}/graders/`))) {
+      throw new Error(`Incomplete committed evaluation case: ${name}`);
+    }
   }
-  paths = paths.filter((path) => path === `${prefix}SKILL.md`
-    || (path.startsWith(`${prefix}references/`) && path.endsWith('.md'))).sort();
-  if (!paths.includes(`${prefix}SKILL.md`)) throw new Error('Selected snapshot has no qodo-review/SKILL.md.');
+  const directory = mkdtempSync(join(canonicalParent, 'qodo-review-eval-'));
+  const plugin = join(directory, 'plugin'), skill = join(plugin, 'skills/qodo-review');
+  mkdirSync(join(plugin, '.claude-plugin'), { recursive: true });
   const fingerprints = {};
-  for (const path of paths) {
-    const bytes = ref ? execFileSync('git', ['show', `${sourceCommit}:${path}`], { cwd: root })
-      : readFileSync(inputPath(canonicalRoot, join(root, path), 'file'));
-    const name = path.slice(prefix.length);
+  for (const [name, bytes] of Object.entries(instructions)) {
     mkdirSync(dirname(join(skill, name)), { recursive: true });
     writeFileSync(join(skill, name), bytes, { mode: 0o444 });
     fingerprints[name] = digest(bytes);
   }
-  const caseRoot = inputPath(canonicalRoot, join(root, 'evals/qodo-review'), 'directory');
-  const cases = readdirSync(caseRoot, { withFileTypes: true })
-    .filter((entry) => {
-      if (entry.isSymbolicLink()) throw new Error(`Evaluation case cannot be a symlink: ${entry.name}`);
-      return entry.isDirectory();
-    }).map((entry) => entry.name).sort();
-  const assertions = {};
-  for (const name of cases) {
-    const source = join(root, 'evals/qodo-review', name);
+  const assertions = Object.fromEntries(cases.map((name) => [name, 0])), fixtureFingerprints = {};
+  for (const [name, bytes] of Object.entries(fixtures)) {
     const target = join(plugin, 'evals', name);
-    mkdirSync(target, { recursive: true });
-    for (const file of ['case.yaml', 'prompt.md']) {
-      copyFileSync(inputPath(canonicalRoot, join(source, file), 'file'), join(target, file));
-      chmodSync(join(target, file), 0o444);
-    }
-    copyTree(canonicalRoot, join(source, 'graders'), join(target, 'graders'));
-    assertions[name] = readdirSync(join(target, 'graders')).filter((file) => file.endsWith('.md')).length;
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, bytes, { mode: 0o444 });
+    fixtureFingerprints[name] = digest(bytes);
+    if (name.includes('/graders/')) assertions[name.split('/')[0]] += 1;
   }
   json(join(plugin, '.claude-plugin/plugin.json'), { name: 'qodo-review-evaluation', version: '0.0.0-eval',
     description: 'Read-only synthetic behavior evaluation of the canonical qodo-review Skill.',
@@ -128,8 +131,9 @@ export function prepareReviewEvaluation({ root = repositoryRoot, parent = tmpdir
     '--output-dir', join(directory, 'results'), '--report', join(directory, 'report.html'),
     '--disallow-tools', 'Bash', 'Write', 'Edit', 'Agent', 'WebFetch'];
   const manifest = { schema_version: 1, source_commit: sourceCommit,
-    source_kind: ref ? 'immutable Git commit' : 'current working instruction bytes',
-    fingerprints, assertions, cases, command: { executable: 'claude', args },
+    source_kind: 'immutable Git commit', fixture_source_commit: fixtureCommit,
+    input_policy: 'Only immutable Git blobs are staged. Dirty selected inputs stop staging; checkout paths are never copied.',
+    fingerprints, fixture_fingerprints: fixtureFingerprints, assertions, cases, command: { executable: 'claude', args },
     operations: 'Only synthetic command proposals; no Qodo/Git/service calls in evaluated cases.',
     limits: 'Read-only input files and gated tools are not proof of complete filesystem confinement.',
   };

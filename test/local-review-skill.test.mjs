@@ -7,7 +7,8 @@ import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { inputPath, main, prepareReviewEvaluation, requireEvaluationSupport } from '../scripts/eval-review-skill.mjs';
+import { inputPath, main, prepareReviewEvaluation, readGitEvaluationFiles,
+  requireEvaluationSupport } from '../scripts/eval-review-skill.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skill = join(root, 'skills/qodo-review');
@@ -102,6 +103,27 @@ function headings(markdownText) {
   const prose = markdownText.replace(/^```[\s\S]*?^```/gm, '');
   return [...prose.matchAll(/^#{1,6} (.+)$/gm)].map(([, value]) =>
     value.toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/\s/g, '-'));
+}
+
+function evaluationRepository(parent) {
+  const source = join(parent, 'source');
+  mkdirSync(join(source, 'skills'), { recursive: true });
+  mkdirSync(join(source, 'evals'));
+  cpSync(skill, join(source, 'skills/qodo-review'), { recursive: true });
+  cpSync(join(root, 'evals/qodo-review'), join(source, 'evals/qodo-review'), { recursive: true });
+  const git = (args, input) => execFileSync('git', args, { cwd: source, encoding: 'utf8', input,
+    stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+  git(['init', '--quiet']);
+  const commit = () => {
+    git(['add', '--all']);
+    const tree = git(['write-tree']);
+    // Synthetic test object only; no user commit or signing configuration is changed.
+    const sha = git(['hash-object', '-w', '-t', 'commit', '--stdin'],
+      `tree ${tree}\nauthor Fixture <fixture@qodo.invalid> 0 +0000\ncommitter Fixture <fixture@qodo.invalid> 0 +0000\n\nEvaluation fixture\n`);
+    git(['update-ref', 'HEAD', sha]);
+    return sha;
+  };
+  return { source, git, commit, head: commit() };
 }
 
 test('local-review entrypoint stays focused and keeps its required delivery contract', () => {
@@ -204,10 +226,13 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
   }
   const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-stage-test-'));
   try {
-    const staged = prepareReviewEvaluation({ root, parent });
+    const fixture = evaluationRepository(parent);
+    const staged = prepareReviewEvaluation({ root: fixture.source, parent });
     assert.equal(readFileSync(join(staged.plugin, 'skills/qodo-review/SKILL.md'), 'utf8'), text);
     assert.equal(statSync(join(staged.plugin, 'skills/qodo-review/SKILL.md')).mode & 0o222, 0);
-    assert.equal(staged.manifest.source_kind, 'current working instruction bytes');
+    assert.equal(staged.manifest.source_kind, 'immutable Git commit');
+    assert.equal(staged.manifest.source_commit, fixture.head);
+    assert.equal(staged.manifest.fixture_source_commit, fixture.head);
     assert.equal(staged.manifest.cases.length, 7);
     assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 32);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
@@ -216,7 +241,7 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     const boundary = readFileSync(join(staged.plugin, 'evals/compatibility-boundaries/prompt.md'), 'utf8');
     for (const version of ['1.6.0', '"custom build"', '2.0.0', '2.3.1']) assert.ok(boundary.includes(version));
     assert.ok(boundary.includes('summary, not notes') && boundary.includes('decisions=['));
-    assert.throws(() => prepareReviewEvaluation({ root, parent: root }), /outside the source repository/);
+    assert.throws(() => prepareReviewEvaluation({ root: fixture.source, parent: fixture.source }), /outside the source repository/);
     assert.equal(existsSync(join(staged.directory, 'result.json')), false, 'Staging must not run a model');
   } finally {
     rmSync(parent, { recursive: true, force: true });
@@ -228,14 +253,11 @@ test('paid evaluator execution requires the tool-exclusion capability while stag
   assert.doesNotThrow(() => requireEvaluationSupport('Usage: claude plugin eval --disallow-tools <tools>'));
 });
 
-test('evaluation rejects symlinked files and ancestors instead of staging host inputs', (t) => {
+test('committed model inputs are unchanged by checkout replacements and dirty inputs stop staging', (t) => {
   const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-input-test-'));
   try {
-    const source = join(parent, 'source');
-    mkdirSync(join(source, 'skills'), { recursive: true });
-    mkdirSync(join(source, 'evals'));
-    cpSync(skill, join(source, 'skills/qodo-review'), { recursive: true });
-    cpSync(join(root, 'evals/qodo-review'), join(source, 'evals/qodo-review'), { recursive: true });
+    const fixture = evaluationRepository(parent), { source } = fixture;
+    const original = readGitEvaluationFiles(source, fixture.head, 'evals/qodo-review/');
     const outside = join(parent, 'outside.txt');
     writeFileSync(outside, 'private-fixture-marker');
     for (const path of ['skills/qodo-review/SKILL.md',
@@ -248,16 +270,40 @@ test('evaluation rejects symlinked files and ancestors instead of staging host i
         if (['EPERM', 'ENOTSUP'].includes(error.code)) { t.skip('Host cannot create test symlinks'); return; }
         throw error;
       }
-      assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /symlink/);
+      assert.deepEqual(readGitEvaluationFiles(source, fixture.head, 'evals/qodo-review/'), original);
+      assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /Commit the selected evaluation inputs/);
       rmSync(target); renameSync(backup, target);
     }
     const refs = join(source, 'skills/qodo-review/references');
     renameSync(refs, `${refs}.backup`);
     symlinkSync(`${refs}.backup`, refs, 'dir');
-    assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /symlink/);
+    assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /Commit the selected evaluation inputs/);
+    rmSync(refs); renameSync(`${refs}.backup`, refs);
+    const prompt = join(source, 'evals/qodo-review/compatibility-boundaries/prompt.md');
+    rmSync(prompt); symlinkSync(outside, prompt);
+    fixture.commit();
+    assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /regular Git file/);
   } finally {
     rmSync(parent, { recursive: true, force: true });
   }
+});
+
+test('immutable evaluation refs reject hex-named branches and abbreviated object IDs', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-ref-test-'));
+  try {
+    const fixture = evaluationRepository(parent);
+    fixture.git(['update-ref', 'refs/heads/deadbee', fixture.head]);
+    for (const ref of ['deadbee', fixture.head.slice(0, 12)]) {
+      assert.throws(() => prepareReviewEvaluation({ root: fixture.source, parent, ref }), /full 40-character/);
+    }
+    const hexBranch = 'a'.repeat(40);
+    fixture.git(['update-ref', `refs/heads/${hexBranch}`, fixture.head]);
+    assert.throws(() => prepareReviewEvaluation({ root: fixture.source, parent, ref: hexBranch }),
+      /exact commit object/);
+    const staged = prepareReviewEvaluation({ root: fixture.source, parent, ref: fixture.head });
+    assert.equal(staged.manifest.source_commit, fixture.head);
+    assert.equal(staged.manifest.fixture_source_commit, fixture.head);
+  } finally { rmSync(parent, { recursive: true, force: true }); }
 });
 
 test('an immutable commit without the requested Skill is rejected before a prepared receipt', () => {
@@ -269,6 +315,7 @@ test('an immutable commit without the requested Skill is rejected before a prepa
     // Synthetic Git object only: no user commit, branch, signing setting or hook is changed.
     const ref = git(['hash-object', '-w', '-t', 'commit', '--stdin'],
       `tree ${tree}\nauthor Fixture <fixture@qodo.invalid> 0 +0000\ncommitter Fixture <fixture@qodo.invalid> 0 +0000\n\nEmpty snapshot fixture\n`);
+    git(['update-ref', 'HEAD', ref]);
     const output = mkdtempSync(join(tmpdir(), 'qodo-eval-missing-output-'));
     try { assert.throws(() => prepareReviewEvaluation({ root: parent, parent: output, ref }), /has no qodo-review\/SKILL\.md/); }
     finally { rmSync(output, { recursive: true, force: true }); }

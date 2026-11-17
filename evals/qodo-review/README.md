@@ -11,18 +11,25 @@ The staging command puts these folders in the temporary plugin's `evals/`.
 ## Run
 
 `npm run eval:qodo-review -- --output-parent <directory-outside-the-repo>` stages
-the current Skill, all seven cases and their graders as a minimal plugin. It prints
+the committed HEAD Skill, all seven committed cases and their graders as a minimal plugin. It prints
 the exact `claude plugin eval` command and an instruction fingerprint manifest.
 Staging does not run a model. Add `--run` only to opt into billed evaluation on
 your Claude account; normal plugin trust prompts remain enabled. The installed
 CLI must expose `claude plugin eval --disallow-tools` (Claude Code 2.1.299 or later).
 Before `--run`, the wrapper checks that option through offline help; it never
 silently drops tool restrictions for an older evaluator. Staging itself needs no Claude CLI.
-`--ref <commit-sha>` uses that immutable Skill snapshot with the current cases.
+`--ref <full-40-character-commit-sha>` selects that exact Skill commit with cases
+from the captured HEAD commit. Abbreviated hashes, branch names and tag names are rejected.
+Commit selected case inputs before staging; without `--ref`, the Skill inputs
+must also be committed. The wrapper makes no commit or index change for you.
+All model-input bytes come from verified Git blobs, never copied checkout paths.
+Concurrent checkout replacements therefore cannot redirect model inputs to host files.
+Dirty selected inputs stop staging; a captured manifest names both exact commits
+and every staged fixture fingerprint. Replace refs and lazy object fetching are disabled.
 First-use trust requires an interactive terminal. The command intentionally omits
 the evaluator's `--json` mode, which suppresses its trust prompt; aggregate JSON
 still goes into the output directory. It never supplies `--trust-plugin` for you.
-Symlinked inputs are rejected, and a selected commit must contain the Skill.
+Non-regular committed inputs are rejected, and the selected commit must contain the Skill.
 
 The standard harness executes each case with its LLM graders, emits JSON and HTML,
 and gates shell/write tools. Inputs are read-only; real MCP servers, scaffolds,

@@ -67,6 +67,12 @@ review input; coverage was reported incomplete. It was replaced with readable
 commit/blob text and tree entries rather than treating the omission as full coverage.
 The evaluator prerequisite is2.1.299+ with `--disallow-tools`, checked through offline
 help before a billed run; staging still does not execute a model or require Claude.
+After hosted review identified a checkout check/open race, the staging source was
+changed to immutable Git blobs for both instructions and fixtures. Selected dirty
+inputs stop; explicit refs require full commit IDs. Deterministic tests cover
+checkout replacements, committed symlinks and hex-named branch ambiguity.
+The recorded instruction answers and grades are unchanged; these are tooling checks,
+not a newly executed model comparison or a whole-host sandbox claim.
 Safe provenance records model/timing/token/read-call fields, not reasoning text or raw
 session archives. Read-only inputs and tool counts are not an OS confinement audit.
 Cache-inclusive token counts and message timing do not establish cost or latency savings.
