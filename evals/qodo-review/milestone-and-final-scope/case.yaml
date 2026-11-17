@@ -4,3 +4,4 @@ expected_outcome: |
   Chooses useful reviews without automatic fast/deep or redundant submissions.
   Reviews the committed final candidate through safe available isolation.
   Preserves unrelated edits and report-only authority, and describes coverage honestly.
+  Allows missing ordinary final coverage and an explicit fresh request as reasons for another assessment.

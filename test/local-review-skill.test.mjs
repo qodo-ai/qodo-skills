@@ -65,6 +65,9 @@ test('default effort and incremental guidance do not prescribe unsupported or un
   assert.match(text, /Do not add `--full` merely because notes changed/);
   assert.match(text, /There is no default numerical round cap/);
   assert.match(text, /No new findings does not settle earlier blockers/);
+  assert.match(text, /Missing required final coverage/);
+  assert.match(text, /An explicit user request for a fresh assessment/);
+  assert.match(text, /Unless the user requests a fresh assessment/);
 });
 
 test('context compatibility and authority boundaries survive the rewrite', () => {

@@ -70,7 +70,7 @@ A pause for a question or approval is not a completed-work handoff.
 Do not submit after every edit, during unfinished exploration, or merely because time passed.
 Do not automatically review trivial changes.
 Respect the user's narrower scope, explicit effort and budget.
-If the current intended snapshot already has compatible completed coverage, assess that result instead of buying another review.
+Unless the user requests a fresh assessment, reuse compatible completed coverage of the current intended snapshot.
 
 **Default to auto:** omit both `--fast` and `--deep` for ordinary submissions, including follow-ups.
 Use `--fast` for an explicitly requested quick review or a purposeful light midwork checkpoint.
@@ -101,6 +101,7 @@ If isolation is unavailable, disclose the scope limitation. Do not claim the res
 For review-only or no-commit tasks, review the requested working scope without creating commits.
 Report local-to-PR limitations separately.
 
+Retain explicit path arguments on follow-ups unless the intended scope changes.
 Keep deliberate path restrictions for checkpoints, but include every intended path before final handoff.
 Inspect reported exclusions and omissions. Do not certify requested files that were not reviewed.
 Retain the operation ID with submitted base, commit/tree, scope and context in existing task state.
@@ -198,7 +199,12 @@ Do not force fast or deep merely to control routing.
 
 ## Stop and hand off
 
-Another assessment needs changed code awaiting review or meaningful new evidence.
+Another assessment needs a concrete reason:
+
+- Changed code awaiting review or meaningful new evidence.
+- Missing required final coverage, such as an unchanged light or path-limited checkpoint.
+- An explicit user request for a fresh assessment.
+
 Name that reason before submitting.
 Stop when the same concern repeats without actionable progress.
 Do not re-fix guarded code, suppress a blocker or buy unchanged reviews to chase zero.

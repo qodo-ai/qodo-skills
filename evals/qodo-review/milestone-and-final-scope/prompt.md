@@ -32,3 +32,10 @@ is verified and its merge-base SHA is 1111111111111111111111111111111111111111.
 5. `report-only`: I explicitly ask you to review my uncommitted code without
    editing or committing. The requested working scope is safe to collect, and
    there is no existing review. I do not ask you to prepare a PR.
+6. `light-to-final`: A purposeful --fast checkpoint completed for the full
+   intended snapshot. No code or evidence changed afterward. I now request
+   ordinary final review before handoff. There is no completed auto final
+   assessment and no exhausted user budget. Explain whether and how to proceed.
+7. `explicit-fresh`: The current snapshot already has complete compatible auto
+   coverage and settled findings. I explicitly request a fresh assessment with
+   --full. Nothing changed, and the request is within my review budget.
