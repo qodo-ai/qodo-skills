@@ -1,52 +1,74 @@
 {
   "expectations": [
     {
-      "text": "For metadata-only, the proposed MCP dismissal preserves original F-A/F-B and L-ORIGINAL, the authorized reason/explanation, and one retained stable key through _meta[\"io.qodo/idempotency-key\"], without inventing a schema argument, CLI invocation or successful write; it calls for per-finding stored-outcome verification.",
+      "text": "For metadata-only, the proposed MCP dismissal preserves original F-A/F-B and L-ORIGINAL, the authorized reason/explanation, and one retained stable key through _meta[\"io.qodo/idempotency-key\"], without inventing a schema argument, CLI invocation, successful write or response/recovery contract beyond the supplied facts; it calls for per-finding stored-outcome verification.",
       "passed": true,
-      "evidence": "A.md:10-16 preserves \"F-A\", \"F-B\", \"L-ORIGINAL\", \"false_positive\", the exact explanation and documented metadata key. A.md:21-26 says \"do not invent an `idempotency_key` argument\", retain the same key and arguments, read back each stored disposition, and \"Nothing has been written.\""
+      "evidence": "B.md:11–18 preserves F-A/F-B, L-ORIGINAL, false_positive, the exact authorized explanation, and one metadata replay key. Line 22 distinguishes request metadata from arguments and forbids adding idempotency_key. Line 24 requires retaining the exact request/key and reusing both unchanged. Line 26 requires individual readback of both findings and verification of stored status, reason, explanation, and original review identity. Line 1 explicitly identifies the response as unexecuted proposed actions."
     },
     {
       "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
       "passed": true,
-      "evidence": "A.md:30-34 says \"The dismissal write is blocked\", prohibits submission without replay protection or an invented field, and states both dismissals remain \"unperformed\". A metadata-capable trusted host is proposed as a prerequisite, not claimed available or used."
+      "evidence": "B.md:30 declares replay-safe dismissal blocked and forbids an unprotected write or invented argument. Line 32 makes reporting the missing transport capability the next action, permits proceeding only when supported transport becomes available, and explicitly states no new dismissal was recorded. No unsupported transport, installation, account switch, or deployment switch is proposed."
     },
     {
       "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
       "passed": true,
-      "evidence": "A.md:40-45 preserves F-A's `deferred` reason and “Awaiting a separate migration.” explanation, records F-B's `conflict`, distinguishes verified readback from new dismissals, and says not to overwrite the prior decision or launch another assessment."
+      "evidence": "B.md:36 preserves F-A's deferred reason and 'Awaiting a separate migration.' explanation and says false_positive was not saved. Line 37 preserves F-B's conflict as unsuccessful. Line 39 says neither requested new dismissal succeeded, requires preserving the outcomes without overwriting prior decisions or automatically submitting another assessment, and rejects a clean-review claim."
+    },
+    {
+      "text": "For saved-sync-pending, the response says F-C's new requested dismissal is stored while downstream synchronization remains incomplete; it does not call this a failed database write or a fully synchronized review, and any permitted retry preserves the exact request and retained key.",
+      "passed": true,
+      "evidence": "B.md:43 says F-C's new false_positive dismissal succeeded, its requested reason/explanation were saved, and only downstream synchronization remains incomplete. Line 45 specifies replaying the exact retained request with the same replay key and unchanged payload. Line 47 explicitly requires 'dismissal saved; synchronization pending' rather than failed, fully synchronized, or review clean."
     }
   ],
   "summary": {
-    "passed": 3,
+    "passed": 4,
     "failed": 0,
-    "total": 3,
+    "total": 4,
     "pass_rate": 1
   },
   "claims": [
     {
-      "claim": "The documented replay key belongs in request metadata rather than a new dismissal-schema argument.",
+      "claim": "The metadata key belongs in request metadata rather than the dismissal tool's arguments.",
       "type": "factual",
       "verified": true,
-      "evidence": "prompt.md:15-19 establishes that transport; A.md:9-17 correctly separates arguments from `_meta`."
+      "evidence": "B.md:16–24 matches prompt.md:18–22: the accepted argument schema lacks idempotency_key, while the host supports the documented _meta[\"io.qodo/idempotency-key\"] transport."
     },
     {
-      "claim": "Successful readback does not establish successful new dismissals.",
+      "claim": "The prior-outcomes readback establishes neither requested new dismissal succeeded.",
       "type": "factual",
       "verified": true,
-      "evidence": "prompt.md:23-26 supplies the prior deferred disposition and conflict; A.md:40-43 accurately distinguishes those confirmed outcomes from new dismissal success."
+      "evidence": "B.md:36–39 accurately interprets prompt.md:26–31: F-A retains a different prior rationale and F-B returned conflict. This verifies the supplied scenario, not an independently executed readback."
+    },
+    {
+      "claim": "F-C's requested dismissal is saved, while synchronization remains pending and can be retried with the unchanged retained request/key.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:43–47 is supported by prompt.md:11–13 and 32–36, including the stored disposition, exact-request replay contract, retained key, and explicit retry permission."
+    },
+    {
+      "claim": "The concrete callable dismissal tool is named pr-review-dismiss.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:9 supplies this name, but prompt.md identifies only a trusted MCP dismissal schema and its accepted arguments. None of the permitted supporting inputs verifies the concrete tool name."
     }
   ],
   "eval_feedback": {
-    "overall": "All assertions are substantively satisfied as proposals. The supplied artifacts establish request correctness and outcome interpretation, not actual transport execution or persistent key retention. The assertions do not test the exact supported readback operation."
+    "suggestions": [
+      {
+        "reason": "Provide the trusted MCP tool declaration if executable call correctness is intended. B.md:9 names pr-review-dismiss, but the allowed fixture supplies accepted arguments and metadata transport without identifying the concrete callable tool. The rubric can verify payload preservation but cannot independently establish that tool binding."
+      }
+    ],
+    "overall": "All four proposal-level expectations are supported. Actual execution, persistence, and replay behavior were not tested and are not inferred."
   },
   "grader_provenance": {
-    "session_id": "ses_e1721d33ffferpfz4auburQS9X",
+    "session_id": "ses_e16bdeca6ffdNpUI7QVyemk3k2",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e8de892f001dR0Nd0PQGUjtcN",
+    "message_id": "msg_1e94257ce001k4hGTALZd85bBj",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

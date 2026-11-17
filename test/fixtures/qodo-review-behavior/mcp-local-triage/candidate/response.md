@@ -1,8 +1,6 @@
-Proposals only. No commands, service calls, file changes or finding-status writes were executed.
+## 1. `metadata-only`
 
-### 1. `metadata-only`
-
-Proposed MCP `tools/call` parameters for the authorized Qodo dismissal batch:
+The authorized batch can use the documented metadata replay key. Proposed MCP `tools/call` parameters:
 
 ```json
 {
@@ -14,36 +12,42 @@ Proposed MCP `tools/call` parameters for the authorized Qodo dismissal batch:
     "explanation": "The mandatory caller guard rejects this input."
   },
   "_meta": {
-    "io.qodo/idempotency-key": "d8d05bd1-654b-4d04-85da-a63e34015550"
+    "io.qodo/idempotency-key": "b9c330e8-9a4a-4c58-a8bc-48710d59b301"
   }
 }
 ```
 
-- Both findings share the original local-review ID, reason and explanation, so one batch is appropriate.
-- Send the replay key as request metadata—not an unsupported `idempotency_key` argument.
-- Retain the key and exact request in parent task state across resumes and any permitted replay. Uncertain acceptance must not cause a new key or altered batch.
-- Inspect errors and each finding’s returned outcome, then read back **both** stored dispositions through the supported read capability. Verify their original identities, stored reason and exact explanation.
-- A conflict or failed reconciliation is not success. If `reconciled: false` is returned, synchronization requires an exact-request retry with the same key, subject to retry restrictions.
+Both findings share the original local-review ID, reason and explanation, so one batch is appropriate. Do **not** add an unsupported `idempotency_key` argument.
 
-**Pending evidence:** submission response, per-finding readbacks and reconciliation outcomes. No successful dismissal can yet be claimed.
+Retain the exact request and key in recovery state before submission. Any permitted replay must reuse both unchanged.
 
-### 2. `no-replay-transport`
+After submission, check `isError` and every per-finding outcome, then read back both stored dispositions. Verify the stored reason and explanation individually. Report prior dispositions, conflicts and incomplete synchronization separately; submission alone does not prove persistence.
 
-**Stop before submission:** this host lacks replay-safe write capability.
+## 2. `no-replay-transport`
 
-Require a supported replay-key argument or metadata-capable MCP host before proposing execution. Do not omit replay protection, invent an argument or substitute an unavailable CLI.
+**Stop before submitting.** Neither the schema nor this host provides replay-safe write capability.
 
-The evidence supports recommending both false-positive dismissals, but neither requested stored dismissal has been performed or verified.
+The next action is to obtain a supported host metadata transport or a schema with a documented replay-key argument. There is no trusted CLI fallback. Do not invent an argument or submit an unprotected write.
 
-### 3. `prior-outcomes`
+Neither requested dismissal has been performed. Existing authorization and supporting evidence remain valid, but no finding-state change can be claimed.
 
-On the supplied response and confirmed readback:
+## 3. `prior-outcomes`
 
-| Finding | Confirmed outcome | What it establishes |
-|---|---|---|
-| F-A | `already_dismissed`; reason `deferred`; explanation “Awaiting a separate migration.” | The prior dismissal remains. The newly requested reason and explanation were **not** saved. |
-| F-B | `conflict` | No successful new dismissal is established. Its broader disposition is not supplied. |
+The readback succeeded, but **neither newly requested `false_positive` transition succeeded**:
 
-Readback verification succeeded; the requested false-positive batch did **not** succeed. Do not overwrite the prior decision or automatically resubmit the conflict.
+| Finding | Verified outcome |
+|---|---|
+| F-A | Already dismissed. The prior reason remains `deferred`, with explanation “Awaiting a separate migration.” |
+| F-B | `conflict`; the requested dismissal did not succeed. No further stored disposition is established by the supplied evidence. |
 
-Neither the new requested reason nor a clean review can be claimed. No complete current inventory, coverage or passing-check evidence is supplied, and these outcomes alone do not justify another assessment.
+F-A’s existing dismissal is confirmed—not newly recorded or replaced. Do not claim the requested reason was saved for either finding.
+
+A clean review cannot be claimed from these outcomes. Preserve both results and stop; do not overwrite dispositions, retry automatically or buy another assessment to chase a clean result.
+
+## 4. `saved-sync-pending`
+
+**F-C’s dismissal succeeded and is stored.** Readback confirms the requested `false_positive` reason and explanation. `reconciled: false` means downstream synchronization remains incomplete, not that the saved transition failed.
+
+The next permitted action is one synchronization retry using the **exact retained request and the same replay key**, through its original supported transport. Do not create a new logical dismissal or key.
+
+Inspect the retry result and verify the disposition again. Report storage and synchronization separately. If synchronization remains incomplete, report it as pending rather than entering an automatic retry loop. No new assessment or overall clean-review claim follows from this dismissal.

@@ -1,52 +1,74 @@
 {
   "expectations": [
     {
-      "text": "For metadata-only, the proposed MCP dismissal preserves original F-A/F-B and L-ORIGINAL, the authorized reason/explanation, and one retained stable key through _meta[\"io.qodo/idempotency-key\"], without inventing a schema argument, CLI invocation or successful write; it calls for per-finding stored-outcome verification.",
+      "text": "For metadata-only, the proposed MCP dismissal preserves original F-A/F-B and L-ORIGINAL, the authorized reason/explanation, and one retained stable key through _meta[\"io.qodo/idempotency-key\"], without inventing a schema argument, CLI invocation, successful write or response/recovery contract beyond the supplied facts; it calls for per-finding stored-outcome verification.",
       "passed": true,
-      "evidence": "B.md:11-17 preserves both original finding IDs, review ID, authorized reason/explanation and documented metadata key. B.md:23-28 rejects an unsupported argument, retains the exact request and key across resumes, requires both stored-disposition readbacks, and claims no successful dismissal."
+      "evidence": "A.md:9–16 preserves F-A/F-B, L-ORIGINAL, false_positive, the exact authorized explanation, and one metadata replay key. Lines 20–22 prohibit an unsupported idempotency_key argument and require retaining and reusing the exact request/key. Line 24 requires every per-finding outcome and both stored dispositions to be checked, including individual reason/explanation verification. The request is explicitly proposed (line 3), not reported as executed."
     },
     {
       "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
       "passed": true,
-      "evidence": "B.md:32-36 says \"Stop before submission\", identifies missing replay-safe capability, rejects omitting protection or inventing an argument, and states neither dismissal \"has been performed or verified\". A supported transport is required, not claimed present."
+      "evidence": "A.md:28 says 'Stop before submitting' because neither schema nor host provides replay-safe capability. Line 30 requires a supported transport/schema capability, states there is no trusted CLI fallback, and forbids an invented argument or unprotected write. Line 32 explicitly says neither dismissal has been performed. No installation, account switch, or deployment switch is proposed."
     },
     {
       "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
       "passed": true,
-      "evidence": "B.md:44-49 preserves F-A's `deferred` rationale and exact explanation, records F-B's `conflict`, says the requested batch did not succeed, prohibits overwriting or automatic conflict resubmission, and rejects both a clean-review claim and another assessment."
+      "evidence": "A.md:40 preserves F-A's deferred reason and 'Awaiting a separate migration.' explanation. Line 41 preserves F-B's conflict without inventing another stored disposition. Lines 36 and 43 state neither requested false_positive transition succeeded. Line 45 rejects a clean-review claim and says to stop without overwriting dispositions, automatically retrying, or buying another assessment."
+    },
+    {
+      "text": "For saved-sync-pending, the response says F-C's new requested dismissal is stored while downstream synchronization remains incomplete; it does not call this a failed database write or a fully synchronized review, and any permitted retry preserves the exact request and retained key.",
+      "passed": true,
+      "evidence": "A.md:49 says F-C's dismissal 'succeeded and is stored' with the requested reason/explanation, and distinguishes incomplete downstream synchronization from a failed saved transition. Line 51 proposes the permitted retry using the exact retained request and same replay key. Line 53 requires reporting storage and synchronization separately and rejects an overall clean-review claim."
     }
   ],
   "summary": {
-    "passed": 3,
+    "passed": 4,
     "failed": 0,
-    "total": 3,
+    "total": 4,
     "pass_rate": 1
   },
   "claims": [
     {
-      "claim": "A returned `reconciled: false` requires an exact-request synchronization retry with the same key.",
-      "type": "factual",
-      "verified": false,
-      "evidence": "B.md:26 introduces this conditional response field and retry rule. prompt.md:12-28 does not establish either; their validity cannot be verified from the permitted artifacts."
-    },
-    {
-      "claim": "The confirmed prior disposition and conflict do not establish the requested false-positive dismissals.",
+      "claim": "F-A and F-B can share one proposed batch because their original review identity and authorized reason/explanation match.",
       "type": "factual",
       "verified": true,
-      "evidence": "prompt.md:23-26 supplies those exact outcomes; B.md:44-49 preserves them without claiming a newly stored rationale or clean review."
+      "evidence": "A.md:20 matches prompt.md:15–22, which supplies both findings, their common L-ORIGINAL identity, identical authorization, and a finding_ids argument."
+    },
+    {
+      "claim": "The prior-outcomes readback establishes an existing deferred dismissal for F-A and conflict for F-B, not successful new false_positive transitions.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:36–43 accurately reflects the complete synthetic facts in prompt.md:26–31. This verifies the scenario interpretation, not an independently executed readback."
+    },
+    {
+      "claim": "F-C's requested dismissal is stored despite incomplete synchronization, and the retained request/key can be replayed with permission.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:49–51 follows prompt.md:11–13 and 32–36, which explicitly establish persistence, incomplete synchronization, safe exact-request replay, retained key availability, and retry permission."
+    },
+    {
+      "claim": "The concrete callable dismissal tool is named pr-review-dismiss.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:7 supplies this name, but prompt.md identifies only a trusted MCP dismissal schema and its accepted arguments. None of the permitted supporting inputs verifies the concrete tool name."
     }
   ],
   "eval_feedback": {
-    "overall": "All three assertions pass. B.md:26 adds an unverified response-field and retry rule; this is not an invented request-schema argument, but exposes a gap: the assertions do not check unsupported response-schema or recovery claims. Execution and persistence remain outside this proposal-only evaluation."
+    "suggestions": [
+      {
+        "reason": "Provide the trusted MCP tool declaration if executable call correctness is intended. A.md:7 names pr-review-dismiss, and line 24 references isError; the fixture does not establish the concrete tool name or document the response envelope. Checking an error indicator does not itself invent a persistence/recovery rule, but the boundary between permitted protocol knowledge and unsupported contract assumptions should be explicit."
+      }
+    ],
+    "overall": "All four proposal-level expectations are supported. Actual execution, persistence, and replay behavior were not tested and are not inferred."
   },
   "grader_provenance": {
-    "session_id": "ses_e1721d33ffferpfz4auburQS9X",
+    "session_id": "ses_e16bdeca6ffdNpUI7QVyemk3k2",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e8de892f001dR0Nd0PQGUjtcN",
+    "message_id": "msg_1e94257ce001k4hGTALZd85bBj",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

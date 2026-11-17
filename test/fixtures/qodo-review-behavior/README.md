@@ -1,9 +1,10 @@
 # Recorded qodo-review behavior evaluation
 
-Iteration 8 is being prepared for changed reconciliation instructions and the
-33-assertion suite. The current manifest still records iteration 7 and is not
-passing freshness evidence for the newer bytes. Its original artifacts and exact
-inputs are archived in `history/iteration-7/`; they will not be regraded or relabeled.
+Iteration 8 records 14 completed executions and seven anonymous graders over
+33 assertions. Candidate `59afaeab0cfb1a247389bde5c8d197413956a98e` and prior
+rewrite `6385a42e83ac028349ff1c153a788a812a850bf5` both pass 33/33. This establishes
+no rubric uplift or reliability. Original iteration-7 artifacts and exact case
+inputs remain unchanged in `history/iteration-7/`.
 
 This directory contains fresh-agent answers, anonymous grader judgments and
 runtime-reported provenance for the exact instruction fingerprints in `manifest.json`.
@@ -13,8 +14,9 @@ No reasoning text, credentials, unrelated sessions or raw session archives are i
 Portable responses normalize host temporary roots and trailing line whitespace;
 provenance retains both original and portable response hashes.
 
-The candidate is the current instruction snapshot. The baseline is the unchanged
-`173cfc700e4ee8a83c20e47abc1edfcd75612354` instructions, not the original pre-rewrite Skill.
+The candidate matches the current instructions. The baseline is the preceding
+`6385a42` rewrite, not the original pre-rewrite Skill. Both configurations use
+the same case inputs captured at `59afaea`.
 Command proposals are synthetic. The agents ran, but Qodo reviews, installations,
 Git changes and finding-status writes shown in their answers did not execute.
 
@@ -32,8 +34,10 @@ integrity test reconstructs and hashes each object in a private temporary Git
 object store and compares the actual immutable source
 hashes, without requiring network access or retention of the PR's branch history.
 Artifact and adjudication reads reject symlinked files and ancestor directories.
-The current comparison is32/32 for both versions after the documented auto-default
-adjudication. `adjudication/` retains both initial31/32 judgments and actual CLI help.
+The current comparison is 33/33 for both versions. Common verified CLI help was
+supplied to every anonymous grader before grading; its hash is in `grading_evidence`.
+No iteration-8 adjudication occurred. `history/iteration-7/` retains the original
+32/32 comparison, both initial 31/32 judgments, actual help and 96 artifact hashes.
 `history/iteration-6/` preserves the earlier29/29 versus27/29 comparison at its
 original fingerprints; `pre-correction/` retains the earlier exact-base failure.
 

@@ -77,6 +77,8 @@ including the explicit saved-dismissal/pending-synchronization outcome.
 [RESULTS.md](RESULTS.md) gives current and historical snapshot-specific results.
 [Recorded evidence](../../test/fixtures/qodo-review-behavior/README.md) includes
 final answers, anonymous judgments, exact fingerprints and safe runtime provenance.
+Iteration 8 records 33/33 for candidate `59afaea` and prior rewrite `6385a42`.
+The explicit saved/sync-pending facts also let the baseline pass; no uplift is established.
 The preceding iteration-7 native-agent result is 32/32 for both corrected and prior `173cfc7`
 instructions after one documented auto-contract grading adjudication. Initial
 31/32 judgments and the CLI help used to reassess them remain inspectable.

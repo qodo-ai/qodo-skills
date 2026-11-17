@@ -3,12 +3,12 @@
     {
       "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
       "passed": true,
-      "evidence": "B.md:2,10,24 use '\"/opt/qodo tools/bin/qodo\"' for every proposed CLI call. No installation or PATH change is proposed."
+      "evidence": "B.md:2 proposes '\"/opt/qodo tools/bin/qodo\" --version'; B.md:11 uses the identical quoted invocation for review; B.md:18 uses it for review status. No installation or PATH change is proposed."
     },
     {
       "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
       "passed": true,
-      "evidence": "B.md:10-13 omits both --fast and --deep; qodo-review-auto-help-evidence.txt:62 states 'no flag = auto'. B.md:11-12 supplies '--base 1111111111111111111111111111111111111111' and '--context-file /outside/context.json'. B.md:18-24 prevents collection if returned '.operation_id' extraction fails; B.md:27-32 leaves acceptance and review results pending."
+      "evidence": "B.md:11-14 proposes review with '--base 1111111111111111111111111111111111111111', '--context-file /outside/context.json', and '--async --json', without an effort flag; qodo-auto-help.txt:62 confirms this selects auto. The successful-submission branch extracts a nonempty returned .operation_id at lines 15-16 before using it at line 18; unsuccessful submission exits at lines 19-21. Line 25 explicitly leaves acceptance, completion, coverage and findings unverified and invents no ID."
     }
   ],
   "summary": {
@@ -19,29 +19,58 @@
   },
   "claims": [
     {
-      "claim": "The proposed submission retains auto depth by omitting both depth overrides.",
+      "claim": "Version 2.3.1, verified identity, supported flags and passing relevant unit tests are supplied evidence.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:10-13 includes neither override; qodo-review-auto-help-evidence.txt:62-64 explicitly documents 'no flag = auto' and the --deep/--fast overrides."
+      "evidence": "B.md:5 labels these facts 'Evidence supplied'. They match prompt.md:11-17."
     },
     {
-      "claim": "The proposed collection requires successful submission and a nonempty returned operation ID.",
+      "claim": "The proposed submission uses auto effort.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:25 states 'Submission uses auto effort'. Lines 11-14 omit effort flags, which selects auto according to qodo-auto-help.txt:62."
+    },
+    {
+      "claim": "The submission JSON exposes its operation ID as .operation_id.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:15-16 assumes '.operation_id'. The permitted help establishes that async submission returns an operation ID, but supplies neither a JSON example nor this field name. The schema assumption is unverified, not demonstrated incorrect."
+    },
+    {
+      "claim": "Status exit 2 means the retained review is still running.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:27 calls for collecting the same operation again after exit 2. qodo-auto-help.txt:35-36 and 68 explicitly identify exit 2 as unfinished."
+    },
+    {
+      "claim": "A running-status response supplies retry_after.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:27 says 'honor retry_after'. Neither prompt.md nor qodo-auto-help.txt documents this field or its units."
+    },
+    {
+      "claim": "Nothing was executed and no operation ID was supplied or invented.",
       "type": "process",
       "verified": true,
-      "evidence": "B.md:10-22 exits on submission or '.operation_id' extraction failure before status at B.md:24. This establishes proposal semantics, not execution."
+      "evidence": "B.md:25 states this. task.md:6 confirms proposal-only execution status; prompt.md:22 supplies no ID. B.md uses a response-derived variable rather than a fabricated literal."
     }
   ],
   "eval_feedback": {
-    "overall": "The original 1/2 grade depended on an unprovided auto default. The additional verified help contract at qodo-review-auto-help-evidence.txt:62-64 establishes that omission of both overrides selects auto, changing assertion 2 to pass and the grade to 2/2. No other assertion failures were found. Runtime acceptance and completed results remain unverified; these are synthetic proposals."
+    "suggestions": [
+      {
+        "reason": "Supply verified submission and running-status JSON examples, including retry timing and units. The proposed parser assumes .operation_id and the prose assumes retry_after, but the permitted evidence documents neither. Those interface assumptions cannot be validated from the current grading inputs."
+      }
+    ],
+    "overall": "Both exact assertions pass as proposal-level requirements. CLI response-schema and retry_after claims remain unverified; no successful submission or collection is established."
   },
   "grader_provenance": {
-    "session_id": "ses_e1721d340ffejiV0h37cdneP30",
+    "session_id": "ses_e16bdecb1ffe0W1EQkuh0q50hg",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e8e149f1001yJQE8cuE3ViC1D",
+    "message_id": "msg_1e9425197001gCHWQaslD7nDrp",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

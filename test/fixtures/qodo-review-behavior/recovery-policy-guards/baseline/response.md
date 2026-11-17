@@ -1,29 +1,33 @@
-Proposals only. No commands or writes executed.
-
 ### 1. `ordinary-update-check`
 
-| Supplied result | Next allowed action |
+Each subcase stops **before any runtime change**:
+
+| Check result | Next allowed action |
 |---|---|
-| TLS error | Preserve the TLS failure and stop. Do not relabel it as missing credentials. |
-| No update | Stop: no approved compatible target was offered. |
-| Incompatible `3.0.0` | Reject that target and stop: approval covers compatible 2.x only. |
+| TLS error | Report the TLS failure without bypassing verification or changing endpoints. |
+| No update | Report that the check offered no compatible target. |
+| Offers `3.0.0` | Report that the target is outside the approved compatible 2.x range. |
 
-In every subcase, leave runtime `1.6.0` unchanged. Do not run `qodo update`, switch to `latest-2`, use an installer, or change deployment, origin, pins or update holds. Identity, login, reviews and managed tools remain blocked.
+The conditional update approval is not satisfied. Do not run the update, switch to `latest-2`, or substitute an installer. Preserve the recorded origin, version choices and update holds.
 
-**Pending:** user resolution of compatibility; a verified compatible runtime with review API v2, identity and completed review evidence.
+**Pending:** runtime compatibility, identity/login, authenticated managed tools and review. Version `1.6.0` does not pass the compatibility gate.
 
 ### 2. `missing-cli`
 
-**Next allowed action:** report the missing CLI and stop the CLI path. Review authorization does not authorize installation.
+**Next allowed action:** stop the CLI path and report that neither trusted installed invocation exists.
 
-Do not execute repository-local launchers, invent a checksum, install anything, or switch accounts/deployments.
+Do not run a repository-local launcher, install anything, invent a checksum, pipe an installer into a shell, or change accounts/deployments. Installation would require separate covering approval and a Qodo/organization-supplied checksum-pinned installer.
 
-**Pending:** covering installation approval and a Qodo/organization-supplied checksum-pinned installer, followed by runtime verification, identity and review. No assessment exists.
+**Pending:** an authorized working runtime, compatibility and identity checks, and the review. Do not claim MCP coverage without its required tested collector.
 
 ### 3. `user-no-retry`
 
-**Next allowed action:** request explicit approval for **one cause-corrected resubmission**, adding supported `--repo` with the known exact connected repository `full_name`.
+**Next allowed action:** retain the failed operation ID and terminal error, report the blocker, and ask:
 
-Do not resubmit automatically. The user’s prohibition applies even though the error permits retries. Preserve the failed operation ID/error and retain the existing base, scope, context, other inputs and auto effort—omit both `--fast` and `--deep`.
+> Do you approve one corrected resubmission using the known connected repository’s exact `full_name` through `--repo`, preserving the original base, scope, context and auto effort?
 
-**Pending:** approval, the corrected submission and collection of its result. If approved, this consumes the single terminal-recovery allowance; it is not an additional retry budget. Current review coverage remains blocked, not clean.
+Do **not** resubmit before approval. The absence of a retry prohibition in the error does not override your explicit no-automatic-retry instruction.
+
+If approved, the correction uses the single cause-corrected retry allowance; it does not create a separate allowance for subsequent symptoms.
+
+**Pending:** corrected submission, completed assessment and required coverage. The failed review establishes neither clean findings nor local readiness.

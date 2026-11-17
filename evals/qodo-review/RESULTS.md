@@ -1,16 +1,78 @@
 # Agent-evaluation results
 
-## Reconciliation correction (iteration 8, pending)
+## Reconciliation correction (iteration 8)
 
-The main Skill now distinguishes a stored transition from pending downstream
-synchronization. The MCP fixture adds an explicit saved/sync-pending case and
-tests response/recovery claims against the supplied contract: 33 assertions over
-seven groups. A fresh comparison against signed `6385a42` is being prepared.
-No result for these new instruction bytes is claimed yet.
+Fourteen fresh native OpenCode executions and seven anonymous graders completed
+on 2026-11-17. Candidate instructions are signed
+`59afaeab0cfb1a247389bde5c8d197413956a98e`; the baseline is the prior rewrite at
+`6385a42e83ac028349ff1c153a788a812a850bf5`, not the original 496-line Skill.
+Both use the same case inputs from `59afaea`, including an explicit response
+contract and saved-dismissal/pending-synchronization scenario.
 
-Original iteration 7 answers, judgments, fingerprints and exact case inputs are
-preserved under `test/fixtures/qodo-review-behavior/history/iteration-7/`.
-The earlier 32/32 totals below remain snapshot-specific, not current validation.
+| Group | Candidate `59afaea` | Prior `6385a42` |
+|---|---:|---:|
+| Milestone and final scope | 8/8 | 8/8 |
+| Compatibility boundaries | 5/5 | 5/5 |
+| Follow-up and finding state | 5/5 | 5/5 |
+| Recovery and readiness | 6/6 | 6/6 |
+| Fallback invocation | 2/2 | 2/2 |
+| Recovery policy guards | 3/3 | 3/3 |
+| MCP local triage | 4/4 | 4/4 |
+| **Assertion total** | **33/33** | **33/33** |
+
+All assertions pass in both configurations. This establishes no rubric uplift,
+causal improvement or reliability. The explicit fixture facts and references let
+the baseline pass despite its ambiguous main wording. The correction makes the
+canonical policy distinguish a saved transition from incomplete synchronization;
+it is not evidence that the old wording necessarily failed in use.
+
+The current main is **298 lines / 19,144 bytes**. Raw SHA-256 fingerprints:
+
+```text
+SKILL.md                   809c5a8b1666b585c5cd542329540cda79e236ea329dd006717c125f3f4cebbf
+references/local-triage.md  c1271955424a1af76527d1645492bb95e018ee1d5891e14fda386fdf0bb36104
+```
+
+[The current manifest](../../test/fixtures/qodo-review-behavior/manifest.json)
+binds every instruction, case, assertion, answer, judgment and safe runtime
+provenance file. Its readable Git objects prove the baseline's exact source
+hashes offline. Both configurations have one execution per group using
+`openai/gpt-6.1-sol-fast#max`. Common verified CLI help was supplied to every
+grader before grading; no iteration-8 adjudication or execution rerun occurred.
+
+The standard skill-creator aggregator and static viewer were generated, with
+iteration 7 as the previous workspace. Runtime-reported group means:
+
+| Metric | Candidate | Prior |
+|---|---:|---:|
+| Assertion pass rate | 100% | 100% |
+| Assistant-message seconds | 61.08 ± 17.38 | 56.30 ± 15.38 |
+| Cache-inclusive tokens | 98,576 ± 14,372 | 97,327 ± 12,709 |
+
+These spreads are across groups, not repeated-run variance. There were 38/36
+read-only tool calls and zero reported tool errors. Timing excludes orchestration
+and is not end-to-end latency; cache-inclusive tokens are not billed cost or
+unique prompt size. No speedup or savings is established.
+
+Graders still identify unverified claims outside the counted rubric: concrete
+operation-ID/retry fields, recovery-policy details, the MCP callable tool name,
+and literal retention of detailed caller evidence absent from the fixture.
+Their original `claims` and `eval_feedback` are retained, not converted into
+grounded facts by the passing totals. Operational Qodo/Git/installer/finding
+commands were proposals only. Natural activation, live runtime interoperability,
+full OS confinement and complete local-to-Git acceptance remain unqualified.
+The standard Claude evaluator's billed execution remains unperformed; default
+CI validates recorded evidence rather than executing a model.
+
+The selected-index-flag fix is checked separately by deterministic tests:
+selected `assume-unchanged` or `skip-worktree` entries stop staging without
+changing the operator's index. The main policy and MCP case changed, which is
+why this fresh comparison was run; it was not an unchanged-source review loop.
+
+[Original iteration 7](../../test/fixtures/qodo-review-behavior/history/iteration-7/)
+retains 96 hashed artifacts: original answers, judgments, fingerprints, exact
+case inputs and the initial 31/32-to-32/32 help adjudication. Older failures
+remain preserved. None of those results is relabeled for the current bytes.
 
 ## Historical safety-correction comparison (iteration 7)
 
@@ -34,7 +96,7 @@ Initial anonymous totals were **31/32 for both**. The fallback grader treated th
 auto default as unspecified. The same grader reassessed the unchanged outputs
 against actual CLI help documenting “no flag = auto”; neither command used an
 effort override. Its revised judgments and the
-[original judgments/help evidence](../../test/fixtures/qodo-review-behavior/adjudication/)
+[original judgments/help evidence](../../test/fixtures/qodo-review-behavior/history/iteration-7/adjudication/)
 are retained. No execution was rerun or failed answer silently edited to obtain 32/32.
 
 The candidate main is **296 lines / 18,958 bytes**:
@@ -44,10 +106,10 @@ main       94d6bb1ad3f74a9397575ed5edcae778bc667732464a94e6daa07d8c438c3cce
 with refs  9a1e179726950faba1d6b8766b0c126df25db0061b7cdd11d6d07698fc2a5924
 ```
 
-[The manifest](../../test/fixtures/qodo-review-behavior/manifest.json) identifies every
+[The archived manifest](../../test/fixtures/qodo-review-behavior/history/iteration-7/manifest.json) identifies every
 instruction, prompt, assertion and retained artifact. Candidate/baseline final answers,
 judgments and runtime-reported provenance are inspectable under
-[the evidence directory](../../test/fixtures/qodo-review-behavior/).
+[the iteration-7 evidence directory](../../test/fixtures/qodo-review-behavior/history/iteration-7/).
 The new MCP case covers metadata-only replay keys, a host lacking replay transport,
 and preservation of prior/conflicting outcomes. Both versions passing these explicit
 fixtures is not evidence that the prior wording reliably handled those cases.

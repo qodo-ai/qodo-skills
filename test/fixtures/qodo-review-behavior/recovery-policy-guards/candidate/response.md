@@ -1,35 +1,31 @@
-Proposals only. No commands or writes executed.
-
 ### 1. `ordinary-update-check`
 
-Each subcase stops **before any runtime change**:
+Each result independently stops the selected recovery route:
 
 | Check result | Next allowed action |
 |---|---|
-| TLS error | Preserve and report the TLS failure; stop. Do not weaken TLS. |
-| No update | Report that no eligible target was offered; stop. |
-| Version `3.0.0` | Reject the incompatible target; stop. Approval covers compatible 2.x only. |
+| TLS error | Report the TLS failure. Do not bypass TLS, attempt the update, or treat it as missing credentials. |
+| No update | Report that no eligible target was offered. Do not run the update. |
+| Offers `3.0.0` | Report that the target is incompatible with the required 2.x runtime. Do not install it. |
 
-Do not run `qodo update`, switch to `latest-2` or an installer, or change accounts/deployments. Version `1.6.0` also blocks identity, login, review and managed-tool calls.
+The conditional approval is not satisfied in any subcase. Do not switch to `latest-2`, an installer, another origin or another deployment. Preserve update holds and policy. Any override inspection must check only whether `QODO_UPDATE_BASE_URL` is set, without displaying its value; if set, stop for user direction.
 
-**Pending:** a successful approved check offering a newer compatible 2.x target. Any future recovery must preserve origin, version choices and update holds, and check only whether `QODO_UPDATE_BASE_URL` is set—not print its value. If set, stop for the user.
+**Pending:** compatible-runtime recovery and the review. Runtime `1.6.0` cannot proceed to identity, login, review or managed-tool calls. Any later authorized recovery must pass a fresh unadorned version probe before authenticated calls.
 
 ### 2. `missing-cli`
 
-**Stop the CLI path and report review blocked.** Neither trusted installed invocation exists.
+**Next allowed action:** report that the CLI review path is blocked and stop. Neither trusted installed invocation exists.
 
-Do not use a repository-local launcher, install software, log in, or change deployment. Do not assume an MCP fallback without its required tested collector.
+Review permission does not authorize installation. Do not run a repository-local launcher, invent an installer checksum, bootstrap an unapproved installation, or change accounts/deployments.
 
-**Pending:** separate installation approval and a Qodo/organization-supplied checksum-pinned installer. Review would still require post-install compatibility verification, identity verification and supported review options. No assessment has occurred.
+**Pending:** review execution. Installation would require separate approval and a Qodo/organization-supplied checksum-pinned installer. MCP is not an automatic substitute: it requires a tested local collector meeting the scope and safety requirements.
 
 ### 3. `user-no-retry`
 
-**Do not resubmit automatically.** The user’s prohibition overrides the otherwise recoverable `repo_not_connected` failure.
+**Next allowed action:** report the terminal `repo_not_connected` failure and ask:
 
-Retain the failed operation ID, terminal error and original request. Proposed approval question:
+> Do you approve one corrected resubmission using `--repo` with the known exact connected repository `full_name`, preserving the original base, scope, context and auto effort?
 
-> May I make one corrected resubmission using the known exact connected repository `full_name` through `--repo`, preserving the original base, scope, context and auto effort?
+Do not resubmit before approval. The error’s lack of a retry prohibition does not override your explicit no-auto-retry instruction. Preserve the failed operation ID and error evidence.
 
-Only after explicit approval, repeat the retained submission with that repository correction. Keep auto effort by omitting `--fast` and `--deep`. This uses the single cause-corrected resubmission allowance; collect its operation if accepted and stop on further failure.
-
-**Pending:** approval, corrected submission and completed assessment. The failed run provides no completed review coverage.
+**Pending:** approval and completed review coverage. If approved, this uses the single cause-corrected resubmission allowance; collect its operation ID if accepted. It does not create a new retry allowance for subsequent failures.

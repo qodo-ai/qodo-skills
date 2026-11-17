@@ -431,9 +431,18 @@ test('recorded behavior evidence covers current instructions and every assertion
   assert.equal(manifest.method, 'fresh-native-agents-with-anonymous-final-answer-grading');
   assert.equal(manifest.cases.length, 7);
   assertBaselineSnapshot(evidenceRoot, manifest.snapshots.baseline);
+  const history = manifest.history?.iteration_7;
+  if (history) {
+    const archive = fixtureFile(evidenceRoot, history.path);
+    assert.equal(sha256(archive), history.sha256);
+    for (const [path, hash] of Object.entries(JSON.parse(archive).artifacts))
+      assert.equal(sha256(fixtureFile(join(evidenceRoot, 'history/iteration-7'), path)), hash);
+  }
   for (const [path, expected] of Object.entries(manifest.adjudication?.artifacts ?? {})) {
     assert.equal(sha256(fixtureFile(evidenceRoot, path)), expected, path);
   }
+  for (const [path, hash] of Object.entries(manifest.grading_evidence?.artifacts ?? {}))
+    assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash);
   assert.deepEqual(Object.keys(manifest.snapshots.candidate.fingerprints).sort(),
     ['SKILL.md', ...references.map((name) => `references/${name}`)].sort());
   assert.deepEqual(manifest.cases.map((item) => item.name).sort(),

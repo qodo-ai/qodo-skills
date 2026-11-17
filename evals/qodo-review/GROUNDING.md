@@ -3,7 +3,8 @@
 Checked on 2026-11-17 after local finding
 `a876eb5e-2c75-4232-8c96-7fe9eeb9e730`.
 
-The MCP candidate answer conditionally recommends replaying an exact request when
+The [iteration-7 MCP candidate answer](../../test/fixtures/qodo-review-behavior/history/iteration-7/mcp-local-triage/candidate/response.md)
+conditionally recommends replaying an exact request when
 `reconciled: false` is returned. Its anonymous grader correctly left that claim
 unverified: the permitted prompt and answer did not establish that response field
 or recovery contract. The narrow metadata-key assertion still passed. Neither
@@ -22,5 +23,7 @@ Source: [pinned contract](https://github.com/Codium-ai/pr-agent-pro/blob/7d26418
 This supports that particular conditional advice; it does not establish the
 deployed revision, perform a status write, or independently verify every claim.
 The original prompt, assertion, answer, `claims`, `eval_feedback`, provenance and
-judgment are unchanged. No agent execution or grading was repeated, and this
-later check is not retroactive evidence available to the anonymous grader.
+judgment are unchanged. No agent execution or grading was repeated for this source
+check, and it is not retroactive evidence available to that anonymous grader.
+Iteration 8 is a separate comparison of changed instructions and fixtures; its MCP
+prompt explicitly supplies the response/replay contract before execution and grading.
