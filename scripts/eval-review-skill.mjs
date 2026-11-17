@@ -70,8 +70,9 @@ function requireCommittedInputs(root, commit, paths, select) {
     throw new Error('Selected evaluation inputs use assume-unchanged or skip-worktree; clear those flags explicitly before staging. The index was not changed.');
   }
   const diff = ['--no-ext-diff', '--no-textconv', '--no-renames', '--name-only', '-z', commit, '--', ...paths];
+  // Ignored additions can still match model-input selectors and must not disappear silently.
   const changed = [git(root, ['diff', ...diff]), git(root, ['diff', '--cached', ...diff]),
-    git(root, ['ls-files', '--others', '--exclude-standard', '-z', '--', ...paths])];
+    git(root, ['ls-files', '--others', '-z', '--', ...paths])];
   if (changed.some((names) => names.split('\0').some((name) => name && select(name)))) {
     throw new Error('Commit the selected evaluation inputs before staging; working files are never copied.');
   }

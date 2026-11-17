@@ -68,6 +68,12 @@ The selected-index-flag fix is checked separately by deterministic tests:
 selected `assume-unchanged` or `skip-worktree` entries stop staging without
 changing the operator's index. The main policy and MCP case changed, which is
 why this fresh comparison was run; it was not an unchanged-source review loop.
+The later ignored-addition regression first failed against the `0d6481d`
+evaluator, using uncommitted test additions rather than an exact-head full suite.
+Untracked selected cases/graders are now checked even when local/global excludes
+hide them; ignored non-input additions still do not block staging. Instructions,
+case inputs and recorded judgments did not change for that tooling fix, and no
+model comparison was repeated.
 
 [Original iteration 7](../../test/fixtures/qodo-review-behavior/history/iteration-7/)
 retains 96 hashed artifacts: original answers, judgments, fingerprints, exact

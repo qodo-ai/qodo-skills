@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync,
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync,
   rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { inputPath, main, prepareReviewEvaluation, readGitEvaluationFiles,
   requireEvaluationSupport } from '../scripts/eval-review-skill.mjs';
+import { assertGrade, createEvaluationRepository } from './helpers/review-evaluation-fixtures.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skill = join(root, 'skills/qodo-review');
@@ -19,6 +20,7 @@ const references = readdirSync(join(skill, 'references')).filter((name) => name.
 const markdown = [join(skill, 'SKILL.md'), ...references.map((name) => join(skill, 'references', name))];
 const readReference = (name) => readFileSync(join(skill, 'references', name), 'utf8');
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const evaluationRepository = (parent) => createEvaluationRepository(parent, skill, join(root, 'evals/qodo-review'));
 
 function fixtureFile(directory, path, boundary = root) {
   assert.ok(typeof path === 'string' && path && !path.includes('\\') && !path.includes(':')
@@ -87,43 +89,10 @@ function evaluatedReleaseStamps(body, currentVersion, evaluatedVersion) {
       `--skill-version ${evaluatedVersion} --distribution`);
 }
 
-function assertGrade(grade, assertions, candidate = false) {
-  assert.deepEqual(grade.expectations.map((entry) => entry.text), assertions);
-  assert.ok(grade.expectations.every((entry) => typeof entry.passed === 'boolean'),
-    'Every assertion verdict must be a boolean');
-  const passed = grade.expectations.filter((entry) => entry.passed === true).length;
-  assert.deepEqual(grade.summary, { passed, failed: assertions.length - passed,
-    total: assertions.length, pass_rate: passed / assertions.length });
-  assert.ok(grade.expectations.every((entry) => typeof entry.evidence === 'string' && entry.evidence.trim()));
-  if (candidate) assert.ok(grade.expectations.every((entry) => entry.passed === true), 'Candidate evidence failed');
-  return passed;
-}
-
 function headings(markdownText) {
   const prose = markdownText.replace(/^```[\s\S]*?^```/gm, '');
   return [...prose.matchAll(/^#{1,6} (.+)$/gm)].map(([, value]) =>
     value.toLowerCase().replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/\s/g, '-'));
-}
-
-function evaluationRepository(parent) {
-  const source = join(parent, 'source');
-  mkdirSync(join(source, 'skills'), { recursive: true });
-  mkdirSync(join(source, 'evals'));
-  cpSync(skill, join(source, 'skills/qodo-review'), { recursive: true });
-  cpSync(join(root, 'evals/qodo-review'), join(source, 'evals/qodo-review'), { recursive: true });
-  const git = (args, input) => execFileSync('git', args, { cwd: source, encoding: 'utf8', input,
-    stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-  git(['init', '--quiet']);
-  const commit = () => {
-    git(['add', '--all']);
-    const tree = git(['write-tree']);
-    // Synthetic test object only; no user commit or signing configuration is changed.
-    const sha = git(['hash-object', '-w', '-t', 'commit', '--stdin'],
-      `tree ${tree}\nauthor Fixture <fixture@qodo.invalid> 0 +0000\ncommitter Fixture <fixture@qodo.invalid> 0 +0000\n\nEvaluation fixture\n`);
-    git(['update-ref', 'HEAD', sha]);
-    return sha;
-  };
-  return { source, git, commit, head: commit() };
 }
 
 test('local-review entrypoint stays focused and keeps its required delivery contract', () => {
@@ -345,6 +314,30 @@ test('selected assume-unchanged and skip-worktree inputs fail closed without cha
       writeFileSync(join(source, path), original);
       git(['update-index', `--no-${flag}`, '--', path]);
     }
+  } finally { rmSync(parent, { recursive: true, force: true }); }
+});
+
+test('locally or globally ignored selected additions still stop evaluation staging', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-ignored-input-'));
+  try {
+    const { source, git } = evaluationRepository(parent);
+    for (const [index, path] of ['compatibility-boundaries/graders/ignored.md', 'ignored-case/prompt.md'].entries()) {
+      const relative = `evals/qodo-review/${path}`;
+      const exclude = index === 0 ? join(source, '.git/info/exclude') : join(parent, 'global-excludes');
+      writeFileSync(exclude, `${relative}\n`);
+      if (index === 1) git(['config', 'core.excludesFile', exclude]);
+      mkdirSync(dirname(join(source, relative)), { recursive: true });
+      writeFileSync(join(source, relative), 'ignored selected addition');
+      assert.equal(git(['ls-files', '--others', '--exclude-standard', '--', relative]), '');
+      assert.equal(git(['check-ignore', relative]), relative);
+      assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /Commit the selected evaluation inputs/);
+      rmSync(join(source, relative));
+    }
+    const nonInput = 'evals/qodo-review/ignored-case/README.md';
+    writeFileSync(join(parent, 'global-excludes'), `${nonInput}\n`);
+    writeFileSync(join(source, nonInput), 'ignored non-input addition');
+    assert.equal(git(['check-ignore', nonInput]), nonInput);
+    assert.ok(prepareReviewEvaluation({ root: source, parent }).manifest.cases.length);
   } finally { rmSync(parent, { recursive: true, force: true }); }
 });
 

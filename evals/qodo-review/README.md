@@ -27,6 +27,8 @@ Concurrent checkout replacements therefore cannot redirect model inputs to host 
 Dirty selected inputs stop staging; unrelated README/results/agent-metadata edits
 do not block it. The same selectors govern model-input collection and dirty-input
 checks, including selected additions, deletions, renames and index-only changes.
+Selected untracked additions still stop when local or global Git ignore rules hide
+them. Ignored non-input files remain outside the gate; working files are never copied.
 Selected `assume-unchanged` or `skip-worktree` entries also stop staging because
 ordinary Git diffs cannot prove they are clean. The wrapper never clears those
 flags or changes the operator's index.
