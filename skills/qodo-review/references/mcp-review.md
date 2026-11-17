@@ -36,6 +36,7 @@ This is the start tool's logical-action retry key. Do not invent a separate `ide
 Poll `get-managed-agent-operation` at its advertised interval.
 Check every status/result receipt's `operation_id` against the retained operation.
 Fetch all `get-managed-agent-result` chunks, following each `next_cursor` once until null.
+Keep the initial `extended` value or omission unchanged across pages; change only the cursor.
 Require stable `encoding`, `sha256`, `total_bytes` and `total_chunks` across pages.
 Require contiguous `offset_bytes` starting at zero, with no gap, overlap or cursor cycle.
 Verify the collected chunk count, full digest and byte count before parsing the artifact.

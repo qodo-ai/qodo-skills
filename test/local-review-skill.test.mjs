@@ -74,6 +74,9 @@ test('execution mechanics remain reachable and completed async results are emitt
   assert.match(text, /Reject mismatched operation\/snapshot associations and incomplete or noncontiguous result pages/);
   for (const field of ['operation_id', 'offset_bytes', 'total_chunks', 'next_cursor'])
     assert.ok(readReference('mcp-review.md').includes(field));
+  assert.match(readReference('mcp-review.md'), /Keep the initial `extended` value or omission unchanged/);
+  assert.match(execution, /report that comparison as unavailable/);
+  assert.match(text, /Report any unavailable identity check as unverified/);
   assert.match(readReference('connected-progress.md'), /reap the child/);
   for (const name of ['cli-execution.md', 'mcp-review.md', 'local-triage.md']) {
     assert.match(readReference(name), /SKILL\.md#execution-and-recovery-policy/);
@@ -144,7 +147,7 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     assert.equal(staged.manifest.source_commit, fixture.head);
     assert.equal(staged.manifest.fixture_source_commit, fixture.head);
     assert.equal(staged.manifest.cases.length, 8);
-    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 41);
+    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 42);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
     assert.ok(!staged.args.includes('--allow-real-servers') && !staged.args.includes('--trust-plugin'));
     assert.ok(!staged.args.includes('--json'), 'Machine mode must not suppress a first-run trust prompt');

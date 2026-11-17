@@ -16,7 +16,7 @@ test('historical evidence requires all archives and rejects removed, changed or 
   const directory = mkdtempSync(join(tmpdir(), 'qodo-required-history-'));
   const manifest = { history: {} };
   try {
-    for (const iteration of [6, 7, 8, 9, 10, 11, 12]) {
+    for (const iteration of [6, 7, 8, 9, 10, 11, 12, 13]) {
       const path = `history/iteration-${iteration}`;
       mkdirSync(join(directory, path), { recursive: true });
       writeFileSync(join(directory, path, 'response.md'), 'Original response\n');
@@ -24,8 +24,8 @@ test('historical evidence requires all archives and rejects removed, changed or 
       writeFileSync(join(directory, path, 'archive.json'), archive);
       manifest.history[`iteration_${iteration}`] = { path: `${path}/archive.json`, sha256: hashEvidence(archive) };
     }
-    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1 });
-    for (const iteration of [6, 7, 8, 9, 10, 11, 12]) {
+    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1 });
+    for (const iteration of [6, 7, 8, 9, 10, 11, 12, 13]) {
       const changed = structuredClone(manifest);
       delete changed.history[`iteration_${iteration}`];
       assert.throws(() => assertHistoryArchives(directory, changed), /Missing required/);
@@ -40,7 +40,7 @@ test('historical evidence requires all archives and rejects removed, changed or 
       assert.throws(() => assertHistoryArchives(directory, manifest), /inventory changed/);
       rmSync(extra);
     }
-    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1 });
+    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1 });
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

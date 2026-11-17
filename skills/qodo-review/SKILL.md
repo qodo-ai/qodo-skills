@@ -91,6 +91,7 @@ they do not select different authority, compatibility or recovery policy.
   Retain the final envelope even after nonzero exit and before deleting only this invocation's temporary files.
 - **MCP:** require the tested collector, safety exclusions, omission report and fetchable base above.
   Preserve request identity after uncertain admission; collect and verify every result chunk before interpreting it.
+  Keep result-view arguments unchanged while following pagination cursors.
   Never invent an unsupported collector mode, retry-key field or substitute checkout.
 - **Finding-status writes:** fixing code does not authorize a dismissal. An authorized local dismissal uses original
   finding IDs and their actual local-review IDs, grouped by review, reason and explanation.
@@ -188,6 +189,7 @@ Keep the process alive. Never combine `--async` with `--progress`.
 An accepted operation is not a completed assessment.
 Poll the existing operation ID. Do not submit a new review to check progress or obtain more detail.
 Validate returned identities and artifact integrity before interpreting a result.
+Report any unavailable identity check as unverified; do not invent evidence or certify that check.
 Reject mismatched operation/snapshot associations and incomplete or noncontiguous result pages.
 If acceptance is uncertain, use the CLI's returned recovery command and retained original request.
 Do not gather a different worktree snapshot for that recovery.

@@ -36,3 +36,11 @@ Do not call services, change installations or perform repository writes.
    pre-PR review schema, but no tested local collector or prepared input exists.
    I have not authorized installation. I want a review of this worktree, not
    an unrelated repository or a remotely fetched substitute.
+6. `cli-identity-gap`: The retained accepted CLI operation is OP-REQUESTED.
+   Completed `review status OP-REQUESTED --json` output reports complete coverage
+   and inventory and no findings. Its returned `meta.run.snapshot` matches the
+   intended base, commit and tree. It exposes review-run ID REVIEW-RESULT, but no
+   returned transport operation ID. The trusted renderer contract says it does
+   not compare that hidden ID with the requested one. Can I claim that the
+   operation-response identity check passed? Explain the known evidence and gap
+   without changing the runtime, inventing another read API or submitting again.

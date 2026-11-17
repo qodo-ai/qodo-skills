@@ -1,0 +1,57 @@
+{
+  "expectations": [
+    {
+      "text": "For metadata-only, the proposed pr-review-dismiss call preserves F-A/F-B, L-ORIGINAL, the authorized reason/explanation and one retained metadata key through _meta[\"io.qodo/idempotency-key\"]. It reads each synchronous result and verifies stored outcomes. Uncertain-response recovery uses the exact original request/key, without inventing an operation handle, polling call, schema argument, CLI fallback or successful write.",
+      "passed": true,
+      "evidence": "B.md:12-21 specifies the exact arguments and metadata key. B.md:26-30 retains the request/key/result, checks each synchronous outcome and stored identity/disposition, rejects an unsupported argument, and permits only exact same-key recovery without polling."
+    },
+    {
+      "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
+      "passed": true,
+      "evidence": "B.md:34-36 blocks the write, identifies missing replay protection and CLI availability, and states that recording both dismissals remains unperformed."
+    },
+    {
+      "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
+      "passed": true,
+      "evidence": "B.md:40-44 preserves the exact deferred rationale and conflict, denies newly saved dispositions and clean-review/readiness claims, and prohibits overwriting or automatic conflict retry."
+    },
+    {
+      "text": "For saved-sync-pending, the response reports F-C's dismissal as stored and synchronization as incomplete. It explains that a completed same-key MCP replay cannot retry synchronization. The separately authorized new attempt preserves F-C, its local-review identity, reason and explanation, uses a new retained transport key, retains the original receipt, and verifies the new operation's outcome without claiming convergence in advance.",
+      "passed": true,
+      "evidence": "B.md:48-59 distinguishes stored dismissal from incomplete synchronization, preserves F-C/L-CURRENT/reason/original explanation, retains both requests/keys/results with a new metadata key, explains cached original replay, and requires confirming evidence within the single authorized attempt."
+    },
+    {
+      "text": "For uncertain-write, the response collects the original operation or replays the exact original request with its retained key. It does not rotate the key, start another mutation, change the decision, or claim storage or synchronization without a terminal result and readback.",
+      "passed": true,
+      "evidence": "B.md:63-67 keeps the outcome unknown, collects the original operation using its receipt or exactly replays the original request/key, requires outcome verification and readback, and rejects a new invocation/key."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "No requests or state changes were made.",
+      "type": "process",
+      "verified": true,
+      "evidence": "B.md:1 explicitly labels all actions proposals only; task.md:6 independently stipulates that no proposed operational command was executed."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "All assertions are supported. No material unsupported claims identified. These grades establish proposal correctness, not operational execution."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e160b45cdffeXW0P5DgFlHjstK",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9f5a9ad001AiwD2HGWxXFtVb",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

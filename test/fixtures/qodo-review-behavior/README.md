@@ -1,6 +1,11 @@
 # Recorded qodo-review behavior evaluation
 
-The current manifest selects two disjoint scopes covering eight cases and41assertions:
+Current source qualification is pending after local393review identified supported
+collection-recipe gaps and a CLI identity-evidence limitation. Instructions and one
+compatibility scenario changed. The scoped13record below is archived with207artifacts;
+it is not relabeled as proof of those new bytes. Fresh applicable evidence is next.
+
+The preceding scoped13manifest selects two disjoint scopes covering eight cases and41assertions:
 candidate41/41and baseline40/41. **This is not a newly executed complete matrix.**
 Seven unchanged cases retain their original iteration12/559input and run identities
 (candidate36/36, baseline35/36). Only the five-assertion follow-up was refreshed
@@ -15,7 +20,7 @@ No reasoning text, credentials, unrelated sessions or raw session archives are i
 Current responses retain the parent-captured bytes and their recorded hashes.
 Older archives retain their documented normalization and original/portable hashes.
 
-The candidate matches current instructions. The baseline is a preceding rewrite,
+At393the candidate matched its then-current instructions. The baseline is a preceding rewrite,
 not the original pre-rewrite Skill. Each scope retains its complete57input map,
 including historical inputs for unselected cases. Selected inputs must match
 current fixtures; all runs must match their own original scope, not a fictional

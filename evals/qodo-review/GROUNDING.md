@@ -72,3 +72,25 @@ synchronous reply through the supported exact same-key replay.
 The updated fixture explicitly supplies the tool name and no-handle synchronous
 contract. It requires the same original business identity and replay protection,
 not a relaxed passing grade. Live runtime execution remains unperformed.
+
+## CLI response-identity boundary after local393review
+
+Local review `f68877275686408f9a0178c2254573df` at393a77a reported b7eb6aba:
+the CLI cannot expose or verify every identity check requested by the Skill.
+Read-only Qodo retrieval of `qodo-ai/qodo-in-cli@c231373136add5afa2d56fec0acd7708844b4da0`,
+`src/review-async.ts:295–313,625–669` and `src/review.ts:1790–1815`, confirms that
+the fetched operation is classified/rendered without comparing or returning the
+transport operation ID. The actual393JSON exposes findings, inventory, review-run
+metadata and matching snapshot identity, not a returned operation ID.
+
+The Skill now reports unavailable identity checks rather than inventing evidence.
+The CLI reference distinguishes known snapshot association from that missing
+transport-ID comparison; a requested handle or review-run ID is not a substitute.
+The new synthetic identity-gap case tests this limitation without changing runtime
+implementation or claiming a deployed fix. Supporting CLI/Engine/QAR remain frozen.
+
+Two other supported local findings correct conditional mechanics: collection now
+stops on failed/empty/non-directory temporary setup before any redirect (ded0ddcb);
+MCP result pages keep the initial `extended` value or omission unchanged (9e7e1662).
+Deterministic shell checks execute only setup and a harmless marker, never the
+status redirect, cleanup loop or a Qodo command.

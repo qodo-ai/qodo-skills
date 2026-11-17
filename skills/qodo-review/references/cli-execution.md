@@ -65,6 +65,12 @@ Do not change effort because async is unavailable. Use the connected fallback in
 
 Collect every accepted run inside its retention window. Respect a returned polling delay.
 Use the host's nonblocking wait mechanism and do useful independent work between checks.
+Check identities actually exposed in the result. Some CLI status renderers omit the
+returned transport operation ID and do not check it against the requested handle.
+In that case, report that comparison as unavailable. Verify any returned snapshot
+metadata, but do not substitute `meta.run.id`, a review ID or the requested handle
+for the missing returned operation ID. Matching snapshot metadata does not prove that check.
+Do not change runtimes or claim complete identity verification to conceal the gap.
 
 | Status exit | Meaning | Action |
 |---|---|---|
@@ -75,7 +81,8 @@ Use the host's nonblocking wait mechanism and do useful independent work between
 This shell loop illustrates collection only. It does not restart a failed review:
 
 ```sh
-QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")"
+QODO_REVIEW_TMP="$(mktemp -d "${TMPDIR:-/tmp}/qodo-review.XXXXXX")" || exit 1
+[ -n "$QODO_REVIEW_TMP" ] && [ -d "$QODO_REVIEW_TMP" ] || exit 1
 cleanup_qodo_review() { [ -n "${QODO_REVIEW_TMP:-}" ] && [ -d "$QODO_REVIEW_TMP" ] && rm -r -- "$QODO_REVIEW_TMP"; }
 trap cleanup_qodo_review EXIT; trap 'exit 130' INT; trap 'exit 143' TERM
 while :; do

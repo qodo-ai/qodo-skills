@@ -80,7 +80,8 @@ recovery from a new authorized synchronization attempt. The older same-key synch
 assumption is preserved as historical evidence, not accepted as transport qualification.
 `mcp-collection` adds seven assertions for eligible submission, complete chunk
 verification, ineligible collection, wrong digest/byte count, a foreign operation
-and overlapping pages. The standard wrapper stages all eight groups and 41 assertions.
+and overlapping pages. The CLI identity-gap case adds one assertion that missing
+response identity is reported, not invented. The wrapper stages eight groups and42assertions.
 
 ## Recorded evidence and CI
 
@@ -122,11 +123,13 @@ assertion cases fail. Each assertion needs an output citation with a valid line 
 Anonymous `A.md`/`B.md` labels map through each scope's recorded mapping to the response.
 Citation syntax and bounds do not prove that the cited text supports the claim.
 Updating the manifest alone cannot bless old answers.
-History entries6/7/8/9/10/11/12 are required; their40/96/104/74/121/122/148inventory entries
+History entries6/7/8/9/10/11/12/13 are required; their40/96/104/74/121/122/148/207inventory entries
 are checked. The earlier focused MCP records use their archived inputs/instructions,
 not the newer case. Old answers are not relabeled as current runs.
 The generated12index is compacted to meet the repository line limit. Its original
 bytes remain losslessly encoded and independently hashed; no captured run is normalized.
+Scoped13is historical after the local393recipe and CLI-evidence corrections.
+Fresh evidence is required for the changed instruction bytes and identity-gap case.
 **CI validates the recorded evidence; CI does not execute the agent.**
 The standard Claude evaluation wrapper has only been staged/manifest-validated,
 not model-executed. Run models separately in a fresh-agent harness or explicitly

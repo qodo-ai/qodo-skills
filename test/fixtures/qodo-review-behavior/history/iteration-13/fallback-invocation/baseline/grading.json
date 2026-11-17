@@ -1,0 +1,58 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "B.md:4, B.md:16 and B.md:30 use the exact quoted invocation; no installation or PATH change is proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "B.md:16-19 preserves the base and context without an effort flag, which means auto (qodo-auto-help.txt:62). B.md:24-30 gates collection on a nonempty ID extracted from submission output. B.md:33 states submission has not occurred and leaves results unknown."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Version 2.3.1, verified identity and passing unit tests are supplied evidence.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:7 matches prompt.md:11-17; these are supplied facts, not newly observed results."
+    },
+    {
+      "claim": "Submission JSON exposes the ID as a top-level string operation_id.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:24-25 assumes this schema. The supplied help documents an operation ID but not its JSON field or type. The guard prevents collection if extraction fails, but successful extraction is unverified."
+    },
+    {
+      "claim": "A running status response returns a polling delay.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:33 refers to 'the returned polling delay'. qodo-auto-help.txt:35-36 and :68 establish exit 2 while running, but provide no polling-delay contract."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Add checks against a verified async JSON schema and polling metadata contract; the current assertions leave both assumptions unchecked."
+      }
+    ],
+    "overall": "Both assertions pass for the proposed commands; executable collection compatibility remains unverified."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e160b45d7ffdM2tuWCTXB8dSjm",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9f59173001op0fGweI5F5cUA",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

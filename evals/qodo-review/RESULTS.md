@@ -1,6 +1,20 @@
 # Agent-evaluation results
 
-## Current applicable evidence: disjoint scopes
+## Current status after local393review
+
+Source393passed405runtime/165Node/native/staging and completed auto local review
+`f68877275686408f9a0178c2254573df` with complete coverage/inventory and inline context.
+Requestedauto/effectivestandard produced full/delta_scope_unavailable; five agents
+completed and spec skipped/no_spec_content. No resolved/dismissed IDs were returned.
+Two supported recipe gaps and a verified CLI identity-evidence limit require the
+new source corrections described in GROUNDING.md. Supporting runtime work is frozen.
+
+The instruction bytes and compatibility fixture changed. Fresh applicable
+candidate/baseline evidence is pending; the previously passing scoped13gate below
+does not qualify those new bytes. Its207artifact archive retains that original
+applicability record and the complete82artifact focused capture unchanged.
+
+## Preceding applicable evidence: disjoint scopes
 
 The current manifest combines **41/41 candidate** and **40/41 baseline** assertions
 from two non-overlapping scopes. This is **not a fresh unified 41-assertion run**.
