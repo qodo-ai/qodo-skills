@@ -1,0 +1,62 @@
+{
+  "expectations": [
+    {
+      "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
+      "passed": true,
+      "evidence": "A.md:5: 'Version **1.6.0** fails the **2.0.0** minimum'; A.md:7-9 requests approval, preserves the origin and states 'No login, review or catalog refresh now.'"
+    },
+    {
+      "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
+      "passed": true,
+      "evidence": "A.md:13: 'Stop before identity, login, review or managed-tool calls' and 'not evidence of an authentication problem'; A.md:15-17 requires installation approval and a verified checksum, explicitly refusing to invent a digest."
+    },
+    {
+      "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
+      "passed": true,
+      "evidence": "A.md:21 accepts 'Exactly **2.0.0**'; A.md:29-34 literally preserves the supplied decision, both recent_work strings and summary ending 'live load was not tested.' A.md:43 supplies '--base 1111111111111111111111111111111111111111'; A.md:48 specifies 'Auto effort'."
+    },
+    {
+      "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
+      "passed": true,
+      "evidence": "A.md:52 specifies 'both explicit paths, the base and auto effort' without forcing '--full'; A.md:60-65 reproduces the exact accepted context. A.md:72-74 includes the literal supplied base and 'src/jobs/ test/jobs/'; A.md:77 says 'do not label it fixes-only or promise reuse.'"
+    },
+    {
+      "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "A.md:83: 'Review blocked by collection coverage'; A.md:85 requires a 'tested collector/prepared input' and rejects 'ad hoc `git diff`, another checkout or a remote repository'; A.md:87 proposes no submission or installation and leaves collection pending."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Only the narrative field changes from notes to summary; no accepted detail is dropped.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:29-35 matches prompt.md:26-28 literally, with 'summary' replacing 'notes' and 'live load was not tested.' preserved."
+    },
+    {
+      "claim": "The Engine determines actual incremental/reused/full behavior.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:52 states this responsibility, but prompt.md:30-34 provides no protocol definition or execution evidence establishing Engine ownership."
+    }
+  ],
+  "eval_feedback": {
+    "overall": "All assertions are supported by the proposals and literal fixture values. These synthetic files cannot verify command acceptance, version-specific default effort, actual collection coverage or Engine reuse behavior."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1721d34affdsQ3ZjtIWIuJE4v",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8de8551001ENuPTAafTiysH4",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

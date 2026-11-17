@@ -95,7 +95,9 @@ they do not select different authority, compatibility or recovery policy.
 - **Finding-status writes:** fixing code does not authorize a dismissal. An authorized local dismissal uses original
   finding IDs and their actual local-review IDs, grouped by review, reason and explanation.
   Never substitute a run ID or PR URL for a missing local-review ID, or omit advertised replay protection.
-  Read back each stored outcome; a prior disposition, conflict or failed reconciliation is not a new successful write.
+  Read back each stored outcome. A prior disposition or conflict is not a new successful write.
+  Report status persistence separately from downstream synchronization: `reconciled: false` can mean the
+  status was saved but synchronization is incomplete. Do not report that as a failed stored transition.
 - **Requested maintenance:** preview the complete affected installation scope and apply only covering approval.
   Runtime approval is not skills-installation approval. Do not widen owners, packages, origins or update policy.
 

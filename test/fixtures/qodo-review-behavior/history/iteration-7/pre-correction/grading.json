@@ -1,0 +1,89 @@
+{
+  "expectations": [
+    {
+      "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
+      "passed": true,
+      "evidence": "A.md:5 states 'CLI 1.6.0 is below the required 2.0.0 floor'; A.md:7 prohibits 'identity, login, review, or managed-tool calls'. A.md:14 confirms 'No update command is presently authorized'. Conditional recovery proposals are not executed operations."
+    },
+    {
+      "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
+      "passed": true,
+      "evidence": "A.md:18 says '\"custom build\" establishes no supported runtime version' and is not authentication evidence. A.md:20 prohibits protected calls and an updater; A.md:22 states neither approval nor a verified checksum exists. A.md:26 retains the runtime version as unverified."
+    },
+    {
+      "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
+      "passed": true,
+      "evidence": "A.md:30 accepts 'exactly 2.0.0'. A.md:37–42 preserves the exact decision, summary including 'live load was not tested', and both recent_work strings from prompt.md:26–28. A.md:52 uses base 1111111111111111111111111111111111111111; A.md:55 explicitly proposes auto effort."
+    },
+    {
+      "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
+      "passed": false,
+      "evidence": "A.md:89 preserves 'src/jobs/ test/jobs/' but uses '--base \"$PREVIOUS_BASE_SHA\"' without binding that variable to the supplied 1111111111111111111111111111111111111111. A.md:86 calls it the 'retained exact comparison SHA', but does not supply its value. Thus the exact-base requirement is not demonstrated. The remaining requirements are satisfied: context at A.md:74–79, auto at A.md:67, and no forced full or guaranteed reuse at A.md:92–94."
+    },
+    {
+      "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "A.md:98 blocks submission 'without prepared input from a tested collector'. A.md:102 prohibits ad hoc git diff and remote substitutes; A.md:103 prohibits unauthorized CLI installation. A.md:107 states 'No worktree input, accepted operation, or assessment exists'."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "total": 5,
+    "pass_rate": 0.8
+  },
+  "claims": [
+    {
+      "claim": "The response presents proposals rather than completed service operations.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:1 says 'All commands are proposals only'; A.md:63 and 107 disclaim submission and assessment. This matches the supplied grading instruction that both answers are synthetic proposals."
+    },
+    {
+      "claim": "Both context representations preserve the accepted information exactly, changing only summary versus notes.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:36–43 and 73–80 match prompt.md:26–28: the cooperative-cancellation decision, admission narrative with untested live load, timeout correction, and added cancellation API behavior are retained."
+    },
+    {
+      "claim": "Supported recovery requires a newer compatible 2.x target, one selected route, and special same-origin legacy authorization for latest-2.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:10–12 asserts 'newer compatible 2.x' and a 'same-origin legacy migration route' for latest-2. The supplied prompt and assertions establish the minimum-version stop, but do not establish these additional constants or migration rules. These claims are unverifiable, not demonstrated false."
+    },
+    {
+      "claim": "QODO_UPDATE_BASE_URL is the relevant override, and its presence requires stopping recovery.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:21 names 'QODO_UPDATE_BASE_URL' and mandates a stop if set. prompt.md:15–16 mentions an update-source override without identifying its variable or defining this recovery policy. No permitted reference verifies the added rule."
+    },
+    {
+      "claim": "Omitting effort flags selects auto, --standard is nonexistent, and qodo review status accepts the shown operation-ID syntax.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:55 asserts auto by omission and 'nonexistent --standard'; A.md:60 proposes 'qodo review status \"$OPERATION_ID\" --json'. The fixture supplies submission flags but no authoritative default-effort, exhaustive flag, or status-command specification. These runtime details remain unverified."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
+        "reason": "Clarify whether symbolic base references are acceptable. A.md:89 uses an unbound variable despite the known literal SHA. Require the literal or an explicit assignment to distinguish demonstrated preservation from an unresolved placeholder."
+      },
+      {
+        "reason": "The fixture cannot verify additional recovery constants and command semantics asserted in A.md:10–12, 21, 55, and 60. Supply a bounded authoritative policy/schema excerpt if those claims should be graded; do not infer unavailable Skill constants."
+      }
+    ],
+    "overall": "Strong textual checks for compatibility stops and context preservation. The exact-base requirement is not demonstrated. Synthetic proposals cannot establish installed-runtime behavior, and several added policy claims lack permitted verification evidence."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e177203b0ffdG3ZaDzBAhJun5F",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e88e4ae9001NtF7E0cab9t8oy",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

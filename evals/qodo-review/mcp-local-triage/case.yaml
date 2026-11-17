@@ -3,3 +3,4 @@ name: mcp-local-triage
 expected_outcome: |
   Keeps authorized local dismissals replay-safe on a metadata-only MCP server.
   Stops when no replay-safe transport exists and reports prior/conflicting outcomes honestly.
+  Distinguishes a saved dismissal from pending downstream synchronization.

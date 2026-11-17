@@ -1,0 +1,47 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "A.md:2,4,10 use '\"/opt/qodo tools/bin/qodo\"' for version, submission and status; no installation or PATH change is proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": false,
+      "evidence": "A.md:4-7 proposes 'review --base 1111111111111111111111111111111111111111 --context-file /outside/context.json --async --json' without an auto selection or an established auto default. A.md:8-10 guards collection using returned '.operation_id'; A.md:17 correctly leaves acceptance and results pending."
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 1,
+    "total": 2,
+    "pass_rate": 0.5
+  },
+  "claims": [
+    {
+      "claim": "The supplied version is 2.3.1.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:16 states 'Supplied evidence: version **2.3.1**', matching prompt.md:12."
+    },
+    {
+      "claim": "The proposed status collection requires a nonempty operation ID extracted from successful submission output.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:4-11 nests status inside successful submission and 'jq -er .operation_id' extraction guards. This verifies proposal semantics, not execution."
+    }
+  ],
+  "eval_feedback": {
+    "overall": "The fixture does not establish whether plain 'review' defaults to auto; specify that default or require explicit auto selection. These synthetic proposals cannot verify runtime acceptance, response schema or completed results."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1721d340ffejiV0h37cdneP30",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8de81c2001FzWcBCBXV6kCzj",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

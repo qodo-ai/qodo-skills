@@ -1,0 +1,67 @@
+{
+  "expectations": [
+    {
+      "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
+      "passed": true,
+      "evidence": "A.md:4: \"After the requested 20-second delay\"; A.md:7: \"qodo review status op-accepted --extended --json\"; A.md:10: \"Do not resubmit or substitute the changed checkout/context.\""
+    },
+    {
+      "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
+      "passed": true,
+      "evidence": "A.md:18 reproduces \"qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111\"; A.md:21: \"Preserve the retained original request, snapshot, context and effort. Append no new review-input options.\""
+    },
+    {
+      "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+      "passed": true,
+      "evidence": "A.md:26: \"not all local-to-Git work is established as finished\"; A.md:28 identifies completed assessment and settled findings; A.md:30-31 distinguishes failed saving and unverified handoff; A.md:34: \"Do not buy another assessment merely to erase the storage warning.\""
+    },
+    {
+      "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
+      "passed": true,
+      "evidence": "A.md:37: \"Stop certification: review blocked by missing evidence\"; A.md:41: \"Coverage, inventory completeness and persistence are unknown, not implicitly successful. This cannot certify full final coverage\"."
+    },
+    {
+      "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
+      "passed": true,
+      "evidence": "A.md:46: \"Review access is not enabled for this organization.\"; A.md:48: \"Ask your administrator to enroll the organization.\"; A.md:50: \"Do not retry, poll for activation, log in again or switch accounts/deployments.\""
+    },
+    {
+      "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
+      "passed": true,
+      "evidence": "A.md:55: \"do not start a third assessment\"; A.md:57 excludes polls and extended retrieval and preserves the budget across sessions; A.md:59: \"Preserve F-BLOCK as action-required\"; A.md:61: \"not ready locally\"."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The storage-gap snapshot supports local readiness but not successful checkpoint storage or completed PR handoff.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:26-31 makes this distinction, consistent with the supplied synthetic facts in prompt.md:22-25."
+    },
+    {
+      "claim": "The proposed status command's --json option is supported.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:7 implicitly assumes support by proposing --json; prompt.md:12-13 does not establish that option. Compatibility remains unknown."
+    }
+  ],
+  "eval_feedback": {
+    "overall": "All six assertions pass for the synthetic proposals, not executed outcomes. The assertions do not test support for the added --json flag. Actual recovery, persistence repair and PR handoff cannot be verified from these files."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1721d341ffeyCp9VJYThPxw8o",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8de8105001ZKM3m1kJpt8H3c",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

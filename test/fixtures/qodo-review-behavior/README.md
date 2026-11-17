@@ -1,5 +1,10 @@
 # Recorded qodo-review behavior evaluation
 
+Iteration 8 is being prepared for changed reconciliation instructions and the
+33-assertion suite. The current manifest still records iteration 7 and is not
+passing freshness evidence for the newer bytes. Its original artifacts and exact
+inputs are archived in `history/iteration-7/`; they will not be regraded or relabeled.
+
 This directory contains fresh-agent answers, anonymous grader judgments and
 runtime-reported provenance for the exact instruction fingerprints in `manifest.json`.
 Each case links to its synthetic prompt and assertions under `evals/qodo-review/`.

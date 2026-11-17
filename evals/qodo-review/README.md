@@ -27,6 +27,9 @@ Concurrent checkout replacements therefore cannot redirect model inputs to host 
 Dirty selected inputs stop staging; unrelated README/results/agent-metadata edits
 do not block it. The same selectors govern model-input collection and dirty-input
 checks, including selected additions, deletions, renames and index-only changes.
+Selected `assume-unchanged` or `skip-worktree` entries also stop staging because
+ordinary Git diffs cannot prove they are clean. The wrapper never clears those
+flags or changes the operator's index.
 A captured manifest names both exact commits
 and every staged fixture fingerprint. Replace refs and lazy object fetching are disabled.
 First-use trust requires an interactive terminal. The command intentionally omits
@@ -66,14 +69,15 @@ and user-forbidden automatic retries after the hosted review's recovery findings
 Both were included in the six-group, 29-assertion comparison. Historical
 23-assertion and focused results remain tied to their earlier snapshots.
 `mcp-local-triage` adds metadata-only replay protection, a missing-transport stop
-and honest prior/conflicting outcomes to the current seven-group, 32-assertion comparison.
+and honest prior/conflicting outcomes. The current seven-group suite has 33 assertions,
+including the explicit saved-dismissal/pending-synchronization outcome.
 
 ## Recorded evidence and CI
 
 [RESULTS.md](RESULTS.md) gives current and historical snapshot-specific results.
 [Recorded evidence](../../test/fixtures/qodo-review-behavior/README.md) includes
 final answers, anonymous judgments, exact fingerprints and safe runtime provenance.
-The current native-agent result is 32/32 for both corrected and prior `173cfc7`
+The preceding iteration-7 native-agent result is 32/32 for both corrected and prior `173cfc7`
 instructions after one documented auto-contract grading adjudication. Initial
 31/32 judgments and the CLI help used to reassess them remain inspectable.
 These totals do not cover every claim, establish reliability or demonstrate uplift.

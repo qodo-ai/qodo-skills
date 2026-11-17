@@ -64,6 +64,11 @@ export function readGitEvaluationFiles(root, commit, prefix, select = () => true
 }
 
 function requireCommittedInputs(root, commit, paths, select) {
+  const flagged = git(root, ['ls-files', '-v', '-z', '--', ...paths]).split('\0').some((entry) =>
+    entry && select(entry.slice(2)) && (entry[0] === 'S' || entry[0] !== entry[0].toUpperCase()));
+  if (flagged) {
+    throw new Error('Selected evaluation inputs use assume-unchanged or skip-worktree; clear those flags explicitly before staging. The index was not changed.');
+  }
   const diff = ['--no-ext-diff', '--no-textconv', '--no-renames', '--name-only', '-z', commit, '--', ...paths];
   const changed = [git(root, ['diff', ...diff]), git(root, ['diff', '--cached', ...diff]),
     git(root, ['ls-files', '--others', '--exclude-standard', '-z', '--', ...paths])];

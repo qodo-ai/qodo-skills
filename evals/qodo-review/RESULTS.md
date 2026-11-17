@@ -1,6 +1,18 @@
 # Agent-evaluation results
 
-## Current safety-correction comparison (iteration 7)
+## Reconciliation correction (iteration 8, pending)
+
+The main Skill now distinguishes a stored transition from pending downstream
+synchronization. The MCP fixture adds an explicit saved/sync-pending case and
+tests response/recovery claims against the supplied contract: 33 assertions over
+seven groups. A fresh comparison against signed `6385a42` is being prepared.
+No result for these new instruction bytes is claimed yet.
+
+Original iteration 7 answers, judgments, fingerprints and exact case inputs are
+preserved under `test/fixtures/qodo-review-behavior/history/iteration-7/`.
+The earlier 32/32 totals below remain snapshot-specific, not current validation.
+
+## Historical safety-correction comparison (iteration 7)
 
 Fourteen fresh OpenCode executions on 2026-11-17 consulted the corrected instructions
 or the preceding signed `173cfc700e4ee8a83c20e47abc1edfcd75612354` instructions.

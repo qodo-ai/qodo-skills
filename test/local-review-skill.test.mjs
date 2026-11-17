@@ -210,6 +210,8 @@ test('context compatibility and authority boundaries survive the rewrite', () =>
   assert.match(triage, /_meta\["io\.qodo\/idempotency-key"\]/);
   assert.match(triage, /do not submit an unprotected write/);
   assert.match(text, /A HEAD SHA alone does not identify a dirty snapshot/);
+  assert.match(text, /Report status persistence separately from downstream synchronization/);
+  assert.match(triage, /the status is stored but downstream synchronization is incomplete/);
   assert.match(text, /finding\/checkpoint persistence and local-to-PR handoff separately/);
   for (const group of ['compatibility-boundaries', 'followup-and-finding-state',
     'milestone-and-final-scope', 'recovery-and-readiness', 'fallback-invocation', 'recovery-policy-guards',
@@ -234,7 +236,7 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     assert.equal(staged.manifest.source_commit, fixture.head);
     assert.equal(staged.manifest.fixture_source_commit, fixture.head);
     assert.equal(staged.manifest.cases.length, 7);
-    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 32);
+    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 33);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
     assert.ok(!staged.args.includes('--allow-real-servers') && !staged.args.includes('--trust-plugin'));
     assert.ok(!staged.args.includes('--json'), 'Machine mode must not suppress a first-run trust prompt');
@@ -324,6 +326,25 @@ test('non-input edits do not block staging while selected additions, renames and
     assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /Commit the selected evaluation inputs/);
     writeFileSync(join(source, prompt), original);
     assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /Commit the selected evaluation inputs/);
+  } finally { rmSync(parent, { recursive: true, force: true }); }
+});
+
+test('selected assume-unchanged and skip-worktree inputs fail closed without changing index flags', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-index-flags-'));
+  try {
+    const { source, head, git } = evaluationRepository(parent);
+    const path = 'evals/qodo-review/compatibility-boundaries/prompt.md';
+    const original = readFileSync(join(source, path));
+    for (const flag of ['assume-unchanged', 'skip-worktree']) {
+      git(['update-index', `--${flag}`, '--', path]);
+      writeFileSync(join(source, path), 'hidden selected edit');
+      assert.equal(git(['diff', '--name-only', head, '--', path]), '');
+      const before = git(['ls-files', '-v', '--', path]);
+      assert.throws(() => prepareReviewEvaluation({ root: source, parent }), /assume-unchanged or skip-worktree/);
+      assert.equal(git(['ls-files', '-v', '--', path]), before);
+      writeFileSync(join(source, path), original);
+      git(['update-index', `--no-${flag}`, '--', path]);
+    }
   } finally { rmSync(parent, { recursive: true, force: true }); }
 });
 
@@ -462,7 +483,7 @@ test('recorded behavior evidence covers current instructions and every assertion
       }
     }
   }
-  assert.equal(assertionCount, 32);
-  assert.equal(candidatePasses, 32);
+  assert.equal(assertionCount, 33);
+  assert.equal(candidatePasses, 33);
   assert.deepEqual(manifest.scores, scores);
 });
