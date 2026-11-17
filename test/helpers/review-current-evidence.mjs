@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inputPath } from '../../scripts/eval-review-skill.mjs';
-import { assertFixtureProvenance, assertGrade, assertRunIdentity, assertRunPaths, evaluatedReleaseStamps } from './review-evaluation-fixtures.mjs';
+import { assertFixtureProvenance, assertGrade, assertGraderIdentity, assertRunIdentity, assertRunPaths, evaluatedReleaseStamps } from './review-evaluation-fixtures.mjs';
 import { assertArtifactArchive, assertHistoryArchives, hashEvidence as sha256 } from './review-evidence-archives.mjs';
 import { assertEvidenceScopes } from './review-evidence-scopes.mjs';
 
@@ -138,7 +138,7 @@ export function assertCurrentEvidence(root, { skill, version, references, text }
       assert.deepEqual(provenance.fingerprints, manifest.snapshots[configuration].fingerprints);
       assert.equal(provenance.response_sha256, sha256(response));
       assert.match(provenance.session_id, /^ses_[a-zA-Z0-9]+$/);
-      assert.match(grade.grader_provenance.session_id, /^ses_[a-zA-Z0-9]+$/);
+      assertGraderIdentity(grade);
       scores[configuration].passed += passed;
       scores[configuration].total += assertions.length;
     }

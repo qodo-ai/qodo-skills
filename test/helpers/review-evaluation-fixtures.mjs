@@ -25,6 +25,12 @@ export function assertFixtureProvenance(provenance, manifest) {
   assert.deepEqual(provenance.fixture_fingerprints, inputs, 'Recorded fixture inputs differ from current evidence');
 }
 
+export function assertGraderIdentity(grade) {
+  const sessionId = grade?.grader_provenance?.session_id;
+  assert.ok(typeof sessionId === 'string' && /^ses_[a-zA-Z0-9]+$/.test(sessionId)
+    && sessionId.trim() === sessionId, 'Grader session ID is missing or malformed');
+}
+
 export function assertGrade(grade, assertions, candidate = false, { response, label = 'response' } = {}) {
   assert.ok(Array.isArray(assertions) && assertions.length > 0, 'Every evaluated case needs at least one assertion');
   assert.deepEqual(grade.expectations.map((entry) => entry.text), assertions);

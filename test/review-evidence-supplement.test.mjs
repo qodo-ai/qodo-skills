@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { assertFixtureProvenance, assertGrade, assertRunIdentity, assertRunPaths, createEvaluationRepository } from './helpers/review-evaluation-fixtures.mjs';
+import { assertFixtureProvenance, assertGrade, assertGraderIdentity, assertRunIdentity, assertRunPaths, createEvaluationRepository } from './helpers/review-evaluation-fixtures.mjs';
 import { assertHistoryArchives, hashEvidence, readEvidenceFile } from './helpers/review-evidence-archives.mjs';
 import { prepareReviewEvaluation } from '../scripts/eval-review-skill.mjs';
 
@@ -106,8 +106,7 @@ test('run paths cannot reuse another case or configuration artifact namespace', 
   assert.throws(() => assertRunIdentity(provenance, 'case-a', 'baseline'), /configuration/);
 });
 
-test('historical focused MCP evidence matches its retained inputs, instructions and original judgments', () => {
-  const evidenceRoot = join(root, 'test/fixtures/qodo-review-mcp-collection');
+function assertHistoricalFocusedEvidence(evidenceRoot) {
   const manifest = json(evidenceRoot, 'manifest.json');
   const primary = json(join(root, 'test/fixtures/qodo-review-behavior'), 'manifest.json');
   const archiveRoot = join(root, 'test/fixtures/qodo-review-behavior/history/iteration-9');
@@ -151,6 +150,7 @@ test('historical focused MCP evidence matches its retained inputs, instructions 
     for (const [path, hash] of Object.entries(run.artifacts))
       assert.equal(hashEvidence(readEvidenceFile(evidenceRoot, path)), hash, path);
     const grade = json(evidenceRoot, run.grading);
+    assertGraderIdentity(grade);
     // Original iteration9 labels are retained in its unchanged anonymous judgments.
     scores[configuration] = { passed: assertGrade(grade, assertions, configuration === 'candidate', {
       response: readEvidenceFile(evidenceRoot, run.response).toString('utf8'), label: configuration === 'candidate' ? 'A' : 'B',
@@ -163,4 +163,38 @@ test('historical focused MCP evidence matches its retained inputs, instructions 
     assert.equal(provenance.response_sha256, hashEvidence(readEvidenceFile(evidenceRoot, run.response)));
   }
   assert.deepEqual(manifest.scores, scores);
+}
+
+test('historical focused MCP evidence matches its retained inputs, instructions and original judgments', () => {
+  assertHistoricalFocusedEvidence(join(root, 'test/fixtures/qodo-review-mcp-collection'));
+});
+
+test('historical focused grades reject missing or malformed grader IDs after hashes are recomputed', () => {
+  const source = join(root, 'test/fixtures/qodo-review-mcp-collection');
+  const directory = mkdtempSync(join(tmpdir(), 'qodo-grader-identity-'));
+  try {
+    cpSync(source, directory, { recursive: true });
+    const original = json(source, 'manifest.json');
+    for (const configuration of ['candidate', 'baseline']) {
+      const run = original.cases[0].runs[configuration];
+      const grade = json(source, run.grading);
+      for (const grader_provenance of [undefined, null, {}, ...[undefined, null, 7, {}, '',
+        'ses_', 'other_123', 'ses_bad-id', ' ses_valid', 'ses_valid\n'].map((session_id) => ({ session_id }))]) {
+        const changed = { ...grade, grader_provenance };
+        const bytes = `${JSON.stringify(changed, null, 2)}\n`;
+        const manifest = structuredClone(original);
+        manifest.cases[0].runs[configuration].artifacts[run.grading] = hashEvidence(bytes);
+        writeFileSync(join(directory, run.grading), bytes);
+        writeFileSync(join(directory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+        assert.equal(hashEvidence(readEvidenceFile(directory, run.grading)),
+          manifest.cases[0].runs[configuration].artifacts[run.grading]);
+        assert.throws(() => assertHistoricalFocusedEvidence(directory), /Grader session ID is missing or malformed/);
+      }
+      cpSync(join(source, run.grading), join(directory, run.grading));
+    }
+    writeFileSync(join(directory, 'manifest.json'), `${JSON.stringify(original, null, 2)}\n`);
+    assertHistoricalFocusedEvidence(directory);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
