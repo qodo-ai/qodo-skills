@@ -18,7 +18,9 @@ The candidate matches the current instructions. The baseline is the preceding
 `6385a42` rewrite, not the original pre-rewrite Skill. Both configurations use
 the same case inputs captured at `59afaea`.
 Each run's recorded fixture commit and complete input-fingerprint map must match
-the current manifest; changing a case and only relabeling its manifest hash fails.
+the current manifest for this seven-group scope; changing a case and only relabeling
+its manifest hash fails. The focused MCP collection supplement has its own input
+scope and evidence; it does not replace or regrade this matrix.
 Command proposals are synthetic. The agents ran, but Qodo reviews, installations,
 Git changes and finding-status writes shown in their answers did not execute.
 
@@ -41,7 +43,9 @@ supplied to every anonymous grader before grading; its hash is in `grading_evide
 No iteration-8 adjudication occurred. `history/iteration-7/` retains the original
 32/32 comparison, both initial 31/32 judgments, actual help and 96 artifact hashes.
 `history/iteration-6/` preserves the earlier29/29 versus27/29 comparison at its
-original fingerprints; `pre-correction/` retains the earlier exact-base failure.
+original fingerprints. Both historical archive entries and all 40/96 artifacts are
+mandatory integrity checks, not optional manifest branches.
+`pre-correction/` retains the earlier exact-base failure.
 
 `npm run eval:qodo-review` prepares a minimal standard plugin evaluation.
 Add `--run` only to opt into billed model execution; it is not part of default CI.

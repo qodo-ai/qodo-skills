@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { inputPath, main, prepareReviewEvaluation, readGitEvaluationFiles,
   requireEvaluationSupport } from '../scripts/eval-review-skill.mjs';
-import { assertFixtureProvenance, assertGrade, createEvaluationRepository } from './helpers/review-evaluation-fixtures.mjs';
+import { assertFixtureProvenance, assertGrade, createEvaluationRepository, evaluatedReleaseStamps } from './helpers/review-evaluation-fixtures.mjs';
+import { assertHistoryArchives } from './helpers/review-evidence-archives.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skill = join(root, 'skills/qodo-review');
@@ -79,14 +80,6 @@ function assertBaselineSnapshot(evidenceRoot, snapshot) {
   } finally {
     rmSync(temporary, { recursive: true, force: true });
   }
-}
-
-function evaluatedReleaseStamps(body, currentVersion, evaluatedVersion) {
-  // Release preparation changes only these two stamps; the evidence keeps its original raw hash.
-  assert.ok(body.includes(`  version: "${currentVersion}"`), 'Current metadata must match the release catalog');
-  return body.replace(`  version: "${currentVersion}"`, `  version: "${evaluatedVersion}"`)
-    .replaceAll(`--skill-version ${currentVersion} --distribution`,
-      `--skill-version ${evaluatedVersion} --distribution`);
 }
 
 function headings(markdownText) {
@@ -204,8 +197,8 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     assert.equal(staged.manifest.source_kind, 'immutable Git commit');
     assert.equal(staged.manifest.source_commit, fixture.head);
     assert.equal(staged.manifest.fixture_source_commit, fixture.head);
-    assert.equal(staged.manifest.cases.length, 7);
-    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 33);
+    assert.equal(staged.manifest.cases.length, 8);
+    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 38);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
     assert.ok(!staged.args.includes('--allow-real-servers') && !staged.args.includes('--trust-plugin'));
     assert.ok(!staged.args.includes('--json'), 'Machine mode must not suppress a first-run trust prompt');
@@ -431,13 +424,7 @@ test('recorded behavior evidence covers current instructions and every assertion
   assert.equal(manifest.method, 'fresh-native-agents-with-anonymous-final-answer-grading');
   assert.equal(manifest.cases.length, 7);
   assertBaselineSnapshot(evidenceRoot, manifest.snapshots.baseline);
-  const history = manifest.history?.iteration_7;
-  if (history) {
-    const archive = fixtureFile(evidenceRoot, history.path);
-    assert.equal(sha256(archive), history.sha256);
-    for (const [path, hash] of Object.entries(JSON.parse(archive).artifacts))
-      assert.equal(sha256(fixtureFile(join(evidenceRoot, 'history/iteration-7'), path)), hash);
-  }
+  assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest), { 6: 40, 7: 96 });
   for (const [path, expected] of Object.entries(manifest.adjudication?.artifacts ?? {})) {
     assert.equal(sha256(fixtureFile(evidenceRoot, path)), expected, path);
   }
@@ -445,7 +432,8 @@ test('recorded behavior evidence covers current instructions and every assertion
     assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash);
   assert.deepEqual(Object.keys(manifest.snapshots.candidate.fingerprints).sort(),
     ['SKILL.md', ...references.map((name) => `references/${name}`)].sort());
-  assert.deepEqual(manifest.cases.map((item) => item.name).sort(),
+  const supplemental = JSON.parse(fixtureFile(join(root, 'test/fixtures/qodo-review-mcp-collection'), 'manifest.json'));
+  assert.deepEqual([...manifest.cases.map((item) => item.name), ...supplemental.evaluated_cases].sort(),
     readdirSync(join(root, 'evals/qodo-review'), { withFileTypes: true })
       .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort());
   for (const [name, expected] of Object.entries(manifest.snapshots.candidate.fingerprints)) {

@@ -11,8 +11,9 @@ The staging command puts these folders in the temporary plugin's `evals/`.
 ## Run
 
 `npm run eval:qodo-review -- --output-parent <directory-outside-the-repo>` stages
-the committed HEAD Skill, all seven committed cases and their graders as a minimal plugin. It prints
-the exact `claude plugin eval` command and an instruction fingerprint manifest.
+the committed HEAD Skill, all eight committed cases and their graders as a minimal plugin.
+It prints the exact `claude plugin eval` command and the staging directory.
+The full instruction/fixture fingerprint manifest is written to that directory's `manifest.json`.
 Staging does not run a model. Add `--run` only to opt into billed evaluation on
 your Claude account; normal plugin trust prompts remain enabled. The installed
 CLI must expose `claude plugin eval --disallow-tools` (Claude Code 2.1.299 or later).
@@ -71,8 +72,11 @@ and user-forbidden automatic retries after the hosted review's recovery findings
 Both were included in the six-group, 29-assertion comparison. Historical
 23-assertion and focused results remain tied to their earlier snapshots.
 `mcp-local-triage` adds metadata-only replay protection, a missing-transport stop
-and honest prior/conflicting outcomes. The current seven-group suite has 33 assertions,
+and honest prior/conflicting outcomes. The preserved seven-group matrix has 33 assertions,
 including the explicit saved-dismissal/pending-synchronization outcome.
+`mcp-collection` adds five focused assertions for eligible submission, complete chunk
+verification, ineligible collection and rejected digest/byte-count mismatches.
+The standard staging wrapper includes all eight groups and 38 assertions.
 
 ## Recorded evidence and CI
 
@@ -94,8 +98,11 @@ its raw instruction hashes to the stated signed commit, including in shallow or
 squash-merged checkouts. Artifact reads reject symlinked files and ancestors.
 Only release-owned version/provenance stamps are mapped to their evaluated values;
 the evidence retains its original exact hashes, not a claim of a new model run.
-The gate also compares every run's recorded fixture commit and complete case,
-prompt and grader fingerprint map. Updating the manifest alone cannot bless old answers.
+The gate compares every run's recorded fixture commit and complete input map within
+its explicit evidence scope. The unchanged seven-group iteration-8 matrix remains
+separate from the new one-group MCP supplement; old answers are not relabeled as new runs.
+Updating the manifest alone cannot bless old answers. Both iteration-6 and iteration-7
+archive entries are required, and every historical artifact and inventory is checked.
 **CI validates the recorded evidence; CI does not execute the agent.**
 The standard Claude evaluation wrapper has only been staged/manifest-validated,
 not model-executed. Run models separately in a fresh-agent harness or explicitly

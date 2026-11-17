@@ -394,6 +394,11 @@
     }
   },
   "history": {
+    "iteration_6": {
+      "path": "history/iteration-6/archive.json",
+      "sha256": "271a30a7b59d7f578bdc3cfb37bb0764f381c9d855bbc6342eb1084396000ea5",
+      "note": "All40 original artifacts retain their recorded identities and29/27 judgments."
+    },
     "iteration_7": {
       "path": "history/iteration-7/archive.json",
       "sha256": "c52ba233cef23c10b1bfa0e4d1d4e197a16ff0aa17a08827c25d3ab0e299e286",

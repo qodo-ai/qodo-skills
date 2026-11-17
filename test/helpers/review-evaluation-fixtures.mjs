@@ -25,6 +25,14 @@ export function assertGrade(grade, assertions, candidate = false) {
   return passed;
 }
 
+export function evaluatedReleaseStamps(body, currentVersion, evaluatedVersion) {
+  // Release preparation changes only these two stamps; original fingerprints remain unchanged.
+  assert.ok(body.includes(`  version: "${currentVersion}"`), 'Current metadata must match the release catalog');
+  return body.replace(`  version: "${currentVersion}"`, `  version: "${evaluatedVersion}"`)
+    .replaceAll(`--skill-version ${currentVersion} --distribution`,
+      `--skill-version ${evaluatedVersion} --distribution`);
+}
+
 export function createEvaluationRepository(parent, skill, evaluations) {
   const source = join(parent, 'source');
   mkdirSync(join(source, 'skills'), { recursive: true });

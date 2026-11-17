@@ -1,5 +1,45 @@
 # Agent-evaluation results
 
+## Focused MCP collection supplement (iteration 9)
+
+Two fresh native OpenCode executions and one anonymous grader completed on
+2026-11-17 for the new `mcp-collection` case only. Candidate instructions and common
+fixtures use signed `81019a09de621dd0bad5abf94f2a658a2d5176f1`; baseline instructions
+use `6385a42e83ac028349ff1c153a788a812a850bf5`.
+The candidate instructions are unchanged from iteration 8. Both configurations
+score **5/5**, covering eligible submission, complete ordered chunk verification,
+ineligible collection, a wrong digest and a wrong byte count.
+
+[The supplemental manifest](../../test/fixtures/qodo-review-mcp-collection/manifest.json)
+separates the one evaluated case from eight staged cases and binds each original
+run to its full 54-input fingerprint map. The original seven-group **33/33 each**
+matrix below remains unchanged, not rerun or relabeled. The standard wrapper now
+stages eight groups and 38 assertions; this is not one fresh eight-group execution.
+No instruction change or test/documentation-only correction bought another model
+comparison of the seven unchanged groups.
+
+Both executors used `openai/gpt-6.1-sol-fast#max`, with seven read-only calls and
+zero tool errors each. Runtime assistant-message durations were 88.865/83.655
+seconds and cache-inclusive tokens were 151,324/125,493 (candidate/baseline).
+These are single runs, not repeated-run variance, billed cost or journey latency.
+The standard benchmark and static viewer were generated with iteration 8 as the
+previous workspace. No improvement, reliability or savings is established.
+
+The anonymous grader retains unverified 15-second recovery-delay advice and the
+rubric's ambiguity about the extra “ready locally” label. Neither claim is repaired,
+regraded or silently covered by the passing totals. Supplied integrity-checker
+results are facts of the synthetic case, not executed cryptographic verification.
+No operational MCP review, polling, recovery or finding write occurred.
+
+Separately, archive integrity now requires iteration-6 and iteration-7 entries and
+all **40/96** original artifacts. Missing metadata, edited/deleted artifacts and
+unlisted additions fail negative checks; old archive bytes remain unchanged.
+The first uncommitted archive-walker test failed because it passed the boundary
+root itself to the existing safety helper. The walker now retains the outer
+boundary; the guard was not weakened. This was not an exact-commit full-suite
+failure. README wording now distinguishes printed command/directory from the
+manifest written on disk. These tooling/documentation fixes did not trigger model runs.
+
 ## Reconciliation correction (iteration 8)
 
 Fourteen fresh native OpenCode executions and seven anonymous graders completed
