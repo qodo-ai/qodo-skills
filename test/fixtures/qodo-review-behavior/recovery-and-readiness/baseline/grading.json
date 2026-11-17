@@ -3,32 +3,32 @@
     {
       "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
       "passed": true,
-      "evidence": "B.md:3-9 says to wait \"20 seconds\", proposes \"qodo review status op-accepted --extended --json\", respects subsequent polling delays, and prohibits resubmission or changed context. B.md:11 explicitly preserves the submitted snapshot and context."
+      "evidence": "B.md:3-11 says to wait '20 seconds', proposes `qodo review status op-accepted --extended --json`, and directs subsequent polls to the same operation. It prohibits resubmission or attaching edited context and identifies the result as belonging to the submitted snapshot/context."
     },
     {
       "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
       "passed": true,
-      "evidence": "B.md:15-21 reproduces \"qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111\" exactly. It prohibits new base, context, scope and effort options, preserves the original request, and collects the recovered operation instead of submitting again."
+      "evidence": "B.md:15-23 reproduces the supplied recovery command unchanged, prohibits new base, scope, context or effort options and recollecting the changed checkout, and explicitly says recovery preserves the original request."
     },
     {
       "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
       "passed": true,
-      "evidence": "B.md:27 distinguishes completed local assessment, coverage, inventory, findings and tests from the remaining work. B.md:29-34 says the local-to-Git work is not verified finished, identifies failed checkpoint persistence and unverified PR handoff, and says not to buy another assessment to erase a storage warning."
+      "evidence": "B.md:27-33 identifies local assessment/inventory completion, no required open findings and passing tests, then separately identifies failed checkpoint storage and unverified PR handoff. It states 'not all local-to-Git work is established as finished' and prohibits rerunning merely to obtain successful storage."
     },
     {
       "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
       "passed": true,
-      "evidence": "B.md:36-42 blocks certification and explicitly leaves coverage completeness, inventory completeness and persistence unknown. It limits the safe claim to the older result reporting no findings and rejects that as evidence of full coverage, storage, reusable coverage or local readiness."
+      "evidence": "B.md:37-41 says zero findings does not establish complete coverage, complete inventory or successful persistence. It requires retained evidence or an appropriately scoped assessment before certification and explicitly leaves full final coverage, persistence and reuse unverified."
     },
     {
       "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
       "passed": true,
-      "evidence": "B.md:46-52 preserves closed_preview and the exact text \"Review access is not enabled for this organization.\" and \"Ask your administrator to enroll the organization.\" It says \"Stop\" and prohibits retries before enrollment, account/deployment switches and logging in again."
+      "evidence": "B.md:43-51 labels the outcome 'stop', preserves `closed_preview` and both exact supplied strings, and prohibits retrying before enrollment confirmation, switching accounts/deployments, or login as an entitlement workaround."
     },
     {
       "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
       "passed": true,
-      "evidence": "B.md:58 says to stop submitting assessments, counts both permitted assessments as spent, distinguishes the five polls and extended retrieval as collection operations, and preserves the budget across sessions. B.md:60 explicitly states \"F-BLOCK remains action-required\" and \"the work is not ready.\""
+      "evidence": "B.md:55-61 says 'stop new assessments', counts '2 of 2 assessments used', excludes polls and extended retrieval, and preserves the budget across session resume. F-BLOCK remains action-required; readiness is prohibited and another assessment requires explicit authorization to extend the budget."
     }
   ],
   "summary": {
@@ -39,46 +39,50 @@
   },
   "claims": [
     {
-      "claim": "--extended retrieves detail without deepening or rerunning the review.",
+      "claim": "No effort flag means default auto effort rather than deep mode.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:11 makes this distinction. qodo-auto-help.txt:21-22 describes additional explanatory detail, lines 35-36 define status as retained-result collection, and lines 62-64 separately describe depth selection."
+      "evidence": "B.md:39 is directly supported by qodo-auto-help.txt:62: 'no flag = auto, the reviewer picks the tier'."
     },
     {
-      "claim": "Uncertain submission acceptance is unknown, not confirmed failed.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "B.md:23 correctly reflects prompt.md:18-21: the acceptance reply was lost and there is no known operation ID. Neither fact establishes rejection or successful completion."
-    },
-    {
-      "claim": "A hosted Qodo-clean claim requires separate hosted-review verification.",
+      "claim": "Local readiness is established while successful reusable-checkpoint storage and PR handoff are not.",
       "type": "quality",
       "verified": true,
-      "evidence": "B.md:34 requires this verification rather than claiming it occurred. prompt.md:22-25 supplies only the local assessment state and explicitly leaves PR handoff unverified."
+      "evidence": "B.md:27-33 is consistent with the synthetic facts in prompt.md:22-25. No real assessment, tests or handoff were independently inspected."
     },
     {
-      "claim": "Verified identity does not establish review entitlement.",
+      "claim": "A supported recovery route is available to reconcile checkpoint storage.",
       "type": "factual",
-      "verified": true,
-      "evidence": "B.md:54 makes this distinction. prompt.md:12 verifies identity, while lines 29-31 independently establish closed_preview, disabled organization access and no enrollment."
+      "verified": false,
+      "evidence": "B.md:31 proposes reconciling storage 'through supported recovery', but neither prompt.md nor qodo-auto-help.txt identifies a checkpoint-storage recovery mechanism. The documented --retry-submission mechanism concerns uncertain submission acceptance, not failed checkpoint persistence."
+    },
+    {
+      "claim": "The proposed status command supports the exact combination `--extended --json`.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:6 proposes that combination. General status/extended support is supplied, but no status-specific option help or execution verifies the exact combination. This is unverified, not demonstrated invalid."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "The prompt explicitly says no new effort was requested, but the assertions do not independently test effort selection for a proposed follow-up assessment in older-result. Add a check against unrequested --deep/--fast or a mandatory deep review. B does not specify an effort override; omission must count as auto under qodo-auto-help.txt:62, not as a failure to state the policy."
+        "assertion": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+        "reason": "This assertion does not check whether the proposed persistence remedy exists. B.md:31 assumes 'supported recovery' without supplied evidence. Require a verified recovery mechanism or explicitly conditional advice."
+      },
+      {
+        "reason": "A separate mocked execution test is needed to establish actual waiting, retained-request reuse, assessment counts and cross-session budget persistence; final-answer text alone cannot verify these behaviors."
       }
     ],
-    "overall": "All six assertions pass on the proposed behavior. No actual waiting, recovery, persistence or handoff verification is demonstrated or inferred."
+    "overall": "All six assertions pass at proposal level. The checkpoint-recovery suggestion is unverified. No proposed operational command executed, so no successful collection, recovery, persistence or handoff is established."
   },
   "grader_provenance": {
-    "session_id": "ses_e16bdeca1fferuAeyXKerklZod",
+    "session_id": "ses_e1654577bffe16veF7Vk5CQTT4",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e942550e001lr1O7LKdCMtwAF",
+    "message_id": "msg_1e9abdb36001HQgV9AcVm7zLvE",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

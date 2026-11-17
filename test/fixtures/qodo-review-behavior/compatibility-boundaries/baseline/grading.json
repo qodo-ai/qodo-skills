@@ -3,27 +3,27 @@
     {
       "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
       "passed": true,
-      "evidence": "B.md:5 states '1.6.0 is below the required 2.0.0 floor.' Line 7 acknowledges that no update is authorized and requires authorization while preserving deployment origin and version choices. Line 9 prohibits identity, login, review and managed-tool commands; line 11 leaves executable support unverified."
+      "evidence": "B.md:5 explicitly places 1.6.0 below the 2.0.0 floor. Lines 7-9 request approval or identification of a verified compatible executable, rather than selecting or switching one, and prohibit identity, login, reviews, managed tools and unapproved updates. Line 11 leaves the compatible executable unverified."
     },
     {
       "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
       "passed": true,
-      "evidence": "B.md:13 labels the case blocked. Line 15 says 'custom build' does not establish support and that login is unjustified because there is no authentication evidence. Line 17 limits the next action to checking override presence or seeking separately authorized recovery; line 19 rejects updater or installer attempts. Line 21 preserves executable version and compatibility as unverified, and no protected call is proposed for this case."
+      "evidence": "B.md:15 says 'custom build' establishes neither compatibility nor an authentication problem. Lines 17-21 require verification or explicit installation approval, prohibit login, catalog refresh, authenticated calls and guessed installer commands, and preserve compatibility and installer provenance/checksum as unverified."
     },
     {
       "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
       "passed": true,
-      "evidence": "B.md:25 accepts exactly 2.0.0. Lines 31–38 preserve the exact decision, summary narrative including 'live load was not tested,' and both recent_work entries. Line 47 proposes the exact supplied base without effort overrides; line 50 identifies the omission as auto, consistent with qodo-auto-help.txt:62."
+      "evidence": "B.md:25 accepts exactly 2.0.0. Lines 29-40 preserve the exact decision and both recent_work entries, and use summary for the complete narrative including 'live load was not tested.' Lines 45-51 propose the exact supplied base and omit --fast and --deep for auto effort, consistent with qodo-auto-help.txt:62."
     },
     {
       "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
       "passed": true,
-      "evidence": "B.md:62–69 retain the supplied decision, notes and mixed recent_work exactly. Line 82 proposes base 1111111111111111111111111111111111111111 with src/jobs/ and test/jobs/ and no effort override. Lines 56 and 85 reject forcing --full and recognize new API behavior; line 87 leaves the actual full/incremental/reused outcome unverified."
+      "evidence": "B.md:61-72 preserves the exact supplied notes, decision and both recent_work entries. Lines 77-84 propose the exact supplied base and both 'src/jobs/ test/jobs/' arguments, prohibit --full, --fast and --deep, and leave incremental reuse or fallback to the Engine. Line 86 explicitly leaves continuation mode unverified. qodo-auto-help.txt:62 confirms auto effort."
     },
     {
       "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
       "passed": true,
-      "evidence": "B.md:91 labels coverage blocked; line 93 prohibits submission without a tested collector or prepared input. Lines 95–97 report the blocker, reject ad hoc git diff, another checkout and remotely fetched substitutes, and require separate installation authorization. Line 99 leaves all review results unverified."
+      "evidence": "B.md:98-100 identifies missing tested collection/prepared input as the blocker and makes proceeding conditional on suitable collection. Line 102 rejects ad hoc git diff submission, substitute checkouts and unauthorized installation; no remote substitute is proposed. Line 104 leaves all review coverage unverified and states 'No review has completed.'"
     }
   ],
   "summary": {
@@ -34,55 +34,46 @@
   },
   "claims": [
     {
-      "claim": "Omitting --fast and --deep selects auto effort.",
+      "claim": "Omitting --fast and --deep requests default auto effort.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:50 states this interpretation. qodo-auto-help.txt:62 explicitly confirms 'no flag = auto.'"
+      "evidence": "B.md:51 and 84 specify this flag choice. qodo-auto-help.txt:62 explicitly establishes no effort flag = auto."
     },
     {
-      "claim": "Async acceptance is not completion, and the accepted operation must subsequently be collected.",
-      "type": "factual",
+      "claim": "The proposed contexts retain passed cancellation tests and the uncertainty about live load.",
+      "type": "quality",
       "verified": true,
-      "evidence": "B.md:89 distinguishes acceptance from completion and directs polling the existing operation. qodo-auto-help.txt:29–36 and 66–68 document asynchronous operation IDs and later result collection."
+      "evidence": "B.md:34 and 66 reproduce prompt.md:27 exactly, including 'Cancellation tests passed; live load was not tested.' This verifies faithful reporting of supplied context, not actual test execution."
     },
     {
-      "claim": "Approved compatibility recovery is limited to one same-origin attempt whose supported check offers a newer compatible 2.x target.",
+      "claim": "An approved updater route must offer a newer compatible 2.x target at the recorded origin and preserve version pins and update holds.",
       "type": "factual",
       "verified": false,
-      "evidence": "B.md:7 asserts these restrictions. The permitted prompt establishes the unsupported current executable and lack of update authorization, but neither it nor the supplied CLI help documents the attempt limit, origin policy or 2.x target restriction. These claims remain unverified."
+      "evidence": "B.md:9 states these requirements, but the permitted prompt and review help do not establish updater behavior. No updater evidence or execution is available; the claim is unverified rather than disproved."
     },
     {
-      "claim": "An organization-supplied checksum-pinned installer is an available recovery route for an unparseable runtime when separately authorized.",
+      "claim": "The result collector accepts 'qodo review status <returned-operation-id> --json'.",
       "type": "factual",
       "verified": false,
-      "evidence": "B.md:17 proposes this route. prompt.md:18–20 supplies no verified installer or approval, and qodo-auto-help.txt contains no installer-recovery documentation. The route's validity cannot be verified from the permitted evidence."
-    },
-    {
-      "claim": "The commands are proposals rather than executed operations.",
-      "type": "process",
-      "verified": true,
-      "evidence": "B.md:1 explicitly labels all commands proposals. task.md:6 independently confirms that no proposed operational command was executed."
+      "evidence": "B.md:91 proposes this command. qodo-auto-help.txt:29-36 and 68 verify status collection generally, but do not establish the status subcommand's --json option. No command was executed."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "The answer introduces recovery rules about a single same-origin attempt, compatible 2.x targets and checksum-pinned installers that cannot be verified from the permitted inputs. Supply authoritative recovery-policy evidence and an assertion covering those rules if their correctness is part of the evaluation."
-      },
-      {
-        "reason": "These fixtures establish proposal quality, not operational enforcement. Actual executable identity, context-file delivery, protected-call gating and coverage require a separate execution-based evaluation; passing these assertions does not verify those outcomes."
+        "reason": "Recovery-policy correctness is not established by the fixtures. Supply authoritative offline updater guidance if requirements concerning compatible 2.x targets, recorded origins, update holds or QODO_UPDATE_BASE_URL handling should be evaluated."
       }
     ],
-    "overall": "All five proposal-level assertions pass. Additional recovery-policy claims remain unverifiable from the permitted evidence."
+    "overall": "All five assertions pass at the proposal level. These synthetic fixtures cannot verify actual protected-call ordering, installer behavior, context-file preparation or delivery, collected coverage, continuation mode or completed reviews. task.md:6 explicitly states that no proposed operational command was executed."
   },
   "grader_provenance": {
-    "session_id": "ses_e16bdecbdffeyvRTObV9PZW938",
+    "session_id": "ses_e16545791ffdHRQCoxPU8GLf1J",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e9424f6d001Fc7uCDT1OIBnTh",
+    "message_id": "msg_1e9abe6080010NuR9VEr0XTNjy",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

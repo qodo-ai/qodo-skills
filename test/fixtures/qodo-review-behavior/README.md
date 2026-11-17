@@ -1,26 +1,26 @@
 # Recorded qodo-review behavior evaluation
 
-Iteration 8 records 14 completed executions and seven anonymous graders over
-33 assertions. Candidate `59afaeab0cfb1a247389bde5c8d197413956a98e` and prior
-rewrite `6385a42e83ac028349ff1c153a788a812a850bf5` both pass 33/33. This establishes
-no rubric uplift or reliability. Original iteration-7 artifacts and exact case
-inputs remain unchanged in `history/iteration-7/`.
+Iteration 10 records 16 completed executions and eight anonymous graders over
+40 assertions. Candidate `841379dd3f1bc2d6927b5275fa8d8c1cad190ba8` and prior
+rewrite `6385a42e83ac028349ff1c153a788a812a850bf5` both pass 40/40.
+This establishes no rubric uplift or reliability. Original histories 6/7/8/9,
+including their answers, judgments, instructions and exact case inputs, are retained.
 
 This directory contains fresh-agent answers, anonymous grader judgments and
 runtime-reported provenance for the exact instruction fingerprints in `manifest.json`.
 Each case links to its synthetic prompt and assertions under `evals/qodo-review/`.
 The parent runner retained final answers; evaluated agents did not save their own outputs.
 No reasoning text, credentials, unrelated sessions or raw session archives are included.
-Portable responses normalize host temporary roots and trailing line whitespace;
-provenance retains both original and portable response hashes.
+Current responses retain the parent-captured bytes and their recorded hashes.
+Older archives retain their documented normalization and original/portable hashes.
 
 The candidate matches the current instructions. The baseline is the preceding
 `6385a42` rewrite, not the original pre-rewrite Skill. Both configurations use
-the same case inputs captured at `59afaea`.
+the same case inputs captured at `841379d`.
 Each run's recorded fixture commit and complete input-fingerprint map must match
-the current manifest for this seven-group scope; changing a case and only relabeling
-its manifest hash fails. The focused MCP collection supplement has its own input
-scope and evidence; it does not replace or regrade this matrix.
+the current eight-group manifest; changing a case and only relabeling its manifest
+hash fails. Paths must match the case/configuration namespace, and the recorded
+case/configuration identity must match too. Empty assertion lists fail.
 Command proposals are synthetic. The agents ran, but Qodo reviews, installations,
 Git changes and finding-status writes shown in their answers did not execute.
 
@@ -38,13 +38,15 @@ integrity test reconstructs and hashes each object in a private temporary Git
 object store and compares the actual immutable source
 hashes, without requiring network access or retention of the PR's branch history.
 Artifact and adjudication reads reject symlinked files and ancestor directories.
-The current comparison is 33/33 for both versions. Common verified CLI help was
+The current comparison is 40/40 for both versions. Common verified CLI help was
 supplied to every anonymous grader before grading; its hash is in `grading_evidence`.
-No iteration-8 adjudication occurred. `history/iteration-7/` retains the original
+No iteration-10 adjudication occurred. `history/iteration-7/` retains the original
 32/32 comparison, both initial 31/32 judgments, actual help and 96 artifact hashes.
 `history/iteration-6/` preserves the earlier29/29 versus27/29 comparison at its
-original fingerprints. Both historical archive entries and all 40/96 artifacts are
-mandatory integrity checks, not optional manifest branches.
+original fingerprints. `history/iteration-8/` and `history/iteration-9/` retain
+the original 33/33 matrix and focused 5/5 MCP comparison, without regrading them.
+All four archive entries and 40/96/104/74 listed artifacts are mandatory integrity
+checks, not optional manifest branches. This does not certify unlisted history.
 `pre-correction/` retains the earlier exact-base failure.
 
 `npm run eval:qodo-review` prepares a minimal standard plugin evaluation.
@@ -59,4 +61,4 @@ The later [grounding follow-up](../../../evals/qodo-review/GROUNDING.md) is sepa
 source evidence, not a replacement grade or another agent execution.
 Read-only input files and runtime-reported read-tool inventories are not a complete
 operating-system confinement audit. Historical results remain in
-`evals/qodo-review/RESULTS.md`; a new report does not relabel those snapshots.
+`evals/qodo-review/HISTORY.md`; a new report does not relabel those snapshots.

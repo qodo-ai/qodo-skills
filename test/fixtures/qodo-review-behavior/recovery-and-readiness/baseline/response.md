@@ -1,47 +1,46 @@
-### 1. `accepted` — pending
+### 1. `accepted` — collect the existing operation
 
-Wait the requested **20 seconds**, then collect the same operation with stored detail:
+Wait the requested **20 seconds**, then request Qodo’s retained detail:
 
 ```sh
 qodo review status op-accepted --extended --json
 ```
 
-If it remains working, respect the next returned polling delay. Do not resubmit or attach the changed context.
+If still working, respect the next returned delay and poll the same operation. Do not resubmit or attach the edited context. `--extended` retrieves more stored detail; it does not change effort or run another assessment.
 
-**Safe claim:** The original request is still being assessed. Its eventual result covers its submitted snapshot and context—not the subsequently changed branch or context. `--extended` retrieves detail; it does not deepen or rerun the review.
+**Safe claim:** The original submission was accepted and remains pending. Its eventual result concerns the submitted snapshot and context, not necessarily the current branch.
 
-### 2. `uncertain` — recover original submission
+### 2. `uncertain` — recover the exact original submission
 
-Use the exact returned recovery command:
+Use the returned command unchanged:
 
 ```sh
 qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111
 ```
 
-Do not append new base, context, scope or effort options. Preserve the retained original request. Once recovery returns an operation ID, collect that operation rather than submitting again.
+Do not append a new base, scope, context, or effort option, and do not recollect the changed checkout. Once recovery returns an operation ID, collect that operation with `review status`. Preserve both identifiers.
 
-**Safe claim:** Acceptance is currently unknown, not confirmed failed. Neither completion nor coverage of the changed checkout is established.
+**Safe claim:** Acceptance is currently unknown. Recovery preserves the original request; it does not assess the changed checkout.
 
-### 3. `storage-gap` — ready locally; handoff unfinished
+### 3. `storage-gap` — ready locally, handoff unfinished
 
-The current intended snapshot is **ready locally**: assessment, coverage and inventory are complete, required findings are settled, and tests passed.
+**Ready locally:** the current intended snapshot has complete assessment and inventory, no required open findings, and passing tests.
 
-But **not all local-to-Git work is verified finished**:
+However, reusable checkpoint storage failed, and PR handoff remains unverified. Therefore, **not all local-to-Git work is established as finished**.
 
-- Saving the reusable checkpoint failed; successful persistence or future reuse cannot be claimed.
-- PR handoff remains unverified.
+Next, reconcile storage through supported recovery and verify the intended snapshot, base, scope, and finding handoff before claiming PR completion. Do not rerun the assessment merely to chase successful storage, or push/open a PR without authorization.
 
-Next, reconcile the actual Git/PR candidate, base and scope with the completed coverage and verify handoff separately. Do not buy another assessment merely to erase a storage warning. A hosted Qodo-clean claim also requires separate hosted-review verification.
+**Safe claim:** Local readiness is established. Successful reusable-checkpoint storage and PR handoff are not.
 
-### 4. `older-result` — full-coverage certification blocked
+### 4. `older-result` — final-coverage certification blocked
 
-Stop short of certification. Coverage completeness, inventory completeness and persistence are **unknown**.
+A completed result reporting no findings does not establish complete coverage, complete inventory, successful persistence, or applicability to the current snapshot.
 
-**Safe claim:** “The older completed result reports no findings.”
+Retrieve retained evidence if available. If those properties remain unverified, a properly scoped assessment of the current intended change is needed before certification. Any new submission keeps default auto effort; missing metadata does not justify deep mode.
 
-That is not evidence of full final coverage, successful storage, reusable coverage or local readiness. Retained detail may be collected if a valid handle exists, but `--extended` cannot establish properties absent from the available evidence. Any further assessment needs a concrete missing-coverage reason and applicable authorization and budget.
+**Safe claim:** The older result completed and reported no findings. Full final coverage, overall local readiness, persistence, and reuse remain unverified.
 
-### 5. `entitlement` — review blocked
+### 5. `entitlement` — stop
 
 `closed_preview`
 
@@ -49,12 +48,14 @@ That is not evidence of full final coverage, successful storage, reusable covera
 
 > Ask your administrator to enroll the organization.
 
-Stop. Do not retry before enrollment is confirmed, or switch accounts/deployments, log in again, strip context or lower effort to bypass the restriction.
+Do not retry before confirmation that enrollment occurred. Do not switch accounts or deployments, or attempt login as an entitlement workaround.
 
-**Safe claim:** Review access is blocked by enrollment. Verified identity does not establish review entitlement; no successful assessment is established here.
+**Safe claim:** Review is blocked by organization entitlement; no completed assessment is established.
 
-### 6. `budget` — budget reached; blocker remains
+### 6. `budget` — stop new assessments
 
-**Stop submitting new assessments.** Both permitted assessments have run. Five status polls and one extended retrieval are collection operations, not additional assessments. Resuming in another session does not reset the budget.
+**Budget reached: 2 of 2 assessments used.** The five status polls and extended-result retrieval are not additional assessments. Resuming in another coding session does not reset the budget.
 
-Qodo’s **F-BLOCK remains action-required**, so the work is not ready. Preserve it and any missing coverage in the handoff. Further assessment requires an explicitly expanded budget **and** a concrete reason; do not purchase unchanged reviews to chase zero findings.
+`F-BLOCK` remains action-required. Keep it visible and do not claim readiness. Another assessment requires explicit authorization to extend the budget.
+
+**Safe claim:** The assessment budget is exhausted, and required work remains unresolved.

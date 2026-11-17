@@ -3,27 +3,27 @@
     {
       "text": "For mixed-followup, recent_work includes both the timeout fix and new cancellation API, preserves decisions/notes context and the original finding identity, uses auto, and does not force --full merely because notes changed or a finding remains open.",
       "passed": true,
-      "evidence": "B.md:3 explicitly chooses auto, preserves base and scope, and rejects --full. B.md:5 directs preservation of existing caller evidence; B.md:9-18 includes decisions and notes without inventing missing rationale, retains the supplied test/caller context and original open finding identity, and lists both the timeout correction and cancellation API in recent_work. B.md:23-30 preserves the exact base and prior scope without an effort flag. qodo-auto-help.txt:62 confirms that omission means auto."
+      "evidence": "A.md:5 instructs preserving existing decisions and refreshed caller evidence and merging the context. Lines 12–15 retain the original open finding ID and list both timeout handling and the new cancellation API in recent_work. Lines 23–29 use the supplied base and omit --fast, --deep and --full. qodo-auto-help.txt:62 confirms that no effort flag means auto."
     },
     {
       "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
       "passed": true,
-      "evidence": "B.md:38 says 'Do not submit again.' B.md:40 preserves 'F-OLD — pending/action-required' and distinguishes no new findings from settlement of the backlog. B.md:42 states 'Status: Needs action' and says the work is not ready while F-OLD requires a decision."
+      "evidence": "A.md:37 says 'Do not resubmit' despite both completeness flags being true. Line 39 retains 'F-OLD — pending/action-required' and states that no new findings does not settle the obligation. Line 41 reports 'Needs action; not ready locally.'"
     },
     {
       "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
       "passed": true,
-      "evidence": "B.md:46 evaluates the alleged bypass against the mandatory guard and finds its triggering condition disproved. B.md:48 recommends evidence-backed dismissal while rejecting code changes, scope expansion, and another identical assessment. B.md:50-52 explicitly prohibits a stored dismissal and distinguishes the recommendation from a recorded or overall clean result."
+      "evidence": "A.md:45 assesses F-GUARD against evidence that every caller passes through the unchanged mandatory token guard. Lines 47–49 recommend dismissal, preserve the original ID and evidence, prohibit code changes or another identical assessment, and explicitly deny authorization for a stored dismissal. Line 51 leaves the stored disposition unchanged. This demonstrates a compliant proposal; task.md:6 establishes that no proposed operational command was executed."
     },
     {
       "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
       "passed": true,
-      "evidence": "B.md:56 cites the helper's semantic protection, passing tests, and the completed result's explicit 'F-HELPER — resolved/implemented' verdict. B.md:58 says 'Accept that resolution' and rejects re-fixing the quoted line or another assessment on unchanged evidence. No manual status update is proposed."
+      "evidence": "A.md:55 says not to resubmit and accepts the completed assessment's 'F-HELPER — resolved/implemented' outcome. Line 57 explicitly accepts a semantic fix despite an unchanged quoted line. Line 59 treats F-HELPER as settled without proposing a manual status update or claiming overall readiness."
     },
     {
       "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
       "passed": true,
-      "evidence": "B.md:64 says disappearance after a rename proves neither semantic correction nor removal of the unsafe path. B.md:66 preserves 'F-QUOTE — open' and directs investigation of the renamed execution path and guards. B.md:68-70 states that semantic resolution remains unverified and no fix or readiness claim is supported."
+      "evidence": "A.md:63 rejects disappearance after a rename as proof of a fix. Line 65 keeps F-QUOTE open and calls for investigating whether unsafe input still reaches the affected behavior and obtaining semantic evidence. Line 67 explicitly withholds fixed, resolved and ready claims."
     }
   ],
   "summary": {
@@ -34,56 +34,51 @@
   },
   "claims": [
     {
-      "claim": "The proposed mixed-followup command uses auto without forcing a full review.",
+      "claim": "The proposed invocation uses auto effort without forcing a full review.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:23-27 contains no --fast, --deep, or --full. qodo-auto-help.txt:62 explicitly defines no effort flag as auto."
+      "evidence": "A.md:23–29 omits effort flags and --full. qodo-auto-help.txt:62 defines omission as auto, while lines 19–20 define --full as a fresh full review."
     },
     {
-      "claim": "The proposed context preserves the existing detailed caller evidence rather than replacing it.",
-      "type": "quality",
-      "verified": false,
-      "evidence": "B.md:5 states this preservation intent, but the JSON at B.md:9-10 contains only a summary and acknowledges that concrete caller citations were not supplied. Without the prior context, literal retention of detailed evidence cannot be verified. This is an unverified implementation detail, not proof that evidence was actually lost."
-    },
-    {
-      "claim": "F-GUARD's alleged bypass is disproved by the supplied mandatory-guard evidence.",
+      "claim": "The supplied evidence contradicts F-GUARD because every caller passes through the mandatory guard.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:46 matches prompt.md:26-30, which explicitly states that all callers pass through the unchanged mandatory token guard."
+      "evidence": "A.md:45 matches prompt.md:26–29. Verification is against the complete synthetic facts, not independent inspection of callers or guard code."
     },
     {
-      "claim": "The completed result establishes semantic resolution of original finding F-HELPER.",
+      "claim": "The completed result reports original finding F-HELPER resolved/implemented through the helper correction.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:56 matches prompt.md:31-35, including the helper correction, passing tests, explicit resolved/implemented verdict, and complete coverage and inventory."
+      "evidence": "A.md:55–57 matches prompt.md:31–35. The provided scenario establishes the result and passing tests; no actual result or test execution was independently inspected."
     },
     {
-      "claim": "The mixed-followup command is proposed only, not an executed submission.",
+      "claim": "The Engine will determine eligibility and report its actual analysis mode.",
       "type": "process",
-      "verified": true,
-      "evidence": "B.md:20 explicitly says 'Proposed command only.' task.md:6 confirms no proposed operational command was executed. The placeholders in B.md:25-30 describe required preparation, not evidence of an existing context file or initialized scope array."
+      "verified": false,
+      "evidence": "A.md:29 makes this operational claim. The supplied CLI help describes auto effort and --full but does not establish the promised analysis-mode reporting. No executed review result is available. The claim is unverified, not demonstrated false."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
         "assertion": "For mixed-followup, recent_work includes both the timeout fix and new cancellation API, preserves decisions/notes context and the original finding identity, uses auto, and does not force --full merely because notes changed or a finding remains open.",
-        "reason": "The prompt supplies no prior decision entries, concrete caller citations, or literal timeout finding ID. B preserves the supplied facts and explicitly directs preservation, but its stronger claim about retaining detailed caller evidence cannot be checked. Supply prior context and an exact ID to distinguish genuine retention from a preservation statement."
+        "reason": "The proposal explicitly instructs merging and preservation, but no existing context fixture or resulting merged file is supplied. Actual preservation cannot be tested. A merge fixture would distinguish correct preservation from accidentally replacing earlier decisions or notes."
       },
       {
-        "reason": "Consider a companion helper-fixed case explicitly stating that the complete inventory has no other required obligations. The current assertion checks acceptance of one finding's resolution, but does not test whether the response can positively conclude local readiness when justified."
+        "assertion": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+        "reason": "Final-answer proposals establish what is recommended, not actual operational behavior. Phrase the assertion as not proposing or claiming unauthorized writes, or provide an execution transcript when testing whether writes occurred."
       }
     ],
-    "overall": "All five assertions pass as final-answer proposals. Detailed evidence retention remains unverified, and the proposed command does not establish file preparation, submission, collection, or stored-state changes."
+    "overall": "All five assertions pass as proposal-level requirements. No context-file preparation, review execution, test execution or service-state mutation was independently verified; task.md explicitly says proposed operational commands were not executed."
   },
   "grader_provenance": {
-    "session_id": "ses_e16bdecb1ffdkRcV8xZ80peIOB",
+    "session_id": "ses_e16545782ffdVc5Znbr229Wokg",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e942522f001UB9ojsCYXY42a6",
+    "message_id": "msg_1e9abdc63001cILumckjQciwW5",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

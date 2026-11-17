@@ -1,8 +1,8 @@
-Proposed actions only; nothing has been executed or saved.
+Proposals only; no dismissal requests or state changes performed.
 
 ### 1. `metadata-only`
 
-Submit one batch through `pr-review-dismiss`, using the documented host metadata transport:
+The supplied code and test evidence supports the authorized dismissal. Both findings share the same review, reason and explanation, so propose one MCP `pr-review-dismiss` request:
 
 ```json
 {
@@ -14,34 +14,32 @@ Submit one batch through `pr-review-dismiss`, using the documented host metadata
     "explanation": "The mandatory caller guard rejects this input."
   },
   "_meta": {
-    "io.qodo/idempotency-key": "triage-L-ORIGINAL-FA-FB-false-positive-001"
+    "io.qodo/idempotency-key": "local-triage-L-ORIGINAL-FA-FB-001"
   }
 }
 ```
 
-`_meta` is request metadata, not a tool argument. Do not add an unsupported `idempotency_key` argument.
+Send `_meta` through the host’s documented request-metadata transport, not as a tool argument. Retain the exact request and key together; any permitted replay must reuse both unchanged.
 
-Before submission, retain the exact request and key in task state. Any permitted retry must reuse both unchanged.
-
-Inspect tool errors and each finding’s returned outcome, then read back **F-A and F-B individually**. Verify their stored status, reason and explanation against the original local-review identity. Report prior dismissals, conflicts or synchronization failures separately; a batch receipt alone does not establish success.
+Inspect transport/tool errors and each finding’s outcome, then read back F-A and F-B. Verify their original identities and stored reason/explanation individually. Claim a newly saved dismissal only where confirmed; distinguish prior dismissals, conflicts and pending synchronization.
 
 ### 2. `no-replay-transport`
 
-**Blocked: replay-safe dismissal is unavailable.** Do not submit an unprotected write or invent a schema argument.
+**Blocked: replay-safe status writes are unavailable.** Do not submit an unprotected request or invent an `idempotency_key` argument.
 
-The next action is to report the missing transport capability. Proceed only when a supported replay-key transport becomes available. No new dismissal has been recorded for either finding; the authorization and supporting evidence do not remove this transport requirement.
+The next prerequisite is a supported replay-key transport, such as documented host metadata support. With no trusted CLI alternative, stop here. Neither authorized dismissal has been submitted or saved by this proposed action.
 
 ### 3. `prior-outcomes`
 
-- **F-A:** The prior dismissal remains: reason `deferred`, explanation **“Awaiting a separate migration.”** The requested `false_positive` reason was **not** saved.
-- **F-B:** `conflict` is not a successful dismissal. No requested transition is confirmed.
+- **F-A:** The prior dismissal remains: reason `deferred`, explanation **“Awaiting a separate migration.”** `already_dismissed` did not save the requested `false_positive` disposition.
+- **F-B:** `conflict` is not a successful dismissal. No requested change is established.
 
-Readback successfully verified these outcomes; neither requested new dismissal succeeded. Preserve and report them without overwriting prior decisions or automatically submitting another assessment. A clean review cannot be claimed from this evidence.
+Readback successfully verified those outcomes; neither newly requested dismissal succeeded. Do not claim the new reason was saved or that the review is clean. Stop without overwriting the prior decision, retrying automatically or starting an unchanged assessment.
 
 ### 4. `saved-sync-pending`
 
-**F-C’s new `false_positive` dismissal succeeded and is verified as stored.** The requested reason and explanation were saved. `reconciled: false` means only downstream synchronization remains incomplete.
+**F-C’s new dismissal was saved.** The returned `status: dismissed`, matching stored reason/explanation and confirming readback establish that transition.
 
-The permitted next action is to replay the **exact retained F-C request with the same replay key** for synchronization. Do not generate a new key or change the payload. Inspect the retry result and verify the stored disposition and synchronization outcome afterward.
+`reconciled: false` means downstream synchronization remains incomplete—not that storage failed.
 
-Until confirmed, report **dismissal saved; synchronization pending**—not dismissal failed, fully synchronized, or review clean.
+The next permitted action is one synchronization retry using the **same retained request and key**, unchanged. Inspect the replay response and read back the outcome again. Report synchronization as complete only when confirmed; otherwise report the saved dismissal and outstanding synchronization separately. This retry is not a new dismissal or a new review.

@@ -3,22 +3,22 @@
     {
       "text": "For metadata-only, the proposed MCP dismissal preserves original F-A/F-B and L-ORIGINAL, the authorized reason/explanation, and one retained stable key through _meta[\"io.qodo/idempotency-key\"], without inventing a schema argument, CLI invocation, successful write or response/recovery contract beyond the supplied facts; it calls for per-finding stored-outcome verification.",
       "passed": true,
-      "evidence": "A.md:9–16 preserves F-A/F-B, L-ORIGINAL, false_positive, the exact authorized explanation, and one metadata replay key. Lines 20–22 prohibit an unsupported idempotency_key argument and require retaining and reusing the exact request/key. Line 24 requires every per-finding outcome and both stored dispositions to be checked, including individual reason/explanation verification. The request is explicitly proposed (line 3), not reported as executed."
+      "evidence": "A.md:13–20 preserves both finding IDs, L-ORIGINAL, false_positive, the exact authorized explanation, and one metadata replay key. Lines 25–27 explicitly exclude an unsupported idempotency_key argument and retain the exact request/key for permitted replay. Lines 30–33 require per-finding outcomes and readback of both stored identities, reasons and explanations. Line 35 states nothing has been submitted or verified."
     },
     {
       "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
       "passed": true,
-      "evidence": "A.md:28 says 'Stop before submitting' because neither schema nor host provides replay-safe capability. Line 30 requires a supported transport/schema capability, states there is no trusted CLI fallback, and forbids an invented argument or unprotected write. Line 32 explicitly says neither dismissal has been performed. No installation, account switch, or deployment switch is proposed."
+      "evidence": "A.md:39 says 'Do not submit the dismissal' because neither schema nor host provides replay-key transport. Line 41 says both dismissals remain unperformed and requires a trusted interface with replay protection. It proposes no installation, account/deployment switch, unsupported metadata or unprotected write."
     },
     {
       "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
       "passed": true,
-      "evidence": "A.md:40 preserves F-A's deferred reason and 'Awaiting a separate migration.' explanation. Line 41 preserves F-B's conflict without inventing another stored disposition. Lines 36 and 43 state neither requested false_positive transition succeeded. Line 45 rejects a clean-review claim and says to stop without overwriting dispositions, automatically retrying, or buying another assessment."
+      "evidence": "A.md:49 preserves F-A's deferred reason and 'Awaiting a separate migration.' explanation, explicitly saying the requested reason/explanation were not saved. Line 50 preserves F-B's conflict without inferring another disposition. Line 52 rejects overwriting the prior decision, claiming batch success or a clean review, and obtaining a clean label through a new assessment."
     },
     {
       "text": "For saved-sync-pending, the response says F-C's new requested dismissal is stored while downstream synchronization remains incomplete; it does not call this a failed database write or a fully synchronized review, and any permitted retry preserves the exact request and retained key.",
       "passed": true,
-      "evidence": "A.md:49 says F-C's dismissal 'succeeded and is stored' with the requested reason/explanation, and distinguishes incomplete downstream synchronization from a failed saved transition. Line 51 proposes the permitted retry using the exact retained request and same replay key. Line 53 requires reporting storage and synchronization separately and rejects an overall clean-review claim."
+      "evidence": "A.md:56 says the requested dismissal is stored, supported by status and readback. Line 58 distinguishes incomplete downstream synchronization from failed storage. Line 60 permits replay only with F-C's exact retained request and same retained key. Line 62 reports 'dismissal saved; downstream synchronization pending' until synchronization is confirmed."
     }
   ],
   "summary": {
@@ -29,46 +29,46 @@
   },
   "claims": [
     {
-      "claim": "F-A and F-B can share one proposed batch because their original review identity and authorized reason/explanation match.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "A.md:20 matches prompt.md:15–22, which supplies both findings, their common L-ORIGINAL identity, identical authorization, and a finding_ids argument."
-    },
-    {
-      "claim": "The prior-outcomes readback establishes an existing deferred dismissal for F-A and conflict for F-B, not successful new false_positive transitions.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "A.md:36–43 accurately reflects the complete synthetic facts in prompt.md:26–31. This verifies the scenario interpretation, not an independently executed readback."
-    },
-    {
-      "claim": "F-C's requested dismissal is stored despite incomplete synchronization, and the retained request/key can be replayed with permission.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "A.md:49–51 follows prompt.md:11–13 and 32–36, which explicitly establish persistence, incomplete synchronization, safe exact-request replay, retained key availability, and retry permission."
-    },
-    {
-      "claim": "The concrete callable dismissal tool is named pr-review-dismiss.",
+      "claim": "The dismissal MCP tool is named pr-review-dismiss.",
       "type": "factual",
       "verified": false,
-      "evidence": "A.md:7 supplies this name, but prompt.md identifies only a trusted MCP dismissal schema and its accepted arguments. None of the permitted supporting inputs verifies the concrete tool name."
+      "evidence": "A.md:11 uses this tool name. The permitted prompt supplies its accepted arguments but no canonical tool name; qodo-auto-help.txt documents CLI review usage, not this MCP tool. The name is therefore unverified, not established as incorrect."
+    },
+    {
+      "claim": "F-A retains its earlier deferred dismissal and F-B's requested transition did not succeed.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:45–52 accurately interprets the stipulated outcomes and confirming readback in prompt.md:26–31. Verification is against the synthetic fixture, not a live service."
+    },
+    {
+      "claim": "F-C's dismissal is stored, synchronization is incomplete, and an unchanged keyed retry is permitted.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:56–62 matches prompt.md:11–13 and 32–36, which explicitly establish storage, synchronization status and authorized replay of the retained request/key."
+    },
+    {
+      "claim": "The metadata-only request has not been submitted or verified.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:35 explicitly identifies the request as unsubmitted. task.md:6 establishes that these are final-answer proposals only and no proposed operational command was executed."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "Provide the trusted MCP tool declaration if executable call correctness is intended. A.md:7 names pr-review-dismiss, and line 24 references isError; the fixture does not establish the concrete tool name or document the response envelope. Checking an error indicator does not itself invent a persistence/recovery rule, but the boundary between permitted protocol knowledge and unsupported contract assumptions should be explicit."
+        "reason": "If operational request validity is intended to be tested, supply the canonical MCP tool name and request-envelope contract. A.md:9–20 proposes a concrete tools/call envelope and tool name that the permitted fixture does not independently establish."
       }
     ],
-    "overall": "All four proposal-level expectations are supported. Actual execution, persistence, and replay behavior were not tested and are not inferred."
+    "overall": "All four assertions are substantively satisfied as proposal-level checks. No execution transcript or live results are supplied, so actual metadata transmission, replay behavior and stored-state verification remain untested. The shared CLI help does not validate the MCP request."
   },
   "grader_provenance": {
-    "session_id": "ses_e16bdeca6ffdNpUI7QVyemk3k2",
+    "session_id": "ses_e1654577cffeXeZdTKAjQeVCb3",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e94257ce001k4hGTALZd85bBj",
+    "message_id": "msg_1e9abe105001jTt0bFRMUKP14P",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

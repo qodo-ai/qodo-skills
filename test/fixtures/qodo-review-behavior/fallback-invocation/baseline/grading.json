@@ -3,12 +3,12 @@
     {
       "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
       "passed": true,
-      "evidence": "A.md:2 proposes '\"/opt/qodo tools/bin/qodo\" --version'; A.md:10 uses the identical quoted invocation for review; A.md:18 uses it for review status. No installation or PATH change is proposed."
+      "evidence": "A.md:3 proposes '\"/opt/qodo tools/bin/qodo\" --version'; A.md:9 uses the same quoted invocation for review; A.md:22 uses it for review status. No installation or PATH change is proposed."
     },
     {
       "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
       "passed": true,
-      "evidence": "A.md:10-13 proposes review with '--base 1111111111111111111111111111111111111111', '--context-file /outside/context.json', and '--async --json', without an effort flag. qodo-auto-help.txt:62 explicitly establishes 'no flag = auto'. A.md:13 exits on unsuccessful submission; lines 15-16 extract a nonempty string from the returned submission and exit if extraction fails; line 18 passes that variable to status. Lines 22-24 explicitly leave acceptance, completion, coverage and findings unknown."
+      "evidence": "A.md:9-12 retains --base 1111111111111111111111111111111111111111, --context-file /outside/context.json and --async --json, without --fast or --deep. qodo-auto-help.txt:62 explicitly states 'no flag = auto'. A.md:19-22 extracts a nonempty string .operation_id from \"$submission\", exits on extraction failure, and passes only that variable to status. A.md:14,24,28 explicitly leaves acceptance, operation ID, completion, coverage and findings pending or unverified."
     }
   ],
   "summary": {
@@ -19,64 +19,58 @@
   },
   "claims": [
     {
-      "claim": "Version 2.3.1, verified identity and supported flags are supplied evidence rather than newly obtained results.",
+      "claim": "Version 2.3.1, verified identity and passed unit tests are supplied scenario evidence.",
       "type": "factual",
       "verified": true,
-      "evidence": "A.md:5 says 'Evidence supplied: 2.3.1; identity and supported flags already verified. Not rerun here.' This matches prompt.md:11-14."
+      "evidence": "A.md:5,28 match prompt.md:11-17. These are stipulated facts, not independently observed version or test executions."
     },
     {
-      "claim": "The proposed submission uses auto effort.",
+      "claim": "Omitting --fast and --deep selects auto.",
       "type": "factual",
       "verified": true,
-      "evidence": "A.md:10-13 includes neither --deep nor --fast. qodo-auto-help.txt:62 states that no effort flag means auto."
+      "evidence": "A.md:14 matches qodo-auto-help.txt:62-64."
     },
     {
-      "claim": "Relevant unit tests passed according to the supplied facts.",
+      "claim": "review status collects retained results, and exit 2 means the result is still running.",
       "type": "factual",
       "verified": true,
-      "evidence": "A.md:24 attributes passing unit tests to supplied facts; prompt.md:16-17 explicitly supplies that result."
+      "evidence": "A.md:22,24,26 are supported by qodo-auto-help.txt:35-36,66-68. Extended detail is described at help lines 21-22, and prompt.md:13-14 stipulates support for --extended."
     },
     {
-      "claim": "The submission JSON exposes its operation ID as .operation_id.",
+      "claim": "The submission JSON exposes the returned ID under .operation_id.",
       "type": "factual",
       "verified": false,
-      "evidence": "A.md:15-16 assumes '.operation_id'. The permitted help establishes that async submission returns an operation ID, but supplies neither a JSON example nor this field name. The schema assumption is unverified, not demonstrated incorrect."
+      "evidence": "A.md:19-20 assumes this JSON field. The supplied help promises an operation ID but provides neither its JSON schema nor a response example. The extraction is safely conditional, but the field name remains unverified."
     },
     {
-      "claim": "Status exit 2 means the retained review is still running.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "A.md:23 discusses polling after exit 2. qodo-auto-help.txt:35-36 and 68 explicitly identify exit 2 as unfinished."
-    },
-    {
-      "claim": "A running-status response supplies a polling delay.",
+      "claim": "Polling guidance is available as retry_after.",
       "type": "factual",
       "verified": false,
-      "evidence": "A.md:23 says 'respect the returned polling delay'. No polling-delay field or guarantee appears in prompt.md or qodo-auto-help.txt."
+      "evidence": "A.md:26 names retry_after. Neither prompt.md nor qodo-auto-help.txt documents that field, and no status response is supplied."
     },
     {
-      "claim": "No commands were executed or files written.",
+      "claim": "The proposed collection pipeline can run with jq.",
       "type": "process",
-      "verified": true,
-      "evidence": "A.md:24 states this, and task.md:6 independently establishes that these are final-answer proposals and no proposed operational command was executed."
+      "verified": false,
+      "evidence": "A.md:17 explicitly declares the jq dependency, but its availability is not supplied. task.md:6 confirms no proposed operational command was executed."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "Supply verified submission and running-status JSON examples. The proposed parser assumes .operation_id and the prose assumes a returned polling delay, but the permitted evidence documents neither. Those interface assumptions cannot be validated from the current grading inputs."
+        "reason": "Provide representative submission and pending-status JSON, or a verified schema, to validate .operation_id extraction and the asserted retry_after field. Current evidence supports conditional collection, not those response-field assumptions."
       }
     ],
-    "overall": "Both exact assertions pass as proposal-level requirements. CLI response-schema and polling-delay claims remain unverified; no successful submission or collection is established."
+    "overall": "Both proposal assertions pass. No operational execution occurred, so acceptance, context delivery, persistence and review results remain unverified."
   },
   "grader_provenance": {
-    "session_id": "ses_e16bdecb1ffe0W1EQkuh0q50hg",
+    "session_id": "ses_e16545789ffeFY63jI3BjqLDQS",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e9425197001gCHWQaslD7nDrp",
+    "message_id": "msg_1e9abe1d4001o3REzXyzKYD1Ni",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

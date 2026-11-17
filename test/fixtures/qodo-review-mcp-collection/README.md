@@ -1,4 +1,8 @@
-# Focused MCP collection evidence
+# Historical focused MCP collection evidence
+
+This is the unchanged iteration-9 record, not current instruction evidence.
+Current results are in `../qodo-review-behavior/`. Its original instructions and
+all inputs are retained in `../qodo-review-behavior/history/iteration-9/`.
 
 Iteration 9 executes only the newly added `mcp-collection` case: two fresh native
 agents and one anonymous grader, five assertions for each configuration.
@@ -9,16 +13,16 @@ The candidate instruction bytes are unchanged from the iteration-8 candidate.
 
 `manifest.json` distinguishes the one evaluated case from the eight staged input
 cases. Each run retains the complete 54-input fingerprint map from its immutable
-staging, not only the new prompt. The gate checks those inputs, current candidate
+staging, not only the new prompt. The gate checks its retained inputs and candidate
 instructions, original responses/grades/provenance and every counted assertion.
 Commit fields are recorded labels; this is not tamper-proof model attestation.
 The baseline instruction hashes match the primary suite's offline Git-object proof.
 
 Both configurations score 5/5. This adds coverage, not evidence of uplift,
 reliability or savings. The original seven-group 33/33 comparison is unchanged in
-`../qodo-review-behavior/`; no old answer or grade is replaced or relabeled.
-The standard wrapper now stages eight groups and 38 assertions, but no single fresh
-eight-group model execution is claimed.
+`../qodo-review-behavior/history/iteration-8/`; no old answer or grade is replaced or relabeled.
+That iteration's wrapper staged eight groups and 38 assertions; it did not execute
+a fresh eight-group comparison. The later current comparison is reported separately.
 
 The agents used read-only tools. Proposed MCP calls, integrity checks and collection
 recoveries were not executed; the fixture supplies the checker's digest/length

@@ -1,0 +1,77 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "A.md:5–34 reproduces the retained request_id, full params, exact base, stream_id, complete scope and all session_context fields. It states, “Depth remains omitted for auto” and “There is no separate idempotency_key.” Lines 1 and 36 reject CLI detours and unnecessary replay after acceptance; lines 63–71 recognize the collector and verified base."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "A.md:36–59 proposes polling operation 41c730de-840d-4b87-a95e-165b8b94f56a every two seconds, checking isError, and collecting both pages with unchanged extended:false. Lines 59 and 67–74 require contiguous offsets and verification before interpretation, identify offsets 0 and 90, final null cursor, 148 bytes and the exact supplied digest. Lines 74–78 report complete local assessment with empty inventories while explicitly excluding CI, approval, release and deployment readiness."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "A.md:82–88 says “review blocked before submission” and “Do not call start-pre-pr-review,” citing stopped enumeration, unknown included paths and unverified base fetchability. It prohibits an ad hoc diff, substitute checkout and installation, and concludes, “No assessment or complete coverage can honestly be reported.”"
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:92–98 identifies advertised 7d7c… versus calculated 6d7c…, blocks assessment conclusions and says not to interpret the apparent empty inventory. Recovery is limited to one collection attempt using the original operation, starting from the first page and repeating integrity checks. It requires stopping if recovery fails and explicitly prohibits a new submission."
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:102–108 rejects “149 bytes” advertised versus “148 bytes” measured and states that a matching digest does not excuse this failure. It prohibits interpreting findings or claiming complete assessment coverage, permits only the same single recovery against the retained operation, and rejects replacement reviews or continued retries."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The eligible artifact has complete finding inventory and assessed coverage, with all finding inventories empty.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:74 matches the joined artifact supplied in prompt.md:69–74. Verification is against the hypothetical supplied artifact and checker report, not an executed collection."
+    },
+    {
+      "claim": "Reviewer consumption, checkpoint persistence and full/incremental/reused execution mode are not established by this artifact.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:78 accurately limits these claims: the artifact in prompt.md:69–72 contains findings, finding_state and coverage, but no evidence establishing consumption, persistence or execution mode."
+    },
+    {
+      "claim": "Collection recovery should wait 15 seconds when no recovery delay is returned.",
+      "type": "process",
+      "verified": false,
+      "evidence": "A.md:96 specifies this fallback. None of the permitted input documents establishes a 15-second recovery rule. The named Skill references were not available within the authorized grading inputs, so this detail is unsupported here, not proven incorrect."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Supply the applicable recovery-policy excerpt if exact recovery timing is to be evaluated. The answer adds a 15-second fallback that the permitted evidence cannot verify, while the assertions check only bounded recovery."
+      },
+      {
+        "assertion": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+        "reason": "The answer additionally calls the snapshot “ready locally” at A.md:76. Define whether the supplied complete assessment and focused-test report suffice for this readiness label; the assertion expressly addresses assessment and higher-level readiness but leaves local readiness implicit."
+      }
+    ],
+    "overall": "All five assertions are supported as proposed behavior. No calls were executed, so these grades do not establish actual submission, polling, integrity-check execution or operational success. Focused-test success is a supplied fact, not independently observed."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1671d29bffe2UJMzZoLzyDRYd",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e98e643a001kXkfEZ0yaozAox",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { inputPath, main, prepareReviewEvaluation, readGitEvaluationFiles,
   requireEvaluationSupport } from '../scripts/eval-review-skill.mjs';
-import { assertFixtureProvenance, assertGrade, createEvaluationRepository, evaluatedReleaseStamps } from './helpers/review-evaluation-fixtures.mjs';
+import { assertFixtureProvenance, assertGrade, assertRunIdentity, assertRunPaths, createEvaluationRepository, evaluatedReleaseStamps } from './helpers/review-evaluation-fixtures.mjs';
 import { assertHistoryArchives } from './helpers/review-evidence-archives.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -130,6 +130,9 @@ test('execution mechanics remain reachable and completed async results are emitt
   assert.match(text, /Failure, no update or an incompatible target stops/);
   assert.match(text, /In every command example, replace `qodo` with that resolved invocation/);
   assert.match(readReference('mcp-review.md'), /tested local collector/);
+  assert.match(text, /Reject mismatched operation\/snapshot associations and incomplete or noncontiguous result pages/);
+  for (const field of ['operation_id', 'offset_bytes', 'total_chunks', 'next_cursor'])
+    assert.ok(readReference('mcp-review.md').includes(field));
   assert.match(readReference('connected-progress.md'), /reap the child/);
   for (const name of ['cli-execution.md', 'mcp-review.md', 'local-triage.md']) {
     assert.match(readReference(name), /SKILL\.md#execution-and-recovery-policy/);
@@ -198,7 +201,7 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     assert.equal(staged.manifest.source_commit, fixture.head);
     assert.equal(staged.manifest.fixture_source_commit, fixture.head);
     assert.equal(staged.manifest.cases.length, 8);
-    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 38);
+    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 40);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
     assert.ok(!staged.args.includes('--allow-real-servers') && !staged.args.includes('--trust-plugin'));
     assert.ok(!staged.args.includes('--json'), 'Machine mode must not suppress a first-run trust prompt');
@@ -422,9 +425,9 @@ test('recorded behavior evidence covers current instructions and every assertion
   const manifest = JSON.parse(fixtureFile(evidenceRoot, 'manifest.json'));
   assert.equal(manifest.schema_version, 1);
   assert.equal(manifest.method, 'fresh-native-agents-with-anonymous-final-answer-grading');
-  assert.equal(manifest.cases.length, 7);
+  assert.equal(manifest.cases.length, 8);
   assertBaselineSnapshot(evidenceRoot, manifest.snapshots.baseline);
-  assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest), { 6: 40, 7: 96 });
+  assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest), { 6: 40, 7: 96, 8: 104, 9: 74 });
   for (const [path, expected] of Object.entries(manifest.adjudication?.artifacts ?? {})) {
     assert.equal(sha256(fixtureFile(evidenceRoot, path)), expected, path);
   }
@@ -432,8 +435,7 @@ test('recorded behavior evidence covers current instructions and every assertion
     assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash);
   assert.deepEqual(Object.keys(manifest.snapshots.candidate.fingerprints).sort(),
     ['SKILL.md', ...references.map((name) => `references/${name}`)].sort());
-  const supplemental = JSON.parse(fixtureFile(join(root, 'test/fixtures/qodo-review-mcp-collection'), 'manifest.json'));
-  assert.deepEqual([...manifest.cases.map((item) => item.name), ...supplemental.evaluated_cases].sort(),
+  assert.deepEqual(manifest.cases.map((item) => item.name).sort(),
     readdirSync(join(root, 'evals/qodo-review'), { withFileTypes: true })
       .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort());
   for (const [name, expected] of Object.entries(manifest.snapshots.candidate.fingerprints)) {
@@ -461,6 +463,7 @@ test('recorded behavior evidence covers current instructions and every assertion
     assertionCount += graders.length;
     for (const configuration of ['candidate', 'baseline']) {
       const run = item.runs[configuration];
+      assertRunPaths(run, item.name, configuration);
       assert.deepEqual(Object.keys(run.artifacts).sort(), [run.response, run.grading, run.provenance].sort());
       for (const [path, hash] of Object.entries(run.artifacts)) {
         assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash, path);
@@ -472,6 +475,7 @@ test('recorded behavior evidence covers current instructions and every assertion
       scores[configuration].passed += passed;
       scores[configuration].total += graders.length;
       const provenance = JSON.parse(fixtureFile(evidenceRoot, run.provenance));
+      assertRunIdentity(provenance, item.name, configuration);
       assertFixtureProvenance(provenance, manifest);
       assert.equal(provenance.source_commit, manifest.snapshots[configuration].source_commit);
       assert.deepEqual(provenance.fingerprints, manifest.snapshots[configuration].fingerprints);
@@ -481,7 +485,7 @@ test('recorded behavior evidence covers current instructions and every assertion
       }
     }
   }
-  assert.equal(assertionCount, 33);
-  assert.equal(candidatePasses, 33);
+  assert.equal(assertionCount, 40);
+  assert.equal(candidatePasses, 40);
   assert.deepEqual(manifest.scores, scores);
 });

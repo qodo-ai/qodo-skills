@@ -74,17 +74,18 @@ Both were included in the six-group, 29-assertion comparison. Historical
 `mcp-local-triage` adds metadata-only replay protection, a missing-transport stop
 and honest prior/conflicting outcomes. The preserved seven-group matrix has 33 assertions,
 including the explicit saved-dismissal/pending-synchronization outcome.
-`mcp-collection` adds five focused assertions for eligible submission, complete chunk
-verification, ineligible collection and rejected digest/byte-count mismatches.
-The standard staging wrapper includes all eight groups and 38 assertions.
+`mcp-collection` adds seven assertions for eligible submission, complete chunk
+verification, ineligible collection, wrong digest/byte count, a foreign operation
+and overlapping pages. The standard wrapper stages all eight groups and 40 assertions.
 
 ## Recorded evidence and CI
 
 [RESULTS.md](RESULTS.md) gives current and historical snapshot-specific results.
 [Recorded evidence](../../test/fixtures/qodo-review-behavior/README.md) includes
 final answers, anonymous judgments, exact fingerprints and safe runtime provenance.
-Iteration 8 records 33/33 for candidate `59afaea` and prior rewrite `6385a42`.
-The explicit saved/sync-pending facts also let the baseline pass; no uplift is established.
+Iteration 10 records 40/40 for candidate `841379d` and prior rewrite `6385a42`.
+Both reject the new identity/page cases; no uplift or reliability is established.
+Original iteration-8 33/33 and focused iteration-9 5/5 results remain archived unchanged.
 The preceding iteration-7 native-agent result is 32/32 for both corrected and prior `173cfc7`
 instructions after one documented auto-contract grading adjudication. Initial
 31/32 judgments and the CLI help used to reassess them remain inspectable.
@@ -98,11 +99,12 @@ its raw instruction hashes to the stated signed commit, including in shallow or
 squash-merged checkouts. Artifact reads reject symlinked files and ancestors.
 Only release-owned version/provenance stamps are mapped to their evaluated values;
 the evidence retains its original exact hashes, not a claim of a new model run.
-The gate compares every run's recorded fixture commit and complete input map within
-its explicit evidence scope. The unchanged seven-group iteration-8 matrix remains
-separate from the new one-group MCP supplement; old answers are not relabeled as new runs.
-Updating the manifest alone cannot bless old answers. Both iteration-6 and iteration-7
-archive entries are required, and every historical artifact and inventory is checked.
+The gate compares every current run's recorded fixture commit and complete input
+map, exact artifact namespace and recorded case/configuration identity. Empty
+assertion cases fail. Updating the manifest alone cannot bless old answers.
+History entries 6/7/8/9 are required; their 40/96/104/74 artifacts and inventories
+are checked. The earlier focused MCP records use their archived inputs/instructions,
+not the newer case. Old answers are not relabeled as current runs.
 **CI validates the recorded evidence; CI does not execute the agent.**
 The standard Claude evaluation wrapper has only been staged/manifest-validated,
 not model-executed. Run models separately in a fresh-agent harness or explicitly

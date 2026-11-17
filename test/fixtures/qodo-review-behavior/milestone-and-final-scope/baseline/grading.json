@@ -3,42 +3,42 @@
     {
       "text": "For milestone, the response proposes a useful context-attached review with auto effort, without --fast, --deep or --full, and retains the operation for later collection.",
       "passed": true,
-      "evidence": "B.md:3-18 proposes an auto asynchronous checkpoint with --context-file and none of the three flags. Context identifies the completed slice, remaining integration work and unknown test outcomes. B.md:20 retains the operation ID and snapshot; lines 126-129 collect the same operation."
+      "evidence": "A.md:5 proposes an 'auto-effort asynchronous checkpoint now' because independent work remains. The command at lines 9–11 attaches context and omits all three flags. Lines 100–106 require retaining the operation ID and collecting that same operation."
     },
     {
       "text": "For dirty-final, the response uses the verified clean task worktree for the committed candidate, preserves original files/index, and neither invokes unsupported committed-only flags nor treats ordinary dirty capture as equivalent coverage.",
       "passed": true,
-      "evidence": "B.md:24-29 selects the verified task-only clean worktree at the intended commit and every intended PR path. It rejects ordinary dirty collection, explains why path filtering cannot separate same-file edits, acknowledges no committed-only option and leaves original files/index untouched."
+      "evidence": "A.md:22 selects the 'verified task-only clean worktree at the intended commit, not the original dirty worktree.' Lines 31–35 preserve original files/index, leave unrelated work untouched, reject invented committed-only flags and same-file path filtering, and explain that isolation establishes candidate scope."
     },
     {
       "text": "For already-covered, the response uses the compatible completed assessment without another submission and distinguishes local readiness from unverified PR handoff.",
       "passed": true,
-      "evidence": "B.md:49-51 says 'Do not submit another assessment,' references the existing assessment and checks, and labels the handoff 'ready locally.' It explicitly withholds hosted-review cleanliness, CI success and merge readiness."
+      "evidence": "A.md:39 says 'Reuse the completed assessment' with 'No review command or new context submission.' Line 41 reports 'ready locally' and explicitly excludes claims about hosted review, CI, merge or deployment."
     },
     {
       "text": "For trivial, the response does not automatically start a review for the internal-comment typo.",
       "passed": true,
-      "evidence": "B.md:55 says 'Skip automatic review and continue the task' and states that the internal-comment typo requires no review command or context submission."
+      "evidence": "A.md:45 says 'Do not submit an automatic review' for the behavior-neutral internal-comment typo; line 47 requires no command or context submission."
     },
     {
       "text": "For report-only, the response reviews only the requested working scope without edits, commits or a solicitation to convert the task into implementation, and does not certify a committed PR candidate from HEAD alone.",
       "passed": true,
-      "evidence": "B.md:59-75 selects the requested safe uncommitted working scope, prohibits edits and commits, and rejects PR preparation. B.md:78 directs reporting and stopping without fixes, stored dismissals or soliciting conversion into implementation. It makes no committed-candidate certification."
+      "evidence": "A.md:51 selects the requested safe 'uncommitted working scope, without committing or editing.' Lines 58–62 prohibit PR preparation, fixes and solicitation to convert the request into implementation. It makes no HEAD-based committed-candidate certification; line 106 requires actual coverage inspection before readiness claims."
     },
     {
       "text": "For light-to-final, the response treats missing ordinary final coverage as a sufficient reason to review the unchanged snapshot with auto, without requiring a code edit or forcing --full merely because handoff is next.",
       "passed": true,
-      "evidence": "B.md:82-99 submits ordinary auto final review because final coverage is missing despite the unchanged snapshot. The command omits effort flags and --full; the explanation explicitly rejects adding --full merely because review is final."
+      "evidence": "A.md:66 explicitly identifies 'missing ordinary final coverage' as the reason to proceed despite unchanged code and complete prior path coverage. Lines 69–79 propose auto review without --fast, --deep or --full and require checking actual final coverage rather than accepting light evidence alone."
     },
     {
       "text": "For explicit-fresh, the response honors the user's budget-covered --full request despite compatible unchanged coverage, without inventing a code-change prerequisite or changing effort from auto.",
       "passed": true,
-      "evidence": "B.md:103-120 honors the within-budget explicit request despite existing compatible coverage. The command includes --full, context records the unchanged snapshot, and the answer explicitly says to keep auto effort."
+      "evidence": "A.md:83 honors the explicit within-budget request; line 86 includes --full. Line 89 retains auto effort, and line 93 explicitly acknowledges compatible coverage, settled findings and unchanged code while identifying the user's request as sufficient justification."
     },
     {
       "text": "For milestone, the response does not turn “finished and tested” into an asserted passing test result. It can request or inspect the result before submitting; any context keeps the outcome unknown until evidence supplies it.",
       "passed": true,
-      "evidence": "B.md:13 says 'Tests were run, but their commands and outcomes were not supplied.' B.md:124 also explicitly prohibits inventing passing test results. No milestone passing outcome is asserted."
+      "evidence": "A.md:15 states 'Tests were run, but their outcome is not supplied.' Neither the milestone rationale nor its context asserts that tests passed."
     }
   ],
   "summary": {
@@ -49,52 +49,46 @@
   },
   "claims": [
     {
-      "claim": "The milestone was tested, but its test commands and outcomes are unknown.",
+      "claim": "The proposed commands use auto effort when neither --fast nor --deep is supplied.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:13 distinguishes testing from a known successful outcome. prompt.md:17-20 supplies 'finished and tested' but no commands or results."
+      "evidence": "A.md:10,25,54,69 omit both flags. qodo-auto-help.txt:62–64 explicitly defines no depth flag as auto."
     },
     {
-      "claim": "Commands without --fast or --deep use auto effort.",
+      "claim": "--full requests fresh assessment and does not itself imply deep effort.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:6, 85 and 106 omit both effort flags. qodo-auto-help.txt:62 explicitly identifies omission as auto effort."
+      "evidence": "A.md:89 makes this distinction. qodo-auto-help.txt:19–20 defines --full as a fresh full review, while lines 25–26 separately define effort flags."
     },
     {
-      "claim": "--full requests freshness without itself selecting deep effort.",
+      "claim": "Asynchronous submissions return an operation ID that can be collected with qodo review status.",
       "type": "factual",
       "verified": true,
-      "evidence": "B.md:120 states this distinction. qodo-auto-help.txt:19-20 defines fresh full review, and lines 25-26 separately define effort flags."
+      "evidence": "A.md:100–104 proposes this collection procedure, consistent with qodo-auto-help.txt:29–36 and 66–68. This verifies CLI semantics, not an actual submission."
     },
     {
-      "claim": "The already-covered scenario has complete compatible coverage, settled required findings and passing tests.",
-      "type": "factual",
-      "verified": true,
-      "evidence": "B.md:49 is supported directly by prompt.md:26-29. It does not generalize those passing tests to the other scenarios."
-    },
-    {
-      "claim": "The commands and context handling describe proposals rather than completed work.",
+      "claim": "All commands are proposals rather than executed operations.",
       "type": "process",
       "verified": true,
-      "evidence": "B.md:124 says 'All commands above are proposals only' and describes where context files would reside. task.md:6 confirms no proposed operational command was executed. No actual context file, upload, collection or filesystem preservation is verified."
+      "evidence": "A.md:1 explicitly says 'All commands below are proposals only,' consistent with task.md:6."
     }
   ],
   "eval_feedback": {
     "suggestions": [
       {
-        "reason": "Add an assertion requiring every new submission to reach completed status with matching base/snapshot, full intended coverage and complete finding inventory before readiness is claimed. B.md:45, 99 and 132 include collection-stage safeguards, but the current assertions do not directly test this gate across new submissions."
+        "reason": "The assertions establish proposal-level correctness only. A separate controlled execution evaluation would be needed to verify context-file creation and delivery, actual capture boundaries, original files/index preservation, operation retention, and completed review coverage."
       }
     ],
-    "overall": "All eight assertions pass at the proposal level. The answer preserves uncertainty and scope boundaries; actual submission, context attachment, workspace preservation and completed coverage remain outside the available evidence."
+    "overall": "All eight assertions are supported by the proposal. No passing-test or completed-review outcome is invented. Context contents are partly outlines rather than created files; commands, filesystem preservation and review outcomes remain operationally unverified."
   },
   "grader_provenance": {
-    "session_id": "ses_e16bdeca4ffeJBIqcs2Bn5yNVN",
+    "session_id": "ses_e1654577cffduom651ktzUeFc8",
     "model": {
       "id": "gpt-6.1-sol-fast",
       "providerID": "openai",
       "variant": "max"
     },
-    "message_id": "msg_1e94278180015Pl85pIUoUTQEH",
+    "message_id": "msg_1e9abdc87001i3Tl870DgQg50D",
     "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
   }
 }

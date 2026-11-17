@@ -4,18 +4,18 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { assertFixtureProvenance, assertGrade, evaluatedReleaseStamps } from './helpers/review-evaluation-fixtures.mjs';
+import { assertFixtureProvenance, assertGrade, assertRunIdentity, assertRunPaths } from './helpers/review-evaluation-fixtures.mjs';
 import { assertHistoryArchives, hashEvidence, readEvidenceFile } from './helpers/review-evidence-archives.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const json = (directory, path) => JSON.parse(readEvidenceFile(directory, path));
 const assertionText = (bytes) => bytes.toString('utf8').replace(/^---\n[\s\S]*?\n---\n/, '').trim();
 
-test('historical evidence requires both archives and rejects removed, changed or extra artifacts', () => {
+test('historical evidence requires all archives and rejects removed, changed or extra artifacts', () => {
   const directory = mkdtempSync(join(tmpdir(), 'qodo-required-history-'));
   const manifest = { history: {} };
   try {
-    for (const iteration of [6, 7]) {
+    for (const iteration of [6, 7, 8, 9]) {
       const path = `history/iteration-${iteration}`;
       mkdirSync(join(directory, path), { recursive: true });
       writeFileSync(join(directory, path, 'response.md'), 'Original response\n');
@@ -23,8 +23,8 @@ test('historical evidence requires both archives and rejects removed, changed or
       writeFileSync(join(directory, path, 'archive.json'), archive);
       manifest.history[`iteration_${iteration}`] = { path: `${path}/archive.json`, sha256: hashEvidence(archive) };
     }
-    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1 });
-    for (const iteration of [6, 7]) {
+    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1 });
+    for (const iteration of [6, 7, 8, 9]) {
       const changed = structuredClone(manifest);
       delete changed.history[`iteration_${iteration}`];
       assert.throws(() => assertHistoryArchives(directory, changed), /Missing required/);
@@ -39,26 +39,49 @@ test('historical evidence requires both archives and rejects removed, changed or
       assert.throws(() => assertHistoryArchives(directory, manifest), /inventory changed/);
       rmSync(extra);
     }
-    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1 });
+    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1 });
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
 });
 
-test('focused MCP collection evidence matches its explicit scope, immutable inputs and original judgments', () => {
+test('grade validation rejects empty cases for candidate and baseline', () => {
+  for (const candidate of [false, true]) for (const pass_rate of [NaN, null]) {
+    const grade = { expectations: [], summary: { passed: 0, failed: 0, total: 0, pass_rate } };
+    assert.throws(() => assertGrade(grade, [], candidate), /at least one assertion/);
+  }
+});
+
+test('run paths cannot reuse another case or configuration artifact namespace', () => {
+  const make = (name, configuration) => Object.fromEntries(Object.entries({
+    response: 'response.md', grading: 'grading.json', provenance: 'provenance.json',
+  }).map(([key, file]) => [key, `${name}/${configuration}/${file}`]));
+  const original = make('case-a', 'candidate');
+  assertRunPaths(original, 'case-a', 'candidate');
+  for (const replacement of [make('case-b', 'candidate'), make('case-a', 'baseline')])
+    for (const key of Object.keys(original))
+      assert.throws(() => assertRunPaths({ ...original, [key]: replacement[key] }, 'case-a', 'candidate'), /case and configuration/);
+  const provenance = { evaluated_case: 'case-a', configuration: 'candidate' };
+  assertRunIdentity(provenance, 'case-a', 'candidate');
+  assert.throws(() => assertRunIdentity(provenance, 'case-b', 'candidate'), /case identity/);
+  assert.throws(() => assertRunIdentity(provenance, 'case-a', 'baseline'), /configuration/);
+});
+
+test('historical focused MCP evidence matches its retained inputs, instructions and original judgments', () => {
   const evidenceRoot = join(root, 'test/fixtures/qodo-review-mcp-collection');
   const manifest = json(evidenceRoot, 'manifest.json');
   const primary = json(join(root, 'test/fixtures/qodo-review-behavior'), 'manifest.json');
+  const archiveRoot = join(root, 'test/fixtures/qodo-review-behavior/history/iteration-9');
   assert.equal(manifest.schema_version, 1);
   assert.equal(manifest.method, 'fresh-native-agents-with-anonymous-final-answer-grading');
   assert.deepEqual(manifest.evaluated_cases, ['mcp-collection']);
   assert.deepEqual(manifest.cases.map(({ name }) => name), manifest.evaluated_cases);
   assert.equal(manifest.input_cases.length, 8);
   assert.deepEqual(manifest.input_cases.map(({ name }) => name).sort(),
-    readdirSync(join(root, 'evals/qodo-review'), { withFileTypes: true })
+    readdirSync(join(archiveRoot, 'inputs'), { withFileTypes: true })
       .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort());
   for (const item of manifest.input_cases) {
-    const directory = join(root, 'evals/qodo-review', item.name);
+    const directory = join(archiveRoot, 'inputs', item.name);
     assert.equal(hashEvidence(readEvidenceFile(directory, 'case.yaml')), item.case_sha256);
     assert.equal(hashEvidence(readEvidenceFile(directory, 'prompt.md')), item.prompt_sha256);
     assert.deepEqual(item.assertions.map(({ file }) => file),
@@ -68,18 +91,14 @@ test('focused MCP collection evidence matches its explicit scope, immutable inpu
   }
   assert.deepEqual(manifest.snapshots.baseline.fingerprints, primary.snapshots.baseline.fingerprints);
   assert.equal(manifest.snapshots.baseline.source_commit, primary.snapshots.baseline.source_commit);
-  const version = json(root, 'distribution/catalog.json').skills.find(({ name }) => name === 'qodo-review').version;
-  const skill = join(root, 'skills/qodo-review'), snapshot = manifest.snapshots.candidate;
+  const skill = join(archiveRoot, 'instructions'), snapshot = manifest.snapshots.candidate;
   assert.deepEqual(Object.keys(snapshot.fingerprints).sort(),
     ['SKILL.md', ...readdirSync(join(skill, 'references')).filter((name) => name.endsWith('.md'))
       .map((name) => `references/${name}`)].sort());
   for (const [path, expected] of Object.entries(snapshot.fingerprints)) {
-    const bytes = readEvidenceFile(skill, path);
-    const evaluated = path === 'SKILL.md'
-      ? evaluatedReleaseStamps(bytes.toString('utf8'), version, snapshot.release_metadata_version) : bytes;
-    assert.equal(hashEvidence(evaluated), expected, `Stale supplemental instruction: ${path}`);
+    assert.equal(hashEvidence(readEvidenceFile(skill, path)), expected, `Changed historical instruction: ${path}`);
   }
-  const item = manifest.cases[0], fixture = join(root, 'evals/qodo-review', item.name);
+  const item = manifest.cases[0], fixture = join(archiveRoot, 'inputs', item.name);
   assert.deepEqual(item, { ...manifest.input_cases.find(({ name }) => name === item.name), runs: item.runs });
   assert.match(readEvidenceFile(fixture, 'prompt.md').toString(), /allowed_tools: \[Read, Glob, Grep, Skill\]/);
   const assertions = item.assertions.map(({ file }) =>
@@ -88,6 +107,7 @@ test('focused MCP collection evidence matches its explicit scope, immutable inpu
   const scores = {};
   for (const configuration of ['candidate', 'baseline']) {
     const run = item.runs[configuration];
+    assertRunPaths(run, item.name, configuration);
     assert.deepEqual(Object.keys(run.artifacts).sort(), [run.response, run.grading, run.provenance].sort());
     for (const [path, hash] of Object.entries(run.artifacts))
       assert.equal(hashEvidence(readEvidenceFile(evidenceRoot, path)), hash, path);
