@@ -122,9 +122,11 @@ assertion cases fail. Each assertion needs an output citation with a valid line 
 Anonymous `A.md`/`B.md` labels map through each scope's recorded mapping to the response.
 Citation syntax and bounds do not prove that the cited text supports the claim.
 Updating the manifest alone cannot bless old answers.
-History entries6/7/8/9/10/11/12 are required; their40/96/104/74/121/122/147artifacts and inventories
+History entries6/7/8/9/10/11/12 are required; their40/96/104/74/121/122/148inventory entries
 are checked. The earlier focused MCP records use their archived inputs/instructions,
 not the newer case. Old answers are not relabeled as current runs.
+The generated12index is compacted to meet the repository line limit. Its original
+bytes remain losslessly encoded and independently hashed; no captured run is normalized.
 **CI validates the recorded evidence; CI does not execute the agent.**
 The standard Claude evaluation wrapper has only been staged/manifest-validated,
 not model-executed. Run models separately in a fresh-agent harness or explicitly

@@ -1,7 +1,7 @@
 {
   "recorded_iteration": 12,
   "captured_from_commit": "55976bc01773c7910ab019aa8bf6cfaafab53d3d",
-  "purpose": "Original failed40/41comparison; captured evidence bytes preserved, no normalization or regrading",
+  "purpose": "Original captured responses/grades/provenance/timing retained. The readable generated index is compacted; its original bytes remain losslessly encoded in original-manifest.json.",
   "artifacts": {
     "compatibility-boundaries/baseline/grading.json": "15e24113afa9855765c9b924de37372ccc8ab2c4495e9a254e079278109f145a",
     "compatibility-boundaries/baseline/provenance.json": "a7e6b1b0fc60c40c82235029fa6c952c524bc8be458dbce0231fe42189c9ef90",
@@ -99,7 +99,7 @@
     "instructions/references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
     "instructions/references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246",
     "instructions/SKILL.md": "1e8eaf1a2df17703d50365ad41324757f7bfde7222ce26c7bffd2a2ac7a8e421",
-    "manifest.json": "92ac50dfdf04cf9eff84cc5828fa663b767c8a3d81bc0dc548e1a74edb136a70",
+    "manifest.json": "6f641c192b7426d190b917c228c7d306848edfee2dbce0b3ad56d24c47657aac",
     "mcp-collection/baseline/grading.json": "9f47bc5909f90af54e7567d608565d3cab0df742fd0c5b3ce59fd977ed6689fd",
     "mcp-collection/baseline/provenance.json": "4de6f6f2477e66f3fa866638953e1c33a6c319ac8964f02e46a9a7887345f83a",
     "mcp-collection/baseline/response.md": "2de6dd0718dc44c2b8f225548cc7e18c6ab1bcba5524a95750bdffcfe0d84d01",
@@ -149,6 +149,12 @@
     "reports/benchmark.json": "608a263975469e54efa1900afd9e787c79eb1378ad7aeaddf7563f017aacabc9",
     "reports/benchmark.md": "12a3777feac7e0fa5b59cddedfd182c49ae1906df1a82dc2abac2fb87a749f3f",
     "reports/RESULTS.md": "b967c5c0ebe0929011d76a16c36409c21febb0b5c5bed3c8fc41a5b921076d18",
-    "snapshots/baseline.json": "1e9500d858d1b3c5619ef7bb1290dc80b1d0c419b9187125028a4d4e041c2591"
+    "snapshots/baseline.json": "1e9500d858d1b3c5619ef7bb1290dc80b1d0c419b9187125028a4d4e041c2591",
+    "original-manifest.json": "66c9dd18ac3d74d487a9e148a86e95dd1e3d08f2564a44c9e69e7d995ecba11a"
+  },
+  "original_manifest": {
+    "path": "original-manifest.json",
+    "encoding": "json-string",
+    "sha256": "92ac50dfdf04cf9eff84cc5828fa663b767c8a3d81bc0dc548e1a74edb136a70"
   }
 }

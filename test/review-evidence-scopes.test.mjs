@@ -100,8 +100,15 @@ test('original iteration12 failure and full captured maps remain mandatory and i
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const directory = join(root, 'test/fixtures/qodo-review-behavior');
   const json = (path) => JSON.parse(readEvidenceFile(directory, path));
-  assert.equal(assertHistoryArchives(directory, json('manifest.json'))[12], 147);
+  assert.equal(assertHistoryArchives(directory, json('manifest.json'))[12], 148);
   const record = json('history/iteration-12/manifest.json');
+  const archive = json('history/iteration-12/archive.json');
+  const original = json('history/iteration-12/original-manifest.json');
+  assert.equal(original.encoding, 'json-string');
+  assert.equal(hashEvidence(original.content_utf8), original.original_sha256);
+  assert.equal(original.original_sha256, archive.original_manifest.sha256);
+  assert.equal(original.original_sha256, '92ac50dfdf04cf9eff84cc5828fa663b767c8a3d81bc0dc548e1a74edb136a70');
+  assert.deepEqual(JSON.parse(original.content_utf8), record, 'Index compaction must preserve every original field');
   assert.deepEqual(record.scores, { candidate: { passed: 40, total: 41 }, baseline: { passed: 40, total: 41 } });
   assert.equal(Object.keys(record.fixture_fingerprints).length, 57);
   assert.deepEqual(record.fixture_fingerprints, fixtureFingerprints(record.cases));

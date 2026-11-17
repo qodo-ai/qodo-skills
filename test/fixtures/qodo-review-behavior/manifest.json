@@ -401,11 +401,11 @@
       ],
       "record": {
         "path": "history/iteration-12/manifest.json",
-        "sha256": "92ac50dfdf04cf9eff84cc5828fa663b767c8a3d81bc0dc548e1a74edb136a70"
+        "sha256": "6f641c192b7426d190b917c228c7d306848edfee2dbce0b3ad56d24c47657aac"
       },
       "archive": {
         "path": "history/iteration-12/archive.json",
-        "sha256": "bd181ee9e6d192681a3b5e3eca01c45ddca97e5c9e3ff3fed917def72a4ed788"
+        "sha256": "7b140811fa24aeb02f9e240d8422412382362ac0961f2c48160c83f0e1cb0863"
       }
     },
     {
@@ -464,7 +464,7 @@
     },
     "iteration_12": {
       "path": "history/iteration-12/archive.json",
-      "sha256": "bd181ee9e6d192681a3b5e3eca01c45ddca97e5c9e3ff3fed917def72a4ed788"
+      "sha256": "7b140811fa24aeb02f9e240d8422412382362ac0961f2c48160c83f0e1cb0863"
     }
   },
   "grading_evidence": {

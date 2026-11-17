@@ -38,6 +38,10 @@ context preservation; the baseline fails current-version compatibility by
 overlooking the supplied base. The [original failed comparison](../../test/fixtures/qodo-review-behavior/history/iteration-12/manifest.json)
 retains all147captured artifacts, including unchanged responses, grades, provenance
 and timing. Its standard benchmark/static viewer12 is generated with11as previous.
+The generated index exceeded the source line limit in the first full qualification,
+so the suite stopped before running tests. Its readable JSON is now compacted with
+identical fields; the original525line bytes remain losslessly encoded and hashed.
+The archive inventory is148entries. No captured answer, grade, provenance or timing changed.
 
 The full failed12record is unchanged. The new selected follow-up is a distinct
 case/input/run identity, not a passing replacement judgment for the failed answer.

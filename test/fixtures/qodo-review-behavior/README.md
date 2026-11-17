@@ -47,8 +47,11 @@ No iteration12or13adjudication or answer repair occurred. `history/iteration-7/`
 `history/iteration-6/` preserves the earlier29/29 versus27/29 comparison at its
 original fingerprints. `history/iteration-8/` and `history/iteration-9/` retain
 the original 33/33 matrix and focused 5/5 MCP comparison, without regrading them.
-Iteration10retains121artifacts. Failed11and12records retain122and147artifacts,
-respectively, with both original40/41totals. The focused13scope seals82captured
+Iteration10retains121artifacts. Failed11and12records retain122and148inventory entries,
+respectively, with both original40/41totals. Iteration12's generated525line index
+is compacted without changing any field; its original bytes are losslessly stored
+in `original-manifest.json` and independently hashed. Captured run bytes are unchanged.
+The focused13scope seals82captured
 artifacts separately. All seven histories and their inventories are mandatory,
 not optional manifest branches. Scope archive integrity includes timing, reports,
 instructions and the complete captured inputs. This does not certify unlisted history.
