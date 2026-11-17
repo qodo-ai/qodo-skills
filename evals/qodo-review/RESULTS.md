@@ -32,10 +32,32 @@ PR handoff in `already-covered`. The compatibility grader noted that effort was
 implicit in the summary-only prompt: this is a workflow-policy comparison, not
 evidence that the baseline cannot parse version 2.0.0 or preserve `summary`.
 
-Both versions passed the finding-loop and recovery checks, and both allowed
+Both original versions passed the finding-loop and recovery checks, and both allowed
 `light-to-final` and `explicit-fresh`. These preserve behavior; they do not establish
 an improvement. The corrected candidate explicitly permits those final/fresh
 reasons without requiring an artificial code edit.
+
+## Later focused fallback regression
+
+After that comparison, command examples were clarified to retain the resolved
+invocation, and case metadata stopped granting Write. Two fresh agents handled
+`fallback-invocation`: current instructions and the preceding f749503 instructions.
+The runner retained their final answers; agents were not asked to write outputs.
+Both proposed the exact quoted executable for version, submission and collection,
+kept auto/base/context, and left collection conditional on an actually returned ID.
+Both passed the two focused assertions, assessed inline with command checks.
+
+This is a narrow clarification check, not a rerun of the 23-scenario comparison,
+an independently graded new comparison, or proof that the preceding wording
+necessarily failed. The prompt explicitly requests invocation retention.
+No operational side effects or filesystem confinement were audited.
+
+The focused candidate main is 252 lines / 14,710 bytes. Its SHA-256 values are:
+
+```text
+main       b34cc9ccc940bc3a189cd02c8b94abcbb14dab084b90421c1e8b31c5ce7460b3
+with refs  30611e076f77b7348531c952c0bc2451ff9ed1c65a01d0402ff32ad6d6627d04
+```
 
 ## Grounding limitation outside the rubric
 
@@ -51,9 +73,9 @@ constants were left unverified rather than assumed false.
 
 ## Exact evaluated instructions
 
-The candidate main Skill and every Markdown reference matched the working source
-byte-for-byte after the stopping-rule and explicit-path correction. Adding this
-report does not change the evaluated instructions.
+The candidate main Skill and every Markdown reference matched commit
+`f7495033fa2ca112daeda404af930c8db454554a` byte-for-byte after the stopping-rule
+and explicit-path correction. These scores describe that snapshot, not later edits.
 
 | Snapshot | Main lines | Main bytes |
 |---|---:|---:|
@@ -92,5 +114,8 @@ unmodified file bytes and another NUL byte into one SHA-256 stream.
 - Responses, grades, anonymous mapping, benchmark and the generated static viewer
   are retained locally by the author, not published CI evidence. This concise
   report is not a substitute for those artifacts or an independent rerun.
+- Those native runs permitted output-file writes by instruction, without an audited
+  filesystem restriction. Current case metadata removes Write; runners retain
+  responses outside read-only inputs. This is not retroactive proof of confinement.
 - Deterministic source/package tests and native manifest validation are separate
   checks. `npm test` does not run these model evaluations or authorize billed CI.

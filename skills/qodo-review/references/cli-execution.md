@@ -13,7 +13,9 @@ The CLI owns credentials, transport and runtime updates. Do not reproduce them i
    On Windows, read [shell guidance](windows-shells.md) first.
    Use [launcher recovery](windows-launcher.md) only if invocation fails.
    Do not execute repository-local launchers.
-2. Run the unadorned `qodo --version` probe before authenticated commands.
+2. Run the resolved invocation with only `--version`, before authenticated commands.
+   In every example here and in linked references, `qodo` stands for that invocation.
+   After fallback succeeds, do not return to the unavailable bare command.
    Require the main Skill's minimum version and review API v2.
    An old or unparseable version follows [compatibility recovery](#compatibility-recovery).
    It is not an authentication diagnosis.

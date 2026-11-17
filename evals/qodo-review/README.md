@@ -14,17 +14,22 @@ Give a fresh agent one case prompt and only the selected Skill snapshot.
 Let it read that snapshot's references as needed.
 Use the supplied facts as complete synthetic evidence.
 Do not load another installed version, access live services or make repository changes.
-Save the response and planned commands/context in an isolated output directory.
+The runner, not the evaluated agent, saves the final response in an isolated output directory.
+Keep Skill snapshots and fixtures read-only. Do not grant Write merely to retain outputs.
+If a harness cannot enforce those boundaries, disclose that limitation instead of claiming isolation.
 Repeat with the baseline snapshot in a separate fresh context.
 Do not supply the graders to the executing agent.
 
-The four groups cover:
+The first four groups cover:
 
 - Milestone timing, ordinary auto, compatible reuse, dirty-worktree final scope and report-only authority.
 - Feature/mixed follow-ups, changed notes, earlier backlog, duplicate findings and semantic fix evidence.
 - Accepted/uncertain operations, persistence gaps, old results, entitlement and an explicit review budget.
 - Exact version fixtures (1.6.0, unparseable, 2.0.0 and 2.3.1), summary-only input,
   explicit path scope and the missing-MCP-collector boundary.
+
+`fallback-invocation` is a later focused regression for reusing a trusted executable
+whose path contains a space. Its results are separate from the original 23-scenario comparison.
 
 The default `npm test` suite runs deterministic offline source/package checks.
 It does not run paid model evaluations. Run these fixtures separately in a fresh-agent

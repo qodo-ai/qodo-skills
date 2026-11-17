@@ -34,6 +34,7 @@ Do not duplicate remote review for an unchanged pushed snapshot.
 
 Prefer the CLI because it collects and filters the worktree and manages review checkpoints.
 Before CLI use, read [CLI execution](references/cli-execution.md#preflight).
+In every command example, replace `qodo` with that resolved invocation, including the version probe.
 On Windows, also read [shell guidance](references/windows-shells.md) before the first command.
 Use [launcher recovery](references/windows-launcher.md) only when invocation fails.
 Require Qodo CLI **2.0.0 or newer** and a runtime with review API v2.
