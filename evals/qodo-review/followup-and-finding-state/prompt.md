@@ -19,6 +19,21 @@ base is 1111111111111111111111111111111111111111.
    The base and requested scope did not change. The earlier finding still has
    its original open ID. No service result says reuse is invalidated, and I did
    not request --full. Prepare the next review context and command.
+   Here is the retained context after the notes refresh. Produce the complete
+   next context, not a partial replacement. Keep the existing decisions and
+   evidence; refresh recent_work to describe this round's two code changes.
+
+   ```json
+   {
+     "decisions": [
+       "The user selected cooperative cancellation without breaking existing callers.",
+       "The coding agent kept admission enforcement in src/jobs/worker.ts:runJob so all callers share the mandatory guard."
+     ],
+     "notes": "src/jobs/worker.ts:runJob rejects invalid input before dispatch. Original timeout finding F-TIMEOUT remains open pending semantic verification. New caller evidence: src/api/jobs.ts:startJob routes cancellation through runJob's admission guard. Cancellation tests passed; live load was not tested.",
+     "recent_work": ["Added initial timeout handling before review one."]
+   }
+   ```
+
 2. `old-backlog`: The current result introduces no findings. It retains original
    finding F-OLD as pending/action-required. Both completeness flags are true.
    No code changed after this result. I have not chosen how to address F-OLD.

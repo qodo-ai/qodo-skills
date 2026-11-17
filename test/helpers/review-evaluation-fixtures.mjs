@@ -3,13 +3,25 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+export function fixtureFingerprints(cases) {
+  assert.ok(Array.isArray(cases) && cases.length, 'Captured input cases are required');
+  assert.equal(new Set(cases.map((item) => item.name)).size, cases.length, 'Duplicate captured case');
+  const entries = cases.flatMap((item) => [
+    [`${item.name}/case.yaml`, item.case_sha256], [`${item.name}/prompt.md`, item.prompt_sha256],
+    ...item.assertions.map(({ file, sha256 }) => [`${item.name}/graders/${file}`, sha256]),
+  ]);
+  assert.equal(new Set(entries.map(([path]) => path)).size, entries.length, 'Duplicate captured input');
+  for (const [path, hash] of entries) {
+    assert.match(path, /^[a-z][a-z0-9-]*\/(?:case\.yaml|prompt\.md|graders\/[a-zA-Z0-9._-]+\.md)$/);
+    assert.match(hash, /^[a-f0-9]{64}$/);
+  }
+  return Object.fromEntries(entries);
+}
+
 export function assertFixtureProvenance(provenance, manifest) {
   assert.match(manifest.fixture_source_commit, /^[a-f0-9]{40}$/);
   assert.equal(provenance.fixture_source_commit, manifest.fixture_source_commit);
-  const inputs = Object.fromEntries((manifest.input_cases ?? manifest.cases).flatMap((item) => [
-    [`${item.name}/case.yaml`, item.case_sha256], [`${item.name}/prompt.md`, item.prompt_sha256],
-    ...item.assertions.map(({ file, sha256 }) => [`${item.name}/graders/${file}`, sha256]),
-  ]));
+  const inputs = fixtureFingerprints(manifest.input_cases ?? manifest.cases);
   assert.deepEqual(provenance.fixture_fingerprints, inputs, 'Recorded fixture inputs differ from current evidence');
 }
 

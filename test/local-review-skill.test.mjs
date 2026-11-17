@@ -9,8 +9,8 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { inputPath, main, prepareReviewEvaluation, readGitEvaluationFiles,
   requireEvaluationSupport } from '../scripts/eval-review-skill.mjs';
-import { assertFixtureProvenance, assertGrade, assertRunIdentity, assertRunPaths, createEvaluationRepository, evaluatedReleaseStamps } from './helpers/review-evaluation-fixtures.mjs';
-import { assertHistoryArchives } from './helpers/review-evidence-archives.mjs';
+import { assertFixtureProvenance, assertGrade, createEvaluationRepository } from './helpers/review-evaluation-fixtures.mjs';
+import { assertBaselineSnapshot, assertCaseInputs, assertCurrentEvidence, fixtureFile } from './helpers/review-current-evidence.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skill = join(root, 'skills/qodo-review');
@@ -22,65 +22,6 @@ const markdown = [join(skill, 'SKILL.md'), ...references.map((name) => join(skil
 const readReference = (name) => readFileSync(join(skill, 'references', name), 'utf8');
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const evaluationRepository = (parent) => createEvaluationRepository(parent, skill, join(root, 'evals/qodo-review'));
-
-function fixtureFile(directory, path, boundary = root) {
-  assert.ok(typeof path === 'string' && path && !path.includes('\\') && !path.includes(':')
-    && !path.split('/').some((part) => ['', '.', '..'].includes(part)), 'Unsafe evidence path');
-  return readFileSync(inputPath(boundary, join(directory, path), 'file'));
-}
-
-function assertCaseInputs(directory, item, boundary = root) {
-  assert.equal(sha256(fixtureFile(directory, 'case.yaml', boundary)), item.case_sha256, `Stale case setup: ${item.name}`);
-  assert.equal(sha256(fixtureFile(directory, 'prompt.md', boundary)), item.prompt_sha256, `Stale case prompt: ${item.name}`);
-}
-
-function assertBaselineSnapshot(evidenceRoot, snapshot) {
-  assert.match(snapshot.source_commit, /^[a-f0-9]{40}$/);
-  const bytes = fixtureFile(evidenceRoot, snapshot.git_objects.path);
-  assert.equal(sha256(bytes), snapshot.git_objects.sha256, 'Baseline object snapshot changed');
-  const archive = JSON.parse(bytes);
-  assert.equal(archive.schema_version, 1);
-  assert.equal(archive.source_commit, snapshot.source_commit);
-  const temporary = mkdtempSync(join(tmpdir(), 'qodo-evidence-baseline-'));
-  try {
-    // Readable Git objects keep the exact signed source inspectable after squash merges.
-    // Only this temporary object store is written; no refs, hooks or signing settings are changed.
-    const git = (args, input, encoding = 'utf8') => execFileSync('git', args, {
-      cwd: temporary, input, encoding, stdio: ['pipe', 'pipe', 'pipe'],
-      env: Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^GIT_/i.test(name))),
-    });
-    git(['init', '--bare', '--quiet']);
-    for (const object of archive.objects) {
-      assert.ok(['commit', 'tree', 'blob'].includes(object.type));
-      assert.match(object.sha1, /^[a-f0-9]{40}$/);
-      const content = object.type === 'tree' ? Buffer.concat(object.entries.map((entry) => {
-        assert.match(entry.mode, /^(?:040000|100644|100755|120000|160000)$/);
-        assert.ok(entry.name && !/[/\0]/.test(entry.name));
-        assert.match(entry.sha1, /^[a-f0-9]{40}$/);
-        return Buffer.concat([Buffer.from(`${entry.mode.replace(/^0+/, '')} ${entry.name}\0`),
-          Buffer.from(entry.sha1, 'hex')]);
-      })) : Buffer.from(object.content_utf8);
-      assert.equal(git(['hash-object', '-w', '-t', object.type, '--stdin'], content).trim(), object.sha1,
-        'Baseline Git object identity changed');
-    }
-    const commit = snapshot.source_commit;
-    assert.equal(git(['rev-parse', '--verify', `${commit}^{commit}`]).trim(), commit);
-    const prefix = 'skills/qodo-review/';
-    const entries = git(['ls-tree', '-r', '-z', commit, '--', prefix]).split('\0').filter(Boolean);
-    const actual = {};
-    for (const entry of entries) {
-      const [header, path] = entry.split('\t');
-      const name = path.slice(prefix.length);
-      if (name !== 'SKILL.md' && !(name.startsWith('references/') && name.endsWith('.md'))) continue;
-      assert.match(header, /^100(?:644|755) blob [a-f0-9]+$/, 'Baseline inputs must be regular Git files');
-      actual[name] = sha256(git(['show', `${commit}:${path}`], undefined, 'buffer'));
-    }
-    assert.ok(actual['SKILL.md'], 'Baseline commit must contain the selected Skill');
-    assert.deepEqual(snapshot.fingerprints, actual, 'Baseline fingerprints do not match its immutable commit');
-  } finally {
-    rmSync(temporary, { recursive: true, force: true });
-  }
-}
 
 function headings(markdownText) {
   const prose = markdownText.replace(/^```[\s\S]*?^```/gm, '');
@@ -423,70 +364,5 @@ test('baseline evidence is bound to its immutable Git commit, not only its own m
 });
 
 test('recorded behavior evidence covers current instructions and every assertion, with inspectable passing candidate results', () => {
-  const evidenceRoot = join(root, 'test/fixtures/qodo-review-behavior');
-  const manifest = JSON.parse(fixtureFile(evidenceRoot, 'manifest.json'));
-  assert.equal(manifest.schema_version, 1);
-  assert.equal(manifest.method, 'fresh-native-agents-with-anonymous-final-answer-grading');
-  assert.equal(manifest.cases.length, 8);
-  assertBaselineSnapshot(evidenceRoot, manifest.snapshots.baseline);
-  assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest), { 6: 40, 7: 96, 8: 104, 9: 74, 10: 121, 11: 122 });
-  for (const [path, expected] of Object.entries(manifest.adjudication?.artifacts ?? {})) {
-    assert.equal(sha256(fixtureFile(evidenceRoot, path)), expected, path);
-  }
-  for (const [path, hash] of Object.entries(manifest.grading_evidence?.artifacts ?? {}))
-    assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash);
-  assert.deepEqual(Object.keys(manifest.snapshots.candidate.fingerprints).sort(),
-    ['SKILL.md', ...references.map((name) => `references/${name}`)].sort());
-  assert.deepEqual(manifest.cases.map((item) => item.name).sort(),
-    readdirSync(join(root, 'evals/qodo-review'), { withFileTypes: true })
-      .filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort());
-  for (const [name, expected] of Object.entries(manifest.snapshots.candidate.fingerprints)) {
-    const current = fixtureFile(skill, name);
-    const evaluated = name === 'SKILL.md' ? evaluatedReleaseStamps(current.toString('utf8'),
-      version, manifest.snapshots.candidate.release_metadata_version) : current;
-    assert.equal(sha256(evaluated), expected, `Stale instruction evidence: ${name}`);
-  }
-  const releaseOnly = text.replace(`  version: "${version}"`, '  version: "999.0.0"')
-    .replaceAll(`--skill-version ${version} --distribution`, '--skill-version 999.0.0 --distribution');
-  assert.equal(evaluatedReleaseStamps(releaseOnly, '999.0.0', version), text);
-  assert.notEqual(evaluatedReleaseStamps(`${releaseOnly}\nChanged behavior.\n`, '999.0.0', version), text);
-  let assertionCount = 0, candidatePasses = 0;
-  const scores = { candidate: { passed: 0, total: 0 }, baseline: { passed: 0, total: 0 } };
-  for (const item of manifest.cases) {
-    assert.match(item.name, /^[a-z][a-z0-9-]*$/);
-    const fixture = join(root, 'evals/qodo-review', item.name);
-    assertCaseInputs(fixture, item);
-    const graders = readdirSync(inputPath(root, join(fixture, 'graders'), 'directory'))
-      .filter((name) => name.endsWith('.md')).sort();
-    assert.deepEqual(item.assertions.map((entry) => entry.file), graders);
-    for (const grader of item.assertions) {
-      assert.equal(sha256(fixtureFile(join(fixture, 'graders'), grader.file)), grader.sha256);
-    }
-    assertionCount += graders.length;
-    for (const configuration of ['candidate', 'baseline']) {
-      const run = item.runs[configuration];
-      assertRunPaths(run, item.name, configuration);
-      assert.deepEqual(Object.keys(run.artifacts).sort(), [run.response, run.grading, run.provenance].sort());
-      for (const [path, hash] of Object.entries(run.artifacts)) {
-        assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash, path);
-      }
-      const grade = JSON.parse(fixtureFile(evidenceRoot, run.grading)), provenance = JSON.parse(fixtureFile(evidenceRoot, run.provenance));
-      const passed = assertGrade(grade, graders.map((file) =>
-        fixtureFile(join(fixture, 'graders'), file).toString('utf8').replace(/^---\n[\s\S]*?\n---\n/, '').trim()),
-      configuration === 'candidate', { response: fixtureFile(evidenceRoot, run.response).toString('utf8'), label: provenance.anonymous_grading_label });
-      scores[configuration].passed += passed;
-      scores[configuration].total += graders.length;
-      assertRunIdentity(provenance, item.name, configuration);
-      assertFixtureProvenance(provenance, manifest);
-      assert.equal(provenance.source_commit, manifest.snapshots[configuration].source_commit);
-      assert.deepEqual(provenance.fingerprints, manifest.snapshots[configuration].fingerprints);
-      assert.equal(provenance.response_sha256, sha256(fixtureFile(evidenceRoot, run.response)));
-      if (configuration === 'candidate') {
-        candidatePasses += passed;
-      }
-    }
-  }
-  assert.equal(assertionCount, 41);
-  assert.equal(candidatePasses, 41);
-  assert.deepEqual(manifest.scores, scores);
+  assertCurrentEvidence(root, { skill, version, references, text });
 });

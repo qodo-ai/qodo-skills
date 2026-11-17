@@ -1,5 +1,14 @@
 # Recorded qodo-review behavior evaluation
 
+Current evidence is intentionally pending. The root manifest below still records
+iteration10; it does not qualify the changed canonical instructions or fixtures.
+Original iteration12 is archived with147captured artifacts and failed40/41totals
+for both configurations. Its candidate failed prior-context preservation; its
+baseline overlooked the supplied comparison base. Only the changed follow-up
+case will be refreshed against concrete prior content, with unchanged instructions.
+Seven applicable records will retain their original immutable scope. This is not
+a newly executed complete matrix. Failed history is never replaced by a passing grade.
+
 Iteration 10 records 16 completed executions and eight anonymous graders over
 40 assertions. Candidate `841379dd3f1bc2d6927b5275fa8d8c1cad190ba8` and prior
 rewrite `6385a42e83ac028349ff1c153a788a812a850bf5` both pass 40/40.

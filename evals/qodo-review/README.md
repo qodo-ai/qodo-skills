@@ -91,7 +91,12 @@ Iteration 10 records 40/40 for candidate `841379d` and prior rewrite `6385a42`.
 Both reject the new identity/page cases; no uplift or reliability is established.
 Iteration11's later candidate `2e70a9a` and baseline both scored40/41. The failed
 metadata-only receipt assumptions, original answers and judgments are archived unchanged.
-Fresh evidence for the conditional-handle correction is pending.
+The subsequent conditional-handle comparison is recorded below.
+Iteration12 completed at55976bc with both40/41. Both pass the corrected MCP-triage
+checks; the candidate fails prior-context preservation and the baseline overlooks
+the supplied base. Its147original captured artifacts remain unchanged.
+Only the follow-up case is being refreshed after supplying concrete prior context.
+The planned scoped gate checks an exact disjoint union, not a new full-matrix run.
 Original iteration-8 33/33 and focused iteration-9 5/5 results remain archived unchanged.
 The preceding iteration-7 native-agent result is 32/32 for both corrected and prior `173cfc7`
 instructions after one documented auto-contract grading adjudication. Initial
@@ -112,7 +117,7 @@ assertion cases fail. Each assertion needs an output citation with a valid line 
 Anonymous `A.md`/`B.md` labels map through recorded provenance to the response.
 Citation syntax and bounds do not prove that the cited text supports the claim.
 Updating the manifest alone cannot bless old answers.
-History entries 6/7/8/9/10/11 are required; their 40/96/104/74/121/122 artifacts and inventories
+History entries6/7/8/9/10/11/12 are required; their40/96/104/74/121/122/147artifacts and inventories
 are checked. The earlier focused MCP records use their archived inputs/instructions,
 not the newer case. Old answers are not relabeled as current runs.
 **CI validates the recorded evidence; CI does not execute the agent.**

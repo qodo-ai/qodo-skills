@@ -2,16 +2,29 @@
 
 ## Current evidence status
 
-The latest fresh comparison, iteration11 at candidate `2e70a9a` versus `6385a42`,
+Iteration12 at candidate/common inputs `55976bc` versus baseline instructions
+`6385a42` completed16executions/8anonymous graders: **40/41 for each**.
+Both pass all five corrected MCP-triage assertions. The candidate fails follow-up
+context preservation; the baseline fails current-version compatibility by
+overlooking the supplied base. The [original failed comparison](../../test/fixtures/qodo-review-behavior/history/iteration-12/manifest.json)
+retains all147captured artifacts, including unchanged responses, grades, provenance
+and timing. Its standard benchmark/static viewer12 is generated with11as previous.
+
+The follow-up fixture now supplies concrete prior decisions, caller evidence,
+limitations and the original timeout ID. Only that five-assertion case will be
+refreshed, with unchanged559instruction bytes. Seven unchanged cases retain their
+original12input/run scope. Disjoint coverage checks must qualify their union;
+no fresh unified41assertion run or passing current evidence is claimed yet.
+
+The preceding comparison, iteration11 at candidate `2e70a9a` versus `6385a42`,
 scored **40/41 for both**, not a passing current gate. Both failed metadata-only
 because their proposals assumed an exposed collectible operation receipt that the
 case did not establish. [All original evidence](../../test/fixtures/qodo-review-behavior/history/iteration-11/manifest.json)
 is retained with its failed judgments. The standard benchmark/static viewer11 is generated.
 No execution retry, adjudication or answer repair occurred.
 
-Canonical instructions and the scenario now distinguish synchronous results
-without handles from operations with returned collection support. Fresh evidence
-for that changed source remains pending. The comparison below is historical,
+Canonical instructions and the scenario distinguish synchronous results
+without handles from operations with returned collection support. The comparison below is historical,
 not qualification of the new instructions.
 
 ## Preceding operation identity comparison (iteration 10)

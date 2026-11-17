@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: fallback-invocation
+expected_outcome: |
+  Reuses the resolved installed invocation, including quoting, in every review lifecycle call.
+  Retains auto, exact base and prepared context without fabricating admission or completion.
