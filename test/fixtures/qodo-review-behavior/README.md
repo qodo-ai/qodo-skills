@@ -1,5 +1,12 @@
 # Recorded qodo-review behavior evaluation
 
+Original14 is archived with147artifacts,42/42candidate and41/42baseline under its
+original rubric. The apparent difference is confounded by an ambiguous case base;
+the resolution assertion also misses a candidate overall-readiness overclaim.
+Two fixtures now supply an explicit base and another required original open finding.
+Only those groups are being refreshed against unchanged31d3instruction bytes.
+No old answer/grade is regraded and no passing current scoped union is claimed yet.
+
 Current source qualification is pending after local393review identified supported
 collection-recipe gaps and a CLI identity-evidence limitation. Instructions and one
 compatibility scenario changed. The scoped13record below is archived with207artifacts;

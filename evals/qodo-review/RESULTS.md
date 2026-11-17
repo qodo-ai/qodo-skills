@@ -1,6 +1,20 @@
 # Agent-evaluation results
 
-## Current status after local393review
+## Current fixture qualification pending
+
+Fresh14 completed16executions/8anonymous graders at candidate/common31d3e11inputs
+versus6385a42instructions: original42/42and41/42. Its147artifacts and standard
+benchmark/viewer are retained unchanged. The apparent difference is confounded by
+an ambiguous path-case base; it is not uplift. The candidate also made an overall
+helper-fixed readiness claim outside the original resolution assertion.
+
+Two fixtures now make the base and remaining-finding obligation explicit. Instructions
+stay31d3e11. Only those11assertions will receive fresh two-version execution/grading;
+six unchanged14cases retain their own full58input map. No passing new scoped union
+or actual-head full qualification is claimed yet. See GROUNDING.md for the correction
+to the earlier missing-base interpretation; no original answer or grade is regraded.
+
+## Preceding source qualification at local393review
 
 Source393passed405runtime/165Node/native/staging and completed auto local review
 `f68877275686408f9a0178c2254573df` with complete coverage/inventory and inline context.

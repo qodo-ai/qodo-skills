@@ -96,7 +96,7 @@ test('trimming unselected captured inputs cannot rebind old provenance to a scop
   assert.throws(() => assertFixtureProvenance(provenance, record), /Recorded fixture inputs/);
 });
 
-test('original iteration12 failure and full captured maps remain mandatory and inspectable', () => {
+test('original failed and confounded comparisons retain their judgments and complete captured maps', () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const directory = join(root, 'test/fixtures/qodo-review-behavior');
   const json = (path) => JSON.parse(readEvidenceFile(directory, path));
@@ -122,4 +122,12 @@ test('original iteration12 failure and full captured maps remain mandatory and i
     assertFixtureProvenance(provenance, record);
     assert.equal(provenance.response_sha256, hashEvidence(readEvidenceFile(directory, base + run.response)));
   }
+  assert.equal(assertHistoryArchives(directory, json('manifest.json'))[14], 147);
+  const comparison = json('history/iteration-14/manifest.json');
+  assert.deepEqual(comparison.scores, { candidate: { passed: 42, total: 42 }, baseline: { passed: 41, total: 42 } });
+  assert.equal(Object.keys(comparison.fixture_fingerprints).length, 58);
+  assert.deepEqual(comparison.fixture_fingerprints, fixtureFingerprints(comparison.cases));
+  const run = comparison.cases.find(({ name }) => name === 'compatibility-boundaries').runs.baseline;
+  assert.equal(json(`history/iteration-14/${run.grading}`).summary.failed, 1);
+  assertFixtureProvenance(json(`history/iteration-14/${run.provenance}`), comparison);
 });

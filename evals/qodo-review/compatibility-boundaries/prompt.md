@@ -32,6 +32,8 @@ Do not call services, change installations or perform repository writes.
    base and auto effort are requested now. The new changes and accepted context
    are exactly those in floor-2-0-summary. Notes changed, but no service verdict
    invalidated reuse. Preserve the explicit path scope and do not request --full.
+   This case's retained verified remote base is
+   1111111111111111111111111111111111111111.
 5. `mcp-no-collector`: There is no CLI. The connected MCP server exposes the
    pre-PR review schema, but no tested local collector or prepared input exists.
    I have not authorized installation. I want a review of this worktree, not

@@ -1,0 +1,78 @@
+{
+  "expectations": [
+    {
+      "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
+      "passed": true,
+      "evidence": "A.md:4-10 specifies waiting 20 seconds, collecting op-accepted with --extended, not resubmitting, and retaining the original snapshot/context."
+    },
+    {
+      "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
+      "passed": true,
+      "evidence": "A.md:13-19 reproduces the supplied command exactly, prohibits appended options, and identifies recovery as using the retained original request rather than the changed checkout."
+    },
+    {
+      "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+      "passed": true,
+      "evidence": "A.md:22-26 separates local readiness from failed checkpoint saving and unverified handoff, rejects another assessment solely for the warning, and does not establish completion of all local-to-Git work."
+    },
+    {
+      "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
+      "passed": true,
+      "evidence": "A.md:28-31 blocks certification and limits the supported result to no reported findings; full coverage, inventory completeness and persistence remain unknown, with no reusable-coverage certification."
+    },
+    {
+      "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
+      "passed": true,
+      "evidence": "A.md:33-40 reproduces both supplied strings verbatim, stops retries pending enrollment confirmation, prohibits account/deployment switching, and rejects another login as enrollment."
+    },
+    {
+      "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
+      "passed": true,
+      "evidence": "A.md:44-49 counts both assessments, excludes polls and extended retrieval, preserves the budget across sessions, retains F-BLOCK, requires additional authorization, and says the work is not ready locally."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Local readiness is established, but successful checkpoint storage and completed local-to-Git handoff are not.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:22-26 accurately distinguishes the supplied assessment/test evidence from the persistence failure and unverified handoff in prompt.md:22-25."
+    },
+    {
+      "claim": "New submissions default to auto effort.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:29 is supported by qodo-auto-help.txt:62-64: no effort flag means auto."
+    },
+    {
+      "claim": "The exact proposed status command supports --json.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:6 includes --json. The supplied help establishes status collection and extended detail but does not independently establish --json support on the status subcommand. This is unverified, not demonstrated invalid."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Exact proposed command validity is not fully checked: A.md:6 adds --json, but status-subcommand help is absent. Supply that help if flag-level validity is intended to be graded."
+      }
+    ],
+    "overall": "All six proposal-level assertions pass. No recovery, persistence repair or handoff execution is demonstrated or claimed."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15cd45a8ffeV8wOYQduQDP7x5",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea373c73001V4cMuPaTnpfrLO",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

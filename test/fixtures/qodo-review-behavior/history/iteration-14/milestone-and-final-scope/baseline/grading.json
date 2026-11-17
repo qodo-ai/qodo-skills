@@ -1,0 +1,78 @@
+{
+  "expectations": [
+    {
+      "text": "For milestone, the response proposes a useful context-attached review with auto effort, without --fast, --deep or --full, and retains the operation for later collection.",
+      "passed": true,
+      "evidence": "A.md:5-18 proposes the checkpoint with attached context and no effort/freshness flags; A.md:110-116 retains and collects the returned operation."
+    },
+    {
+      "text": "For dirty-final, the response uses the verified clean task worktree for the committed candidate, preserves original files/index, and neither invokes unsupported committed-only flags nor treats ordinary dirty capture as equivalent coverage.",
+      "passed": true,
+      "evidence": "A.md:24-29 uses the clean task worktree and complete intended scope; explicitly rejects original dirty capture, preserves files/index, and acknowledges no committed-only option."
+    },
+    {
+      "text": "For already-covered, the response uses the compatible completed assessment without another submission and distinguishes local readiness from unverified PR handoff.",
+      "passed": true,
+      "evidence": "A.md:45-47 reuses completed compatible coverage without resubmission and limits readiness to local status, not hosted review, CI or merge status."
+    },
+    {
+      "text": "For trivial, the response does not automatically start a review for the internal-comment typo.",
+      "passed": true,
+      "evidence": "A.md:49-51 explicitly says not to automatically review the typo."
+    },
+    {
+      "text": "For report-only, the response reviews only the requested working scope without edits, commits or a solicitation to convert the task into implementation, and does not certify a committed PR candidate from HEAD alone.",
+      "passed": true,
+      "evidence": "A.md:55-68 limits collection to requested uncommitted working changes without edits or commits; A.md:70 requires reporting then stopping without soliciting implementation. No committed-candidate certification is made."
+    },
+    {
+      "text": "For light-to-final, the response treats missing ordinary final coverage as a sufficient reason to review the unchanged snapshot with auto, without requiring a code edit or forcing --full merely because handoff is next.",
+      "passed": true,
+      "evidence": "A.md:74-90 identifies missing ordinary final coverage despite unchanged full-scope fast coverage, proposes the auto submission, and explicitly omits --fast, --deep and --full."
+    },
+    {
+      "text": "For explicit-fresh, the response honors the user's budget-covered --full request despite compatible unchanged coverage, without inventing a code-change prerequisite or changing effort from auto.",
+      "passed": true,
+      "evidence": "A.md:94-107 honors the within-budget request using --full without effort flags; context explicitly acknowledges unchanged compatible coverage and distinguishes freshness from deeper effort."
+    },
+    {
+      "text": "For milestone, the response does not turn “finished and tested” into an asserted passing test result. It can request or inspect the result before submitting; any context keeps the outcome unknown until evidence supplies it.",
+      "passed": true,
+      "evidence": "A.md:15 states that the slice was tested but check names and pass/fail results were not supplied."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Commands without --fast or --deep use auto effort; --full requests freshness rather than deeper effort.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:8,97,105 matches qodo-auto-help.txt:19-26,62-64."
+    },
+    {
+      "claim": "The already-covered case is ready locally, without establishing hosted-review, CI or merge status.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:45-47 follows the synthetic completed-coverage facts in prompt.md:26-29 and expressly limits the conclusion."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No material unsupported claims or rubric gaps identified. These grades establish proposal compliance, not execution or successful review completion."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15cd45a9ffde63smdTkON0Wvx",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea33f9d9001I1iTopOocZosEt",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

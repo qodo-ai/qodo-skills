@@ -47,7 +47,9 @@ base is 1111111111111111111111111111111111111111.
    helper correction now rejects the unsafe input before it reaches that line.
    Current tests passed. The current completed result explicitly reports the
    original finding F-HELPER resolved/implemented with complete coverage and
-   inventory. No code or evidence changed afterward.
+   inventory. The same complete inventory retains original F-REMAIN as
+   pending/action-required; its treatment has not been chosen. No code or
+   evidence changed afterward. Distinguish the settled finding from overall readiness.
 5. `quote-gone`: The quoted line for original finding F-QUOTE disappeared after
    a rename. There is no verified semantic fix verdict or evidence that the
    unsafe path is gone. F-QUOTE remains open. Decide what can be claimed.

@@ -94,3 +94,20 @@ stops on failed/empty/non-directory temporary setup before any redirect (ded0ddc
 MCP result pages keep the initial `extended` value or omission unchanged (9e7e1662).
 Deterministic shell checks execute only setup and a harmless marker, never the
 status redirect, cleanup loop or a Qodo command.
+
+## Fixture limits found in iteration14
+
+The original full14 comparison scored candidate42/42 and baseline41/42, but its
+path-case base is ambiguous: the cases are independent, and case4 explicitly
+shares case3's changes/context without giving its own literal base. Refusing
+to borrow another case's SHA is defensible uncertainty. Earlier descriptions
+of this as merely overlooking a supplied base were too strong. Original grades
+and captured inputs remain unchanged; this is a correction to their interpretation,
+not a regrade or evidence of candidate uplift.
+
+The candidate also inferred overall helper-fixed readiness from the absence of
+other supplied obligations. The resolution assertion did not test that overclaim.
+Canonical policy already says one resolved finding does not establish readiness.
+The fixture now supplies another original pending/action-required finding and
+the grader checks that distinction. Only these two changed groups need fresh
+execution; six unchanged14cases retain their original input/run identities.

@@ -123,13 +123,17 @@ assertion cases fail. Each assertion needs an output citation with a valid line 
 Anonymous `A.md`/`B.md` labels map through each scope's recorded mapping to the response.
 Citation syntax and bounds do not prove that the cited text supports the claim.
 Updating the manifest alone cannot bless old answers.
-History entries6/7/8/9/10/11/12/13 are required; their40/96/104/74/121/122/148/207inventory entries
+History entries6/7/8/9/10/11/12/13/14 are required; their40/96/104/74/121/122/148/207/147inventory entries
 are checked. The earlier focused MCP records use their archived inputs/instructions,
 not the newer case. Old answers are not relabeled as current runs.
 The generated12index is compacted to meet the repository line limit. Its original
 bytes remain losslessly encoded and independently hashed; no captured run is normalized.
 Scoped13is historical after the local393recipe and CLI-evidence corrections.
 Fresh evidence is required for the changed instruction bytes and identity-gap case.
+The fresh14comparison is archived with147artifacts, original42/42candidate and
+41/42baseline. Its base ambiguity and uncaught candidate readiness overclaim mean
+the difference is not uplift. Only those two clarified groups are being refreshed;
+instructions stay31d3e11and six unchanged14cases retain original provenance.
 **CI validates the recorded evidence; CI does not execute the agent.**
 The standard Claude evaluation wrapper has only been staged/manifest-validated,
 not model-executed. Run models separately in a fresh-agent harness or explicitly
