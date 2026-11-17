@@ -1,6 +1,21 @@
 # Agent-evaluation results
 
-## Current applicable evidence: scoped15
+## Current status after connected-recipe cross-check
+
+Exact286passed405runtime/167Node/native/staging and completed local review
+`6e3ac863fd4649ecb3c11680730b48d4`: complete inventory/coverage, no introduced/
+resolved/dismissed IDs,11original pending. Requestedauto/effectivestandard;
+actualfull/previous_snapshot_unavailable. The CLI separately reported its existing
+4MiBcheckpoint fallback. Four agents completed; conversion/spec skipped with reasons.
+
+The async allocation recipe was already guarded. Cross-checking that finding found
+the same defect in connected-progress.mdbefore its result/progress redirects.
+It now has the same failed/empty/non-directory guard. Setup-only deterministic
+tests cover both recipes without running Git, Qodo, redirection or cleanup.
+Instructions changed, so fresh applicable evidence is pending. Original scoped15is
+preserved in219archive artifacts; its42/42each below is not proof of the new bytes.
+
+## Preceding applicable evidence: scoped15
 
 The current manifest selects six unchanged14cases and two freshly clarified15cases:
 **42/42 for both versions**. This is not a fresh unified42assertion run or uplift.

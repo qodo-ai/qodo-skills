@@ -123,7 +123,7 @@ assertion cases fail. Each assertion needs an output citation with a valid line 
 Anonymous `A.md`/`B.md` labels map through each scope's recorded mapping to the response.
 Citation syntax and bounds do not prove that the cited text supports the claim.
 Updating the manifest alone cannot bless old answers.
-History entries6/7/8/9/10/11/12/13/14 are required; their40/96/104/74/121/122/148/207/147inventory entries
+History entries6/7/8/9/10/11/12/13/14/15 are required; their40/96/104/74/121/122/148/207/147/219inventory entries
 are checked. The earlier focused MCP records use their archived inputs/instructions,
 not the newer case. Old answers are not relabeled as current runs.
 The generated12index is compacted to meet the repository line limit. Its original
@@ -135,6 +135,10 @@ the difference is not uplift. Only those two clarified groups were refreshed:
 11/11each at15. Instructions stay31d3e11and six unchanged14cases retain original
 provenance. Current scoped15is42/42each, not a fresh unified matrix. Its93artifact
 scope and all original full58input maps are sealed; no old answer is regraded.
+Scoped15is historical after the demonstrated connected-recipe allocation correction.
+Its219artifact archive preserves the applicability record and full93artifact focused
+capture. Setup-only tests cover both shell recipes; changed instruction bytes need
+fresh applicable behavior evidence, without changing runtime implementation.
 **CI validates the recorded evidence; CI does not execute the agent.**
 The standard Claude evaluation wrapper has only been staged/manifest-validated,
 not model-executed. Run models separately in a fresh-agent harness or explicitly

@@ -111,3 +111,13 @@ Canonical policy already says one resolved finding does not establish readiness.
 The fixture now supplies another original pending/action-required finding and
 the grader checks that distinction. Only these two changed groups need fresh
 execution; six unchanged14cases retain their original input/run identities.
+
+## Connected-recipe allocation cross-check
+
+Exact286local review `6e3ac863fd4649ecb3c11680730b48d4` returned no new IDs and
+retained the original pending records. The cited async allocation source already
+has the guard. A direct cross-check found the same genuine defect in the separate
+`connected-progress.md` recipe before its result/progress redirects. The same
+allocation guard now covers that path; setup-only tests exercise both recipes.
+This is a demonstrated instruction defect, not a refix of the guarded async code,
+a new runtime change or an author-written resolution of the old finding.

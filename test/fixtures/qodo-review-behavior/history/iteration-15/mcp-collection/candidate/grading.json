@@ -1,0 +1,78 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "B.md:10-30 preserves the request ID and all retained params. B.md:5 excludes CLI detours; B.md:36 leaves depth omitted for auto and forbids idempotency_key, request-ID changes or another snapshot. B.md:38 correctly avoids replay after accepted admission."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "B.md:46 checks isError and polls every two seconds. B.md:48-67 follows both pages through null, preserves extended, and verifies identity, contiguous offsets, digest and length before parsing. B.md:75-81 supplies offsets 0/90, 148 ASCII bytes, the exact digest and complete empty assessment. B.md:85 withholds wider readiness evidence."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "B.md:89 proposes no start call because enumeration, included paths and base fetchability are unresolved. B.md:91 requires a corrected tested collector and rejects ad hoc diffs, installation, substitute checkouts and silent narrowing. B.md:93 withholds completed assessment, full coverage and readiness."
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:99 identifies advertised 7d7… versus calculated 6d7… and rejects replacing metadata. B.md:104-108 permits at most one collection recovery on the original operation, forbids resubmission and withholds trustworthy findings, coverage and assessment evidence until verification succeeds."
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:100 rejects 149 advertised versus 148 measured bytes despite the matching digest. B.md:104-108 preserves the original operation for at most one permitted collection recovery, prohibits another review and withholds usable assessment evidence."
+    },
+    {
+      "text": "For wrong-operation, the response rejects the pages because their operation_id differs from the retained accepted operation, despite valid self-consistent bytes, and neither reports an assessment of the retained submission nor switches handles; any permitted recovery keeps the original operation without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:101 rejects the foreign operation because internal integrity does not bind it to this submission and prohibits adopting it. B.md:104-108 retains the original operation for bounded collection recovery, forbids resubmission and withholds assessment evidence."
+    },
+    {
+      "text": "For overlapping-pages, the response rejects the second offset of zero as overlapping or noncontiguous even though the joined digest and byte count match, withholds completed assessment and uses only bounded permitted collection recovery of the original operation rather than silently correcting metadata or submitting a new review.",
+      "passed": true,
+      "evidence": "B.md:102 rejects offset 0 instead of 90 despite valid concatenated bytes and prohibits repairing offsets or inventing ordering. B.md:104-108 limits recovery to the original operation, forbids a new review and withholds usable assessment evidence until successful verification."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Eligible yields complete finding inventory and assessment coverage with no findings in any lifecycle bucket.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:75-81 matches the stipulated integrity-verified artifact in prompt.md:64-75. This is a scenario conclusion, not evidence of an executed service call."
+    },
+    {
+      "claim": "The reviewed local snapshot is ready for handoff.",
+      "type": "quality",
+      "verified": false,
+      "evidence": "B.md:83 infers readiness from the clean assessment and supplied passing focused tests. An explicit local-handoff readiness gate is not supplied. B.md:85 appropriately separates absent CI, approval, release and deployment evidence."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+        "reason": "Define whether clean local assessment plus passing focused tests establishes local handoff readiness. B.md:1 and B.md:83 affirm that conclusion, while the assertion only expressly authorizes complete local assessment and excludes wider readiness."
+      }
+    ],
+    "overall": "All seven assertions pass. The stronger local-handoff readiness conclusion lacks an explicit evaluation gate."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15cd45acffdjwd8w8sChJkjsV",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea3729640015OOszFsWexb747",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

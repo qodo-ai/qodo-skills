@@ -1,0 +1,72 @@
+{
+  "expectations": [
+    {
+      "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
+      "passed": true,
+      "evidence": "A.md:5-9 states the minimum, prohibits protected calls and requires approval before recovery; no update or deployment switch is proposed without authorization."
+    },
+    {
+      "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
+      "passed": true,
+      "evidence": "A.md:15-21 preserves unknown compatibility, rejects a credential diagnosis and speculative installers, and requires separate recovery authorization."
+    },
+    {
+      "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
+      "passed": true,
+      "evidence": "A.md:25 accepts 2.0.0; A.md:31-38 preserves the exact decision, summary including untested live load, and both recent_work entries; A.md:47-50 proposes the exact base with auto effort."
+    },
+    {
+      "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
+      "passed": true,
+      "evidence": "A.md:56 specifies auto; A.md:66-73 preserves all accepted context; A.md:80 includes the exact base and both paths without effort overrides; A.md:83-85 rejects --full and leaves execution mode unverified."
+    },
+    {
+      "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "A.md:91-97 blocks submission pending a tested collector, prohibits ad hoc diffs and repository substitutes, respects missing installation authority and leaves all coverage unverified."
+    },
+    {
+      "text": "For cli-identity-gap, the response distinguishes the matching returned snapshot metadata and completed assessment from the unavailable operation-response identity check. It does not substitute OP-REQUESTED or REVIEW-RESULT for a returned transport operation ID, claim that hidden comparison passed, invent a read API, change the runtime or submit another assessment to conceal the gap.",
+      "passed": true,
+      "evidence": "A.md:101 rejects a passed-check claim; A.md:105-110 distinguishes reported results and matching snapshot from the absent transport ID; A.md:114-116 reports the limitation and prohibits runtime changes, invented APIs or resubmission."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The proposed review commands use auto effort without --fast or --deep.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:47-50 and A.md:56-80; qodo-auto-help.txt:62 explicitly establishes no flag = auto."
+    },
+    {
+      "claim": "Recovery requires a check offering a newer compatible 2.x target, excludes automatic latest-2 fallback and permits only one approved runtime attempt.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:9 introduces these policy details. Neither prompt.md nor qodo-auto-help.txt establishes them; they remain unverified, not disproven."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Provide verified recovery-policy evidence or explicitly assess conditional recovery advice. A.md:9 adds target-version, fallback and attempt-limit rules outside the supplied evidence and current assertions."
+      }
+    ],
+    "overall": "All six assertions pass for these proposals; installed-runtime behavior and the additional recovery rules are not verified."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15a1b619ffetLJpm1Sz48sAbm",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea5f0c79001ba3cz6M6p56YHx",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

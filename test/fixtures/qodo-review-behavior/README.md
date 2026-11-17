@@ -1,6 +1,10 @@
 # Recorded qodo-review behavior evaluation
 
-Current scoped15covers eight cases/42assertions:42/42for each version, not a new
+Current evidence is pending after the demonstrated connected-recipe allocation fix.
+Scoped15is archived unchanged with219artifacts, including its full93artifact focused
+capture. It is not relabeled as proof of the changed reference bytes.
+
+Historical scoped15covers eight cases/42assertions:42/42for each version, not a new
 unified matrix or uplift. Six unchanged14cases retain original31d3input/run identities
 (31/31each); only the two clarified groups were refreshed againstfe1inputs
 (four executions/two anonymous graders,11/11each). Instructions remain31d3/6385.
