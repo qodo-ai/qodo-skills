@@ -75,7 +75,7 @@ export function assertCurrentEvidence(root, { skill, version, references, text }
   assert.equal(manifest.cases.length, 8);
   assertBaselineSnapshot(evidenceRoot, manifest.snapshots.baseline);
   assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest),
-    { 6: 40, 7: 96, 8: 104, 9: 74, 10: 121, 11: 122, 12: 148, 13: 207, 14: 147, 15: 219 });
+    { 6: 40, 7: 96, 8: 104, 9: 74, 10: 121, 11: 122, 12: 148, 13: 207, 14: 147, 15: 219, 16: 147 });
   for (const artifactMap of [manifest.adjudication?.artifacts, manifest.grading_evidence?.artifacts]) {
     for (const [path, hash] of Object.entries(artifactMap ?? {}))
       assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash, path);

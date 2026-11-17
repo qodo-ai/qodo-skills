@@ -1,0 +1,52 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "A.md:4,14,33 use the exact quoted invocation for version, submission and collection. No installation or PATH change is proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "A.md:14-20 retain the exact base/context and omit depth flags, which qodo-auto-help.txt:62 defines as auto. A.md:27-33 condition collection on successful submission and nonempty returned ID extraction. A.md:23,36 explicitly leave acceptance, completion, coverage and findings pending."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Version, invocation identity, supported flags and passing unit tests are supplied evidence.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:7,23 match prompt.md:12-17; these are not presented as newly executed checks."
+    },
+    {
+      "claim": "Submission JSON exposes the returned ID through .operation_id.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:30-31 assumes this property. The supplied prompt and help establish an operation ID but provide no JSON response schema. The parser's compatibility is unverified, not disproved."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Supply a representative submission JSON response and check the extraction contract. A.md:30-31 safely rejects a missing field, but the assertions can pass despite an incompatible parser."
+      }
+    ],
+    "overall": "Both assertions pass for the proposal; successful submission or collection is not demonstrated or claimed."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fc9ffd3a1q8CbNPIy4EM",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea775e4f001xhTi6egwuwMD4d",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

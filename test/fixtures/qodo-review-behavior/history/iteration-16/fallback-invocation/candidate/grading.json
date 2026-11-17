@@ -1,0 +1,61 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "B.md:2,10,26 use the exact quoted invocation for version, submission and collection. No installation or PATH change is proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "B.md:10-16 retain the exact base/context and omit depth flags, which qodo-auto-help.txt:62 defines as auto. B.md:19-20 extract a nonempty returned ID; B.md:26-28 additionally require the variable. B.md:23,31 leave acceptance, collection, completion, coverage and findings pending."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Version, invocation identity, supported flags and passing unit tests are supplied evidence.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:5,31 match prompt.md:12-17."
+    },
+    {
+      "claim": "Submission JSON exposes the returned ID through .operation_id.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:19-20 assumes this property. Neither the supplied prompt nor help specifies the JSON response schema; parser compatibility remains unverified."
+    },
+    {
+      "claim": "Identity verification remains pending.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:31 lists identity verification as pending, whereas B.md:5 and prompt.md:13 establish invocation/deployment identity. A distinct result-identity check might be intended, but its scope is unexplained."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Supply a representative submission JSON response and check the extraction contract. B.md:19-20 can satisfy the current assertions while using an incompatible field name."
+      },
+      {
+        "reason": "Check that pending evidence distinguishes already-verified invocation/deployment identity from any future result-identity check. B.md:5,31 leave that distinction ambiguous, outside the assertions."
+      }
+    ],
+    "overall": "Both assertions pass for the proposal; JSON-schema compatibility and the pending identity scope remain unresolved."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fc9ffd3a1q8CbNPIy4EM",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea775e4f001xhTi6egwuwMD4d",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

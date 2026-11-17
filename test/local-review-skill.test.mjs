@@ -61,6 +61,8 @@ test('execution mechanics remain reachable and completed async results are emitt
   const execution = readReference('cli-execution.md');
   assert.match(execution, /0\) cat "\$QODO_REVIEW_TMP\/result\.json" \|\| exit 1; break ;;/);
   assert.match(text, /not another retry per symptom/);
+  assert.match(text, /Failed identity or integrity verification is not a status transport failure/);
+  assert.match(text, /Preserve the rejected evidence; retry collection only when an applicable recovery gate permits it/);
   assert.match(text, /QODO_UPDATE_BASE_URL/);
   assert.match(text, /never print its value/);
   assert.match(text, /show the returned message and hint unchanged/);

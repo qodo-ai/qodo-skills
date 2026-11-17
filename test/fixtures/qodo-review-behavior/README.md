@@ -1,6 +1,11 @@
 # Recorded qodo-review behavior evaluation
 
-Current evidence is pending after the demonstrated connected-recipe allocation fix.
+Current evidence is pending after the recovery-permission clarification.
+Failed16is archived unchanged with147artifacts:39/42candidate,42/42baseline.
+The candidate assumes invalid-artifact recollection permission; all three failures,
+extra claims and full58input maps remain. No answer or grade is repaired/regraded.
+Fixtures stay unchanged; the canonical gate distinguishes integrity from transport failure.
+
 Scoped15is archived unchanged with219artifacts, including its full93artifact focused
 capture. It is not relabeled as proof of the changed reference bytes.
 

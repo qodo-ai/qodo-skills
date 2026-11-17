@@ -1,0 +1,63 @@
+{
+  "expectations": [
+    {
+      "text": "For metadata-only, the proposed pr-review-dismiss call preserves F-A/F-B, L-ORIGINAL, the authorized reason/explanation and one retained metadata key through _meta[\"io.qodo/idempotency-key\"]. It reads each synchronous result and verifies stored outcomes. Uncertain-response recovery uses the exact original request/key, without inventing an operation handle, polling call, schema argument, CLI fallback or successful write.",
+      "passed": true,
+      "evidence": "A.md:11-20 supplies the exact authorized arguments and metadata key. A.md:24-30 retains the request/key and synchronous response, verifies each outcome and stored rationale, requires exact same-key recovery, and rejects unsupported arguments and polling. No CLI fallback or successful write is claimed."
+    },
+    {
+      "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
+      "passed": true,
+      "evidence": "A.md:34-36 blocks the write because neither supported key transport nor trusted CLI exists, rejects unprotected submission, and states that both dismissals remain unperformed."
+    },
+    {
+      "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
+      "passed": true,
+      "evidence": "A.md:40-45 preserves F-A's deferred reason and exact explanation and reports F-B's conflict without requested-transition success. A.md:47 instructs stopping without overwriting or initiating an unauthorized assessment and rejects a clean-review claim."
+    },
+    {
+      "text": "For saved-sync-pending, the response reports F-C's dismissal as stored and synchronization as incomplete. It explains that a completed same-key MCP replay cannot retry synchronization. The separately authorized new attempt preserves F-C, its local-review identity, reason and explanation, uses a new retained transport key, retains the original receipt, and verifies the new operation's outcome without claiming convergence in advance.",
+      "passed": true,
+      "evidence": "A.md:51-53 distinguishes confirmed storage from incomplete synchronization and explains completed-replay deduplication. A.md:55-63 preserves F-C/L-CURRENT, false_positive and the exact retained explanation, requires a distinct metadata key, and retains both requests, keys and responses. A.md:65 requires new-result verification, affirmative synchronization evidence and stopping after the authorized attempt."
+    },
+    {
+      "text": "For uncertain-write, the response collects the original operation or replays the exact original request with its retained key. It does not rotate the key, start another mutation, change the decision, or claim storage or synchronization without a terminal result and readback.",
+      "passed": true,
+      "evidence": "A.md:69-73 declares the outcome unknown, collects using the retained receipt or exactly replays the original request/key, preserves business arguments, rejects a new key and requires terminal-outcome and stored-disposition verification before success or synchronization reporting."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "In saved-sync-pending, storage succeeded but downstream synchronization remains incomplete.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:51 matches the supplied status contract and confirmed readback in prompt.md:11-12 and prompt.md:37-40; this describes the synthetic case, not an executed proposal."
+    },
+    {
+      "claim": "Completed same-key replay cannot trigger another synchronization attempt.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:53 follows the transport deduplication contract in prompt.md:13-16."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No material unsupported claims or substantive rubric gaps identified. These verdicts assess proposals only; they do not establish actual execution or Skill/reference use."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fbcffennsyU6Wp2K0yzF",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea778f3c0011XtKAQdPYVgwQb",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

@@ -130,4 +130,11 @@ test('original failed and confounded comparisons retain their judgments and comp
   const run = comparison.cases.find(({ name }) => name === 'compatibility-boundaries').runs.baseline;
   assert.equal(json(`history/iteration-14/${run.grading}`).summary.failed, 1);
   assertFixtureProvenance(json(`history/iteration-14/${run.provenance}`), comparison);
+  const failed = json('history/iteration-16/manifest.json');
+  assert.equal(assertHistoryArchives(directory, json('manifest.json'))[16], 147);
+  assert.deepEqual(failed.scores, { candidate: { passed: 39, total: 42 }, baseline: { passed: 42, total: 42 } });
+  assert.deepEqual(failed.fixture_fingerprints, fixtureFingerprints(failed.cases));
+  const failedRun = failed.cases.find(({ name }) => name === 'mcp-collection').runs.candidate;
+  assert.equal(json(`history/iteration-16/${failedRun.grading}`).summary.failed, 3);
+  assertFixtureProvenance(json(`history/iteration-16/${failedRun.provenance}`), failed);
 });

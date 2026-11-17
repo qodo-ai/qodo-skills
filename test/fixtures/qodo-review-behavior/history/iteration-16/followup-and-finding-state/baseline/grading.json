@@ -1,0 +1,64 @@
+{
+  "expectations": [
+    {
+      "text": "For mixed-followup, the complete next context retains both supplied decisions with their user/agent ownership, the shared admission-guard evidence, refreshed caller evidence, untested-live-load limitation and original open F-TIMEOUT identity. recent_work describes both this round's timeout correction and new cancellation API, not the obsolete pre-review work. The command uses the supplied base and unchanged scope with auto, without forcing --full merely because notes changed or F-TIMEOUT remains open.",
+      "passed": true,
+      "evidence": "A.md:9-17 preserves both decisions and all supplied notes, and replaces recent_work with both current changes. A.md:24-30 uses the exact base, no effort override or --full, and directs preservation of existing scope arguments. A.md:32 retains open F-TIMEOUT. Omitted effort flags mean auto per qodo-auto-help.txt:62-64."
+    },
+    {
+      "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
+      "passed": true,
+      "evidence": "A.md:36-40 retains F-OLD as pending/action-required, rejects another unchanged assessment, and explicitly reports Needs action despite complete assessment and inventory."
+    },
+    {
+      "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+      "passed": true,
+      "evidence": "A.md:44-48 uses mandatory-guard and caller evidence to recommend dismissal, prohibits refactoring and identical review, and explicitly leaves stored status unchanged."
+    },
+    {
+      "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update. It separately preserves original F-REMAIN as pending/action-required and reports overall Needs action, not Ready locally: resolving F-HELPER does not settle the other required finding.",
+      "passed": true,
+      "evidence": "A.md:52-57 accepts F-HELPER as resolved/implemented based on the completed semantic verdict, preserves F-REMAIN as pending/action-required, rejects unchanged review, and reports overall Needs action. A.md:67 confirms no status writes are claimed."
+    },
+    {
+      "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
+      "passed": true,
+      "evidence": "A.md:61-65 keeps F-QUOTE open, rejects quotation disappearance as proof, and proposes tracing renamed code and callers to establish unsafe-path reachability."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The new cancellation API preserves existing callers.",
+      "type": "quality",
+      "verified": false,
+      "evidence": "A.md:16 presents compatibility as achieved. The supplied facts establish a compatibility decision and passing relevant tests, but do not specifically verify backward compatibility. This is unverified, not disproved."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Check that retained design constraints are not promoted into verified implementation outcomes. A.md:16 claims achieved caller compatibility beyond the supplied evidence."
+      },
+      {
+        "reason": "Supply original pathspecs if exact scope preservation must be tested. A.md:30 instructs preserving unspecified scope arguments, so the command's actual scope retention cannot be fully checked."
+      }
+    ],
+    "overall": "All five assertions pass as proposals. Compatibility overstatement and unspecified original scope remain outside the verified outcome."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fc5ffdPaGjyNRSWjBatJ",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea778dab0017iwHAFGhw04wBd",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

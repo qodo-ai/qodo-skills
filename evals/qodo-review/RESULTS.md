@@ -1,6 +1,31 @@
 # Agent-evaluation results
 
-## Current status after connected-recipe cross-check
+## Current status: recovery-permission clarification
+
+Fresh16 completed16 executions and8 anonymous graders against candidate/common
+`4b389e47ea4af9522e8e3ab26b0fec34bd23bdd6` and baseline6385a42instructions:
+**39/42 candidate,42/42 baseline**, not passing current qualification.
+All147artifacts, original judgments, full58input maps, provenance and timing are
+archived unchanged. The standard benchmark/static viewer16 retains15as previous.
+
+The candidate rejects invalid MCP artifacts but proposes recollection without
+establishing the Skill's permission. Three assertions fail for bad digest, byte
+count and overlapping pages; the baseline keeps recovery conditional. Boundedness
+and retention of the original handle do not grant permission. The grader lacks
+direct Skill-policy evidence; its original judgments and this limitation remain.
+
+Canonical policy now clarifies that failed identity/integrity verification is not
+a status transport failure. Preserve rejected evidence and retry only through an
+applicable permitted recovery. A source guard checks that distinction. Fixtures
+and assertions are unchanged. Fresh applicable evidence is pending; no answer is
+repaired/regraded, and original16is not relabeled as passing.
+
+Extra unverified claims remain inspectable: recovery rules, parser fields, Engine
+ownership and an ambiguous pending-identity label. The baseline follow-up also
+promotes a caller-compatibility decision into an unverified achieved outcome.
+Passing sampled proposals do not prove universal correctness or live behavior.
+
+## Preceding connected-recipe cross-check
 
 Exact286passed405runtime/167Node/native/staging and completed local review
 `6e3ac863fd4649ecb3c11680730b48d4`: complete inventory/coverage, no introduced/
@@ -17,7 +42,7 @@ preserved in219archive artifacts; its42/42each below is not proof of the new byt
 
 ## Preceding applicable evidence: scoped15
 
-The current manifest selects six unchanged14cases and two freshly clarified15cases:
+The preceding scoped15manifest selects six unchanged14cases and two freshly clarified15cases:
 **42/42 for both versions**. This is not a fresh unified42assertion run or uplift.
 
 | Original scope | Executions / graders | Candidate | Baseline |
@@ -80,7 +105,7 @@ applicability record and the complete82artifact focused capture unchanged.
 
 ## Preceding applicable evidence: disjoint scopes
 
-The current manifest combines **41/41 candidate** and **40/41 baseline** assertions
+The preceding scoped13manifest combines **41/41 candidate** and **40/41 baseline** assertions
 from two non-overlapping scopes. This is **not a fresh unified 41-assertion run**.
 
 | Scope | Executions / graders | Candidate | Baseline |

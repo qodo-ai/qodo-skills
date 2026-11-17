@@ -83,6 +83,8 @@ they do not select different authority, compatibility or recovery policy.
   A still-unavailable capability is a blocker. An unknown built-in command needs compatible runtime support.
 - **Collection and retry:** preserve the accepted operation and exact uncertain-start request.
   A status transport failure permits one collection retry after the returned delay, otherwise 15 seconds.
+  Failed identity or integrity verification is not a status transport failure.
+  Preserve the rejected evidence; retry collection only when an applicable recovery gate permits it.
   A confirmed recoverable terminal failure permits one cause-corrected resubmission, not another retry per symptom.
   User/task no-auto-retry instructions or a returned retry prohibition require explicit approval first.
   A repository-identity correction preserves base, scope, context and effort and uses that same retry allowance.

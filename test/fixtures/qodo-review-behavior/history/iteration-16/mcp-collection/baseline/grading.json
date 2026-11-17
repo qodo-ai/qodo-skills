@@ -1,0 +1,71 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "A.md:7-11 requires authenticated MCP, mcp-cart-r1, exact supplied params including context/scope, omitted depth for auto and no idempotency_key; correctly avoids another start after acceptance."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "A.md:11-41 specifies two-second polling, both result calls, isError checks, contiguous offsets, null cursor and pre-parse integrity checks. A.md:47 accepts the supplied 148-byte verification and empty complete inventory; A.md:56 leaves downstream gates unverified."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "A.md:48 blocks submission because enumeration, included paths and base fetchability are unresolved; explicitly rejects an ad hoc diff, substitute checkout, narrower scope and installation."
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:49 identifies 7d7ca66f versus 6d7ca66f and forbids interpreting apparent empty findings. A.md:54 permits at most one collection-only recovery on the original operation only if the Skill's gate permits; replacement submissions are forbidden."
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:50 rejects 149 versus 148 despite matching digest and reports Review blocked. A.md:54 retains the original handle, conditions one recovery on permission and prohibits replacement review."
+    },
+    {
+      "text": "For wrong-operation, the response rejects the pages because their operation_id differs from the retained accepted operation, despite valid self-consistent bytes, and neither reports an assessment of the retained submission nor switches handles; any permitted recovery keeps the original operation without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:51 rejects the unrelated operation despite internal integrity and forbids adopting or polling it. A.md:54 retains the original operation for conditional collection-only recovery, without replacement submission."
+    },
+    {
+      "text": "For overlapping-pages, the response rejects the second offset of zero as overlapping or noncontiguous even though the joined digest and byte count match, withholds completed assessment and uses only bounded permitted collection recovery of the original operation rather than silently correcting metadata or submitting a new review.",
+      "passed": true,
+      "evidence": "A.md:52 rejects offset 0 instead of 90 despite successful hashing, blocks assessment and forbids metadata correction/reordering. A.md:54 limits recovery to one permitted recollection on the original operation and forbids replacement review."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Eligible supports Ready locally for the retained snapshot, not downstream readiness.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:47,56 confines readiness to the supplied complete local assessment and focused-test evidence. This is a synthetic conclusion, not evidence of executed calls."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The allowed inputs omit the Skill's collection-recovery permission rule. A.md:54 safely preserves that uncertainty; actual gate eligibility cannot independently be verified."
+      }
+    ],
+    "overall": "All assertions pass as proposals. No material unsupported unconditional operational claim identified."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fc0ffdloymVKwQpI9OYW",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea779e57001tKKXIXP2HZye9j",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

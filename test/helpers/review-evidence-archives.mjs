@@ -41,7 +41,7 @@ export function assertArtifactArchive(root, entry, directory, label) {
 }
 
 export function assertHistoryArchives(root, manifest) {
-  return Object.fromEntries([6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((iteration) => {
+  return Object.fromEntries([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map((iteration) => {
     const entry = manifest.history?.[`iteration_${iteration}`];
     assert.ok(entry, `Missing required iteration${iteration} history`);
     return [iteration, assertArtifactArchive(root, entry, `history/iteration-${iteration}`, `iteration${iteration}`)];

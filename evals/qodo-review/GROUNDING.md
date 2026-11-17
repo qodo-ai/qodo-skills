@@ -121,3 +121,13 @@ has the guard. A direct cross-check found the same genuine defect in the separat
 allocation guard now covers that path; setup-only tests exercise both recipes.
 This is a demonstrated instruction defect, not a refix of the guarded async code,
 a new runtime change or an author-written resolution of the old finding.
+
+## Invalid-artifact recovery permission
+
+Fresh16scored39/42candidate versus42/42baseline. The candidate correctly rejects
+invalid MCP artifacts but assumes permission for one recollection. The fixture
+conditions recovery on the Skill; the canonical gate permits a status-transport
+retry, not an automatic retry merely because integrity or association failed.
+The Skill now makes that distinction explicit. This does not add a retry budget,
+change runtime behavior or relax any assertion. Original16judgments remain, including
+the grader's limited policy evidence; changed instructions need fresh qualification.
