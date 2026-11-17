@@ -20,10 +20,39 @@ and prohibit retrying a conflicting terminal state.
 Source: [pinned contract](https://github.com/Codium-ai/pr-agent-pro/blob/7d26418c0ea7e88cb9355df21db335a92c92cd1b/pr_agent/servers/findings_status_api.py#L88-L108)
 (checked: 2026-11-17; repository access required).
 
-This supports that particular conditional advice; it does not establish the
-deployed revision, perform a status write, or independently verify every claim.
+This establishes the Engine endpoint's retry contract, not MCP transport behavior.
+The earlier conclusion that it supported the MCP advice was too broad.
+It does not establish the deployed revision, perform a status write, or independently verify every claim.
 The original prompt, assertion, answer, `claims`, `eval_feedback`, provenance and
 judgment are unchanged. No agent execution or grading was repeated for this source
 check, and it is not retroactive evidence available to that anonymous grader.
 Iteration 8 is a separate comparison of changed instructions and fixtures; its MCP
 prompt explicitly supplies the response/replay contract before execution and grading.
+
+## Transport correction after hosted finding f0d937b9
+
+Checked on 2026-11-17 through read-only Qodo source retrieval:
+
+- `qodo-ai/qodo-agent-runtime@5ada587fa6d99c00651a894428e12bf9bbe11b15`,
+  `src/qar/managed_tools/mcp_server.py:730–755,810–844`: a repeated mutating MCP key
+  selects the prior operation. A completed operation returns its stored result.
+  The handler does not execute again.
+- At that same QAR revision, `pr_review_session/specs.py:239–261` marks dismissal
+  as mutating. `pr_review_session/tools.py:59–73` forwards its business arguments
+  to the status client when the handler executes.
+- `Codium-ai/pr-agent-pro@7a227bcf99ea2a8b069dab6fca0f93a8be76a901`,
+  `pr_agent/servers/findings_status_api.py:172–199`: a new endpoint invocation
+  includes both transitioned and already-transitioned rows in reconciliation.
+  `docs/qodo2/finding_status_api.md:24–32,198–205` documents another POST for convergence.
+
+Thus, same-key MCP recovery can recover an uncertain result but cannot retry synchronization.
+After verified storage, a separately authorized synchronization attempt needs a new
+transport operation/key with unchanged business arguments. An unknown outcome does not authorize key rotation.
+The canonical Skill now separates these cases. No QAR or Engine code changed.
+
+Original prompts, answers, grades, provenance and limitations remain unchanged.
+In particular, iteration10's triage prompt supplied an overbroad replay assumption.
+Its 40/40 totals show compliance with those synthetic inputs, not correct MCP convergence.
+The [unchanged iteration10 report](../../test/fixtures/qodo-review-behavior/history/iteration-10/reports/RESULTS.md)
+and [grounding note](../../test/fixtures/qodo-review-behavior/history/iteration-10/reports/GROUNDING.md)
+remain inspectable. Fresh evidence must use the corrected scenario and instructions.

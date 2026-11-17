@@ -9,7 +9,15 @@ export const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const json = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 const instructionInput = (name) => name === 'SKILL.md' || (name.startsWith('references/') && name.endsWith('.md'));
-const fixtureInput = (name) => /^[a-z][a-z0-9-]*\/(?:case\.yaml|prompt\.md|graders\/[a-zA-Z0-9._-]+\.md)$/.test(name);
+function fixtureInput(name) {
+  const recognizable = /(?:^|\/)(?:case\.ya?ml|prompt\.md)$/i.test(name)
+    || /(?:^|\/)graders(?:\/|$)/i.test(name);
+  if (!recognizable) return false;
+  if (!/^[a-z][a-z0-9-]*\/(?:case\.yaml|prompt\.md|graders\/[a-zA-Z0-9._-]+\.md)$/.test(name)) {
+    throw new Error(`Invalid evaluation input layout: ${JSON.stringify(name)}. Use lowercase-kebab case directories and direct Markdown graders.`);
+  }
+  return true;
+}
 
 export function requireEvaluationSupport(help) {
   if (!help.includes('--disallow-tools')) {

@@ -4,8 +4,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { assertFixtureProvenance, assertGrade, assertRunIdentity, assertRunPaths } from './helpers/review-evaluation-fixtures.mjs';
+import { assertFixtureProvenance, assertGrade, assertRunIdentity, assertRunPaths, createEvaluationRepository } from './helpers/review-evaluation-fixtures.mjs';
 import { assertHistoryArchives, hashEvidence, readEvidenceFile } from './helpers/review-evidence-archives.mjs';
+import { prepareReviewEvaluation } from '../scripts/eval-review-skill.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const json = (directory, path) => JSON.parse(readEvidenceFile(directory, path));
@@ -15,7 +16,7 @@ test('historical evidence requires all archives and rejects removed, changed or 
   const directory = mkdtempSync(join(tmpdir(), 'qodo-required-history-'));
   const manifest = { history: {} };
   try {
-    for (const iteration of [6, 7, 8, 9]) {
+    for (const iteration of [6, 7, 8, 9, 10]) {
       const path = `history/iteration-${iteration}`;
       mkdirSync(join(directory, path), { recursive: true });
       writeFileSync(join(directory, path, 'response.md'), 'Original response\n');
@@ -23,8 +24,8 @@ test('historical evidence requires all archives and rejects removed, changed or 
       writeFileSync(join(directory, path, 'archive.json'), archive);
       manifest.history[`iteration_${iteration}`] = { path: `${path}/archive.json`, sha256: hashEvidence(archive) };
     }
-    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1 });
-    for (const iteration of [6, 7, 8, 9]) {
+    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1, 10: 1 });
+    for (const iteration of [6, 7, 8, 9, 10]) {
       const changed = structuredClone(manifest);
       delete changed.history[`iteration_${iteration}`];
       assert.throws(() => assertHistoryArchives(directory, changed), /Missing required/);
@@ -39,7 +40,7 @@ test('historical evidence requires all archives and rejects removed, changed or 
       assert.throws(() => assertHistoryArchives(directory, manifest), /inventory changed/);
       rmSync(extra);
     }
-    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1 });
+    assert.deepEqual(assertHistoryArchives(directory, manifest), { 6: 1, 7: 1, 8: 1, 9: 1, 10: 1 });
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -49,6 +50,44 @@ test('grade validation rejects empty cases for candidate and baseline', () => {
   for (const candidate of [false, true]) for (const pass_rate of [NaN, null]) {
     const grade = { expectations: [], summary: { passed: 0, failed: 0, total: 0, pass_rate } };
     assert.throws(() => assertGrade(grade, [], candidate), /at least one assertion/);
+  }
+});
+
+test('assertion evidence needs a matching response citation with a valid line range', () => {
+  const make = (evidence) => ({ expectations: [{ text: 'Check', passed: true, evidence }],
+    summary: { passed: 1, failed: 0, total: 1, pass_rate: 1 } });
+  const context = { response: 'First line\nSecond line\n', label: 'B' };
+  for (const candidate of [false, true]) {
+    for (const evidence of ['passed', 'prompt.md:1', 'A.md:1', 'B.md:0', 'B.md:3', 'B.md:2-1', 'B.md:1–3'])
+      assert.throws(() => assertGrade(make(evidence), ['Check'], candidate, context), /citation/);
+    for (const evidence of ['B.md:1–2 supports this', 'response.md:2 supports this'])
+      assert.equal(assertGrade(make(evidence), ['Check'], candidate, context), 1);
+    assert.throws(() => assertGrade(make('response.md:1'), ['Check'], candidate), /Recorded response text/);
+  }
+});
+
+test('malformed case and grader layouts fail for untracked, ignored and committed inputs', () => {
+  for (const path of ['SmokeCase/prompt.md', 'smoke_case/case.yaml',
+    'compatibility-boundaries/graders/nested/check.md', 'compatibility-boundaries/graders/bad name.md',
+    'compatibility-boundaries/graders/check.txt', 'nested/case/prompt.md', 'case.yaml']) {
+    const parent = mkdtempSync(join(tmpdir(), 'qodo-eval-layout-'));
+    try {
+      const { source, git, commit } = createEvaluationRepository(parent,
+        join(root, 'skills/qodo-review'), join(root, 'evals/qodo-review'));
+      const relative = `evals/qodo-review/${path}`, target = join(source, relative);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, 'Recognizable malformed input\n');
+      const stage = () => prepareReviewEvaluation({ root: source, parent });
+      assert.throws(stage, /Invalid evaluation input layout/);
+      writeFileSync(join(source, '.git/info/exclude'), `${relative}\n`);
+      assert.equal(git(['check-ignore', relative]), relative);
+      assert.throws(stage, /Invalid evaluation input layout/);
+      git(['add', '--force', '--', relative]);
+      commit();
+      assert.throws(stage, /Invalid evaluation input layout/);
+      writeFileSync(target, 'Dirty malformed input\n');
+      assert.throws(stage, /Invalid evaluation input layout/);
+    } finally { rmSync(parent, { recursive: true, force: true }); }
   }
 });
 
@@ -112,7 +151,10 @@ test('historical focused MCP evidence matches its retained inputs, instructions 
     for (const [path, hash] of Object.entries(run.artifacts))
       assert.equal(hashEvidence(readEvidenceFile(evidenceRoot, path)), hash, path);
     const grade = json(evidenceRoot, run.grading);
-    scores[configuration] = { passed: assertGrade(grade, assertions, configuration === 'candidate'), total: 5 };
+    // Original iteration9 labels are retained in its unchanged anonymous judgments.
+    scores[configuration] = { passed: assertGrade(grade, assertions, configuration === 'candidate', {
+      response: readEvidenceFile(evidenceRoot, run.response).toString('utf8'), label: configuration === 'candidate' ? 'A' : 'B',
+    }), total: 5 };
     const provenance = json(evidenceRoot, run.provenance);
     assertFixtureProvenance(provenance, { fixture_source_commit: manifest.fixture_source_commit, cases: manifest.input_cases });
     assert.deepEqual(provenance.fixture_fingerprints, manifest.fixture_fingerprints);

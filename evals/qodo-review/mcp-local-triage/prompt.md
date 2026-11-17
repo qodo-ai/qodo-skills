@@ -8,9 +8,12 @@ allowed_tools: [Read, Glob, Grep, Skill]
 Use qodo-review for these independent synthetic local-triage cases. Read the selected
 Skill and its relevant references. Propose actions only: do not run CLI commands,
 invoke services, write files or change finding state. Treat supplied facts as complete.
-The shared response contract says `status: dismissed` records a saved transition;
-`reconciled: false` means only downstream synchronization is incomplete. Its exact
-request can be replayed safely with the retained key when retry is permitted.
+The response contract says `status: dismissed` records a saved transition.
+`reconciled: false` means only downstream synchronization is incomplete.
+The trusted MCP transport deduplicates writes by key. For a completed operation,
+same-key replay returns the original result without executing the handler again.
+A new handler invocation reaches an idempotent status endpoint. That endpoint preserves
+stored decisions and attempts downstream synchronization again for already-dismissed findings.
 
 1. `metadata-only`: I explicitly authorize recording false_positive dismissals for
    original findings F-A and F-B, with explanation "The mandatory caller guard rejects
@@ -31,6 +34,13 @@ request can be replayed safely with the retained key when retry is permitted.
     assessment, broader authority or additional outcome evidence is supplied.
 4. `saved-sync-pending`: A separately authorized false_positive dismissal for F-C
    returned `status: dismissed`, the requested stored reason/explanation, and
-   `reconciled: false`. Readback confirms the new disposition is stored. The same
-   retained request/key are available and the user permits a synchronization retry.
-   Explain what happened, what remains incomplete, and the next permitted action.
+    `reconciled: false`. The original MCP operation is completed. Readback confirms
+    the requested disposition is stored. The local result maps F-C to L-CURRENT.
+    Its request/key and receipt are retained.
+    The trusted host supports the metadata path from case 1. The user permits one
+    new synchronization attempt with the same business arguments, not a changed decision.
+    Explain what happened, what remains incomplete, and the proposed request/key handling.
+5. `uncertain-write`: The same authorized F-C dismissal lost its transport response.
+   There is no terminal result or stored-state readback. The original request/key
+   and operation receipt are retained. The host can collect that operation or replay
+   the exact keyed request. Explain the next action and whether a new key is justified.

@@ -98,6 +98,11 @@ they do not select different authority, compatibility or recovery policy.
   Read back each stored outcome. A prior disposition or conflict is not a new successful write.
   Report status persistence separately from downstream synchronization: `reconciled: false` can mean the
   status was saved but synchronization is incomplete. Do not report that as a failed stored transition.
+  Recover an uncertain invocation with its original request and transport key.
+  On MCP, a completed same-key replay returns the stored result without retrying synchronization.
+  After verified storage, a separately authorized synchronization attempt needs a new operation and a new retained transport key.
+  Keep the business arguments unchanged. Verify each new outcome.
+  An unknown outcome does not authorize key rotation. Report unavailable recovery instead of claiming synchronization.
 - **Requested maintenance:** preview the complete affected installation scope and apply only covering approval.
   Runtime approval is not skills-installation approval. Do not widen owners, packages, origins or update policy.
 

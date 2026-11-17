@@ -406,6 +406,10 @@
       "path": "history/iteration-7/archive.json",
       "sha256": "c52ba233cef23c10b1bfa0e4d1d4e197a16ff0aa17a08827c25d3ab0e299e286",
       "note": "Exact original judgments/answers/case inputs and31-to32 adjudication remain unchanged."
+    },
+    "iteration_10": {
+      "path": "history/iteration-10/archive.json",
+      "sha256": "68a6f702542f4c0fc9bff25584a84615a1feeafa07ed596e7ae7de81158921fb"
     }
   },
   "limits": "One fresh proposal execution per group/configuration. No operational Qodo/MCP/Git/service writes, natural activation, runtime qualification, reliability, causal uplift or savings. Billed Claude evaluation unperformed. Original history6/7/8/9 remains unchanged.",

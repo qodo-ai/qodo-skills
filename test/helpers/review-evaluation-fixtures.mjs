@@ -13,7 +13,7 @@ export function assertFixtureProvenance(provenance, manifest) {
   assert.deepEqual(provenance.fixture_fingerprints, inputs, 'Recorded fixture inputs differ from current evidence');
 }
 
-export function assertGrade(grade, assertions, candidate = false) {
+export function assertGrade(grade, assertions, candidate = false, { response, label = 'response' } = {}) {
   assert.ok(Array.isArray(assertions) && assertions.length > 0, 'Every evaluated case needs at least one assertion');
   assert.deepEqual(grade.expectations.map((entry) => entry.text), assertions);
   assert.ok(grade.expectations.every((entry) => typeof entry.passed === 'boolean'),
@@ -21,7 +21,19 @@ export function assertGrade(grade, assertions, candidate = false) {
   const passed = grade.expectations.filter((entry) => entry.passed === true).length;
   assert.deepEqual(grade.summary, { passed, failed: assertions.length - passed,
     total: assertions.length, pass_rate: passed / assertions.length });
-  assert.ok(grade.expectations.every((entry) => typeof entry.evidence === 'string' && entry.evidence.trim()));
+  assert.ok(typeof response === 'string' && response.trim(), 'Recorded response text is required for citation validation');
+  assert.ok(['response', 'A', 'B'].includes(label), 'Unknown response citation label');
+  const lineCount = response.trimEnd().split(/\r?\n/).length;
+  for (const entry of grade.expectations) {
+    assert.ok(typeof entry.evidence === 'string' && entry.evidence.trim(), 'Every assertion needs evidence');
+    const citations = [...entry.evidence.matchAll(/\b(response|[AB])\.md:(\d+)(?:[-–](\d+))?/g)]
+      .filter((match) => match[1] === 'response' || match[1] === label);
+    assert.ok(citations.length, 'Every assertion needs a citation to its recorded response');
+    for (const [, , start, end = start] of citations) {
+      assert.ok(Number(start) >= 1 && Number(start) <= Number(end) && Number(end) <= lineCount,
+        'Response citation line range is invalid');
+    }
+  }
   if (candidate) assert.ok(grade.expectations.every((entry) => entry.passed === true), 'Candidate evidence failed');
   return passed;
 }

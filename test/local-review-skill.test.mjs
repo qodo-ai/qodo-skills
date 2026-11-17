@@ -176,6 +176,7 @@ test('context compatibility and authority boundaries survive the rewrite', () =>
   assert.match(triage, /do not submit an unprotected write/);
   assert.match(text, /A HEAD SHA alone does not identify a dirty snapshot/);
   assert.match(text, /Report status persistence separately from downstream synchronization/);
+  assert.match(text, /An unknown outcome does not authorize key rotation/);
   assert.match(triage, /the status is stored but downstream synchronization is incomplete/);
   assert.match(text, /finding\/checkpoint persistence and local-to-PR handoff separately/);
   for (const group of ['compatibility-boundaries', 'followup-and-finding-state',
@@ -201,7 +202,7 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     assert.equal(staged.manifest.source_commit, fixture.head);
     assert.equal(staged.manifest.fixture_source_commit, fixture.head);
     assert.equal(staged.manifest.cases.length, 8);
-    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 40);
+    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 41);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
     assert.ok(!staged.args.includes('--allow-real-servers') && !staged.args.includes('--trust-plugin'));
     assert.ok(!staged.args.includes('--json'), 'Machine mode must not suppress a first-run trust prompt');
@@ -361,7 +362,7 @@ test('recorded grade validation rejects truthy non-boolean verdicts and inconsis
   for (const invalid of ['false', 'true', 1, [], {}, null, undefined]) {
     assert.throws(() => assertGrade(make(invalid), ['Check'], true), /must be a boolean/);
   }
-  assert.equal(assertGrade(make(true), ['Check'], true), 1);
+  assert.equal(assertGrade(make(true), ['Check'], true, { response: 'Evidence\n' }), 1);
   assert.throws(() => assertGrade(make(false), ['Check'], true));
 });
 
@@ -427,7 +428,7 @@ test('recorded behavior evidence covers current instructions and every assertion
   assert.equal(manifest.method, 'fresh-native-agents-with-anonymous-final-answer-grading');
   assert.equal(manifest.cases.length, 8);
   assertBaselineSnapshot(evidenceRoot, manifest.snapshots.baseline);
-  assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest), { 6: 40, 7: 96, 8: 104, 9: 74 });
+  assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest), { 6: 40, 7: 96, 8: 104, 9: 74, 10: 121 });
   for (const [path, expected] of Object.entries(manifest.adjudication?.artifacts ?? {})) {
     assert.equal(sha256(fixtureFile(evidenceRoot, path)), expected, path);
   }
@@ -468,13 +469,12 @@ test('recorded behavior evidence covers current instructions and every assertion
       for (const [path, hash] of Object.entries(run.artifacts)) {
         assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash, path);
       }
-      const grade = JSON.parse(fixtureFile(evidenceRoot, run.grading));
+      const grade = JSON.parse(fixtureFile(evidenceRoot, run.grading)), provenance = JSON.parse(fixtureFile(evidenceRoot, run.provenance));
       const passed = assertGrade(grade, graders.map((file) =>
         fixtureFile(join(fixture, 'graders'), file).toString('utf8').replace(/^---\n[\s\S]*?\n---\n/, '').trim()),
-      configuration === 'candidate');
+      configuration === 'candidate', { response: fixtureFile(evidenceRoot, run.response).toString('utf8'), label: provenance.anonymous_grading_label });
       scores[configuration].passed += passed;
       scores[configuration].total += graders.length;
-      const provenance = JSON.parse(fixtureFile(evidenceRoot, run.provenance));
       assertRunIdentity(provenance, item.name, configuration);
       assertFixtureProvenance(provenance, manifest);
       assert.equal(provenance.source_commit, manifest.snapshots[configuration].source_commit);
@@ -485,7 +485,7 @@ test('recorded behavior evidence covers current instructions and every assertion
       }
     }
   }
-  assert.equal(assertionCount, 40);
-  assert.equal(candidatePasses, 40);
+  assert.equal(assertionCount, 41);
+  assert.equal(candidatePasses, 41);
   assert.deepEqual(manifest.scores, scores);
 });

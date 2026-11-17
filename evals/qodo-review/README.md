@@ -33,6 +33,9 @@ them. Ignored non-input files remain outside the gate; working files are never c
 Selected `assume-unchanged` or `skip-worktree` entries also stop staging because
 ordinary Git diffs cannot prove they are clean. The wrapper never clears those
 flags or changes the operator's index.
+Recognizable case/grader inputs with invalid names or layouts fail instead of disappearing.
+Use lowercase-kebab case directories and direct Markdown files under `graders/`.
+Nested graders, unsupported grader filenames and malformed case paths also fail when ignored or uncommitted.
 A captured manifest names both exact commits
 and every staged fixture fingerprint. Replace refs and lazy object fetching are disabled.
 First-use trust requires an interactive terminal. The command intentionally omits
@@ -72,11 +75,12 @@ and user-forbidden automatic retries after the hosted review's recovery findings
 Both were included in the six-group, 29-assertion comparison. Historical
 23-assertion and focused results remain tied to their earlier snapshots.
 `mcp-local-triage` adds metadata-only replay protection, a missing-transport stop
-and honest prior/conflicting outcomes. The preserved seven-group matrix has 33 assertions,
-including the explicit saved-dismissal/pending-synchronization outcome.
+and honest prior/conflicting outcomes. Its corrected scenario separates uncertain-write
+recovery from a new authorized synchronization attempt. The older same-key synchronization
+assumption is preserved as historical evidence, not accepted as transport qualification.
 `mcp-collection` adds seven assertions for eligible submission, complete chunk
 verification, ineligible collection, wrong digest/byte count, a foreign operation
-and overlapping pages. The standard wrapper stages all eight groups and 40 assertions.
+and overlapping pages. The standard wrapper stages all eight groups and 41 assertions.
 
 ## Recorded evidence and CI
 
@@ -101,8 +105,11 @@ Only release-owned version/provenance stamps are mapped to their evaluated value
 the evidence retains its original exact hashes, not a claim of a new model run.
 The gate compares every current run's recorded fixture commit and complete input
 map, exact artifact namespace and recorded case/configuration identity. Empty
-assertion cases fail. Updating the manifest alone cannot bless old answers.
-History entries 6/7/8/9 are required; their 40/96/104/74 artifacts and inventories
+assertion cases fail. Each assertion needs an output citation with a valid line range.
+Anonymous `A.md`/`B.md` labels map through recorded provenance to the response.
+Citation syntax and bounds do not prove that the cited text supports the claim.
+Updating the manifest alone cannot bless old answers.
+History entries 6/7/8/9/10 are required; their 40/96/104/74/121 artifacts and inventories
 are checked. The earlier focused MCP records use their archived inputs/instructions,
 not the newer case. Old answers are not relabeled as current runs.
 **CI validates the recorded evidence; CI does not execute the agent.**

@@ -1,0 +1,68 @@
+Usage: qodo review [options] [command] [pathspec...]
+
+Review your local unpushed changes with the pre-pr-review agent
+
+Options:
+  --base <ref>                  exact base ref to diff against and clone
+                                (default: merge base of HEAD and origin/main)
+  --repo <repository>           repository locator (default: autodetected from
+                                origin)
+  --ticket <url>                ticket/issue URL for review context (repeatable)
+                                (default: [])
+  --context-file <path>         JSON file with { decisions?, notes?,
+                                recent_work?, context_refs? }; summary remains
+                                accepted; recent_work describes this round (`-`
+                                reads stdin; .qodo/session-context.json is
+                                auto-attached when present)
+  --allow-sensitive <path>      authorize one exact repo-relative secret-like
+                                file for this review (repeatable) (default: [])
+  --full                        run a fresh full review and replace the
+                                incremental baseline
+  --extended                    include code snippets, supporting explanations,
+                                citation details and dismissal context
+  --retry-submission <id>       recover an uncertain async submission using its
+                                retained request (requires --async)
+  --deep                        thorough (slower) review for this run
+  --fast                        quick review for this run
+  --progress                    stream progress events as NDJSON on stderr
+                                (requires --json)
+  --async                       submit and exit with an operation id instead of
+                                waiting; collect the result with `qodo review
+                                status <id>` (no streaming progress)
+  -h, --help                    display help for command
+
+Commands:
+  status [options] <review-id>  Collect a retained review result (exit 2 while
+                                it is still running)
+
+Limit to paths with git pathspecs:
+  qodo review src/ test/
+  qodo review "**/*.ts" ":(exclude)**/*.test.ts"
+
+Attach coding-session context:
+  qodo review --ticket https://acme.atlassian.net/browse/PROJ-123
+  qodo review --context-file ctx.json
+  qodo review --context-file - <<'EOF'    # JSON on stdin, no temp file
+  { "decisions": ["The user chose to preserve the API for compatibility."], "notes": "Caller validation and verification evidence.", "recent_work": ["Fixed retry handling; fixes only."] }
+  EOF
+  # or keep .qodo/session-context.json updated — auto-attached on every run
+  decisions: actual choices, their user/agent owner and known rationale, in ordinary prose.
+    Include a source or quote when useful; leave unknown ownership/rationale explicit.
+  notes: expected behavior, enforced constraints, guards, external contracts, test results
+    and uncertainty; provide checkable references. The review flow owns stored Qodo history.
+  recent_work: changes since the previous review, including any new behavior; keep current.
+    It remains separate and informs fix-loop intent, not reviewer notes or checkpoint identity.
+  notes maps to the existing summary transport. If both differ, both are retained in order.
+  Limits: 64 KiB context file, 32,768 normalized narrative characters, 50 decisions of 8,192 characters each.
+  Collected commit descriptions accept 65,536 characters; oversize inputs fail without trimming.
+
+Authorize a known-safe secret-like path for this run:
+  qodo review --allow-sensitive auth/node/.env.example
+
+Depth (per-run flag; no flag = auto, the reviewer picks the tier):
+  qodo review --deep            # thorough this run
+  qodo review --fast            # quick this run
+
+Fire-and-forget (the run survives this process exiting; result kept 1h):
+  qodo review --async           # prints an operation id, exits 0
+  qodo review status <id>       # collect it (exit 2 = not finished yet)

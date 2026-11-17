@@ -24,7 +24,7 @@ function listFiles(root, path = '') {
 
 export function assertHistoryArchives(root, manifest) {
   const counts = {};
-  for (const iteration of [6, 7, 8, 9]) {
+  for (const iteration of [6, 7, 8, 9, 10]) {
     const entry = manifest.history?.[`iteration_${iteration}`];
     assert.ok(entry, `Missing required iteration${iteration} history`);
     const directory = `history/iteration-${iteration}`;
