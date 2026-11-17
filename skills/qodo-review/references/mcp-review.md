@@ -1,7 +1,8 @@
 # MCP local-review execution
 
 Read before using the QAR MCP pre-PR review path.
-The [main Skill](../SKILL.md) owns timing, context, effort, finding response and readiness.
+The [main Skill](../SKILL.md#execution-and-recovery-policy) owns collector eligibility, authority and recovery.
+The schema fields and collection sequence below implement those gates; they do not define another policy.
 
 ## Collect local input safely
 

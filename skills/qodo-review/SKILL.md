@@ -59,6 +59,46 @@ MCP cannot read this worktree. Before an MCP review, read [MCP execution](refere
 Without a tested collector matching the intended scope and exclusions, report the coverage blocker.
 An ad hoc `git diff` is not equivalent collection. MCP users skip CLI preflight.
 
+## Execution and recovery policy
+
+These are the canonical gates. References supply command syntax, result dictionaries and platform recipes;
+they do not select different authority, compatibility or recovery policy.
+
+- **Trusted runtime:** retain the resolved installed invocation for every call, including `--version`.
+  Never run repository-local launchers. If neither installed invocation works, stop the CLI path.
+  Installation requires covering approval and a Qodo/organization-supplied checksum-pinned installer.
+  Never invent a digest, pipe an installer into a shell, or switch deployments.
+- **Compatibility recovery:** old or unparseable versions stop identity, login, reviews and managed tools.
+  Check only whether `QODO_UPDATE_BASE_URL` is set; never print its value. If set, stop for the user.
+  Preserve the recorded origin, exact version choices and update holds. Choose one approved route.
+  Every updater route, including ordinary update, needs a successful check offering a newer compatible 2.x target.
+  Failure, no update or an incompatible target stops before any runtime change; do not switch routes.
+  Same-origin `latest-2` is only a selected, verified legacy 1.x-to-stable-2.x route, not another-major approval.
+  For an unparseable runtime or no supported updater, use the separately authorized checksum-pinned installer route.
+  Make one approved runtime attempt, then probe the version again. Denial, failure or incompatibility stops.
+- **Identity and discovery:** reuse identity only for the same invocation, workspace, deployment and execution context.
+  Possible sandbox keychain failure permits one explicitly approved read-only identity retry; denial stops.
+  Only explicit missing credentials justify login. Preserve TLS, network, service and authorization failures.
+  Missing catalog or an unknown managed command permits one catalog refresh, not another account.
+  A still-unavailable capability is a blocker. An unknown built-in command needs compatible runtime support.
+- **Collection and retry:** preserve the accepted operation and exact uncertain-start request.
+  A status transport failure permits one collection retry after the returned delay, otherwise 15 seconds.
+  A confirmed recoverable terminal failure permits one cause-corrected resubmission, not another retry per symptom.
+  User/task no-auto-retry instructions or a returned retry prohibition require explicit approval first.
+  A repository-identity correction preserves base, scope, context and effort and uses that same retry allowance.
+  Permission, authentication, entitlement, rate-limit or further failure stops. A pending run is never restarted.
+  Keep a connected client alive; reap its child before parsing. Progress is not a result.
+  Retain the final envelope even after nonzero exit and before deleting only this invocation's temporary files.
+- **MCP:** require the tested collector, safety exclusions, omission report and fetchable base above.
+  Preserve request identity after uncertain admission; collect and verify every result chunk before interpreting it.
+  Never invent an unsupported collector mode, retry-key field or substitute checkout.
+- **Finding-status writes:** fixing code does not authorize a dismissal. An authorized local dismissal uses original
+  finding IDs and their actual local-review IDs, grouped by review, reason and explanation.
+  Never substitute a run ID or PR URL for a missing local-review ID, or omit advertised replay protection.
+  Read back each stored outcome; a prior disposition, conflict or failed reconciliation is not a new successful write.
+- **Requested maintenance:** preview the complete affected installation scope and apply only covering approval.
+  Runtime approval is not skills-installation approval. Do not widen owners, packages, origins or update policy.
+
 ## Instructions
 
 ### 1. Review at a useful moment
@@ -87,6 +127,7 @@ Fetch that target when reviewing current remote history.
 If deliberately offline or pinned, disclose the use of locally fetched history.
 Compute `git merge-base HEAD <target-ref>` and pass that SHA as `--base` on every submission.
 An explicit `--base` is exact. Honor a user-requested exact comparison.
+Use a known base SHA literally or explicitly bind its shell variable to that SHA; do not leave an unresolved placeholder.
 If the common ancestor or remote base is unavailable, stop instead of substituting the target tip.
 Review authority does not authorize pushing the base.
 
@@ -117,6 +158,7 @@ Refresh the context from the actual code and session:
 - `notes`: requirements, enforced guards, unchanged callers, verification and unresolved uncertainty.
 - `recent_work`: changes since the previous review, including fixes, features or both.
 
+“Tested” does not mean “tests passed.” Preserve missing results as unknown rather than improve the author's claim.
 Keep `recent_work` separate. Round two is not automatically fixes-only.
 Author claims do not prove that a finding was fixed.
 Use `summary` for the same narrative only when the client advertises that older field.
@@ -219,6 +261,7 @@ Status polls and result retrieval are not additional assessments.
 | Review blocked | Required assessment, inventory or verification could not complete. Preserve the reason and recovery handle. |
 | Budget reached | The user's explicit review budget ended. Preserve blockers and missing coverage. |
 
+A resolved finding alone does not establish overall readiness; check the full inventory for other required obligations.
 Report finding/checkpoint persistence and local-to-PR handoff separately from assessment and local readiness.
 Do not claim successful storage or reusable coverage without evidence.
 Before a PR/update, compare intended code, base and scope with completed final coverage and reconcile outstanding checkpoint results.

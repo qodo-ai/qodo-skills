@@ -6,9 +6,25 @@ Only the proposed review commands and service operations are simulated, not the 
 They contain no service credentials and authorize no service, finding or repository writes.
 Keep them outside the packaged Skill so test prompts do not ship as agent instructions.
 Each case uses the skill-creator `prompt.md`, `case.yaml` and `graders/` layout.
-For `claude plugin eval`, stage these case folders under the selected Skill snapshot's `evals/`.
+The staging command puts these folders in the temporary plugin's `evals/`.
 
 ## Run
+
+`npm run eval:qodo-review -- --output-parent <directory-outside-the-repo>` stages
+the current Skill, all six cases and their graders as a minimal plugin. It prints
+the exact `claude plugin eval` command and an instruction fingerprint manifest.
+Staging does not run a model. Add `--run` only to opt into billed evaluation on
+your Claude account; normal plugin trust prompts remain enabled. The installed
+CLI must expose `claude plugin eval` (Claude Code 2.1.269 or later).
+`--ref <commit-sha>` uses that immutable Skill snapshot with the current cases.
+
+The standard harness executes each case with its LLM graders, emits JSON and HTML,
+and gates shell/write tools. Inputs are read-only; real MCP servers, scaffolds,
+report publication and operational reviews are not enabled. This still does not
+prove complete filesystem confinement. The `Skill` tool is permitted so the
+actual plugin instructions can load; it does not grant file or service writes.
+
+For another fresh-agent harness:
 
 Give a fresh agent one case prompt and only the selected Skill snapshot.
 Let it read that snapshot's references as needed.
@@ -29,13 +45,28 @@ The first four groups cover:
   explicit path scope and the missing-MCP-collector boundary.
 
 `fallback-invocation` is a later focused regression for reusing a trusted executable
-whose path contains a space. Its results are separate from the original 23-scenario comparison.
-`recovery-policy-guards` separately checks updater-target validation, a missing CLI
+whose path contains a space. `recovery-policy-guards` checks updater-target validation, a missing CLI
 and user-forbidden automatic retries after the hosted review's recovery findings.
+Both are included in the current six-group, 29-assertion comparison. Historical
+23-assertion and focused results remain tied to their earlier snapshots.
 
-The default `npm test` suite runs deterministic offline source/package checks.
-It does not run paid model evaluations. Run these fixtures separately in a fresh-agent
-harness or stage them for `claude plugin eval`; keep any billed CI integration opt-in.
+## Recorded evidence and CI
+
+[RESULTS.md](RESULTS.md) gives current and historical snapshot-specific results.
+[Recorded evidence](../../test/fixtures/qodo-review-behavior/README.md) includes
+final answers, anonymous judgments, exact fingerprints and safe runtime provenance.
+The current native-agent result is candidate 29/29 versus baseline 27/29; these
+totals do not cover every claim or establish reliability.
+
+Default `npm test` runs offline source/package/staging checks and verifies that
+the recorded candidate evidence passes, covers every assertion and matches current
+instructions and prompts. Missing, stale or failed evidence fails that gate.
+Only release-owned version/provenance stamps are mapped to their evaluated values;
+the evidence retains its original exact hashes, not a claim of a new model run.
+**CI validates the recorded evidence; CI does not execute the agent.**
+The standard Claude evaluation wrapper has only been staged/manifest-validated,
+not model-executed. Run models separately in a fresh-agent harness or explicitly
+opt into `claude plugin eval`; keep any billed CI integration opt-in.
 Do not replace behavioral evaluation with text assertions or claim that package checks prove agent behavior.
 
 Grade the planned behavior and claims with concrete output citations.

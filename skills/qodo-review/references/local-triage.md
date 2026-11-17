@@ -1,5 +1,7 @@
 # Record local triage
 
+The [main Skill's execution policy](../SKILL.md#execution-and-recovery-policy) owns status-write authority,
+original identity, grouping and verification. This reference maps those gates to the available command/schema.
 Use this only for an explicitly authorized dismissal of findings from a completed local review.
 Keep fixing, declining, and uncertainty distinct. Existing session authorization can cover the
 batch; a recommendation or a skipped edit alone does not authorize a status change.

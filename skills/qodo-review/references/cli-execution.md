@@ -2,7 +2,8 @@
 
 Read preflight before the first CLI review.
 Read collection or recovery when that path applies.
-The [main Skill](../SKILL.md) owns the review workflow and authority.
+The [main Skill's execution policy](../SKILL.md#execution-and-recovery-policy) owns all compatibility,
+authority and stop/retry gates. This reference supplies their CLI command sequence and result syntax.
 The CLI owns credentials, transport and runtime updates. Do not reproduce them in scripts.
 
 ## Preflight
