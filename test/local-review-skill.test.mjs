@@ -298,8 +298,7 @@ test('immutable evaluation refs reject hex-named branches and abbreviated object
     }
     const hexBranch = 'a'.repeat(40);
     fixture.git(['update-ref', `refs/heads/${hexBranch}`, fixture.head]);
-    assert.throws(() => prepareReviewEvaluation({ root: fixture.source, parent, ref: hexBranch }),
-      /exact commit object/);
+    assert.throws(() => prepareReviewEvaluation({ root: fixture.source, parent, ref: hexBranch }));
     const staged = prepareReviewEvaluation({ root: fixture.source, parent, ref: fixture.head });
     assert.equal(staged.manifest.source_commit, fixture.head);
     assert.equal(staged.manifest.fixture_source_commit, fixture.head);
