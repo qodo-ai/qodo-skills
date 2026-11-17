@@ -13,6 +13,9 @@ The CLI owns credentials, transport and runtime updates. Do not reproduce them i
    On Windows, read [shell guidance](windows-shells.md) first.
    Use [launcher recovery](windows-launcher.md) only if invocation fails.
    Do not execute repository-local launchers.
+   If neither installed invocation works, report the missing CLI and stop this path.
+   An installation needs covering approval and Qodo's or the organization's checksum-pinned installer.
+   Never invent a digest or pipe an installer into a shell.
 2. Run the resolved invocation with only `--version`, before authenticated commands.
    In every example here and in linked references, `qodo` stands for that invocation.
    After fallback succeeds, do not return to the unavailable bare command.
@@ -52,9 +55,13 @@ Do not change it or assume it matches the recorded origin.
 If the version is old or unparseable, do not run identity, login, reviews or managed tools yet.
 Choose one deployment-approved upgrade route.
 Reuse covering runtime-update authorization or ask once before changing the installation.
+For every updater route, first require its supported check to return a newer compatible 2.x target.
+This includes ordinary `qodo update`, not only `latest-2`.
+A failed check, no update or an incompatible target means stop without changing the runtime or trying another route.
 
 - For parsed 1.x, ordinary `qodo update` can reach approved 2.x when the recorded origin supports migration.
 - If legacy aliases still serve 1.x, check that origin's supported `latest-2` recovery route.
+  Select this route before its check, not after a failed ordinary-route check.
   Require a compatible newer 2.x target from its update check.
   Only then propose `qodo update --channel latest-2`.
 - This exception permits approved 1.x-to-stable-2.x migration, not another major migration or a future-update policy change.
@@ -172,7 +179,7 @@ For `repo_not_connected`, `MT-REPO-NO-CREDENTIAL` or “could not obtain reposit
 2. Use a known exact repository `full_name`. Self-hosted names can include a host.
    Codebase Wisdom suggestions do not prove connectivity.
 3. Confirm `--repo` support with `qodo review --help`.
-   If the error forbids automatic retries, obtain approval for the corrected command first.
+   If user/task instructions or the returned error forbid automatic retries, stop and obtain explicit approval for the corrected command first.
 4. Retry the failed submission once with `--repo <full_name>`, preserving other inputs.
    Collect the new operation ID if accepted.
    Do not treat uncertain acceptance as a confirmed failure.

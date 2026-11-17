@@ -30,6 +30,8 @@ The first four groups cover:
 
 `fallback-invocation` is a later focused regression for reusing a trusted executable
 whose path contains a space. Its results are separate from the original 23-scenario comparison.
+`recovery-policy-guards` separately checks updater-target validation, a missing CLI
+and user-forbidden automatic retries after the hosted review's recovery findings.
 
 The default `npm test` suite runs deterministic offline source/package checks.
 It does not run paid model evaluations. Run these fixtures separately in a fresh-agent

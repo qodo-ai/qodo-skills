@@ -56,6 +56,11 @@ test('execution mechanics remain reachable and completed async results are emitt
   assert.match(execution, /Show the returned message and hint unchanged/);
   assert.match(execution, /Run the resolved invocation with only `--version`/);
   assert.match(execution, /After fallback succeeds, do not return to the unavailable bare command/);
+  assert.match(execution, /If neither installed invocation works, report the missing CLI and stop/);
+  assert.match(execution, /Never invent a digest or pipe an installer into a shell/);
+  assert.match(execution, /For every updater route, first require its supported check/);
+  assert.match(execution, /A failed check, no update or an incompatible target means stop/);
+  assert.match(execution, /If user\/task instructions or the returned error forbid automatic retries, stop/);
   assert.match(text, /In every command example, replace `qodo` with that resolved invocation/);
   assert.match(readReference('mcp-review.md'), /tested local collector/);
   assert.match(readReference('connected-progress.md'), /reap the child/);
@@ -87,7 +92,7 @@ test('context compatibility and authority boundaries survive the rewrite', () =>
   assert.match(text, /A HEAD SHA alone does not identify a dirty snapshot/);
   assert.match(text, /finding\/checkpoint persistence and local-to-PR handoff separately/);
   for (const group of ['compatibility-boundaries', 'followup-and-finding-state',
-    'milestone-and-final-scope', 'recovery-and-readiness', 'fallback-invocation']) {
+    'milestone-and-final-scope', 'recovery-and-readiness', 'fallback-invocation', 'recovery-policy-guards']) {
     const prompt = readFileSync(join(root, 'evals/qodo-review', group, 'prompt.md'), 'utf8');
     assert.match(prompt, /allowed_tools: \[Read, Glob, Grep\]/);
     assert.doesNotMatch(prompt.split('---', 3)[1], /\b(?:Write|Edit|Bash)\b/);

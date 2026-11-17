@@ -71,6 +71,32 @@ The follow-up prompt explicitly requests auto, so it does not independently test
 natural effort selection. Graders did not see the Skill snapshots; extra runtime
 constants were left unverified rather than assumed false.
 
+## Hosted-recovery guard check
+
+Hosted review then identified three omitted or weakened recovery safeguards:
+validate the selected ordinary updater's compatible target before changing runtime,
+stop safely when no CLI exists, and honor user/task retry restrictions even when
+the server error permits retry. These were restored together in the CLI reference.
+
+Two fresh agents handled `recovery-policy-guards` with corrected or preceding
+845868e instructions. Both stopped for each failed/no-update/incompatible target,
+kept missing installation blocked on separate authority and a checksum-pinned
+installer, and requested approval before the user-forbidden retry. Both passed
+three inline-assessed assertions. Parent-retained answers were not operational
+execution; no independent new grader or filesystem audit was performed.
+The fixtures explicitly supply conditional approval and retry restrictions, so
+both passing is not proof that the preceding text necessarily failed in practice.
+
+Main remains 252 lines / 14,710 bytes with the same main digest as the focused
+fallback check. The corrected instructions-plus-references digest is:
+
+```text
+5ca6968373545995457d6afb9581bfd255e36d145a7fb67b6e7a2ff2e3d001eb
+```
+
+This check is separate from both earlier comparisons; their scores are not
+relabelled as executions of these later reference edits.
+
 ## Exact evaluated instructions
 
 The candidate main Skill and every Markdown reference matched commit
