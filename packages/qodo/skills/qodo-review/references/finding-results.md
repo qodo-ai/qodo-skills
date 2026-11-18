@@ -42,3 +42,31 @@ the safety pass. Report material failed/skipped components and attach missing in
 Older engines can omit metadata or return full objects in lifecycle buckets. Read their available
 IDs/details, preserve retained open findings, and report missing coverage or execution information.
 Null evidence means unavailable; an empty citations list contains no recorded citations.
+
+## Inventory and analysis
+
+`finding_state.introduced` and `finding_state.still_open` identify current obligations.
+`resolved` and `dismissed` identify settled findings. Current buckets contain IDs.
+Older buckets can contain full objects. Preserve the same original IDs in either shape.
+Do not label a carried finding newly introduced because its wording changed.
+
+Inspect both `finding_state.complete` and `meta.coverage.complete`.
+Inventory completeness and assessed coverage are separate from the number of open findings.
+A complete assessment can retain blockers.
+Missing metadata does not establish completion, successful persistence or reusable coverage.
+Read all warnings and report failed/skipped required components.
+
+`meta.analysis.mode` reports `full`, `incremental` or `reused`.
+Reused means the same reviewed snapshot and compatible context, not that earlier open findings disappeared.
+The CLI retains submitted patch/checkpoint state privately and advances eligible completed checkpoints during collection.
+Failed or older completions cannot replace a newer checkpoint.
+Do not fabricate checkpoint identity or infer serving support from newer source tests.
+
+Prefer incremental continuation under the main Skill's rules.
+Keep the intended base, scope and requested effort stable when appropriate.
+Refresh context honestly. Do not add a manual full-review trigger merely because notes changed.
+The Engine can decline reuse when it cannot establish compatible evidence.
+Report the returned fallback reason and actual coverage rather than inventing a promise of reuse.
+`--full`, when supported, requests a fresh full assessment, not greater effort.
+`--extended` requests stored detail, not another assessment.
+Older Engines can omit analysis fields. Do not claim reuse or execution details they did not report.
