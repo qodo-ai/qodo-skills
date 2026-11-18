@@ -22,7 +22,7 @@ jobs:
       github.repository == 'qodo-ai/qodo-skills' &&
       github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     continue-on-error: true
     permissions:
       actions: read
@@ -185,6 +185,7 @@ jobs:
         env:
           TAG: ${{ steps.release-source.outputs.tag }}
           STATUS: ${{ job.status }}
+          GH_TOKEN: ${{ github.token }}
           ACTOR: ${{ github.actor }}
           REPO: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
@@ -198,6 +199,9 @@ jobs:
           fi
           if [ "$STATUS" = 'success' ]; then
             TEXT="📦 qodo-skills ${TAG} released · <${SERVER_URL}/${REPO}/releases/tag/${TAG}|release notes> · by ${ACTOR}"
+          elif [ -n "${TAG:-}" ] && timeout 30 gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            # A check after publication failed, but the release is already public.
+            TEXT="⚠️ qodo-skills ${TAG} is published, but post-publish checks failed · <${RUN_URL}|view the run>"
           else
             TEXT="⛔ qodo-skills ${TAG:-(version unresolved)} release did NOT complete (${STATUS}) · <${RUN_URL}|view the run>"
           fi

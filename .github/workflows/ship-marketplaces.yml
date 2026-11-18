@@ -246,7 +246,7 @@ jobs:
     needs: [plan, verify-provider-environment]
     if: needs.plan.outputs.has_verifiable == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     continue-on-error: true
     permissions:
       actions: read
