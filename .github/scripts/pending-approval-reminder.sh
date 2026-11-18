@@ -16,8 +16,8 @@
 # reviewer gate means a person has not clicked yet.
 #
 # The sidecar exits when no watched gate is pending (or every pending one was
-# already reminded) and no other job in the run is still queued or waiting,
-# i.e. no gate can still open.
+# already reminded) and no gate can still open: either no job in the run is
+# still queued, or every watched environment has already been seen.
 #
 # Required env:
 #   GH_TOKEN      - token with `actions: read` on this repository
@@ -81,7 +81,9 @@ notify() {
 state='{}'
 failures=0
 while :; do
-  if gates="$(pending_gates)" && unstarted="$(unstarted_jobs)"; then
+  # Jobs first: a job that moves from queued to waiting between the two reads
+  # is then counted as unstarted or seen as a pending gate, never neither.
+  if unstarted="$(unstarted_jobs)" && gates="$(pending_gates)"; then
     failures=0
     now=$SECONDS
     for env in $(jq -r '.[].environment.name' <<<"$gates"); do
@@ -100,7 +102,12 @@ while :; do
     fi
     awaiting="$(jq --argjson gates "$gates" '
       [ $gates[].environment.name as $n | select((.[$n].notified // false) | not) ] | length' <<<"$state")"
-    if [ "$awaiting" -eq 0 ] && [ "$unstarted" -eq 0 ]; then
+    # Once every watched gate has been seen, a queued job (for example one
+    # waiting on another concurrency group after approval) cannot open a new one.
+    unseen="$(jq --arg envs "$ENVIRONMENTS" '
+      ($envs | split(" ") | map(select(. != ""))) as $watched
+      | [ $watched[] as $e | select(has($e) | not) ] | length' <<<"$state")"
+    if [ "$awaiting" -eq 0 ] && { [ "$unstarted" -eq 0 ] || [ "$unseen" -eq 0 ]; }; then
       echo "No gate left to remind about - done."
       exit 0
     fi
