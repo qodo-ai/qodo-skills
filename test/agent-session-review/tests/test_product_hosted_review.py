@@ -4,12 +4,13 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import threading
 import unittest
 from unittest import mock
 
 from cockpit import enrich, impact, memory, product, reviewers, util, view
-from cockpit.adapters import qodo_cli, qodo_comments, qodo_local
+from cockpit.adapters import collect_findings, qodo_cli, qodo_comments, qodo_local
 from cockpit.session_writer import SessionBusy
 from tests import test_product_enrich_refresh as helpers
 from tests import test_product_finding_scope as scope_tests
@@ -71,6 +72,25 @@ class ProductHostedReviewTests(unittest.TestCase):
         self.assertIn('post-merge detections with no fix verified',result.stdout)
         self.assertNotIn('No findings from Qodo',result.stdout)
 
+    def test_legacy_unstated_status_does_not_override_matching_closure(self):
+        pr = scope_tests.ProductFindingScopeTests().pr()
+        managed = qodo_cli.to_finding(pr, {'id': 'f', 'review_source': 'local_skill',
+                                           'attribution_status': 'full_implementation'})
+        cfg = {'adapters': ['qodo_local', 'qodo_comments']}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(qodo_local, 'STORE', Path(tmp)), \
+                mock.patch('cockpit.adapters.qodo_findings', return_value=[managed]):
+            qodo_local.add({'findings': [{'id': 'f', 'description': 'Saved evidence'}],
+                            'meta': {'checkpoint': {'id': 'legacy', 'sequence': 1, 'created_at': '2026-01-01'}}}, pr=pr['key'])
+            finding, = collect_findings(pr, cfg)
+            self.assertEqual(finding['status'], 'resolved')
+            self.assertEqual(finding['body'], 'Saved evidence')
+            qodo_local.add({'findings': [], 'finding_state': {'still_open': ['f']},
+                            'meta': {'checkpoint': {'id': 'reopen', 'sequence': 2, 'created_at': '2026-01-02'}}}, pr=pr['key'])
+            finding, = collect_findings(pr, cfg)
+            self.assertEqual(finding['status'], 'open')
+            self.assertEqual(finding['local']['reported_closure']['status'], 'resolved')
+            self.assertEqual(finding['body'], 'Saved evidence')
+
     def test_reviewers_command_cannot_overwrite_a_concurrent_enrichment(self):
         helper=helpers.ProductEnrichRefreshTests();entered=threading.Event();release=threading.Event();errors=[]
         with helper.session() as (root,sd,cfg,read):
@@ -103,7 +123,7 @@ class ProductHostedReviewTests(unittest.TestCase):
     def test_idless_bucket_objects_use_same_display_identity_as_their_details(self):
         pr=scope_tests.ProductFindingScopeTests().pr();pr['product']=True
         finding={'title':'No UUID','description':'Preserve these details','file_path':'a.py','start_line':1}
-        for bucket,expected in [('resolved','resolved'),('dismissed','dismissed'),('still_open',None)]:
+        for bucket,expected in [('resolved','resolved'),('dismissed','dismissed'),('still_open','open')]:
             rec={'local_review_id':'r','commit':HEAD,'result':{'findings':[finding],
                   'finding_state':{bucket:[finding]}}}
             with self.subTest(bucket=bucket),mock.patch.object(qodo_local,'fetch',return_value=[rec]):

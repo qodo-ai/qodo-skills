@@ -160,11 +160,12 @@ class ProductFindingScopeTests(unittest.TestCase):
         code+='const focusFindings=(()=>{'+focus[focus.index('function vFindings('):focus.index('/* ---------- notes:')]+ 'return vFindings;})();'
         code+=package[package.index('function unitsOf('):package.index('const UNITS =')]
         code+=app[app.index('function collapseRule('):app.index('function priority(')]
+        code+=app[app.index('function localPill('):app.index('function sevPill(')]
         code+=app[app.index('function findingView('):app.index('function sortedFindings(')]
         setup="""const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c])),md=esc,mdi=esc,isOpen=f=>!f.status||f.status==='open',srcName=()=> 'Qodo',shortPr=String,scansHtml=()=>'',productEvidenceUnknown=()=>false;
  const anchors=[],noteHtml=(id,anchor)=>{anchors.push(anchor);return '';};KIT.localDone=()=>'';KIT.isConvention=()=>false;const prs=()=>C.prs;
  const PF=()=>({prio:new Set(),quiet:[{category:'general',path:'**'}]}),globRx=()=>/.*/;
- const rules=()=>[{action:'collapse',category:'general',text:'quiet general findings'}],sevPill=()=>'',localPill=()=>'',markbar=()=>'',notes=()=>[],noteView=()=>'',DST={};
+ const rules=()=>[{action:'collapse',category:'general',text:'quiet general findings'}],sevPill=()=>'',markbar=()=>'',notes=()=>[],noteView=()=>'',DST={};
  """
         setup+=kit[kit.index('  const findingBody ='):kit.index('  const cases =')]
         setup+=kit[kit.index('  const localTag ='):kit.index('  /* a rule, convention')]

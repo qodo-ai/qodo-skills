@@ -46,8 +46,25 @@ def qodo_findings(pr: dict, cfg: dict) -> list[dict]:
     return got
 
 
+def _with_saved_import(detail: dict, saved: dict) -> dict:
+    state = saved.get("status", "open")
+    local = {**saved["local"], "status": state}
+    if (detail.get("local") or {}).get("origin") == "managed":
+        local = {**detail["local"], "saved_import": local}
+    row = {**detail, "local": local}
+    if not saved.get("details_unavailable") and saved.get("body") and not row.get("body"):
+        row["body"] = saved["body"]
+    # The saved review and the matching record do not establish which disposition is newer.
+    # Only an explicit open observation, not a legacy row's default, can keep this conflict visible.
+    if saved.get("status") == "open" and detail.get("status") not in (None, "", "open"):
+        local["reported_closure"] = {k: row.pop(k) for k in ("status", "closed_as", "status_why") if k in row}
+        row["status"] = "open"
+    return row
+
+
 def collect_findings(pr: dict, cfg: dict) -> list[dict]:
     out, seen = [], set()
+    imports, matches = [], {}
     for name in cfg.get("adapters", ["qodo_comments"]):
         from ..product import enabled
         if enabled(pr) and name == 'qodo_api':
@@ -56,18 +73,22 @@ def collect_findings(pr: dict, cfg: dict) -> list[dict]:
         if not mod:
             continue
         for f in (qodo_findings(pr, cfg) if name == "qodo_comments" else mod.collect(pr, cfg)):
-            if f["id"] not in seen:
-                seen.add(f["id"]); out.append(f)
-    # Prefer a managed local finding to an ID-only import of the same finding.
-    managed = {f["qodo_id"] for f in out if f.get("qodo_id") and isinstance(f.get("local"), dict)
-               and f["local"].get("origin") == "managed"}
-    out = [f for f in out if not (f.get("details_unavailable") and f.get("qodo_id") in managed)]
-    # one record: a local finding Qodo carried into the PR review is that finding, not a second one
-    by_qodo = {f["qodo_id"]: f for f in out if f.get("qodo_id") and f.get("source") != "qodo-local"}
-    for f in [f for f in out if f.get("source") == "qodo-local" and f.get("qodo_id") in by_qodo]:
-        by_qodo[f["qodo_id"]]["local"] = {**f["local"], "status": f.get("status", "open")}
-        out.remove(f)
-    return out
+            if f["id"] in seen:
+                continue
+            seen.add(f["id"])
+            if name == "qodo_local":
+                imports.append(f)
+            elif f.get("qodo_id"):
+                matches[f["qodo_id"]] = len(out)
+            out.append(f)
+    # A matching Qodo record supplies the details, not a second finding.
+    merged = set()
+    for f in imports:
+        index = matches.get(f.get("qodo_id"))
+        if index is not None:
+            out[index] = _with_saved_import(out[index], f)
+            merged.add(f["id"])
+    return [f for f in out if f["id"] not in merged]
 
 
 def annotation_checks(cfg: dict) -> list[str]:

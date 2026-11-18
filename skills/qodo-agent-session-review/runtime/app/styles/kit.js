@@ -25,8 +25,9 @@ const KIT = (() => {
   const allFindings = (c) => c.prs.flatMap((p) => p.findings.map((f) => ({ ...f, pr: p.key })));
   const sevRank = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
   const openFindings = (c) => allFindings(c).filter((f) => !f.status || f.status === "open").sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5));
-  /* a local finding: what the author's own `qodo review` found before the PR, its status as that review left it */
   const localTag = (f) => {
+    const closure = f.local?.reported_closure;
+    if (closure?.status) return ` <span class="local" title="${esc(closure.status_why || '')}">· Saved import: open · Qodo record: ${esc(String(closure.status).replaceAll('_', ' '))}</span>`;
     if (f.details_unavailable) return ` <span class="local">· Finding ID: <code>${esc(f.qodo_id)}</code></span>`;
     if (f.status === 'detected_after_merge') return ` <span class="local" title="No fix was verified">· detected after merge</span>`;
     const l = f.local, when = l?.at ? ` on ${String(l.at).slice(0, 10)}` : "";
@@ -51,8 +52,7 @@ const KIT = (() => {
     return `<div class="local-done"><p class="muted" style="font-size:14px;margin:12px 0 4px">The author's saved local review has ${done.length} closed findings:</p><ul style="margin:0;padding-left:20px;font-size:14px">${done.map((f) =>
       `<li><b>${esc(what(f))}</b> · ${md(f.title)}${f.local && f.local.reason ? ` <span class="muted">(${esc(f.local.reason)})</span>` : ""}</li>`).join("")}</ul></div>`;
   };
-  /* render code lines [[kind, old, new, text]] */
-  /* light syntax colours, line by line (a diff's lines don't carry state, so a block comment colours only its own lines) */
+  /* render code lines [[kind, old, new, text]]; syntax colours are line by line */
   const LANGS = {
     c: { ext: /\.(js|jsx|mjs|cjs|ts|tsx|go|java|kt|kts|scala|rs|c|h|cc|cpp|hpp|cs|swift|php|dart)$/i, com: "//",
          kw: "abstract async await break case catch class const continue default defer delete do else enum export extends false final finally fn for from func function go if impl implements import in instanceof interface let match mod mut new nil null package private protected pub public return self static struct super switch this throw throws trait true try type typeof undefined var void where while yield" },

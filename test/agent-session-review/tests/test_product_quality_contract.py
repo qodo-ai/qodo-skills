@@ -110,7 +110,7 @@ class ProductQualityContractTests(unittest.TestCase):
         self.assertEqual(findings['old']['local']['at'], '2026-01-01T00:00:00Z')
         self.assertIsNone(findings['old'].get('line'))
         self.assertEqual(findings['old']['local']['line'], 1)
-        self.assertNotIn('status', findings['old'])
+        self.assertEqual(findings['old']['status'], 'open')
         self.assertEqual(findings['old']['title'], 'Earlier concern')
         carried_only = {'findings': [{'id': 'old'}], 'finding_state': {'still_open': ['old']},
                         'meta': {'local_review_ids': {'old': 'review-one'}}}
@@ -266,7 +266,7 @@ class ProductQualityContractTests(unittest.TestCase):
                 self.assertEqual(closed['title'], detailed['title'])
                 self.assertEqual(closed['local'], detailed['local'])
 
-    def test_id_only_import_does_not_duplicate_or_replace_managed_finding(self):
+    def test_matching_import_does_not_duplicate_managed_or_hosted_finding(self):
         pr = self.scope.pr()
         fid = 'carried'
         managed = qodo_cli.to_finding(pr, {
@@ -276,16 +276,82 @@ class ProductQualityContractTests(unittest.TestCase):
         hosted = qodo_cli.to_finding(pr, {'id': fid, 'title': 'Hosted details', 'review_source': 'git_pr'})
         cfg = {'adapters': ['qodo_comments', 'qodo_local']}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(qodo_local, 'STORE', Path(tmp)):
-            qodo_local.add({'findings': [], 'finding_state': {'still_open': [fid]}}, pr=pr['key'])
-            for detailed in (managed, hosted):
-                title = detailed['title']
-                with self.subTest(title=title), mock.patch('cockpit.adapters.qodo_findings', return_value=[copy.deepcopy(detailed)]):
-                    finding, = collect_findings(pr, cfg)
-                    self.assertEqual(finding['title'], title)
-                    self.assertEqual(finding['source'], detailed['source'])
-                    if detailed is managed:
-                        self.assertEqual(finding['local'], managed['local'])
-                    self.assertFalse(finding.get('details_unavailable'))
+            for details in ([], [{'id': fid, 'title': 'Imported details', 'description': 'Saved evidence'}]):
+                qodo_local.add({'findings': details, 'finding_state': {'still_open': [fid]},
+                                'meta': {'local_review_ids': {fid: 'original-import'}}}, pr=pr['key'])
+                for detailed in (managed, hosted):
+                    title = detailed['title']
+                    with self.subTest(title=title, has_imported_details=bool(details)), \
+                            mock.patch('cockpit.adapters.qodo_findings', return_value=[detailed]):
+                        finding, = collect_findings(pr, cfg)
+                        self.assertEqual(finding['id'], detailed['id'])
+                        self.assertEqual(finding['title'], title)
+                        self.assertEqual(finding['body'], 'Saved evidence' if details else '')
+                        self.assertEqual(finding['source'], detailed['source'])
+                        local = finding['local']
+                        if detailed is managed:
+                            self.assertEqual(local['origin'], 'managed')
+                            self.assertEqual(local['review_id'], 'original-managed-review')
+                            local = local['saved_import']
+                        self.assertEqual(local['review_id'], 'original-import')
+                        self.assertEqual(local['status'], 'open')
+                        self.assertFalse(finding.get('details_unavailable'))
+
+    def test_reopened_import_stays_visible_when_matching_qodo_record_is_closed(self):
+        pr = self.scope.pr()
+        fid = 'carried'
+        cfg = {'adapters': ['qodo_comments', 'qodo_local']}
+        for origin in ('local_skill', 'git_pr'):
+            for attribution, status in (('full_implementation', 'resolved'), ('dismissed', 'dismissed'),
+                                        ('detected_after_merge', 'detected_after_merge')):
+                with self.subTest(origin=origin, status=status), \
+                        tempfile.TemporaryDirectory() as tmp, mock.patch.object(qodo_local, 'STORE', Path(tmp)):
+                    detailed = qodo_cli.to_finding(pr, {
+                        'id': fid, 'title': 'Matching details', 'description': 'Preserved evidence',
+                        'action_level': 'action_required', 'review_source': origin,
+                        'review_run_id': 'qodo-review', 'attribution_status': attribution,
+                        'dismiss_reason': 'intentional', 'dismiss_explanation': 'alternate policy',
+                    })
+                    original = copy.deepcopy(detailed)
+                    with mock.patch('cockpit.adapters.qodo_findings', return_value=[detailed]):
+                        for sequence, bucket in enumerate(('still_open', 'dismissed', 'introduced', 'resolved')):
+                            qodo_local.add({
+                                'findings': [], 'finding_state': {bucket: [fid]},
+                                'meta': {'local_review_ids': {fid: 'original-import'},
+                                         'checkpoint': {'id': f'run-{sequence}', 'sequence': sequence,
+                                                        'created_at': f'2026-10-01T00:00:0{sequence}Z'}},
+                            }, pr=pr['key'])
+                            imported_open = bucket in ('still_open', 'introduced')
+                            pr['findings'] = collect_findings(pr, cfg)
+                            public, = view._pr_view(pr)['findings']
+                            self.assertEqual(public['id'], detailed['id'])
+                            self.assertEqual(public['qodo_id'], fid)
+                            self.assertEqual(public['status'], 'open' if imported_open else status)
+                            self.assertEqual(public['title'], detailed['title'])
+                            self.assertEqual(public['severity'], 'high')
+                            self.assertEqual(public['body'], detailed['body'])
+                            self.assertEqual(public['review_run_id'], 'qodo-review')
+                            if imported_open:
+                                self.assertIsNone(public['closed_as'])
+                                self.assertIsNone(public['status_why'])
+                                local = public['local']
+                                self.assertEqual(local['reported_closure'], {
+                                    key: detailed[key] for key in ('status', 'closed_as', 'status_why')
+                                    if key in detailed
+                                })
+                                if origin == 'local_skill':
+                                    self.assertEqual(local['review_id'], 'qodo-review')
+                                    local = local['saved_import']
+                                self.assertEqual(local['review_id'], 'original-import')
+                                if bucket == 'introduced':
+                                    rendered = self.scope.render(view._pr_view(pr))
+                                    label = 'Saved import: open · Qodo record: ' + status.replace('_', ' ')
+                                    for surface in ('primary', 'focus', 'app'):
+                                        self.assertIn(label, rendered[surface])
+                            else:
+                                self.assertEqual(public['closed_as'], attribution)
+                                self.assertNotIn('reported_closure', public['local'] or {})
+                        self.assertEqual(detailed, original)
 
     def test_optional_badge_uses_the_existing_informational_severity(self):
         for badge in ('Optional', 'Informational', 'info'):

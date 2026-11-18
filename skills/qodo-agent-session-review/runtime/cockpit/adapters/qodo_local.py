@@ -239,7 +239,7 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, origins: dict
            "local": {"review_id": reference,
                      "at": _first(f, "created_at") or origin.get("ran_at") or origin.get("added_at"), "commit": seen,
                      "line": None if here else line}}
-    if status != "open":
+    if state is not None or status != "open":
         out["status"] = status
     if status == "resolved":
         out["status_why"] = "the author's local review confirmed the fix"
