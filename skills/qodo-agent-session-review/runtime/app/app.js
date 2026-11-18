@@ -9,7 +9,7 @@ const S = {
 const PANELS = [
   ["story", "Story"], ["summary", "Summary"], ["diagram", "Diagram"], ["findings", "Findings"], ["files", "Code"], ["knowledge", "Knowledge"],
 ];
-const SEV_ORDER = { critical: -1, high: 0, medium: 1, low: 2 };
+const SEV_ORDER = { critical: -1, high: 0, medium: 1, low: 2, unknown: 3 };
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>").split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
@@ -105,7 +105,7 @@ function globRe(g) {
 }
 const rules = () => (prefsIgnored() ? [] : S.mem.rules || []);
 function collapseRule(f) {
-  if (["critical", "high"].includes(f.severity)) return null; // guardrail: never hide critical/high severity
+  if (f.details_unavailable || ["critical", "high"].includes(f.severity)) return null;
   return rules().find((r) => r.action === "collapse" && (!r.category || r.category === f.category) && (!r.path || (f.path && globRe(r.path).test(f.path))));
 }
 function priority(f) {
@@ -142,6 +142,8 @@ function checksSummary(pr) {
 }
 // A local finding: what the author's own `qodo review` found before the PR. Its status is as that review left it.
 function localPill(f) {
+  const conflict = f.local?.status_conflict;
+  if (conflict?.saved && conflict.qodo) return `<span class="pill" title="${esc([conflict.saved_why, conflict.qodo_why].filter(Boolean).join(' · '))}">Saved import: ${esc(String(conflict.saved).replaceAll('_', ' '))} · Qodo record: ${esc(String(conflict.qodo).replaceAll('_', ' '))}</span>`;
   if (f.status === 'detected_after_merge') return `<span class="pill" title="No fix was verified">detected after merge</span>`;
   const l = f.local;
   if (l?.origin === 'managed') return `<span class="pill" title="Qodo records this finding from local_skill before the PR. This origin does not establish a completed PR review.">before the PR</span>`;
@@ -293,7 +295,7 @@ function findingView(f, pr, v) {
   const rule = collapseRule(f);
   const show = S.showCollapsed[pr.key];
   const collapsed = rule && !show;
-  const original = pr.product && (f.current_anchor === false || (f.local?.origin === "managed" && !f.local.current_anchor)) ? f.source_location || f.local?.source_location || {path:f.path,line:f.line,side:f.side,git_sha:f.git_sha || f.local?.commit} : null;
+  const original = !f.details_unavailable && pr.product && (f.current_anchor === false || (f.local?.origin === "managed" && !f.local.current_anchor)) ? f.source_location || f.local?.source_location || {path:f.path,line:f.line,side:f.side,git_sha:f.git_sha || f.local?.commit} : null;
   const where = original ? `<span class="pill">Original source: ${esc(original.path || "path unknown")}${original.line ? ":" + esc(original.line) : ""} · ${esc(original.side || "side unknown")} · ${esc(original.git_sha ? original.git_sha.slice(0, 7) : "revision unknown")}</span>` : f.path ? `<button class="btn ghost small mono" data-act="gofile" data-v="${esc(f.path)}" data-line="${f.line || ""}" data-pr="${esc(pr.key)}">${esc(f.path)}${f.line ? ":" + f.line : ""}</button>` : "";
   return `<div class="finding sev-${esc(f.severity)} markable ${collapsed ? "collapsed" : ""} ${v === "dismiss" ? "dismissed" : ""}">
     <div class="row" style="justify-content:space-between"><div class="row">${sevPill(f.severity, f.severity_guessed)}<span class="pill">${esc(f.category)}</span><span class="pill">${esc(f.source)}</span>${f.qodo_type ? `<span class="pill">${esc(f.qodo_type)}</span>` : ""}${f.thread?.resolved ? `<span class="pill" title="This finding's thread is resolved on GitHub">resolved on GitHub</span>` : ""}${localPill(f)}${where}</div>
@@ -301,6 +303,7 @@ function findingView(f, pr, v) {
       <button class="btn small ${v === "dismiss" ? "danger" : ""}" data-act="verdict" data-id="${esc(f.id)}" data-pr="${esc(pr.key)}" data-v="dismiss" aria-pressed="${v === "dismiss"}">✕ Dismiss</button></div></div>
     <div class="ttl">${mdi(f.title)}</div>
     ${rule ? `<div class="pref-why">${collapsed ? "Collapsed" : "Would be collapsed"} by your preference: “${mdi(rule.text)}”</div>` : ""}
+    ${f.details_unavailable ? `<p>Finding ID: <code>${esc(f.qodo_id)}</code></p>` : ""}
     ${f.body ? `<div class="fbody">${mdi(f.body)}</div>` : ""}
     ${f.rule ? `<div class="muted" style="font-size:12px">Rule ${esc(f.rule.id)}: ${esc(f.rule.title)}</div>` : ""}
     ${f.status && f.status !== "open" ? `<div class="muted" style="font-size:12px">${esc(f.status)}${f.status_why ? ": " + esc(f.status_why) : ""}</div>` : ""}

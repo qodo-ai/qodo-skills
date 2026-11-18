@@ -291,14 +291,17 @@ function prPage(p) {
   const fl = (list) => list.map((f) => `<div class="card fnd ${esc(f.severity || "info")}"><span class="sev">${esc(f.severity || "info")} · ${esc(f.scanner ? f.scanner.name : f.source === "agent" ? "agent" : "Qodo")}${KIT.localTag(f)}${isOpen(f) ? "" : ` · <span style="color:var(--ok)">${esc(f.status)}</span>`}</span><b>${md(f.title)}</b><span class="where">${esc(f.path || "")}${f.line ? ":" + f.line : ""}</span>
     ${f.body ? `<p class="body">${md(String(f.body).slice(0, 420))}${String(f.body).length > 420 ? "…" : ""}</p>` : ""}${f.stance ? `<p class="agent ${esc(f.stance)}"><em>Agent ${esc(f.stance === "partial" ? "partly agrees" : f.stance + "s")}.</em> ${md(f.why || "")}</p>` : ""}
     ${f.url ? `<a href="${esc(f.url)}" target="_blank" rel="noopener" style="font-size:13.5px">Open the finding ↗</a>` : ""}</div>`).join("");
-  const lo = open.filter((f) => !hi.includes(f)).sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5));
+  const unknown = open.filter((f) => f.severity === "unknown");
+  const lo = open.filter((f) => f.severity !== "unknown" && !hi.includes(f)).sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5));
   const mine = notesOf(p);
   // a findings beat groups the findings it names (any status); those are not repeated in the lists below
   const byId = Object.fromEntries(p.findings.map((f) => [f.id, f])), grouped = new Set(fb.flatMap((b) => (b.ids || []).filter((id) => byId[id])));
-  const hiR = hi.filter((f) => !grouped.has(f.id)), loR = lo.filter((f) => !grouped.has(f.id));
+  const ungrouped = (fs) => fs.filter((f) => !grouped.has(f.id));
+  const hiR = ungrouped(hi), unknownR = ungrouped(unknown), loR = ungrouped(lo);
   h += `<section aria-label="Review outcome"><h2>Review outcome</h2>${fb.map((b) => { const fs = (b.ids || []).map((id) => byId[id]).filter(Boolean);
       return `<div class="beat">${b.title ? `<h3>${md(b.title)}</h3>` : ""}${b.lede ? `<p>${md(b.lede)}</p>` : ""}${b.body ? `<p class="muted" style="font-size:14px">${md(b.body)}</p>` : ""}${fs.length ? `<div class="ba">${fl(fs)}</div>` : ""}</div>`; }).join("")}${KIT.localDone(p.findings)}
-    ${hiR.length ? `<div class="ba">${fl(hiR)}</div>` : hi.length ? "" : `<p class="callout good"><strong>No high finding is open.</strong> ${open.length ? `${pl(open.length, "lower finding")} ${loR.length ? "below" : "above"}.` : ""}</p>`}
+    ${hiR.length ? `<div class="ba">${fl(hiR)}</div>` : hi.length ? "" : unknown.length ? `<p class="callout">No open finding is known to be high; some severities are unknown.</p>` : `<p class="callout good"><strong>No high finding is open.</strong> ${lo.length ? `${pl(lo.length, "lower finding")} ${loR.length ? "below" : "above"}.` : ""}</p>`}
+    ${unknownR.length ? `<h3>Unknown severity</h3><div class="ba">${fl(unknownR)}</div>` : ""}
     ${loR.length ? `<details class="rest"><summary>${pl(loR.length, "more open finding")}</summary><div class="ba">${fl(loR)}</div></details>` : ""}
     <div class="card"><span class="tag">Your verdict</span><div class="verdict">${[["approve", "Approve"], ["comment", "Comment"], ["changes", "Request changes"]].map(([k, t]) => `<button class="vb ${k}" data-verdict="${esc(p.key)}|${k}" aria-pressed="${v === k}">${t}</button>`).join("")}</div>
       ${mine.length ? `<ul class="mynotes">${mine.map((n) => `<li class="${esc(n.kind)}"><span>${n.kind === "note" ? "" : `<b>${esc(n.kind[0].toUpperCase() + n.kind.slice(1))}:</b> `}${md(n.text)}${n.from ? ` <span class="legend">· from the Agent Session Review${n.where ? ", " + esc(n.where) : ""}</span>` : ""}${n.unsent ? ` <span class="legend" style="color:var(--warn)">· not in the Agent Session Review yet <button data-resync="${esc(n.id)}">Retry</button></span>` : ""}</span>${n.from ? "" : `<button data-unnote="${esc(n.id)}">Remove</button>`}</li>`).join("")}</ul>` : ""}
@@ -340,7 +343,9 @@ function overviewPage() {
     return `<tr><td>${go(p)}</td><td style="color:${d.tone};font-weight:600;white-space:nowrap">${d.big}</td><td><span style="color:${b.tone};font-weight:600">${b.big}.</span> <span class="muted" style="font-size:14px">${md(b.text.split(/(?<=\.)\s/)[0] || "")}</span></td></tr>`; }).join("")}</tbody></table></div>
     <p class="muted" style="font-size:14px">${stacks.length ? `Merge order: ${stacks.map((s) => s.filter((k) => P[k]).map(shortPr).join(" → ")).join("; ")}${C.prs.some((p) => !stacks.some((s) => s.includes(p.key))) ? "; the rest in any order" : ""}.` : "No stack between these PRs: the story's questions say how they land."}</p></section>`;
   h += `<section aria-label="Review outcome"><h2>Review outcome</h2><div class="tw"><table><thead><tr><th>PR</th><th>Open findings</th><th>Your verdict</th></tr></thead><tbody>${ORDER.map((p) => { const o = p.findings.filter(isOpen), hh = o.filter((f) => f.severity === "high" || f.severity === "critical").length, v = S.verdict[p.key];
-    return `<tr><td>${go(p)}</td><td>${hh ? `<span class="del">${hh} high</span>${o.length > hh ? ` · ${o.length - hh} more` : ""}` : o.length ? `${o.length} lower` : `<span class="add">none</span>`}</td><td>${v ? { approve: `<span class="add">Approve</span>`, comment: "Comment", changes: `<span class="del">Request changes</span>` }[v] : `<span class="muted">not yet: open the PR to give one</span>`}</td></tr>`; }).join("")}</tbody></table></div>
+    const unknown = o.filter((f) => f.severity === "unknown").length, lower = o.length - hh - unknown;
+    const counts = [hh && `<span class="del">${hh} high</span>`, lower && `${lower} ${hh ? "more" : "lower"}`, unknown && `${unknown} unknown`].filter(Boolean).join(" · ");
+    return `<tr><td>${go(p)}</td><td>${counts || `<span class="add">none</span>`}</td><td>${v ? { approve: `<span class="add">Approve</span>`, comment: "Comment", changes: `<span class="del">Request changes</span>` }[v] : `<span class="muted">not yet: open the PR to give one</span>`}</td></tr>`; }).join("")}</tbody></table></div>
     <div class="row"><button class="btn pri" data-copy>Copy review as Markdown</button></div><pre id="mdout" hidden></pre></section>`;
   return h;
 }

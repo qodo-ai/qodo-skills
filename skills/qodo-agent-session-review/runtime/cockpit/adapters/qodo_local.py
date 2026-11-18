@@ -39,16 +39,39 @@ def _fid(f: dict) -> str:
     return str(_first(f, "id", "finding_id", "uuid") or "")
 
 
+def _state(result: dict) -> dict:
+    state = result.get("finding_state")
+    return state if isinstance(state, dict) else {}
+
+
+def _entries(state: dict, bucket: str):
+    entries = state.get(bucket)
+    return entries if isinstance(entries, list) else ()
+
+
+def _string_id(value) -> str:
+    return value if isinstance(value, str) and value.strip() else ""
+
+
+def _review_ids(result: dict) -> dict:
+    meta = result.get("meta")
+    ids = meta.get("local_review_ids") if isinstance(meta, dict) else None
+    return ids if isinstance(ids, dict) else {}
+
+
 def _all(result: dict) -> list[dict]:
-    """Every finding the result describes: this call's list and each finding_state bucket."""
-    fs = result.get("finding_state") if isinstance(result.get("finding_state"), dict) else {}
+    """Finding objects in the inventory and in legacy buckets."""
+    fs = _state(result)
     return [f for f in result.get("findings") or [] if isinstance(f, dict)] + \
-           [f for k in BUCKETS for f in fs.get(k) or [] if isinstance(f, dict)]
+           [f for k in BUCKETS for f in _entries(fs, k) if isinstance(f, dict)]
 
 
 def count(result: dict) -> int:
     """How many distinct findings a result describes (its list and buckets overlap)."""
-    return len({_fid(f) or str(i) for i, f in enumerate(_all(result))})
+    object_ids = [_fid(f) for f in _all(result)]
+    fs = _state(result)
+    bucket_ids = {_string_id(f) for k in BUCKETS for f in _entries(fs, k)}
+    return len((set(object_ids) | bucket_ids) - {""}) + object_ids.count("")
 
 
 def _review_id(result: dict) -> str:
@@ -57,13 +80,13 @@ def _review_id(result: dict) -> str:
     meta = result.get("meta") if isinstance(result.get("meta"), dict) else {}
     cp = meta.get("checkpoint") if isinstance(meta.get("checkpoint"), dict) else {}
     rid = _first(result, "local_review_id", "review_id") or _first(meta, "local_review_id", "review_id") or _first(cp, "id")
-    fs = result.get("finding_state") if isinstance(result.get("finding_state"), dict) else {}
-    references = meta.get('local_review_ids') if isinstance(meta.get('local_review_ids'), dict) else {}
-    introduced_ids = {_fid(f) if isinstance(f, dict) else f for f in fs.get('introduced') or [] if isinstance(f, (dict, str))}
+    introduced = _entries(_state(result), "introduced")
+    references = _review_ids(result)
+    introduced_ids = {_fid(f) if isinstance(f, dict) else _string_id(f) for f in introduced}
     own_ids = {references[fid] for fid in introduced_ids if fid and isinstance(references.get(fid), str) and references[fid]}
     if not rid and len(own_ids) == 1:
         rid = next(iter(own_ids))   # only explicitly introduced findings identify this execution
-    for group in ([f for f in result.get("findings") or [] if isinstance(f, dict)] + [f for f in fs.get("introduced") or [] if isinstance(f, dict)],
+    for group in ([f for f in result.get("findings") or [] if isinstance(f, dict)] + [f for f in introduced if isinstance(f, dict)],
                   _all(result)):
         if rid:
             break
@@ -182,14 +205,12 @@ def _merge(old: dict | None, new: dict) -> dict:
     return out
 
 
-def _review_reference(rec: dict, f: dict):
-    meta = rec.get('result', {}).get('meta') or {}
-    references = meta.get('local_review_ids') if isinstance(meta, dict) else {}
-    reference = references.get(_fid(f)) if isinstance(references, dict) else None
-    return reference if isinstance(reference, str) and reference else _first(f, 'local_review_id') or rec.get('local_review_id')
+def _row_id(pr: dict, fid: str) -> str:
+    return f"l-{pr['key'].replace('/', '-').replace('#', '-')}-{fid}"
 
 
-def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, source_record: dict | None = None) -> dict:
+def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, origins: dict[str, dict] | None = None,
+               references: dict[str, str] | None = None) -> dict:
     loc = next((f[k] for k in ("diff_reference", "location") if isinstance(f.get(k), dict)), {})
     fid = _fid(f)
     path = _first(f, "path", "file_path", "file") or _first(loc, "file_path", "path", "file")
@@ -199,13 +220,16 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, source_record
         what = [path, line, _first(f, "title", "summary", "name"), _first(f, "description", "body")]
         fid = "noid-" + hashlib.sha1(json.dumps(what, default=str).encode()).hexdigest()[:12]
     status = state or CLOSED.get(str(f.get("attribution_status") or "").lower()) or "open"
-    reference = _review_reference(rec, f)
-    origin = source_record if source_record is not None else rec if reference == rec.get('local_review_id') else {}
+    recorded = _review_ids(rec.get("result", {})) if references is None else references
+    # An empty map can be absent even in modern results. The importing run is not a per-finding reference.
+    reference = _string_id(recorded.get(fid)) or _string_id(f.get("local_review_id")) or None
+    origin = (origins or {}).get(reference) if reference else None
+    origin = origin or (rec if reference and reference == rec.get("local_review_id") else {})
     seen = _first(f, "git_sha") or origin.get("commit")   # never borrow a later run's commit for a carried finding
     pre = str(loc.get("side") or "").lower() == "left"   # a line the diff removed: not in the new file
     here = bool(seen) and seen == pr.get("head_sha") and not pre   # its lines are this PR's lines
     ev = f.get("evidence") if isinstance(f.get("evidence"), dict) else {}
-    out = {"id": f"l-{pr['key'].replace('/', '-').replace('#', '-')}-{fid}", "pr": pr["key"], "source": "qodo-local",
+    out = {"id": _row_id(pr, fid), "pr": pr["key"], "source": "qodo-local",
            "qodo_id": None if fid.startswith("noid-") else fid,
            "category": str(_first(f, "category") or "general").lower(), "severity": _severity(_first(f, "action_level", "severity")),
            "path": None if pre else path, "line": line if here else None, "end_line": end if here else None,
@@ -215,7 +239,7 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, source_record
            "local": {"review_id": reference,
                      "at": _first(f, "created_at") or origin.get("ran_at") or origin.get("added_at"), "commit": seen,
                      "line": None if here else line}}
-    if status != "open":
+    if state is not None or status != "open":
         out["status"] = status
     if status == "resolved":
         out["status_why"] = "the author's local review confirmed the fix"
@@ -237,11 +261,22 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, source_record
     return {k: v for k, v in out.items() if v is not None}
 
 
-def collect(pr: dict, cfg: dict) -> list[dict]:
+def _missing_finding(pr: dict, fid: str, reference: str | None, state: str) -> dict:
+    """An ID-only observation has no evidence other than its identity and state."""
+    return {"id": _row_id(pr, fid), "pr": pr["key"], "source": "qodo-local", "qodo_id": fid,
+             "category": "general", "severity": "unknown", "details_unavailable": True,
+             "status": state, "current_anchor": False, "title": "Local finding details unavailable",
+             "body": f"The saved local review lists this finding as {state} but does not include its details. "
+                     "Import a result with its details to inspect it.",
+             "local": {"review_id": reference} if reference else {}}
+
+
+def collect(pr: dict, cfg: dict, *, include_closed_ids: bool = False) -> list[dict]:
     """One finding per local finding id, as the latest local review left it. Each copy of a finding is merged
-    into what earlier reviews said, so a later entry that only carries a disposition keeps the details."""
+    into what earlier reviews said. Show an ID-only open finding even if no import supplies its details."""
     raw: dict[str, tuple[dict, dict]] = {}   # finding id -> (the review that last mentioned it, its merged copy)
     status: dict[str, str] = {}
+    references: dict[str, str] = {}
     reviews = fetch(pr, cfg)
     origins = {}
     for rec in reviews:
@@ -253,22 +288,23 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
                     origins.setdefault(observed_id, rec)   # read older synthetic records without rewriting them
     for rec in reviews:
         res = rec["result"]
-        fs = res.get("finding_state") if isinstance(res.get("finding_state"), dict) else {}
+        fs = _state(res)
+        references.update({fid: rid for fid, rid in _review_ids(res).items() if _string_id(fid) and _string_id(rid)})
         def key(f):
-            return (_fid(f) or to_finding(pr, rec, f, None)['id']) if isinstance(f, dict) else str(f)
-        listed = [f for k in ("still_open", "introduced", "resolved", "dismissed") for f in fs.get(k) or [] if isinstance(f, dict)]
+            return (_fid(f) or to_finding(pr, rec, f, None)['id']) if isinstance(f, dict) else _string_id(f)
+        listed = [f for k in ("still_open", "introduced", "resolved", "dismissed") for f in _entries(fs, k) if isinstance(f, dict)]
         listed += [f for f in res.get("findings") or [] if isinstance(f, dict)]   # last: this call's own copy
         for f in listed:
             fid = key(f)
             raw[fid] = (rec, _merge(raw.get(fid, (None, None))[1], f))
-        for k in ("still_open", "introduced"):
-            for f in fs.get(k) or []:
+        # Later runs win; within a run, resolved wins over dismissed, and both win over open.
+        for k in ("still_open", "introduced", "dismissed", "resolved"):
+            for f in _entries(fs, k):
                 fid = key(f)
                 if fid:
-                    status[fid] = "open"   # a latest explicit reopen overrides retained attribution metadata
-        for k in ("dismissed", "resolved"):   # resolved last: it wins over dismissed, as in the engine
-            for f in fs.get(k) or []:
-                fid = key(f)
-                if fid:
-                    status[fid] = k
-    return [to_finding(pr, rec, f, status.get(fid), source_record=origins.get(_review_reference(rec, f))) for fid, (rec, f) in raw.items()]
+                    status[fid] = k if k in ("dismissed", "resolved") else "open"
+    findings = [to_finding(pr, rec, f, status.get(fid), origins=origins, references=references)
+                for fid, (rec, f) in raw.items()]
+    findings.extend(_missing_finding(pr, fid, references.get(fid), state)
+                    for fid, state in status.items() if fid not in raw and (state == "open" or include_closed_ids))
+    return findings

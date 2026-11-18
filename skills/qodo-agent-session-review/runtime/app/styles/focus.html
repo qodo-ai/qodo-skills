@@ -712,7 +712,7 @@ const PF = () => { const k = !!S.prefsOff; if (PF_ && PF_.k === k) return PF_;
   return (PF_ = { k, open: new Set(of("open-fold").map((x) => x.id)), close: new Set(of("close-fold").map((x) => x.id)),
     quiet: of("collapse").filter((x) => x.category), prio: new Set(of("prioritize").map((x) => x.category)) }); };
 const globRx = (g) => new RegExp("^" + String(g || "**").split("**").map((p) => p.split("*").map((q) => q.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*")).join(".*") + "$");
-const quieted = (f) => !["critical", "high"].includes(f.severity) && PF().quiet.some((r) => r.category === f.category && globRx(r.path).test(f.path || ""));   // a high finding is never quieted
+const quieted = (f) => !f.details_unavailable && !["critical", "high"].includes(f.severity) && PF().quiet.some((r) => r.category === f.category && globRx(r.path).test(f.path || ""));
 const memEv = (ev) => KIT.send([{ ...ev, style: KIT.host.style }]);   // served only; a shared snapshot never feeds anyone's memory
 const foldEv = (d, open) => { if (d && d.dataset.def != null) memEv({ type: "fold", id: d.dataset.open, open, default_open: d.dataset.def === "1" }); };
 const prs = () => (S.pr === "all" ? C.prs : C.prs.filter((p) => p.key === S.pr));
@@ -1973,15 +1973,15 @@ function vFindings() {
   const sc = scansHtml();
   const fnd = (f, withSev) => { const id = "f:" + f.id;
       return `<details class="fnd" data-open="${esc(id)}"${S.open[id] ? " open" : ""}><summary><span class="muted" style="font:12px var(--f-mono);padding-top:3px">${esc(f.scanner ? f.scanner.name : f.source === "agent" ? "agent" : "qodo")}${KIT.localTag(f)}</span><b style="font-weight:600">${withSev ? `<span class="sev ${esc(f.severity)}">${esc(f.severity)}</span> ` : ""}${md(f.title)}</b>${f.stance ? `<span class="stance ${esc(f.stance)}">agent: ${esc(f.stance)}</span>` : "<span></span>"}<span class="p">${C.prs.length > 1 ? esc(shortPr(f.prk)) + " · " : ""}${esc(f.path || "")}${f.line ? ":" + f.line : ""}</span></summary>
-        <div class="body">${md(f.body || "")}${f.why ? `<p class="muted" style="margin:8px 0 0"><b>Agent:</b> ${md(f.why)}</p>` : ""}${f.url ? `<p style="margin:8px 0 0"><a href="${esc(f.url)}" target="_blank" rel="noopener">Open in ${esc(f.scanner ? f.scanner.name : "Qodo")} ↗</a></p>` : ""}
-        ${noteHtml(id, { pr: f.prk, path: f.path, line: f.line, side: "new", label: f.title })}</div></details>`; };
+        <div class="body">${KIT.findingBody(f)}
+        ${noteHtml(id, f.details_unavailable ? { pr: f.prk, label: f.title } : { pr: f.prk, path: f.path, line: f.line, side: "new", label: f.title })}</div></details>`; };
   const qfold = quiet.length ? `<details class="fquiet"><summary><span class="tk good">Quieted for you</span> ${quiet.length} finding${quiet.length === 1 ? "" : "s"} you usually call nits, never a high one</summary>${quiet.map((f) => fnd(f, true)).join("")}</details>` : "";
   if (!open.length) return sc + only + `<p class="empty">No open findings${all.length ? ` (${all.length - quiet.length} resolved, dismissed or outdated)` : ""}${quiet.length ? `, besides ${quiet.length} quieted for you` : ""}.</p>` + qfold + KIT.localDone(all);
   let h = sc + only;
   const conv = open.filter(KIT.isConvention), bugs = open.filter((f) => !KIT.isConvention(f));
-  ["critical", "high", "medium", "low", "info"].forEach((sv) => {
+  ["critical", "high", "medium", "low", "info", "unknown"].forEach((sv) => {
     const g = bugs.filter((f) => (f.severity || "info") === sv); if (!g.length) return;
-    h += `<section class="tier"><h3><span class="sev ${sv}">${sv}</span> <span class="n">${g.length}</span></h3>${g.map((f) => fnd(f)).join("")}</section>`;
+    h += `<section class="tier"><h3><span class="sev ${sv}">${sv === "unknown" ? "unknown severity" : sv}</span> <span class="n">${g.length}</span></h3>${g.map((f) => fnd(f)).join("")}</section>`;
   });
   // rules and conventions read differently from bugs: their own section, never folded, high ones first
   if (conv.length) h += `<section class="tier conv"><h3>Rules and conventions <span class="n">${conv.length}</span></h3><p class="muted" style="margin:0 0 8px;font-size:14px">Your team's standards and style, apart from the bugs above.</p>${conv.sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5)).map((f) => fnd(f, true)).join("")}</section>`;

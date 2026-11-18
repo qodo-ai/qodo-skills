@@ -46,8 +46,31 @@ def qodo_findings(pr: dict, cfg: dict) -> list[dict]:
     return got
 
 
+def _with_saved_import(detail: dict, saved: dict) -> dict:
+    state = saved.get("status", "open")
+    local = {**saved["local"], "status": state}
+    if (detail.get("local") or {}).get("origin") == "managed":
+        local = {**detail["local"], "saved_import": local}
+    row = {**detail, "local": local}
+    if not saved.get("details_unavailable") and saved.get("body") and not row.get("body"):
+        row["body"] = saved["body"]
+    qodo_status = detail.get("status") or "open"
+    # The sources do not establish which disposition is newer. Keep both visible and count an
+    # open observation, but don't treat a legacy row's implicit default as an explicit reopening.
+    if "status" in saved and state != qodo_status:
+        local["status_conflict"] = {"saved": state, "qodo": qodo_status,
+                                    "saved_why": saved.get("status_why"), "qodo_why": detail.get("status_why"),
+                                    "qodo_closed_as": detail.get("closed_as")}
+        if state == "open":
+            row.pop("closed_as", None)
+            row.pop("status_why", None)
+            row["status"] = "open"
+    return row
+
+
 def collect_findings(pr: dict, cfg: dict) -> list[dict]:
     out, seen = [], set()
+    imports, matches = [], {}
     for name in cfg.get("adapters", ["qodo_comments"]):
         from ..product import enabled
         if enabled(pr) and name == 'qodo_api':
@@ -55,15 +78,31 @@ def collect_findings(pr: dict, cfg: dict) -> list[dict]:
         mod = REGISTRY.get(name)
         if not mod:
             continue
-        for f in (qodo_findings(pr, cfg) if name == "qodo_comments" else mod.collect(pr, cfg)):
-            if f["id"] not in seen:
-                seen.add(f["id"]); out.append(f)
-    # one record: a local finding Qodo carried into the PR review is that finding, not a second one
-    by_qodo = {f["qodo_id"]: f for f in out if f.get("qodo_id") and f.get("source") != "qodo-local"}
-    for f in [f for f in out if f.get("source") == "qodo-local" and f.get("qodo_id") in by_qodo]:
-        by_qodo[f["qodo_id"]]["local"] = {**f["local"], "status": f.get("status", "open")}
-        out.remove(f)
-    return out
+        if name == "qodo_comments":
+            findings = qodo_findings(pr, cfg)
+        elif name == "qodo_local":
+            findings = mod.collect(pr, cfg, include_closed_ids=True)
+        else:
+            findings = mod.collect(pr, cfg)
+        for f in findings:
+            if f["id"] in seen:
+                continue
+            seen.add(f["id"])
+            if name == "qodo_local":
+                imports.append(f)
+            elif f.get("qodo_id"):
+                matches[f["qodo_id"]] = len(out)
+            out.append(f)
+    # A matching Qodo record supplies the details, not a second finding.
+    merged = set()
+    for f in imports:
+        index = matches.get(f.get("qodo_id"))
+        if index is not None:
+            out[index] = _with_saved_import(out[index], f)
+            merged.add(f["id"])
+        elif f.get("details_unavailable") and f.get("status") != "open":
+            merged.add(f["id"])   # an unmatched closed ID needs no visible placeholder
+    return [f for f in out if f["id"] not in merged]
 
 
 def annotation_checks(cfg: dict) -> list[str]:
