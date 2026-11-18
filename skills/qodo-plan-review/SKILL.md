@@ -254,7 +254,8 @@ One call can carry several concerns, each at most once. Use one stable `--idempo
 each intended write: retry the same request with the same key, and use a new key when the
 arguments change.
 
-The answer is `{"results": {"<concern id>": "<outcome>"}}`:
+The answer is `{"results": {"<concern id>": "<outcome>"}}`. Read the outcome of every concern:
+the command exits 0 even when an outcome is `not_found`.
 
 - `updated`: the verdict is stored. `unchanged`: this exact verdict was already stored.
 - `not_found`: you have no such concern. Check the id against the review result.
