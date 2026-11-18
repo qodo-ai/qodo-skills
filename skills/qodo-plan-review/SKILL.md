@@ -288,7 +288,9 @@ qodo plan-review --plan-id <plan_id> --document implementation_plan:plan.md --re
 
 The answer lists the concerns open now: new ones, ones still open, and any "addressed" the review
 found not addressed. For those, the recommendation starts with what the plan still lacks: fix
-that, not what you fixed before. Repeat steps 4 to 6 until none is open.
+that, not what you fixed before. Repeat steps 4 to 6 until none is open, or until the
+only open concerns wait for a person: then stop and report them. Do not loop on a concern you
+cannot settle.
 
 An identical resubmission is not reviewed again: the command exits with code 3 and the answer
 carries `"status": "no_changes"`. That is the expected answer for an unchanged plan, not an error
