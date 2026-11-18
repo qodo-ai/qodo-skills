@@ -166,8 +166,9 @@ qodo plan-review --document implementation_plan:plan.md --json
 
 - `--document <kind>:<path>` is repeatable; the main plan goes first.
 - Without `--repo` the CLI takes the repository of the working directory's `origin`, with its
-  git host. Pass `--repo <owner/name>`, optionally `<owner/name>@<ref>`, only when the plan is
-  about another repository. The reviewer reads
+  git host, at its default branch. Pass `--repo <owner/name>@<ref>` when the plan is about a
+  branch other than the default, and `--repo <owner/name>` when it is about another repository.
+  Use the same `--repo` for every version of the plan. The reviewer reads
   the repository from the git provider, not from your checkout: a ref must exist there, and
   unpushed work is not seen.
 - `--context-file <path>` adds the session's decisions and notes when you have them: a JSON
