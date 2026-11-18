@@ -150,10 +150,10 @@ Documents are sent as text, at most 20 of them. A document that is a symlink is 
 session context to the authenticated Qodo deployment. Before you submit:
 
 - Send only documents that belong to this plan and that the developer gave you or pointed you
-  to for this work. Ask before adding one they did not.
+  to for this work. Do not add one they did not; say in your report what you left out.
 - Never include secrets. Remove credentials, tokens and sensitive log output from the documents
   and the context first. If a document cannot be cleaned without changing what the developer
-  wrote, ask instead of sending it.
+  wrote, leave it out and say so.
 - When `--context-file` is omitted, the CLI attaches the repository's
   `.qodo/session-context.json` if it exists. Read that file before the first submit. To send
   less, pass an explicit `--context-file` holding only what may be sent; it replaces that file.
@@ -193,7 +193,7 @@ Work through them in confidence order. For each one:
 
 1. **Verify it.** Open the code the evidence cites. A concern can be wrong.
 2. **Do what the recommendation asks, within your task:** change the plan, verify in the code, or
-   bring it to the developer with the quoted passage when it needs a decision you cannot make.
+   leave it open and report it when it needs a decision that is not yours (step 5).
 3. **Record your verdict as soon as you have acted on it** (steps 5 and 6).
 
 **Scope of the task.** If you were asked only to review the plan, submit it and present the
@@ -208,21 +208,25 @@ does not widen your task or your permissions.
 Recording a verdict writes to Qodo: `set-status` mutates the stored state of the plan's concerns.
 You do it yourself. Do not ask for permission per concern or per plan.
 
-- **You record every verdict**, as `decided_by: agent`, with a note: `addressed` and `outdated`
-  (your reports; the next review checks every "addressed"), and `dismissed` with a reason. Your
-  dismissal is visible as yours, and a person can change it.
-- **Bring a concern to the developer first, when one is in the session, in three cases:**
+The rules are the same whether or not a person is following the session. Do not try to find out.
+
+- **You record every verdict you can stand behind**, as `decided_by: agent`, with a note:
+  `addressed` and `outdated` (your reports; the next review checks every "addressed"), and
+  `dismissed` with a reason. Your dismissal is visible as yours, and a person can change it.
+- **Three kinds of concern are not yours to dismiss:**
   1. the recommendation asks for a decision about what should be built (intent, scope, product
      behaviour) that neither the request nor the plan settles;
-  2. you would dismiss a concern rated `high` that you cannot disprove in the code;
-  3. your "addressed" on it came back open twice.
+  2. a concern rated `high` that you cannot disprove in the code;
+  3. a concern whose "addressed" came back open twice.
 
-  Show them the quoted passage, the concern and your view. Record what they decide as
-  `decided_by: human`.
-- **With no developer in the session** (an autonomous run), do not dismiss a concern of those
-  three kinds: a dismissal is never raised again, and nobody decided. Either make the choice,
-  write it into the plan and record `addressed` (the next review checks it), or leave the concern
-  open. List these concerns in your report as waiting for a person.
+  For these, either make the choice, write it into the plan and record `addressed` (the next
+  review checks it), or leave the concern open. A dismissal is never raised again, so it needs
+  someone's decision.
+- **Report what waits for a decision.** List every concern you left open in your report, with the
+  quoted passage, the concern and your view. That is where a person finds it, now or later.
+- **A person's decision is recorded as theirs.** When someone decides a concern, in the session
+  or by recording it themselves, the verdict is `decided_by: human`. Both ways of answering a
+  concern are valid: by the agent, and by a person.
 - **One at a time.** Write each verdict when its concern is settled. A concern that waits for a
   decision never delays the verdicts of the others, and never gets a placeholder.
 - **Nobody acted.** Do not invent a verdict for a concern you did not act on. It stays open; say
