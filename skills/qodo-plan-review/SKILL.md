@@ -149,8 +149,9 @@ Documents are sent as text, at most 20 of them. A document that is a symlink is 
 **What is sent.** A submit sends the text of every document, the repository names and the
 session context to the authenticated Qodo deployment. Before you submit:
 
-- Send only documents that belong to this plan and that the developer gave you or pointed you
-  to for this work. Do not add one they did not; say in your report what you left out.
+- Send only documents that belong to this plan: the plan you wrote for this work, and documents
+  the developer gave you or pointed you to for it. Do not add anything else; say in your report
+  what you left out.
 - Never include secrets. Remove credentials, tokens and sensitive log output from the documents
   and the context first. If a document cannot be cleaned without changing what the developer
   wrote, leave it out and say so.
