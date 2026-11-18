@@ -88,8 +88,37 @@ class ProductHostedReviewTests(unittest.TestCase):
                             'meta': {'checkpoint': {'id': 'reopen', 'sequence': 2, 'created_at': '2026-01-02'}}}, pr=pr['key'])
             finding, = collect_findings(pr, cfg)
             self.assertEqual(finding['status'], 'open')
-            self.assertEqual(finding['local']['reported_closure']['status'], 'resolved')
+            self.assertEqual(finding['local']['status_conflict']['qodo'], 'resolved')
             self.assertEqual(finding['body'], 'Saved evidence')
+
+    def test_id_only_saved_closure_is_visible_on_matching_open_record(self):
+        scope = scope_tests.ProductFindingScopeTests()
+        pr = scope.pr()
+        cfg = {'adapters': ['qodo_local', 'qodo_comments']}
+        for origin in ('local_skill', 'git_pr'):
+            raw = {'id': 'f', 'title': 'Matching details', 'review_source': origin, 'review_run_id': 'qodo-review'}
+            detailed = qodo_cli.to_finding(pr, raw)
+            with self.subTest(origin=origin), tempfile.TemporaryDirectory() as tmp, \
+                    mock.patch.object(qodo_local, 'STORE', Path(tmp)), \
+                    mock.patch('cockpit.adapters.qodo_findings', return_value=[detailed]):
+                for sequence, bucket in enumerate(('resolved', 'dismissed')):
+                    qodo_local.add({
+                        'findings': [], 'finding_state': {bucket: ['f', 'unmatched']},
+                        'meta': {'local_review_ids': {'f': 'original-import'},
+                                 'checkpoint': {'id': f'run-{sequence}', 'sequence': sequence,
+                                                'created_at': f'2026-10-01T00:00:0{sequence}Z'}},
+                    }, pr=pr['key'])
+                    finding, = collect_findings(pr, cfg)
+                    self.assertEqual(finding['qodo_id'], 'f')
+                    self.assertEqual(finding.get('status', 'open'), 'open')
+                    self.assertEqual(finding['title'], 'Matching details')
+                    self.assertEqual(finding['review_run_id'], 'qodo-review')
+                    local = finding['local']
+                    saved = local['saved_import'] if origin == 'local_skill' else local
+                    self.assertEqual((saved['status'], saved['review_id']), (bucket, 'original-import'))
+                    rendered = scope.render(view._pr_view({**pr, 'findings': [finding]}))
+                    for surface in ('primary', 'focus', 'app'):
+                        self.assertIn(f'Saved import: {bucket} · Qodo record: open', rendered[surface])
 
     def test_reviewers_command_cannot_overwrite_a_concurrent_enrichment(self):
         helper=helpers.ProductEnrichRefreshTests();entered=threading.Event();release=threading.Event();errors=[]

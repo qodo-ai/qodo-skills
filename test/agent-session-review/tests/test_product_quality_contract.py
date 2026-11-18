@@ -335,9 +335,9 @@ class ProductQualityContractTests(unittest.TestCase):
                                 self.assertIsNone(public['closed_as'])
                                 self.assertIsNone(public['status_why'])
                                 local = public['local']
-                                self.assertEqual(local['reported_closure'], {
-                                    key: detailed[key] for key in ('status', 'closed_as', 'status_why')
-                                    if key in detailed
+                                self.assertEqual(local['status_conflict'], {
+                                    'saved': 'open', 'qodo': status, 'saved_why': None,
+                                    'qodo_why': detailed.get('status_why'), 'qodo_closed_as': attribution,
                                 })
                                 if origin == 'local_skill':
                                     self.assertEqual(local['review_id'], 'qodo-review')
@@ -350,7 +350,8 @@ class ProductQualityContractTests(unittest.TestCase):
                                         self.assertIn(label, rendered[surface])
                             else:
                                 self.assertEqual(public['closed_as'], attribution)
-                                self.assertNotIn('reported_closure', public['local'] or {})
+                                self.assertEqual((public['local'].get('status_conflict') or {}).get('saved'),
+                                                 bucket if bucket != status else None)
                         self.assertEqual(detailed, original)
 
     def test_optional_badge_uses_the_existing_informational_severity(self):

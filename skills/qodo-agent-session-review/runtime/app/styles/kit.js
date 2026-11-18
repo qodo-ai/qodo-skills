@@ -26,8 +26,8 @@ const KIT = (() => {
   const sevRank = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
   const openFindings = (c) => allFindings(c).filter((f) => !f.status || f.status === "open").sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5));
   const localTag = (f) => {
-    const closure = f.local?.reported_closure;
-    if (closure?.status) return ` <span class="local" title="${esc(closure.status_why || '')}">· Saved import: open · Qodo record: ${esc(String(closure.status).replaceAll('_', ' '))}</span>`;
+    const conflict = f.local?.status_conflict;
+    if (conflict?.saved && conflict.qodo) return ` <span class="local" title="${esc([conflict.saved_why, conflict.qodo_why].filter(Boolean).join(' · '))}">· Saved import: ${esc(String(conflict.saved).replaceAll('_', ' '))} · Qodo record: ${esc(String(conflict.qodo).replaceAll('_', ' '))}</span>`;
     if (f.details_unavailable) return ` <span class="local">· Finding ID: <code>${esc(f.qodo_id)}</code></span>`;
     if (f.status === 'detected_after_merge') return ` <span class="local" title="No fix was verified">· detected after merge</span>`;
     const l = f.local, when = l?.at ? ` on ${String(l.at).slice(0, 10)}` : "";

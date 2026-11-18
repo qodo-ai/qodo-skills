@@ -261,17 +261,17 @@ def to_finding(pr: dict, rec: dict, f: dict, state: str | None, *, origins: dict
     return {k: v for k, v in out.items() if v is not None}
 
 
-def _missing_finding(pr: dict, fid: str, reference: str | None) -> dict:
-    """An open obligation without detail is not a finding with guessed evidence."""
+def _missing_finding(pr: dict, fid: str, reference: str | None, state: str) -> dict:
+    """An ID-only observation has no evidence other than its identity and state."""
     return {"id": _row_id(pr, fid), "pr": pr["key"], "source": "qodo-local", "qodo_id": fid,
-            "category": "general", "severity": "unknown", "details_unavailable": True,
-            "status": "open", "current_anchor": False, "title": "Local finding details unavailable",
-            "body": "The saved local review lists this finding as open but does not include its details. "
-                    "Import a result with its details to inspect it.",
-            "local": {"review_id": reference} if reference else {}}
+             "category": "general", "severity": "unknown", "details_unavailable": True,
+             "status": state, "current_anchor": False, "title": "Local finding details unavailable",
+             "body": f"The saved local review lists this finding as {state} but does not include its details. "
+                     "Import a result with its details to inspect it.",
+             "local": {"review_id": reference} if reference else {}}
 
 
-def collect(pr: dict, cfg: dict) -> list[dict]:
+def collect(pr: dict, cfg: dict, *, include_closed_ids: bool = False) -> list[dict]:
     """One finding per local finding id, as the latest local review left it. Each copy of a finding is merged
     into what earlier reviews said. Show an ID-only open finding even if no import supplies its details."""
     raw: dict[str, tuple[dict, dict]] = {}   # finding id -> (the review that last mentioned it, its merged copy)
@@ -305,6 +305,6 @@ def collect(pr: dict, cfg: dict) -> list[dict]:
                     status[fid] = k if k in ("dismissed", "resolved") else "open"
     findings = [to_finding(pr, rec, f, status.get(fid), origins=origins, references=references)
                 for fid, (rec, f) in raw.items()]
-    findings.extend(_missing_finding(pr, fid, references.get(fid))
-                    for fid, state in status.items() if state == "open" and fid not in raw)
+    findings.extend(_missing_finding(pr, fid, references.get(fid), state)
+                    for fid, state in status.items() if fid not in raw and (state == "open" or include_closed_ids))
     return findings

@@ -142,8 +142,8 @@ function checksSummary(pr) {
 }
 // A local finding: what the author's own `qodo review` found before the PR. Its status is as that review left it.
 function localPill(f) {
-  const closure = f.local?.reported_closure;
-  if (closure?.status) return `<span class="pill" title="${esc(closure.status_why || '')}">Saved import: open · Qodo record: ${esc(String(closure.status).replaceAll('_', ' '))}</span>`;
+  const conflict = f.local?.status_conflict;
+  if (conflict?.saved && conflict.qodo) return `<span class="pill" title="${esc([conflict.saved_why, conflict.qodo_why].filter(Boolean).join(' · '))}">Saved import: ${esc(String(conflict.saved).replaceAll('_', ' '))} · Qodo record: ${esc(String(conflict.qodo).replaceAll('_', ' '))}</span>`;
   if (f.status === 'detected_after_merge') return `<span class="pill" title="No fix was verified">detected after merge</span>`;
   const l = f.local;
   if (l?.origin === 'managed') return `<span class="pill" title="Qodo records this finding from local_skill before the PR. This origin does not establish a completed PR review.">before the PR</span>`;

@@ -54,11 +54,17 @@ def _with_saved_import(detail: dict, saved: dict) -> dict:
     row = {**detail, "local": local}
     if not saved.get("details_unavailable") and saved.get("body") and not row.get("body"):
         row["body"] = saved["body"]
-    # The saved review and the matching record do not establish which disposition is newer.
-    # Only an explicit open observation, not a legacy row's default, can keep this conflict visible.
-    if saved.get("status") == "open" and detail.get("status") not in (None, "", "open"):
-        local["reported_closure"] = {k: row.pop(k) for k in ("status", "closed_as", "status_why") if k in row}
-        row["status"] = "open"
+    qodo_status = detail.get("status") or "open"
+    # The sources do not establish which disposition is newer. Keep both visible and count an
+    # open observation, but don't treat a legacy row's implicit default as an explicit reopening.
+    if "status" in saved and state != qodo_status:
+        local["status_conflict"] = {"saved": state, "qodo": qodo_status,
+                                    "saved_why": saved.get("status_why"), "qodo_why": detail.get("status_why"),
+                                    "qodo_closed_as": detail.get("closed_as")}
+        if state == "open":
+            row.pop("closed_as", None)
+            row.pop("status_why", None)
+            row["status"] = "open"
     return row
 
 
@@ -72,7 +78,13 @@ def collect_findings(pr: dict, cfg: dict) -> list[dict]:
         mod = REGISTRY.get(name)
         if not mod:
             continue
-        for f in (qodo_findings(pr, cfg) if name == "qodo_comments" else mod.collect(pr, cfg)):
+        if name == "qodo_comments":
+            findings = qodo_findings(pr, cfg)
+        elif name == "qodo_local":
+            findings = mod.collect(pr, cfg, include_closed_ids=True)
+        else:
+            findings = mod.collect(pr, cfg)
+        for f in findings:
             if f["id"] in seen:
                 continue
             seen.add(f["id"])
@@ -88,6 +100,8 @@ def collect_findings(pr: dict, cfg: dict) -> list[dict]:
         if index is not None:
             out[index] = _with_saved_import(out[index], f)
             merged.add(f["id"])
+        elif f.get("details_unavailable") and f.get("status") != "open":
+            merged.add(f["id"])   # an unmatched closed ID needs no visible placeholder
     return [f for f in out if f["id"] not in merged]
 
 
