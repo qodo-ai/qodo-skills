@@ -19,7 +19,7 @@ plugins remain owned by their host.
 | `qodo-agent-session-review` | No | interactive PR/work-package review, local notes/marks, refresh/resume and export |
 | `qodo-plan-review` | No | plan review before implementation, with a verdict recorded on each concern |
 
-Qodo Standards and Agent Session Review are separate opt-in packages. Updating core never installs either.
+Qodo Standards, Agent Session Review and Plan Review are separate opt-in packages. Updating core never installs any of them.
 Agent Session Review requires Python 3.9+ and Qodo CLI2+, keeps state outside installed resources, and does
 not publish provider comments or finding dispositions. Its runtime retains Qodo commercial terms;
 core and Standards retain their MIT metadata.
@@ -33,6 +33,10 @@ With Qodo CLI 2.3.0 or newer, install it explicitly with
 `qodo skills install qodo-agent-session-review`. The CLI selects the verified public or private
 source and maintains the full package under existing update preferences. For native/portable installation, see its
 [package and host guidance](skills/qodo-agent-session-review/references/packaging.md#install-scope-and-current-managed-compatibility).
+
+Plan Review is an optional package for a closed preview, excluded from defaults and marketplace
+indexes. Install it explicitly with `qodo skills install qodo-plan-review`. It needs a Qodo CLI
+release that has the `qodo plan-review` command and the Plan Review tools enabled for the workspace.
 
 ## Contribute a skill update
 

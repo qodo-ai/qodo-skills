@@ -53,7 +53,8 @@ the same answers go into your report instead (step 5).
 - An authenticated connection to the intended deployment and workspace.
 - Plan Review is enabled for the workspace. It is a closed preview: the review, the read tool
   and the write tool are enabled separately.
-- The plan documents are readable files, and the repository is registered with Qodo.
+- The plan documents are readable files. The repository is one Qodo can read from the git
+  provider; when it cannot, the review judges the plan text alone and says so.
 
 ## Instructions
 
@@ -122,8 +123,9 @@ failures retain their error and stop this workflow.
 - `plan-review-tools` is unknown after identity succeeds: refresh the catalog once with
   `qodo tools --refresh` and check again. If it is still absent, the workspace does not expose the
   Plan Review tools; report that capability boundary instead of repeating login or refresh.
-- Only `concerns` is listed and `set-status` is not: reading is enabled and recording verdicts is
-  not. Review and present the concerns; report that verdicts cannot be recorded.
+- `qodo tools help plan-review-tools` lists `concerns` and not `set-status`: reading is enabled
+  and recording verdicts is not. Review and present the concerns; report that verdicts cannot be
+  recorded.
 
 Take the exact flags from the live help, because the command and the catalog can change:
 `qodo plan-review --help`, `qodo read tools plan-review-tools --json` for the read, and
@@ -141,6 +143,21 @@ all to be useful. Submit each as its own document with its kind:
 - `other`: anything else the plan rests on.
 
 Documents are sent as text, at most 20 of them. A document that is a symlink is refused.
+
+**What is sent.** A submit sends the text of every document, the repository names and the
+session context to the authenticated Qodo deployment. Before you submit:
+
+- Send only documents that belong to this plan and that the developer gave you or pointed you
+  to for this work. Ask before adding one they did not.
+- Never include secrets. Remove credentials, tokens and sensitive log output from the documents
+  and the context first. If a document cannot be cleaned without changing what the developer
+  wrote, ask instead of sending it.
+- When `--context-file` is omitted, the CLI attaches the repository's
+  `.qodo/session-context.json` if it exists. Read that file before the first submit. To send
+  less, pass an explicit `--context-file` holding only what may be sent; it replaces that file.
+- If the developer asked for Plan Review, or the operator's standing instruction includes it,
+  submit without a further question. When you run it on your own initiative, say first which
+  documents, repository and context you are sending, and do not submit over an objection.
 
 ### 3. Submit
 
