@@ -1,0 +1,61 @@
+{
+  "expectations": [
+    {
+      "text": "For mixed-followup, the complete next context retains both supplied decisions with their user/agent ownership, the shared admission-guard evidence, refreshed caller evidence, untested-live-load limitation and original open F-TIMEOUT identity. recent_work describes both this round's timeout correction and new cancellation API, not the obsolete pre-review work. The command uses the supplied base and unchanged scope with auto, without forcing --full merely because notes changed or F-TIMEOUT remains open.",
+      "passed": true,
+      "evidence": "B.md:9-18 preserves both decisions, all required evidence and uncertainty, and both current changes. B.md:3 specifies auto and unchanged scope; B.md:24 supplies the exact base; B.md:27 excludes effort overrides and --full while preserving path arguments."
+    },
+    {
+      "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
+      "passed": true,
+      "evidence": "B.md:35-39 rejects resubmission, retains F-OLD as pending/action-required, and explicitly reports needs action despite assessment completion and no new findings."
+    },
+    {
+      "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+      "passed": true,
+      "evidence": "B.md:43-49 evaluates the alleged bypass against the mandatory guard, recommends dismissal with evidence, rejects code changes and identical review, and explicitly leaves stored disposition unchanged."
+    },
+    {
+      "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
+      "passed": true,
+      "evidence": "B.md:53-55 accepts original F-HELPER as resolved/implemented despite the unchanged line and rejects further review. B.md:67 explicitly states that no status writes were performed."
+    },
+    {
+      "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
+      "passed": true,
+      "evidence": "B.md:61-65 rejects disappearance as fix evidence, keeps F-QUOTE open, and requires tracing the renamed path to determine whether unsafe input remains reachable."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The Engine determines reuse eligibility.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:3 attributes reuse eligibility to the Engine. The supplied facts establish no reported invalidation, and the help establishes implicit auto effort, but neither establishes which component owns reuse eligibility."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Add an explicit distinction between resolving F-HELPER and establishing overall readiness. B.md:57 correctly makes readiness conditional, but the current helper-fixed assertion does not test that safeguard."
+      }
+    ],
+    "overall": "All assertions pass. B preserves the distinction between a settled finding and overall readiness; the Engine ownership claim remains unverifiable from permitted inputs."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15cd45afffdktFMeojkY00hUd",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea373474001M8T4tBs0h6hPI8",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "expectations": [
+    {
+      "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
+      "passed": true,
+      "evidence": "A.md:5-13 waits 20 seconds, proposes status collection for op-accepted, continues polling that operation, and preserves the original submission despite branch/context changes."
+    },
+    {
+      "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
+      "passed": true,
+      "evidence": "A.md:19-25 reproduces the exact recovery command and explicitly prohibits new options or a replacement snapshot, requiring the retained original request."
+    },
+    {
+      "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+      "passed": true,
+      "evidence": "A.md:31-38 establishes local readiness separately from failed persistence and unverified PR handoff, denies end-to-end completion, and rejects rerunning an adequate assessment merely for storage."
+    },
+    {
+      "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
+      "passed": true,
+      "evidence": "A.md:42-46 limits the claim to an older zero-finding result, leaves missing properties unknown, and explicitly says 'Do not certify.'"
+    },
+    {
+      "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
+      "passed": true,
+      "evidence": "A.md:52-54 preserves both message and hint verbatim. A.md:56 prohibits resubmission before confirmed enrollment, account/deployment switches, and repeated login."
+    },
+    {
+      "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
+      "passed": true,
+      "evidence": "A.md:60-64 counts two assessments, excludes polls/extended retrieval, preserves exhaustion across sessions, retains action-required F-BLOCK, denies established readiness, and prohibits a third assessment without explicit extension."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "--extended retrieves stored detail without rerunning or deepening the review.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:11 matches qodo-auto-help.txt:21-22, which describes additional output detail; effort flags are separately described at qodo-auto-help.txt:62-64."
+    },
+    {
+      "claim": "The commands are proposals, not executed operations.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:1 explicitly states this; task.md:6 confirms that no proposed operational command was executed."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Add an independent assertion against unrequested effort overrides: prompt.md:13 specifies no new effort request, and qodo-auto-help.txt:62-64 establishes no flag=auto. A.md:8,22,46 complies, but the existing assertions do not comprehensively test this constraint."
+      }
+    ],
+    "overall": "All six pass as proposed behavior. No material unsupported claims found; actual recovery, persistence, and handoff success are not demonstrated or claimed."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e157dd036ffdnOAOT97rhDDPNh",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea82b401001U78Ywk5nEcmZfR",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

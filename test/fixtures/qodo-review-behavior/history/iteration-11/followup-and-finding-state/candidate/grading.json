@@ -1,0 +1,80 @@
+{
+  "expectations": [
+    {
+      "text": "For mixed-followup, recent_work includes both the timeout fix and new cancellation API, preserves decisions/notes context and the original finding identity, uses auto, and does not force --full merely because notes changed or a finding remains open.",
+      "passed": true,
+      "evidence": "B.md:12-14 includes both changes in recent_work. B.md:10-11 retains a decisions field, makes missing decision details explicit, carries the refreshed-notes context, and preserves the original finding's open identity without inventing an ID or citations. B.md:5 selects auto and rejects forcing --full; B.md:21-23 contains no effort override or --full. B.md:26 preserves any restricted original path arguments."
+    },
+    {
+      "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
+      "passed": true,
+      "evidence": "B.md:34 says not to submit again despite complete assessment and inventory. B.md:36 preserves original F-OLD as pending/action-required. B.md:38 reports 'Needs action—not ready' and identifies the unresolved obligation and necessary decision."
+    },
+    {
+      "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+      "passed": true,
+      "evidence": "B.md:42 stops the identical review loop and rejects code changes or optional refactoring. B.md:44 assesses the mandatory guard and recommends dismissing original F-GUARD with that evidence. B.md:46-48 preserves the evidence and explicitly says no stored dismissal was authorized or performed."
+    },
+    {
+      "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
+      "passed": true,
+      "evidence": "B.md:52 reuses the completed assessment without another review. B.md:54 accepts the original F-HELPER resolved/implemented verdict and upstream helper correction. B.md:56 explains why the unchanged quotation does not negate the correction. B.md:1 states that no finding statuses were written."
+    },
+    {
+      "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
+      "passed": true,
+      "evidence": "B.md:60 keeps original F-QUOTE open and requires investigating whether the renamed code still permits the unsafe path. B.md:62 identifies the missing semantic-fix evidence and resolution verdict. B.md:64 rejects claims of a fix, resolution, or readiness."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The proposed mixed-followup command uses auto effort and collects the retained operation instead of resubmitting.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:21-23 omits effort overrides, which selects auto under qodo-auto-help.txt:62-64. B.md:28 proposes collection by operation ID, consistent with qodo-auto-help.txt:29-36."
+    },
+    {
+      "claim": "The proposed context describes both changes while distinguishing an author-reported timeout fix from a verified resolution.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "B.md:11-14 includes the timeout correction and new API, retains the original open identity, and explicitly says the author's claim does not establish resolution."
+    },
+    {
+      "claim": "F-GUARD needs no code fix, and no stored dismissal is authorized.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:44-48 matches the supplied mandatory-guard evidence and the explicit authorization boundary. The recommendation is not presented as an executed status change."
+    },
+    {
+      "claim": "F-HELPER is settled, but overall Ready locally requires no other required obligations in the inventory.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "B.md:54-56 accepts the supplied implemented verdict while expressly declining to infer overall readiness from resolution of this finding alone."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
+        "reason": "Explicitly test whether the response distinguishes finding resolution from overall readiness. B.md:56 correctly makes readiness conditional on all other required obligations being settled, but the current assertion does not require this distinction."
+      }
+    ],
+    "overall": "All five assertions pass. B also preserves the important distinction between a settled finding and overall readiness. These judgments assess proposals, not executed commands or persisted state."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e51ffdiZ5gflc0TJ04rX",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e81d0d001n7eTTCx3aBm1tC",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

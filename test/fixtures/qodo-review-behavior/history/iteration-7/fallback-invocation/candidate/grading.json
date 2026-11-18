@@ -1,0 +1,47 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "B.md:2,10,24 use '\"/opt/qodo tools/bin/qodo\"' for every proposed CLI call. No installation or PATH change is proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "B.md:10-13 omits both --fast and --deep; qodo-review-auto-help-evidence.txt:62 states 'no flag = auto'. B.md:11-12 supplies '--base 1111111111111111111111111111111111111111' and '--context-file /outside/context.json'. B.md:18-24 prevents collection if returned '.operation_id' extraction fails; B.md:27-32 leaves acceptance and review results pending."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The proposed submission retains auto depth by omitting both depth overrides.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:10-13 includes neither override; qodo-review-auto-help-evidence.txt:62-64 explicitly documents 'no flag = auto' and the --deep/--fast overrides."
+    },
+    {
+      "claim": "The proposed collection requires successful submission and a nonempty returned operation ID.",
+      "type": "process",
+      "verified": true,
+      "evidence": "B.md:10-22 exits on submission or '.operation_id' extraction failure before status at B.md:24. This establishes proposal semantics, not execution."
+    }
+  ],
+  "eval_feedback": {
+    "overall": "The original 1/2 grade depended on an unprovided auto default. The additional verified help contract at qodo-review-auto-help-evidence.txt:62-64 establishes that omission of both overrides selects auto, changing assertion 2 to pass and the grade to 2/2. No other assertion failures were found. Runtime acceptance and completed results remain unverified; these are synthetic proposals."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1721d340ffejiV0h37cdneP30",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8e149f1001yJQE8cuE3ViC1D",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

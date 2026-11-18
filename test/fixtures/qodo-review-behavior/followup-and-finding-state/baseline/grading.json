@@ -1,0 +1,68 @@
+{
+  "expectations": [
+    {
+      "text": "For mixed-followup, the complete next context retains both supplied decisions with their user/agent ownership, the shared admission-guard evidence, refreshed caller evidence, untested-live-load limitation and original open F-TIMEOUT identity. recent_work describes both this round's timeout correction and new cancellation API, not the obsolete pre-review work. The command uses the supplied base and unchanged scope with auto, without forcing --full merely because notes changed or F-TIMEOUT remains open.",
+      "passed": true,
+      "evidence": "B.md:10-16 preserves both owned decisions, guard/caller evidence, live-load limitation and open F-TIMEOUT; recent_work covers both current changes. B.md:24-29 uses the exact base, default auto, preserves previous path arguments and excludes --full."
+    },
+    {
+      "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
+      "passed": true,
+      "evidence": "B.md:37-41 rejects resubmission, requires choosing treatment for original F-OLD, preserves pending/action-required and reports Needs action despite complete coverage and zero new findings."
+    },
+    {
+      "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+      "passed": true,
+      "evidence": "B.md:45-51 uses all-callers mandatory-guard evidence to recommend dismissal, rejects code modification and identical review, and explicitly leaves stored disposition unchanged."
+    },
+    {
+      "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update. It separately preserves original F-REMAIN as pending/action-required and reports overall Needs action, not Ready locally: resolving F-HELPER does not settle the other required finding.",
+      "passed": true,
+      "evidence": "B.md:55-61 accepts the original resolved/implemented verdict despite the unchanged line, rejects resubmission and preserves F-REMAIN as pending/action-required with Needs action overall. B.md:71 disclaims status writes."
+    },
+    {
+      "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
+      "passed": true,
+      "evidence": "B.md:65-69 requires investigating unsafe reachability and gathering semantic evidence; it explicitly keeps F-QUOTE open and rejects inferring resolution or readiness from the missing quotation."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The proposed command uses auto effort without an explicit effort flag.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:24-29 omits --fast/--deep; qodo-auto-help.txt:62-64 confirms no flag means auto."
+    },
+    {
+      "claim": "F-HELPER is resolved while F-REMAIN still prevents overall readiness.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:55-61 matches the supplied completed-result facts in prompt.md:46-52; it does not imply a newly performed status write."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "mixed-followup scope preservation",
+        "reason": "B.md:29 promises to retain existing path arguments, but the prompt supplies no concrete prior pathspecs. Add a known nonempty scope to test exact command preservation rather than a verbal promise."
+      }
+    ],
+    "overall": "All assertions pass. No material unsupported claims identified. These proposals establish no executed review, saved context file or persisted disposition."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e157dd040ffdZmRSvkc8EkWBgg",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea82f294001iUpVG2zulywjRu",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

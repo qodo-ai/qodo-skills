@@ -1,0 +1,78 @@
+{
+  "expectations": [
+    {
+      "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
+      "passed": true,
+      "evidence": "A.md:5-13 waits 20 seconds, proposes status op-accepted --extended, forbids resubmission/context replacement, and limits the result to the original submission."
+    },
+    {
+      "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
+      "passed": true,
+      "evidence": "A.md:15-25 proposes the exact supplied recovery command unchanged, prohibits new input/context/effort options and another snapshot, and leaves acceptance unknown."
+    },
+    {
+      "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+      "passed": true,
+      "evidence": "A.md:29-33 separates satisfied local assessment conditions from failed checkpoint saving and unverified handoff, explicitly denies end-to-end completion, and rejects automatic reassessment."
+    },
+    {
+      "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
+      "passed": true,
+      "evidence": "A.md:37-41 reports only the older result's zero findings, marks coverage, inventory completeness and persistence unknown, and refuses certification."
+    },
+    {
+      "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
+      "passed": true,
+      "evidence": "A.md:43-53 reproduces both supplied sentences verbatim and stops retries pending confirmed enrollment, explicitly prohibiting account/deployment changes and another login."
+    },
+    {
+      "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
+      "passed": true,
+      "evidence": "A.md:57-61 counts 2 of 2 assessments, excludes collection operations, preserves exhaustion across sessions, retains F-BLOCK, denies readiness and prohibits an unauthorized third assessment."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The commands are proposals, not executed operations.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:1 explicitly identifies proposals; task.md:6 independently establishes that no proposed command was executed."
+    },
+    {
+      "claim": "Extended collection retrieves stored detail without rerunning or deepening the review.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:13 matches the collection/detail semantics in qodo-auto-help.txt:21-22 and 35-36."
+    },
+    {
+      "claim": "Missing metadata alone does not justify greater review effort.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:41 preserves the absence of an effort-change request in prompt.md:13; qodo-auto-help.txt:62-64 establishes auto when no effort flag is supplied."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Add an explicit assertion preserving ordinary auto effort when recovering missing evidence. The existing older-result assertion could pass an answer that refuses certification but unnecessarily prescribes --deep. A.md:41 avoids that problem, but the rubric does not directly test it."
+      }
+    ],
+    "overall": "All six assertions pass as proposals. No material unsupported claim identified; successful recovery, persistence repair and handoff were neither demonstrated nor claimed."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fbbffdiUa9KbRZw5Fggw",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea77985100124cMLrJdLePc7Y",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

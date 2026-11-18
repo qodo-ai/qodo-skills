@@ -1,0 +1,84 @@
+{
+  "expectations": [
+    {
+      "text": "For old-1-6, the response treats 1.6.0 as below the 2.0.0 minimum and stops before whoami, login, managed tools or review, without an unapproved update, deployment switch or fabricated supported version.",
+      "passed": true,
+      "evidence": "B.md:5-9 states the exact floor, stops protected calls and conditions recovery on authorization and a successful compatible-target check; it prohibits automatic installation and deployment changes."
+    },
+    {
+      "text": "For unparseable, the response stops protected calls and preserves the unknown runtime version, without diagnosing missing credentials, executing an unverified installer or inventing update approval.",
+      "passed": true,
+      "evidence": "B.md:15-21 marks compatibility blocked/unknown, rejects missing-credentials inference and login, limits the next diagnostic to override presence and proposes no installer/updater execution."
+    },
+    {
+      "text": "For floor-2-0-summary, the response accepts exactly 2.0.0, proposes an auto review with the supplied base and uses summary instead of notes while retaining the exact accepted decision and both recent_work entries without dropping the narrative's uncertainty.",
+      "passed": true,
+      "evidence": "B.md:25 accepts exactly 2.0.0. B.md:33-40 retains the exact decision, summary and both recent_work entries, including live-load uncertainty. B.md:47-50 supplies the exact base and auto through omission of effort flags, consistent with qodo-auto-help.txt:62-64."
+    },
+    {
+      "text": "For current-2-3-1-paths, the proposed command preserves both src/jobs/ and test/jobs/ path arguments with the exact supplied base and auto, retains the supplied notes/decision/mixed recent_work, and does not force --full or guarantee an unreported reuse result.",
+      "passed": true,
+      "evidence": "B.md:56 specifies auto; B.md:62-69 preserves all exact context. B.md:76 includes the exact base and both paths without effort/full flags. B.md:79-81 rejects forced --full and guaranteed reuse."
+    },
+    {
+      "text": "For mcp-no-collector, the response reports the missing tested local collector as a coverage blocker and neither submits an ad hoc git diff, substitutes a remote snapshot, claims completed worktree coverage nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "B.md:85-91 blocks review pending tested collection, prohibits ad hoc diff/substitute repository/unauthorized installation and leaves all local collection and coverage unverified."
+    },
+    {
+      "text": "For cli-identity-gap, the response distinguishes the matching returned snapshot metadata and completed assessment from the unavailable operation-response identity check. It does not substitute OP-REQUESTED or REVIEW-RESULT for a returned transport operation ID, claim that hidden comparison passed, invent a read API, change the runtime or submit another assessment to conceal the gap.",
+      "passed": true,
+      "evidence": "B.md:95-104 distinguishes complete assessment, matching snapshot and review-run ID from the absent transport ID/comparison. B.md:106 prohibits substituting either ID, runtime changes, invented APIs and resubmission; it explicitly identifies missing evidence rather than mismatch."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Both proposed contexts preserve the exact accepted decision, narrative uncertainty and mixed recent work.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "B.md:33-40 and B.md:62-69 exactly preserve prompt.md:26-28, using summary or notes as advertised."
+    },
+    {
+      "claim": "The operation-response identity comparison is unavailable/unverified, not proven mismatched.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:99-106 faithfully separates the known result/snapshot evidence from the missing comparison in prompt.md:41-48."
+    },
+    {
+      "claim": "An unparseable runtime requires the separately authorized Qodo/organization-supplied checksum-pinned installer route.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:19 states a mandatory recovery policy not supplied by the named inputs. Missing approval/checksum supports stopping, but does not establish this exclusive recovery requirement."
+    },
+    {
+      "claim": "The MCP schema cannot collect the worktree itself.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:85 states a categorical capability limit. prompt.md:37-40 establishes missing tested collection/prepared input, but supplies no actual schema or capability contract verifying the broader claim."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Provide recovery-policy and MCP-capability evidence to evaluate categorical claims in B.md:19 and B.md:85; safe blocking behavior alone does not substantiate those additional factual requirements."
+      }
+    ],
+    "overall": "All six proposal-level assertions pass. No operational success or actual worktree coverage can be inferred from these proposals."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e157dd051ffeG2ZXUdYUlaca42",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea82fa99001v87YmfIxyVYJ0u",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

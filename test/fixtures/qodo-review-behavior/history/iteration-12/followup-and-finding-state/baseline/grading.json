@@ -1,0 +1,64 @@
+{
+  "expectations": [
+    {
+      "text": "For mixed-followup, recent_work includes both the timeout fix and new cancellation API, preserves decisions/notes context and the original finding identity, uses auto, and does not force --full merely because notes changed or a finding remains open.",
+      "passed": true,
+      "evidence": "A.md:5 explicitly preserves existing decisions and caller evidence; A.md:9-13 retains the original open finding and includes both changes. A.md:20-23 uses auto without forcing --full."
+    },
+    {
+      "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
+      "passed": true,
+      "evidence": "A.md:29 rejects another unchanged submission; A.md:31 preserves F-OLD as pending/action-required; A.md:33 states 'Needs action—not ready.'"
+    },
+    {
+      "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+      "passed": true,
+      "evidence": "A.md:37-39 assesses the mandatory guard, recommends dismissal with caller evidence, and prohibits code changes, another identical review, or storing a dismissal. A.md:41 preserves stored state."
+    },
+    {
+      "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
+      "passed": true,
+      "evidence": "A.md:45-47 accepts the helper's semantic correction and preserves the existing F-HELPER resolved/implemented verdict despite the unchanged line. A.md:49 rejects another unchanged assessment; no manual status update is proposed."
+    },
+    {
+      "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
+      "passed": true,
+      "evidence": "A.md:55-59 keeps F-QUOTE open, rejects disappearance as proof of a fix, and calls for investigating the renamed path and guards."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The helper-fixed scope is ready locally.",
+      "type": "quality",
+      "verified": false,
+      "evidence": "A.md:51 qualifies this by the absence of other required findings in the supplied evidence. However, prompt.md:31-35 explicitly establishes only F-HELPER's resolution and assessment completeness, not that every required inventory item is settled. Overall readiness is therefore not independently established."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Clarify whether helper-fixed establishes an entirely settled inventory. The fourth assertion checks F-HELPER's resolution but does not test the broader local-readiness conclusion in A.md:51."
+      },
+      {
+        "reason": "Supply an existing context fixture containing decisions and caller evidence. Otherwise preservation can only be judged from instructions such as A.md:5, not demonstrated retained content."
+      }
+    ],
+    "overall": "All assertions pass; whole-scope readiness remains underspecified."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e160b45d3ffd8GtzTWtriSQ91c",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9f555df001SwREto9805Zhne",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

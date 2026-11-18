@@ -1,0 +1,89 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "B.md:7-36 requires the same logical request and exact retained arguments, reproduces mcp-cart-r1, the complete params/context/scope and stream ID, and omits depth for auto. B.md:36 explicitly rejects idempotency_key, a different snapshot and a replacement request ID. B.md:5 rejects CLI preflight, and B.md:77 recognizes complete tested collection and fetchable exact base."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "B.md:38-46 proposes two-second polling of the retained operation and checks isError and receipt identity. B.md:48-69 proposes both result pages with unchanged extended and requires successful retained-operation receipts, cursors through null, contiguous offsets 0 then 90 and verified joined length/digest before parsing. B.md:77-79 applies the 148-byte and association checks and reports complete coverage/inventory with no findings. B.md:81 explicitly withholds CI, approval, merge, release and deployment readiness."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "B.md:85 says 'Do not submit' because enumeration stopped, included paths are unknown and base fetchability is unverified. B.md:87 withholds completed assessment and verified coverage, requires a suitable tested collector and forbids ad hoc diffs, silent scope narrowing, installation or another checkout."
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:91 identifies advertised 7d7ca66f versus calculated 6d7ca66f. B.md:93 rejects interpretation of the apparent empty inventory and verified coverage/readiness claims. B.md:115-119 permits at most one collection-only recovery against the original operation, keeps the outcome blocked without a verified recovery and forbids another review submission."
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:97 explicitly identifies 149 advertised versus 148 measured bytes and says a matching digest does not override the mismatch. B.md:99 withholds verified assessment, coverage and readiness. B.md:115-119 limits recovery to one collection-only attempt on the retained operation and prohibits a new submission or no-findings claim without valid recovery evidence."
+    },
+    {
+      "text": "For wrong-operation, the response rejects the pages because their operation_id differs from the retained accepted operation, despite valid self-consistent bytes, and neither reports an assessment of the retained submission nor switches handles; any permitted recovery keeps the original operation without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:103 gives both the unrelated and retained operation IDs. B.md:105 explains that internally valid bytes do not establish association, forbids adopting or polling the unrelated operation and withholds coverage/readiness for the retained request. B.md:115-119 keeps the single recovery on 41c730de-840d-4b87-a95e-165b8b94f56a and prohibits a new review submission."
+    },
+    {
+      "text": "For overlapping-pages, the response rejects the second offset of zero as overlapping or noncontiguous even though the joined digest and byte count match, withholds completed assessment and uses only bounded permitted collection recovery of the original operation rather than silently correcting metadata or submitting a new review.",
+      "passed": true,
+      "evidence": "B.md:109 rejects offset 0 where 90 is required, despite the passing concatenated digest and length checks. B.md:111 forbids offset repair, page reordering or accepting the parsed inventory and withholds verified assessment/coverage. B.md:115-119 permits only one recovery of the original operation and no new review submission."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The eligible artifact establishes complete coverage and complete finding inventory with no introduced, still-open, resolved or dismissed findings.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:77-79 matches the supplied verified eligible artifact in prompt.md:64-75. This is a supported conditional conclusion for the exercise, not evidence of an actual service call."
+    },
+    {
+      "claim": "The assessment concerns the collected working snapshot, not merely its HEAD SHA.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:81 makes this distinction. The supplied collector includes tracked and reviewable untracked changes, and the supplied artifact association matches the retained submission."
+    },
+    {
+      "claim": "No recovery result is supplied, so the invalid-result continuations remain blocked rather than establishing no findings or readiness.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:119 explicitly preserves this boundary. The prompt authorizes a possible recovery but provides no recovered artifact or successful recovery outcome."
+    },
+    {
+      "claim": "A status-transport retry uses a returned delay, or 15 seconds if none is supplied.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:117 asserts this precise fallback. The permitted prompt and CLI-help evidence do not specify a status-transport fallback, and Skill snapshots are outside grading scope. The claim cannot be verified from the available evidence."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The recovery assertions do not validate the exact retry policy added at B.md:117. Include authoritative evidence for delay defaults and distinguish status-transport retries from malformed-artifact recollection, so a correct bounded-recovery proposal cannot conceal an unsupported timing rule."
+      }
+    ],
+    "overall": "All seven assertions are supported. The additional exact status-transport fallback remains unverified within the permitted evidence."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e4cffeIAsjqTfo8x5m8A",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e851b0001t5fE9l14cxfGL9",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

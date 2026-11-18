@@ -1,0 +1,8 @@
+{
+  "eval_name": "fallback-invocation",
+  "prompt": "Use qodo-review for this synthetic setup. Do not execute commands or write files.\nReturn only the proposed commands and their pending evidence state.\n\nThere is no bare qodo on PATH. The trusted installed invocation is\n`\"/opt/qodo tools/bin/qodo\"`; its unadorned version probe returned exactly 2.3.1.\nIdentity is already verified for that invocation and deployment. Its help supports\n--base, --context-file, --async, --json, review status and --extended.\n\nThe safe intended snapshot is ready for ordinary review. Relevant unit tests\nexplicitly passed. Verified remote base is 1111111111111111111111111111111111111111.\nThe prepared context is at /outside/context.json. No review exists.\n\nShow the version-probe form, auto submission and subsequent stored-result collection.\nKeep the trusted invocation, including its space, on every proposed call.\nUse only an actually returned operation ID; no ID or completed review is supplied.",
+  "assertions": [
+    "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+    "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review."
+  ]
+}

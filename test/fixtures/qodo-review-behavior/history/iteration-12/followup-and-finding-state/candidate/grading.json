@@ -1,0 +1,68 @@
+{
+  "expectations": [
+    {
+      "text": "For mixed-followup, recent_work includes both the timeout fix and new cancellation API, preserves decisions/notes context and the original finding identity, uses auto, and does not force --full merely because notes changed or a finding remains open.",
+      "passed": false,
+      "evidence": "B.md:5,12-16 satisfies the change list, original-finding continuity, auto and no-full requirements. But the proposed context sets decisions to [] and substitutes a summary acknowledging unavailable caller-evidence contents (B.md:7-20), without instructing preservation or merging of existing decisions and refreshed notes. Context preservation is not established."
+    },
+    {
+      "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
+      "passed": true,
+      "evidence": "B.md:37 rejects another submission; B.md:39 preserves F-OLD as pending/action-required; B.md:41 explicitly distinguishes zero new findings from readiness."
+    },
+    {
+      "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+      "passed": true,
+      "evidence": "B.md:45-49 assesses the mandatory guard, recommends evidence-backed dismissal, rejects code changes and identical reassessment, and leaves stored status unchanged."
+    },
+    {
+      "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
+      "passed": true,
+      "evidence": "B.md:55-59 accepts the semantic correction and existing F-HELPER resolved/implemented verdict despite the unchanged line, explicitly rejecting manual re-marking or another unchanged assessment."
+    },
+    {
+      "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
+      "passed": true,
+      "evidence": "B.md:65-69 rejects disappearance as proof, preserves F-QUOTE's original identity and open state, and requires investigation of the renamed path, guards or tests."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "total": 5,
+    "pass_rate": 0.8
+  },
+  "claims": [
+    {
+      "claim": "Neither code nor evidence changed after the old-backlog result.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:37 asserts both. Prompt.md:22-24 establishes unchanged code but does not expressly establish unchanged evidence. The extra claim is unsupported, although the no-resubmission conclusion meets the assertion."
+    },
+    {
+      "claim": "No decision ownership or design rationale was supplied.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:20 accurately describes the supplied prompt. This does not establish that existing decisions are empty or justify replacing retained context with decisions:[] at B.md:11."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "For mixed-followup, recent_work includes both the timeout fix and new cancellation API, preserves decisions/notes context and the original finding identity, uses auto, and does not force --full merely because notes changed or a finding remains open.",
+        "reason": "Provide a prior-context fixture and specify whether proposed JSON replaces or merges existing context. This makes preservation directly testable and distinguishes unavailable content from an empty decision history."
+      }
+    ],
+    "overall": "Four assertions pass; preservation of existing mixed-followup context is not demonstrated."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e160b45d3ffd8GtzTWtriSQ91c",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9f555df001SwREto9805Zhne",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

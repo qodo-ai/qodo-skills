@@ -1,0 +1,467 @@
+{
+  "schema_version": 1,
+  "method": "fresh-native-agents-with-anonymous-final-answer-grading",
+  "iteration": 12,
+  "fixture_source_commit": "55976bc01773c7910ab019aa8bf6cfaafab53d3d",
+  "fixture_fingerprints": {"compatibility-boundaries/case.yaml":"c172b17fe1c3fc06064d207027c8828341e2d6e8333121f309fda2fa5f4848f0","compatibility-boundaries/graders/01-old-version-stop.md":"44b0be499891ee8d34631a2f176ea2bb450c4372b1469f215f971af31273bf5f","compatibility-boundaries/graders/02-unparseable-stop.md":"399dd831f883012e3b043f7bd70dac5d5d487157234517fee87079492a23d51b","compatibility-boundaries/graders/03-minimum-summary-fields.md":"ebae91199df71e351037d7941fb7ff6e4538a93f02e07f8436ea6dc91ca35fed","compatibility-boundaries/graders/04-current-path-context.md":"3f0b90e2f34d9856c75cbd95a3b4bc1c53e4de935f24578bfc23fb9cdbbe5f01","compatibility-boundaries/graders/05-mcp-no-fabrication.md":"525823abc8e67a6fceb1d0f3c36b738162f9fa7d00ff56b15868421da4e2ba43","compatibility-boundaries/prompt.md":"d2d3881617159b2b7dcba7e3d3d1357d97e3d4de4f7a62a762dad9eacc2255a2","fallback-invocation/case.yaml":"5e276667fd16a184130d0f8060ea11522d125aced722fd8cea5571e1ade67779","fallback-invocation/graders/01-resolved-invocation.md":"1bd6837d958d51e7acb09388eb1f5693e56cc340a216753997c90a88f804cb26","fallback-invocation/graders/02-pending-auto-evidence.md":"3430fcf5e16f5107c37bd7681e383974689a3e08e94bea2854899b01d166c927","fallback-invocation/prompt.md":"04698d6eda5fab3dca5e8b167e37a36d2c400857f7b6e54366bfae741a77d45d","followup-and-finding-state/case.yaml":"f1225b1f7bbba5dae6e64759afd3517879f8d34267dbf5ba3caa6d2915624871","followup-and-finding-state/graders/01-honest-mixed-context.md":"495a9216ffa26ab1a6a760814931b4b96dab4253f1f9f42dbc3fb76819c23e62","followup-and-finding-state/graders/02-backlog-not-ready.md":"be47e4fecea93ed87befb8dbddf111b1776621dd5fb46ef20f4639815c3e081e","followup-and-finding-state/graders/03-no-unauthorized-dismissal.md":"9b99c5a5b76d8e41c44174f4273995e8a98dc61267a971caf753d492d89765ef","followup-and-finding-state/graders/04-semantic-helper-fix.md":"325c338e3d0b2e86d32fba327d33e51d2178bdc431055bba57cf675006500550","followup-and-finding-state/graders/05-quote-not-proof.md":"8ea68fd13ed7686339ff89336d43218598a595866b9df0370e16f0a089f55787","followup-and-finding-state/prompt.md":"aa1c5605edfe4a3a40f5227266d71517ffe04cb80ece82a1e24715ba50402927","mcp-collection/case.yaml":"9153df14bd0b353b2dc6c788905b8efffb4ca4584a750df4b8adc56c6a5c625f","mcp-collection/graders/01-eligible-submission.md":"90d51f7a17bd36978f2fb7fb48a62f79303c3e279b3c6478cbd79a098017f1aa","mcp-collection/graders/02-complete-verified-result.md":"9f1ac2e774b8db6433e31b951987a46b914abd4652485a214e18f51237bc7a73","mcp-collection/graders/03-incomplete-input-stop.md":"94bd744402eead477a27aa9dd807684de239b1f1a7a23cdb9e12f3223cc8932e","mcp-collection/graders/04-reject-bad-digest.md":"4f25d803aaaca6250427707803d577207bbab2e164c663e8e2086f4a238c04ce","mcp-collection/graders/05-reject-bad-byte-count.md":"e87a0f214fe2324f4251231065ab87649d63d2d66d44597cf83077fa38cea5dc","mcp-collection/graders/06-reject-wrong-operation.md":"fdf9a1a208681a6b16dde171fbc4fa8c99b99abe9e6864c823d5f73146df65cc","mcp-collection/graders/07-reject-overlapping-pages.md":"d5ff7344ce7f849ce95ae93ca63011f5ad887e943abfde5e5c004dd53abcd944","mcp-collection/prompt.md":"3bf2bb212d70f36e4c420df2a4ccf27f3cc0c2462896fe12722745def86e1c00","mcp-local-triage/case.yaml":"f1cd581d76bba4e70746a27a8dd2dfd8ed4f814d153563d85578816895ef8fbf","mcp-local-triage/graders/01-metadata-key.md":"9a5aa8f16fa97340a04274d134293fc88646cffa74d9100530bfb980f88dc020","mcp-local-triage/graders/02-no-unsafe-fallback.md":"675b31255735476b9efc06d6eb100818e325afcb68640b21d1dc7f7d52bd0c50","mcp-local-triage/graders/03-honest-prior-outcomes.md":"99d13d3530fb6143d2bc73f563a0842397e6648c59f47e37860fc1c0304c5ebd","mcp-local-triage/graders/04-saved-sync-pending.md":"7a4975e39a7a3bcdaedb6c9074db069c6b89e8d2681dd7dec3189b8ab95c8725","mcp-local-triage/graders/05-uncertain-write-keeps-key.md":"ab59c11f5787299a9489cee97d74ccc82f81b832e6ad2d0ed313702572119298","mcp-local-triage/prompt.md":"a56c1e637d0322a8845e7a30903f9b0fcf54e01460340c5c0f59e2f236a93396","milestone-and-final-scope/case.yaml":"e82ff751b5c08187469157855aab61f7831af6bfb248329e7010fb38a9b15ca0","milestone-and-final-scope/graders/01-default-auto.md":"4c0230be857773a983419687f22fba1da178d2f72523075b1ca13392ad4b1b84","milestone-and-final-scope/graders/02-clean-final-scope.md":"9b672a849b08f402f688a6ae4ff241f99fc5b59a2b173e22cd5ea66fbcb88ecf","milestone-and-final-scope/graders/03-reuse-completed.md":"d358cd925b19614f7fdffb65f76823896cd23cd0f8a40fa93ac4381e8b38da4c","milestone-and-final-scope/graders/04-no-trivial-run.md":"a53aec04bae05851a28dc1ffa8f937364ac72b65462ed4c71fa6e6239ed3b8a7","milestone-and-final-scope/graders/05-report-only.md":"b2330057d2da34d7322390cfcde74cb66fe0c13208fb070b00c6ef428e6c96cc","milestone-and-final-scope/graders/06-light-to-final.md":"84319217b6d26054c049236f423da6e33a0558fe4dbc60dd7f2db1a9a48326ff","milestone-and-final-scope/graders/07-explicit-fresh.md":"57fb0f4d2aa1ec1e83380c0e628d1198a3922eded461ce08058c83c8dcef4f45","milestone-and-final-scope/graders/08-no-fabricated-test-pass.md":"d585869382a69dc48dc5a2c98cfa61b4eedd55c769abf749478bb52eb6611068","milestone-and-final-scope/prompt.md":"15bb4998b0cbb6e588d4b2563c45cdbfc0de74ad67790c4355f6e056f8c36fe3","recovery-and-readiness/case.yaml":"c8962e6a2f35ecd5f67ea086851c1959d3889ba1e3a5631fd7c74e9eb9968b5d","recovery-and-readiness/graders/01-collect-accepted.md":"50023d55438e2b5fd9f47cd1e923037937998a9e6a07287472b7fd4552222a21","recovery-and-readiness/graders/02-exact-recovery.md":"12bcc3561e1760cd3d099cffff8de79fe3bd7c03d53ddb878200b01bb950a14c","recovery-and-readiness/graders/03-separate-storage.md":"a1de6b35e055cade112ca441f436ec99a8d55d3b5d15443eac621f936713b532","recovery-and-readiness/graders/04-unknown-old-coverage.md":"ee1a2641c904dd961e1ce579744a459db7a356fc7a30aea8fd94cfbab3895fe3","recovery-and-readiness/graders/05-entitlement-stop.md":"c8f8446a4890f8122841345e28db8f692ea8db4df325cc0f21e52082953a4690","recovery-and-readiness/graders/06-budget-across-resume.md":"c89379e7f83124a78445503fcef5e4d0182133ca7ebb37a0645336c64a40ac02","recovery-and-readiness/prompt.md":"ef8e96e2e4d2c25eb4d1703c3e790a5efeae3f6c4801f9e9be938cc988ac89cb","recovery-policy-guards/case.yaml":"9384383358856d640f51809f2edb4830a66a04a271c2882738a76506cb4ec30c","recovery-policy-guards/graders/01-check-before-every-updater.md":"7960be697eece426916a11f8c5153d49dfd05056b53250ec9d992301d5c0944b","recovery-policy-guards/graders/02-safe-missing-install.md":"0f5abafdf8ad36f67d7429edff6fd08d6aca1bd66257d2da2c2161637070b242","recovery-policy-guards/graders/03-user-retry-authority.md":"f5ea6e5a2942fb598aed0e271396d6b02c33987178eed7cf0fbed63874eff78e","recovery-policy-guards/prompt.md":"fc047108124248dfa7f1b85af3c71dc83a904a7db55181dc958c0cd730e9244a"},
+  "snapshots": {
+    "candidate": {
+      "source_commit": "55976bc01773c7910ab019aa8bf6cfaafab53d3d",
+      "source_kind": "immutable Git commit",
+      "release_metadata_version": "1.10.15",
+      "fingerprints": {
+        "SKILL.md": "1e8eaf1a2df17703d50365ad41324757f7bfde7222ce26c7bffd2a2ac7a8e421",
+        "references/cli-execution.md": "f43352c17097bfde9469aaa899e5af5b552da9eb5d9afe0b27723588203e45a1",
+        "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
+        "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
+        "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
+        "references/local-triage.md": "3d9e70c9f3cbfb4a7ecee97d13f36e3519a520d84fee47fa89f7ed839bcb50c0",
+        "references/mcp-review.md": "8ccc23546875f99ea4a66dc7f02bf04867bdc22725fa65456cbe3efcde782def",
+        "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
+        "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
+        "references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
+        "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
+      }
+    },
+    "baseline": {
+      "source_commit": "6385a42e83ac028349ff1c153a788a812a850bf5",
+      "source_kind": "immutable Git commit",
+      "release_metadata_version": "1.10.15",
+      "fingerprints": {
+        "SKILL.md": "94d6bb1ad3f74a9397575ed5edcae778bc667732464a94e6daa07d8c438c3cce",
+        "references/cli-execution.md": "f43352c17097bfde9469aaa899e5af5b552da9eb5d9afe0b27723588203e45a1",
+        "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
+        "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
+        "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
+        "references/local-triage.md": "9b22313f9009433b1f25cf9899b334f600a7c3c4e35353c1e9c9d9f37b9bbac5",
+        "references/mcp-review.md": "515aec12ec37f630a27170c16236d066efc51ac666e299e13f5bd3f6b6bd4c68",
+        "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
+        "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
+        "references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
+        "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
+      },
+      "git_objects": {
+        "path": "snapshots/baseline.json",
+        "sha256": "1e9500d858d1b3c5619ef7bb1290dc80b1d0c419b9187125028a4d4e041c2591",
+        "description": "Original signed6385a42 commit and source blobs as text, plus readable tree entries; every Git object identity checked offline."
+      }
+    }
+  },
+  "configuration_labels": {
+    "candidate": "with_skill",
+    "baseline": "old_skill"
+  },
+  "anonymous_grading_labels": {
+    "compatibility-boundaries": {
+      "candidate": "B",
+      "baseline": "A"
+    },
+    "fallback-invocation": {
+      "candidate": "A",
+      "baseline": "B"
+    },
+    "followup-and-finding-state": {
+      "candidate": "B",
+      "baseline": "A"
+    },
+    "mcp-collection": {
+      "candidate": "B",
+      "baseline": "A"
+    },
+    "mcp-local-triage": {
+      "candidate": "B",
+      "baseline": "A"
+    },
+    "milestone-and-final-scope": {
+      "candidate": "B",
+      "baseline": "A"
+    },
+    "recovery-and-readiness": {
+      "candidate": "B",
+      "baseline": "A"
+    },
+    "recovery-policy-guards": {
+      "candidate": "B",
+      "baseline": "A"
+    }
+  },
+  "cases": [
+    {
+      "name": "compatibility-boundaries",
+      "case_sha256": "c172b17fe1c3fc06064d207027c8828341e2d6e8333121f309fda2fa5f4848f0",
+      "prompt_sha256": "d2d3881617159b2b7dcba7e3d3d1357d97e3d4de4f7a62a762dad9eacc2255a2",
+      "assertions": [
+        {
+          "file": "01-old-version-stop.md",
+          "sha256": "44b0be499891ee8d34631a2f176ea2bb450c4372b1469f215f971af31273bf5f"
+        },
+        {
+          "file": "02-unparseable-stop.md",
+          "sha256": "399dd831f883012e3b043f7bd70dac5d5d487157234517fee87079492a23d51b"
+        },
+        {
+          "file": "03-minimum-summary-fields.md",
+          "sha256": "ebae91199df71e351037d7941fb7ff6e4538a93f02e07f8436ea6dc91ca35fed"
+        },
+        {
+          "file": "04-current-path-context.md",
+          "sha256": "3f0b90e2f34d9856c75cbd95a3b4bc1c53e4de935f24578bfc23fb9cdbbe5f01"
+        },
+        {
+          "file": "05-mcp-no-fabrication.md",
+          "sha256": "525823abc8e67a6fceb1d0f3c36b738162f9fa7d00ff56b15868421da4e2ba43"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "compatibility-boundaries/candidate/response.md",
+          "grading": "compatibility-boundaries/candidate/grading.json",
+          "provenance": "compatibility-boundaries/candidate/provenance.json",
+          "artifacts": {"compatibility-boundaries/candidate/response.md":"1fceec228bc455e20e5eb1fe4df00203a2d683c0170893529c3cff4936310b71","compatibility-boundaries/candidate/grading.json":"98ce4568d7c29fb7ea028d7b2d23a69c709f070b8f7efb4885b83513494681dd","compatibility-boundaries/candidate/provenance.json":"6b89075c0c16e4557df2b474266b78a34e5cfd01239db9f7b2f13a18fb80180a"}
+        },
+        "baseline": {
+          "response": "compatibility-boundaries/baseline/response.md",
+          "grading": "compatibility-boundaries/baseline/grading.json",
+          "provenance": "compatibility-boundaries/baseline/provenance.json",
+          "artifacts": {"compatibility-boundaries/baseline/response.md":"bfb84e283db9c315f3cf65c35c1910dc668c2ca5225bddbace7754d6c7f8afe6","compatibility-boundaries/baseline/grading.json":"15e24113afa9855765c9b924de37372ccc8ab2c4495e9a254e079278109f145a","compatibility-boundaries/baseline/provenance.json":"a7e6b1b0fc60c40c82235029fa6c952c524bc8be458dbce0231fe42189c9ef90"}
+        }
+      }
+    },
+    {
+      "name": "fallback-invocation",
+      "case_sha256": "5e276667fd16a184130d0f8060ea11522d125aced722fd8cea5571e1ade67779",
+      "prompt_sha256": "04698d6eda5fab3dca5e8b167e37a36d2c400857f7b6e54366bfae741a77d45d",
+      "assertions": [
+        {
+          "file": "01-resolved-invocation.md",
+          "sha256": "1bd6837d958d51e7acb09388eb1f5693e56cc340a216753997c90a88f804cb26"
+        },
+        {
+          "file": "02-pending-auto-evidence.md",
+          "sha256": "3430fcf5e16f5107c37bd7681e383974689a3e08e94bea2854899b01d166c927"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "fallback-invocation/candidate/response.md",
+          "grading": "fallback-invocation/candidate/grading.json",
+          "provenance": "fallback-invocation/candidate/provenance.json",
+          "artifacts": {"fallback-invocation/candidate/response.md":"d62eade896b4e55467ab152310971e1aa494709dd8ed6d140deef1169428b706","fallback-invocation/candidate/grading.json":"07aa738674633306d5e2e2eced3c3b45849950f29082f0c81a8c87ab561903bb","fallback-invocation/candidate/provenance.json":"37d87ec9c49a5e78e52204a699d9f80f051f8273377eb47138bf7a1caec8474e"}
+        },
+        "baseline": {
+          "response": "fallback-invocation/baseline/response.md",
+          "grading": "fallback-invocation/baseline/grading.json",
+          "provenance": "fallback-invocation/baseline/provenance.json",
+          "artifacts": {"fallback-invocation/baseline/response.md":"4285877ec57966547b92f398c72f68e8199c70d4f46f5f70bf9bc1d182e91eb0","fallback-invocation/baseline/grading.json":"409599dc7a206213380a9f0d527342625ebc329e87bed703b806ecbf5c3b8519","fallback-invocation/baseline/provenance.json":"12ac4bbd4a8bfa1d2fe8aa58cfa6d9d6205866891f333c7b638ae5cd93d1ac10"}
+        }
+      }
+    },
+    {
+      "name": "followup-and-finding-state",
+      "case_sha256": "f1225b1f7bbba5dae6e64759afd3517879f8d34267dbf5ba3caa6d2915624871",
+      "prompt_sha256": "aa1c5605edfe4a3a40f5227266d71517ffe04cb80ece82a1e24715ba50402927",
+      "assertions": [
+        {
+          "file": "01-honest-mixed-context.md",
+          "sha256": "495a9216ffa26ab1a6a760814931b4b96dab4253f1f9f42dbc3fb76819c23e62"
+        },
+        {
+          "file": "02-backlog-not-ready.md",
+          "sha256": "be47e4fecea93ed87befb8dbddf111b1776621dd5fb46ef20f4639815c3e081e"
+        },
+        {
+          "file": "03-no-unauthorized-dismissal.md",
+          "sha256": "9b99c5a5b76d8e41c44174f4273995e8a98dc61267a971caf753d492d89765ef"
+        },
+        {
+          "file": "04-semantic-helper-fix.md",
+          "sha256": "325c338e3d0b2e86d32fba327d33e51d2178bdc431055bba57cf675006500550"
+        },
+        {
+          "file": "05-quote-not-proof.md",
+          "sha256": "8ea68fd13ed7686339ff89336d43218598a595866b9df0370e16f0a089f55787"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "followup-and-finding-state/candidate/response.md",
+          "grading": "followup-and-finding-state/candidate/grading.json",
+          "provenance": "followup-and-finding-state/candidate/provenance.json",
+          "artifacts": {"followup-and-finding-state/candidate/response.md":"c9fc3429a4ad90b486ce1be9d388ac3c9fa915049bc1058d32a230f37c48d6fe","followup-and-finding-state/candidate/grading.json":"6b88cf2863ff01e6e6c8d4202f375c8d81e7c2edeb4d391b242354ca8304008b","followup-and-finding-state/candidate/provenance.json":"528b18c991e309810aca23edecbb82f6328f2037b4507cd7257e6bf2a7045ed6"}
+        },
+        "baseline": {
+          "response": "followup-and-finding-state/baseline/response.md",
+          "grading": "followup-and-finding-state/baseline/grading.json",
+          "provenance": "followup-and-finding-state/baseline/provenance.json",
+          "artifacts": {"followup-and-finding-state/baseline/response.md":"f61bb725bb115308ec5e0034c39f1b5c3cbb354ec598a632c2d943357e30b4a4","followup-and-finding-state/baseline/grading.json":"dda7ba6171c0899589d017b06b0b98e2c257e2ce0a281727da54066cd6f006ab","followup-and-finding-state/baseline/provenance.json":"e1fcff892cef37696b0809e587cb914b139496e0739188c5a6f3184784315927"}
+        }
+      }
+    },
+    {
+      "name": "mcp-collection",
+      "case_sha256": "9153df14bd0b353b2dc6c788905b8efffb4ca4584a750df4b8adc56c6a5c625f",
+      "prompt_sha256": "3bf2bb212d70f36e4c420df2a4ccf27f3cc0c2462896fe12722745def86e1c00",
+      "assertions": [
+        {
+          "file": "01-eligible-submission.md",
+          "sha256": "90d51f7a17bd36978f2fb7fb48a62f79303c3e279b3c6478cbd79a098017f1aa"
+        },
+        {
+          "file": "02-complete-verified-result.md",
+          "sha256": "9f1ac2e774b8db6433e31b951987a46b914abd4652485a214e18f51237bc7a73"
+        },
+        {
+          "file": "03-incomplete-input-stop.md",
+          "sha256": "94bd744402eead477a27aa9dd807684de239b1f1a7a23cdb9e12f3223cc8932e"
+        },
+        {
+          "file": "04-reject-bad-digest.md",
+          "sha256": "4f25d803aaaca6250427707803d577207bbab2e164c663e8e2086f4a238c04ce"
+        },
+        {
+          "file": "05-reject-bad-byte-count.md",
+          "sha256": "e87a0f214fe2324f4251231065ab87649d63d2d66d44597cf83077fa38cea5dc"
+        },
+        {
+          "file": "06-reject-wrong-operation.md",
+          "sha256": "fdf9a1a208681a6b16dde171fbc4fa8c99b99abe9e6864c823d5f73146df65cc"
+        },
+        {
+          "file": "07-reject-overlapping-pages.md",
+          "sha256": "d5ff7344ce7f849ce95ae93ca63011f5ad887e943abfde5e5c004dd53abcd944"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "mcp-collection/candidate/response.md",
+          "grading": "mcp-collection/candidate/grading.json",
+          "provenance": "mcp-collection/candidate/provenance.json",
+          "artifacts": {"mcp-collection/candidate/response.md":"0de54b889fc1a63f6a8192cbf9c9cb516fe24bfb1b2dcf06b46b74b799ad6627","mcp-collection/candidate/grading.json":"197c226bc78c69569052afd3a7cf276451d2d943e31901f2be7865ac384648b6","mcp-collection/candidate/provenance.json":"9cb980b8debb6cc609fa35582acefd2811d597f52c9294ec4cfc8fcd9b8f4a2c"}
+        },
+        "baseline": {
+          "response": "mcp-collection/baseline/response.md",
+          "grading": "mcp-collection/baseline/grading.json",
+          "provenance": "mcp-collection/baseline/provenance.json",
+          "artifacts": {"mcp-collection/baseline/response.md":"2de6dd0718dc44c2b8f225548cc7e18c6ab1bcba5524a95750bdffcfe0d84d01","mcp-collection/baseline/grading.json":"9f47bc5909f90af54e7567d608565d3cab0df742fd0c5b3ce59fd977ed6689fd","mcp-collection/baseline/provenance.json":"4de6f6f2477e66f3fa866638953e1c33a6c319ac8964f02e46a9a7887345f83a"}
+        }
+      }
+    },
+    {
+      "name": "mcp-local-triage",
+      "case_sha256": "f1cd581d76bba4e70746a27a8dd2dfd8ed4f814d153563d85578816895ef8fbf",
+      "prompt_sha256": "a56c1e637d0322a8845e7a30903f9b0fcf54e01460340c5c0f59e2f236a93396",
+      "assertions": [
+        {
+          "file": "01-metadata-key.md",
+          "sha256": "9a5aa8f16fa97340a04274d134293fc88646cffa74d9100530bfb980f88dc020"
+        },
+        {
+          "file": "02-no-unsafe-fallback.md",
+          "sha256": "675b31255735476b9efc06d6eb100818e325afcb68640b21d1dc7f7d52bd0c50"
+        },
+        {
+          "file": "03-honest-prior-outcomes.md",
+          "sha256": "99d13d3530fb6143d2bc73f563a0842397e6648c59f47e37860fc1c0304c5ebd"
+        },
+        {
+          "file": "04-saved-sync-pending.md",
+          "sha256": "7a4975e39a7a3bcdaedb6c9074db069c6b89e8d2681dd7dec3189b8ab95c8725"
+        },
+        {
+          "file": "05-uncertain-write-keeps-key.md",
+          "sha256": "ab59c11f5787299a9489cee97d74ccc82f81b832e6ad2d0ed313702572119298"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "mcp-local-triage/candidate/response.md",
+          "grading": "mcp-local-triage/candidate/grading.json",
+          "provenance": "mcp-local-triage/candidate/provenance.json",
+          "artifacts": {"mcp-local-triage/candidate/response.md":"2267518435b0dde8f1c1d8c5861f694ad63de5295b877d9b4e81a524b74a7131","mcp-local-triage/candidate/grading.json":"42a0b67f3f388934fcfebe023a4ee0569369fb683a2ace10b45900c03b140b53","mcp-local-triage/candidate/provenance.json":"5926edc874b3c59d6bbbb80a0fe57cf2f19873b3f325899122f105597356dba4"}
+        },
+        "baseline": {
+          "response": "mcp-local-triage/baseline/response.md",
+          "grading": "mcp-local-triage/baseline/grading.json",
+          "provenance": "mcp-local-triage/baseline/provenance.json",
+          "artifacts": {"mcp-local-triage/baseline/response.md":"7551406941d708a259643046b74a62d8a6232ce7e857d9c91bfdc34644502d49","mcp-local-triage/baseline/grading.json":"e040dcfb783d6158bde3d49a8ea51c498fd97f7081b3dbba8242ab854b3d9777","mcp-local-triage/baseline/provenance.json":"6bb40bd76787341047886a3864b8c4b42da5948bcb4246c7757d036f1f156599"}
+        }
+      }
+    },
+    {
+      "name": "milestone-and-final-scope",
+      "case_sha256": "e82ff751b5c08187469157855aab61f7831af6bfb248329e7010fb38a9b15ca0",
+      "prompt_sha256": "15bb4998b0cbb6e588d4b2563c45cdbfc0de74ad67790c4355f6e056f8c36fe3",
+      "assertions": [
+        {
+          "file": "01-default-auto.md",
+          "sha256": "4c0230be857773a983419687f22fba1da178d2f72523075b1ca13392ad4b1b84"
+        },
+        {
+          "file": "02-clean-final-scope.md",
+          "sha256": "9b672a849b08f402f688a6ae4ff241f99fc5b59a2b173e22cd5ea66fbcb88ecf"
+        },
+        {
+          "file": "03-reuse-completed.md",
+          "sha256": "d358cd925b19614f7fdffb65f76823896cd23cd0f8a40fa93ac4381e8b38da4c"
+        },
+        {
+          "file": "04-no-trivial-run.md",
+          "sha256": "a53aec04bae05851a28dc1ffa8f937364ac72b65462ed4c71fa6e6239ed3b8a7"
+        },
+        {
+          "file": "05-report-only.md",
+          "sha256": "b2330057d2da34d7322390cfcde74cb66fe0c13208fb070b00c6ef428e6c96cc"
+        },
+        {
+          "file": "06-light-to-final.md",
+          "sha256": "84319217b6d26054c049236f423da6e33a0558fe4dbc60dd7f2db1a9a48326ff"
+        },
+        {
+          "file": "07-explicit-fresh.md",
+          "sha256": "57fb0f4d2aa1ec1e83380c0e628d1198a3922eded461ce08058c83c8dcef4f45"
+        },
+        {
+          "file": "08-no-fabricated-test-pass.md",
+          "sha256": "d585869382a69dc48dc5a2c98cfa61b4eedd55c769abf749478bb52eb6611068"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "milestone-and-final-scope/candidate/response.md",
+          "grading": "milestone-and-final-scope/candidate/grading.json",
+          "provenance": "milestone-and-final-scope/candidate/provenance.json",
+          "artifacts": {"milestone-and-final-scope/candidate/response.md":"6d369f1f0e9e24b6854febc3fd69163599b73775538a17e0627a62c8f798fbe7","milestone-and-final-scope/candidate/grading.json":"4744bfa0d815a25d4130fbb86bc0c3f33c4b591ab5e67129ae9f454c6a711399","milestone-and-final-scope/candidate/provenance.json":"5e7628961f6ee6a1a21928ee355aa27b97a0982d70407e7217a5e1736a84b93e"}
+        },
+        "baseline": {
+          "response": "milestone-and-final-scope/baseline/response.md",
+          "grading": "milestone-and-final-scope/baseline/grading.json",
+          "provenance": "milestone-and-final-scope/baseline/provenance.json",
+          "artifacts": {"milestone-and-final-scope/baseline/response.md":"72d7934f01c2a87d719dd9c922d71dd6d634636e8cb3bcac782aad6c435e2baa","milestone-and-final-scope/baseline/grading.json":"8ff44750f36ff67b575d1ce0496e5d3232be45e06a7118920a11c6b5fa22f450","milestone-and-final-scope/baseline/provenance.json":"f11ee8a286a0005f2c8cefe6fcc7e03cc412b0c36e8251b8db654aa59e2ffef8"}
+        }
+      }
+    },
+    {
+      "name": "recovery-and-readiness",
+      "case_sha256": "c8962e6a2f35ecd5f67ea086851c1959d3889ba1e3a5631fd7c74e9eb9968b5d",
+      "prompt_sha256": "ef8e96e2e4d2c25eb4d1703c3e790a5efeae3f6c4801f9e9be938cc988ac89cb",
+      "assertions": [
+        {
+          "file": "01-collect-accepted.md",
+          "sha256": "50023d55438e2b5fd9f47cd1e923037937998a9e6a07287472b7fd4552222a21"
+        },
+        {
+          "file": "02-exact-recovery.md",
+          "sha256": "12bcc3561e1760cd3d099cffff8de79fe3bd7c03d53ddb878200b01bb950a14c"
+        },
+        {
+          "file": "03-separate-storage.md",
+          "sha256": "a1de6b35e055cade112ca441f436ec99a8d55d3b5d15443eac621f936713b532"
+        },
+        {
+          "file": "04-unknown-old-coverage.md",
+          "sha256": "ee1a2641c904dd961e1ce579744a459db7a356fc7a30aea8fd94cfbab3895fe3"
+        },
+        {
+          "file": "05-entitlement-stop.md",
+          "sha256": "c8f8446a4890f8122841345e28db8f692ea8db4df325cc0f21e52082953a4690"
+        },
+        {
+          "file": "06-budget-across-resume.md",
+          "sha256": "c89379e7f83124a78445503fcef5e4d0182133ca7ebb37a0645336c64a40ac02"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "recovery-and-readiness/candidate/response.md",
+          "grading": "recovery-and-readiness/candidate/grading.json",
+          "provenance": "recovery-and-readiness/candidate/provenance.json",
+          "artifacts": {"recovery-and-readiness/candidate/response.md":"2345ab09e6845614a9441e55632039417cc2e659ba3f36c104ba221a096326dd","recovery-and-readiness/candidate/grading.json":"d6ebfa5747258d5dbecc68d919c9cd3b379561231a3f7f6a9dbea3f79c5d1223","recovery-and-readiness/candidate/provenance.json":"4a1365f842319a68c911d985ed528e72dee492c5e13912fd58d3fbae3aa7fe3c"}
+        },
+        "baseline": {
+          "response": "recovery-and-readiness/baseline/response.md",
+          "grading": "recovery-and-readiness/baseline/grading.json",
+          "provenance": "recovery-and-readiness/baseline/provenance.json",
+          "artifacts": {"recovery-and-readiness/baseline/response.md":"392f79ee9701d57e7ffbc0648dae13d8e34bf7ad933a0d53589bb45ea5476a6a","recovery-and-readiness/baseline/grading.json":"a27f1b00e3db8ed1ef5e86777aa23ade47706ea0a7ce91d30623d36bddc1fcd4","recovery-and-readiness/baseline/provenance.json":"d8dca2cbbddf46511c1f8670d91b0d5e53d13e954ecb1723b1e95451e9467283"}
+        }
+      }
+    },
+    {
+      "name": "recovery-policy-guards",
+      "case_sha256": "9384383358856d640f51809f2edb4830a66a04a271c2882738a76506cb4ec30c",
+      "prompt_sha256": "fc047108124248dfa7f1b85af3c71dc83a904a7db55181dc958c0cd730e9244a",
+      "assertions": [
+        {
+          "file": "01-check-before-every-updater.md",
+          "sha256": "7960be697eece426916a11f8c5153d49dfd05056b53250ec9d992301d5c0944b"
+        },
+        {
+          "file": "02-safe-missing-install.md",
+          "sha256": "0f5abafdf8ad36f67d7429edff6fd08d6aca1bd66257d2da2c2161637070b242"
+        },
+        {
+          "file": "03-user-retry-authority.md",
+          "sha256": "f5ea6e5a2942fb598aed0e271396d6b02c33987178eed7cf0fbed63874eff78e"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "recovery-policy-guards/candidate/response.md",
+          "grading": "recovery-policy-guards/candidate/grading.json",
+          "provenance": "recovery-policy-guards/candidate/provenance.json",
+          "artifacts": {"recovery-policy-guards/candidate/response.md":"0ce09acaa998695c07e4ccc40eb276dde90d2715bbf2802cf94f98da4e1b37a3","recovery-policy-guards/candidate/grading.json":"f4290e5ec77fd805876ddc399f4685e1a28a84cf6e875dd9c07050f1fe39905e","recovery-policy-guards/candidate/provenance.json":"234e90fc29303690b559d4727fe630a3416cc461b1e5ea55c38740c4b89b728c"}
+        },
+        "baseline": {
+          "response": "recovery-policy-guards/baseline/response.md",
+          "grading": "recovery-policy-guards/baseline/grading.json",
+          "provenance": "recovery-policy-guards/baseline/provenance.json",
+          "artifacts": {"recovery-policy-guards/baseline/response.md":"26de81d299f6d80847c503333f45516fb871e87d249bdf91b08cf610bd16a165","recovery-policy-guards/baseline/grading.json":"0c529ca01cfa8ec2d1f89ce0e32887f54b33b24217bb9d111015158acdc5c117","recovery-policy-guards/baseline/provenance.json":"b31a7888ae9f4d2dfb8830d7935f5a76dde8ae28c2a93c38fee89872e405a764"}
+        }
+      }
+    }
+  ],
+  "scores": {
+    "candidate": {
+      "passed": 40,
+      "total": 41
+    },
+    "baseline": {
+      "passed": 40,
+      "total": 41
+    }
+  },
+  "history": {
+    "iteration_8": {
+      "path": "history/iteration-8/archive.json",
+      "sha256": "3c9f574afa4daedb29caf9e22dadb4e1bfdebda4dda707243fe0dff9c22bed71",
+      "note": "All104 prior33-assertion artifacts and original instruction/input bytes are unchanged."
+    },
+    "iteration_9": {
+      "path": "history/iteration-9/archive.json",
+      "sha256": "c3c658cd7035fe835d7e69b32bdf8ff7ca5690151b8ea57684227a97cddb95a0",
+      "note": "All74 focused5-assertion artifacts, instructions and inputs are unchanged."
+    },
+    "iteration_6": {
+      "path": "history/iteration-6/archive.json",
+      "sha256": "271a30a7b59d7f578bdc3cfb37bb0764f381c9d855bbc6342eb1084396000ea5",
+      "note": "All40 original artifacts retain their recorded identities and29/27 judgments."
+    },
+    "iteration_7": {
+      "path": "history/iteration-7/archive.json",
+      "sha256": "c52ba233cef23c10b1bfa0e4d1d4e197a16ff0aa17a08827c25d3ab0e299e286",
+      "note": "Exact original judgments/answers/case inputs and31-to32 adjudication remain unchanged."
+    },
+    "iteration_10": {
+      "path": "history/iteration-10/archive.json",
+      "sha256": "68a6f702542f4c0fc9bff25584a84615a1feeafa07ed596e7ae7de81158921fb"
+    },
+    "iteration_11": {
+      "path": "history/iteration-11/archive.json",
+      "sha256": "ca34776c2e0c78511ccb17f33be55828749cba0dea04240e88e4ab20c111857e"
+    }
+  },
+  "grading_evidence": {
+    "artifacts": {"history/iteration-7/adjudication/qodo-review-auto-help-evidence.txt":"436db2735276b25d7c27c4261a91c20eb4a1f905cc7809e53913560c1b83df16"},
+    "use": "Same verified auto-default CLI help supplied to anonymous graders before grading. No iteration11 adjudication."
+  },
+  "limits": "Original failed40/41comparison. Responses, grades, provenance and timing are parent-captured bytes, not repaired. No service writes, runtime/MP1 qualification, reliability or causal uplift."
+}

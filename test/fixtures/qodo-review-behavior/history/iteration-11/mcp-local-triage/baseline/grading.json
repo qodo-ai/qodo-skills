@@ -1,0 +1,73 @@
+{
+  "expectations": [
+    {
+      "text": "For metadata-only, the proposed MCP dismissal preserves original F-A/F-B and L-ORIGINAL, the authorized reason/explanation, and one retained stable key through _meta[\"io.qodo/idempotency-key\"], without inventing a schema argument, CLI invocation, successful write or response/recovery contract beyond the supplied facts; it calls for per-finding stored-outcome verification.",
+      "passed": false,
+      "evidence": "B.md:11-25 preserves the required arguments and metadata key without adding an idempotency_key argument; B.md:29 requires per-finding result checks and stored-disposition readback. However, B.md:27 assumes an operation receipt and recovery through the original operation. Case 1 establishes exact keyed replay, not receipt issuance or original-operation collection. The no-invented-response/recovery-contract requirement is not satisfied."
+    },
+    {
+      "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
+      "passed": true,
+      "evidence": "B.md:33 says 'Blocked: do not submit an unprotected write' and identifies both unavailable replay-key paths and the absent trusted CLI. B.md:35 requires documented protection, prohibits invented arguments or omitted protection, and explicitly states neither dismissal was performed. No installation or account/deployment switch is proposed."
+    },
+    {
+      "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
+      "passed": true,
+      "evidence": "B.md:41 preserves F-A's deferred reason and exact migration explanation while denying that false_positive was saved. B.md:42 preserves F-B's conflict and unsuccessful transition. B.md:44-46 rejects batch-success and clean-review claims and identifies the absence of evidence or authority for further action."
+    },
+    {
+      "text": "For saved-sync-pending, the response reports F-C's dismissal as stored and synchronization as incomplete. It explains that a completed same-key MCP replay cannot retry synchronization. The separately authorized new attempt preserves F-C, its local-review identity, reason and explanation, uses a new retained transport key, retains the original receipt, and verifies the new operation's outcome without claiming convergence in advance.",
+      "passed": true,
+      "evidence": "B.md:50 reports verified storage and incomplete synchronization. B.md:54-56 preserves F-C, L-CURRENT, false_positive and the original explanation, uses a new metadata key, and retains both original and new requests/keys/receipts. B.md:58 explains why completed same-key replay cannot invoke the handler again. B.md:60 requires checking the new result and readback, reporting actual reconciliation, and stopping after the permitted attempt."
+    },
+    {
+      "text": "For uncertain-write, the response collects the original operation or replays the exact original request with its retained key. It does not rotate the key, start another mutation, change the decision, or claim storage or synchronization without a terminal result and readback.",
+      "passed": true,
+      "evidence": "B.md:64 reports the outcome as unknown. B.md:66 requires collecting the original operation or replaying the exact original request with its original key, then verifying the outcome and stored disposition. B.md:68 rejects a new key while completion is uncertain and disclaims saved, failed or clean-review outcomes."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "total": 5,
+    "pass_rate": 0.8
+  },
+  "claims": [
+    {
+      "claim": "The metadata-only interaction provides an operation receipt and supports recovery through the original operation.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:27 presupposes a receipt and original-operation recovery. Those capabilities are not supplied for case 1; only keyed replay is established. The assumption is unsupported rather than demonstrably false."
+    },
+    {
+      "claim": "A new keyed invocation can retry synchronization while preserving the stored decision, whereas completed same-key replay cannot.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:58 matches the supplied transport deduplication and idempotent endpoint behavior. B.md:60 appropriately leaves actual convergence to verification."
+    },
+    {
+      "claim": "The MCP dismissal tool is named pr-review-dismiss.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:11 uses this tool name. No trusted MCP tool-name listing is included in the permitted artifacts, so its correctness cannot be independently verified within this scope."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Provide a minimal trusted MCP tool listing if request executability is an intended grading target. The allowed artifacts establish argument and replay semantics but cannot validate the proposed tool name."
+      }
+    ],
+    "overall": "The assertions cover the consequential differences between completed operations, pending synchronization and uncertain writes. The first assertion fails on the unsupported receipt/recovery assumption, not on payload or replay-key handling."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e4bffelv7ol8gHx8cj1i",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e89670001V2MdAzRZBDGNhP",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

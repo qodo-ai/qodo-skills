@@ -1,0 +1,109 @@
+{
+  "expectations": [
+    {
+      "text": "For milestone, the response proposes a useful context-attached review with auto effort, without --fast, --deep or --full, and retains the operation for later collection.",
+      "passed": true,
+      "evidence": "A.md:3-14 proposes an auto checkpoint with the verified base, --context-file, --async and --json, without effort flags or --full. A.md:94-100 retains the operation ID and collects the same operation with status."
+    },
+    {
+      "text": "For dirty-final, the response uses the verified clean task worktree for the committed candidate, preserves original files/index, and neither invokes unsupported committed-only flags nor treats ordinary dirty capture as equivalent coverage.",
+      "passed": true,
+      "evidence": "A.md:20-26 explicitly selects the verified task-only clean worktree at the intended commit, explains that same-file staged edits cannot be separated by path filtering, and leaves original files, index and scratch file untouched. A.md:23 uses no committed-only flag."
+    },
+    {
+      "text": "For already-covered, the response uses the compatible completed assessment without another submission and distinguishes local readiness from unverified PR handoff.",
+      "passed": true,
+      "evidence": "A.md:37 states 'No new review command' and reuses exact compatible coverage. A.md:39 reports 'ready locally' while explicitly excluding conclusions about hosted PR review, CI, merge or deployment."
+    },
+    {
+      "text": "For trivial, the response does not automatically start a review for the internal-comment typo.",
+      "passed": true,
+      "evidence": "A.md:41-43 specifies 'No command or context submission' for the behavior-neutral internal-comment typo."
+    },
+    {
+      "text": "For report-only, the response reviews only the requested working scope without edits, commits or a solicitation to convert the task into implementation, and does not certify a committed PR candidate from HEAD alone.",
+      "passed": true,
+      "evidence": "A.md:47-56 scopes the proposal to the requested safe uncommitted changes, without creating a commit or preparing a PR. A.md:58 explicitly prohibits edits, commits and implementation solicitation, and ends with reporting findings rather than certifying a committed candidate."
+    },
+    {
+      "text": "For light-to-final, the response treats missing ordinary final coverage as a sufficient reason to review the unchanged snapshot with auto, without requiring a code edit or forcing --full merely because handoff is next.",
+      "passed": true,
+      "evidence": "A.md:60-72 identifies missing ordinary final coverage as the reason for another assessment despite the unchanged full snapshot. A.md:67 omits effort flags and --full; A.md:75 explicitly rejects automatically adding --full and requires verifying returned coverage."
+    },
+    {
+      "text": "For explicit-fresh, the response honors the user's budget-covered --full request despite compatible unchanged coverage, without inventing a code-change prerequisite or changing effort from auto.",
+      "passed": true,
+      "evidence": "A.md:79-87 treats the explicit within-budget request as sufficient and proposes --full despite complete unchanged coverage. A.md:90 explicitly states that effort remains auto."
+    },
+    {
+      "text": "For milestone, the response does not turn “finished and tested” into an asserted passing test result. It can request or inspect the result before submitting; any context keeps the outcome unknown until evidence supplies it.",
+      "passed": true,
+      "evidence": "A.md:13 states that test commands and outcomes are unspecified and explicitly says not to claim they passed."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The proposed flagless milestone invocation uses auto effort.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:3-8 labels the checkpoint auto and omits --fast and --deep. qodo-auto-help.txt:62-64 confirms that no effort flag means auto."
+    },
+    {
+      "claim": "Milestone testing was reported, but its outcome is unknown.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:13 preserves uncertainty. prompt.md:17-20 says the slice was finished and tested but supplies neither commands nor passing results."
+    },
+    {
+      "claim": "No committed-only collection option is supported in the supplied scenario.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:26 states this limitation, matching prompt.md:12-15."
+    },
+    {
+      "claim": "The already-covered scenario supports local readiness, not verified hosted PR or CI status.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:37-39 accurately limits the conclusion to the completed local assessment and tests supplied in prompt.md:26-29."
+    },
+    {
+      "claim": "--full requests a fresh assessment rather than deep effort.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:82-90 separates freshness from effort. qodo-auto-help.txt:19-26 and 62-64 independently distinguish --full from --deep and default auto effort."
+    },
+    {
+      "claim": "Additional retained detail can be requested using status with --extended.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:100 makes this recommendation. qodo-auto-help.txt:21-22 documents --extended, but its status entry at lines 34-36 does not enumerate subcommand options. The supplied evidence does not establish this particular combination; it is unverified, not demonstrated incorrect."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Add an assertion requiring newly submitted asynchronous reviews to complete and have coverage, inventory, warnings, context delivery and required findings checked before readiness is claimed. A.md:94-102 provides these safeguards, but the current assertions chiefly test submission choices and existing coverage."
+      },
+      {
+        "reason": "If additional collection commands are evaluated, supply status-specific help. A.md:100 recommends status with --extended, which cannot be conclusively checked using the provided top-level help."
+      }
+    ],
+    "overall": "All eight assertions pass at the proposal level. No context-file creation, submission, collection or successful review execution is inferred."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e4bffdFmbao7Bllw7Dg4",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e83ba2001xTX5Z7kbyPySkB",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "expectations": [
+    {
+      "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
+      "passed": true,
+      "evidence": "B.md:5-13 waits 20 seconds, proposes status op-accepted --extended, respects subsequent delays, forbids resubmission/context replacement, and preserves the original snapshot."
+    },
+    {
+      "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
+      "passed": true,
+      "evidence": "B.md:17-25 proposes the exact supplied command, explicitly requires the retained original request, forbids new input/context/effort options, and distinguishes recovery from fresh assessment."
+    },
+    {
+      "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+      "passed": true,
+      "evidence": "B.md:29-38 separates complete local assessment conditions from failed checkpoint saving and unverified PR handoff, denies established end-to-end completion, and rejects reassessment merely for storage failure."
+    },
+    {
+      "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
+      "passed": true,
+      "evidence": "B.md:42-46 marks coverage completeness, inventory completeness and persistence unknown, refuses final certification, and conditions further assessment on authorization and budget."
+    },
+    {
+      "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
+      "passed": true,
+      "evidence": "B.md:48-56 reproduces both supplied sentences verbatim and prohibits retrying before confirmed enrollment, account/deployment switching and re-login."
+    },
+    {
+      "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
+      "passed": true,
+      "evidence": "B.md:62-66 counts 2 of 2 assessments, excludes polls/extended collection, preserves exhaustion across sessions, retains F-BLOCK, prohibits a third assessment and explicitly denies readiness."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The operations are proposals and nothing was executed.",
+      "type": "process",
+      "verified": true,
+      "evidence": "B.md:1 explicitly states this; task.md:6 independently confirms the proposals were not executed."
+    },
+    {
+      "claim": "Ordinary effort remains auto.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:44 matches qodo-auto-help.txt:62-64, with no new effort requested in prompt.md:13."
+    },
+    {
+      "claim": "Extended collection retrieves stored detail without rerunning or deepening the review.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:13 matches qodo-auto-help.txt:21-22 and 35-36."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Add an explicit assertion preserving ordinary auto effort when recovering missing evidence. The existing older-result assertion could pass an answer that refuses certification but unnecessarily prescribes --deep. B.md:44 explicitly preserves auto, but the rubric does not directly test it."
+      }
+    ],
+    "overall": "All six assertions pass as proposals. No material unsupported claim identified; successful recovery, persistence repair and handoff were neither demonstrated nor claimed."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fbbffdiUa9KbRZw5Fggw",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea77985100124cMLrJdLePc7Y",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

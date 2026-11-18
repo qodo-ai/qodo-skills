@@ -1,0 +1,80 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "B.md:5-35 reproduces the retained request and complete payload with omitted depth for auto. B.md:37-39 prohibits idempotency_key, snapshot/context/scope changes and another start after acceptance."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "B.md:39-64 specifies two-second polling, isError checks, both pages, consistent extended, contiguous offsets, null termination and pre-parse integrity checks. B.md:74-83 confirms 148 bytes, matching digest, complete empty inventory and explicit downstream limitations."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "B.md:85-91 proposes no start because enumeration, included paths and base fetchability are unresolved; forbids invented scope, substitute checkout and installation, and reports coverage/readiness blocked. No ad hoc diff is proposed."
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": false,
+      "evidence": "B.md:95-97 correctly rejects the digest mismatch and apparent findings. However, B.md:119-127 unconditionally proposes recollection for every invalid case without establishing or conditioning it on Skill permission. Original-handle and no-new-submission constraints are preserved at B.md:123,132."
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": false,
+      "evidence": "B.md:101-103 correctly rejects 149 versus 148 despite matching digest and withholds inventory/coverage conclusions. B.md:119-127 nevertheless proposes recovery unconditionally; the required permission is unestablished, although B.md:123,132 preserve the original handle and prohibit another submission."
+    },
+    {
+      "text": "For wrong-operation, the response rejects the pages because their operation_id differs from the retained accepted operation, despite valid self-consistent bytes, and neither reports an assessment of the retained submission nor switches handles; any permitted recovery keeps the original operation without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:107-109 rejects both mismatched pages despite valid bytes and forbids adopting/polling the other operation. B.md:119-132 keeps recollection on the original operation and prohibits another submission. This assertion's narrower recovery identity requirement is satisfied; permission remains separately unsupported."
+    },
+    {
+      "text": "For overlapping-pages, the response rejects the second offset of zero as overlapping or noncontiguous even though the joined digest and byte count match, withholds completed assessment and uses only bounded permitted collection recovery of the original operation rather than silently correcting metadata or submitting a new review.",
+      "passed": false,
+      "evidence": "B.md:113-115 correctly rejects offset 0 instead of 90 despite passing digest/length and forbids correction. B.md:119-127 proposes one original-operation recovery without establishing Skill permission; B.md:130,132 correctly block unresolved results and prohibit another submission."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 3,
+    "total": 7,
+    "pass_rate": 0.5714285714285714
+  },
+  "claims": [
+    {
+      "claim": "One complete recollection may be proposed for every invalid-result case.",
+      "type": "process",
+      "verified": false,
+      "evidence": "B.md:117-127 makes this unconditional. The prompt conditions recovery on Skill permission, but the allowed inputs do not establish that permission. This is unverified, not proof that recovery is forbidden."
+    },
+    {
+      "claim": "Eligible supports Ready locally, but not CI, approval, release or deployment readiness.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "B.md:74-83 grounds this synthetic conclusion in verified complete coverage, empty findings and supplied focused tests, with explicit limitations."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Supply the Skill's recovery-permission rule or explicitly require permission-conditional proposals. B.md:119-127 establishes boundedness and handle identity, but not permission."
+      },
+      {
+        "reason": "The wrong-operation assertion checks the handle used by any permitted recovery, unlike the other invalid-case assertions' 'only bounded permitted' requirement. Explicitly require the permission gate consistently if that distinction is unintended."
+      }
+    ],
+    "overall": "Integrity, association and scope handling are correct. Three assertions fail solely because recovery permission is assumed rather than established or made conditional."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fc0ffdloymVKwQpI9OYW",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea779e57001tKKXIXP2HZye9j",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

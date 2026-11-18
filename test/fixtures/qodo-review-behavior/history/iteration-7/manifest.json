@@ -1,0 +1,431 @@
+{
+  "schema_version": 1,
+  "method": "fresh-native-agents-with-anonymous-final-answer-grading",
+  "snapshots": {
+    "candidate": {
+      "source_commit": null,
+      "source_kind": "current working instruction bytes",
+      "release_metadata_version": "1.10.15",
+      "fingerprints": {
+        "SKILL.md": "94d6bb1ad3f74a9397575ed5edcae778bc667732464a94e6daa07d8c438c3cce",
+        "references/cli-execution.md": "f43352c17097bfde9469aaa899e5af5b552da9eb5d9afe0b27723588203e45a1",
+        "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
+        "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
+        "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
+        "references/local-triage.md": "9b22313f9009433b1f25cf9899b334f600a7c3c4e35353c1e9c9d9f37b9bbac5",
+        "references/mcp-review.md": "515aec12ec37f630a27170c16236d066efc51ac666e299e13f5bd3f6b6bd4c68",
+        "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
+        "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
+        "references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
+        "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
+      }
+    },
+    "baseline": {
+      "source_commit": "173cfc700e4ee8a83c20e47abc1edfcd75612354",
+      "source_kind": "immutable Git commit",
+      "release_metadata_version": "1.10.15",
+      "fingerprints": {
+        "SKILL.md": "ce8da4f08ceb1a4de6682153b30e81fe3d75f2d7a7832b71c7591b82bd5aaad5",
+        "references/cli-execution.md": "2415c565714cf1f91b3b86f706db56388fb8229921eba4d4156d0d0d4093ec2c",
+        "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
+        "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
+        "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
+        "references/local-triage.md": "70f786a5bd8d88a3b6be52f4a0bc1e4bee033349d6225bec95bdc1da99d6628c",
+        "references/mcp-review.md": "515aec12ec37f630a27170c16236d066efc51ac666e299e13f5bd3f6b6bd4c68",
+        "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
+        "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
+        "references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
+        "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
+      },
+      "git_objects": {
+        "path": "snapshots/baseline.json",
+        "sha256": "b3dda8206a45dcd1ce1023637bf7e73171eeab0b6ae7e8c8f0950ab0c6e68cb6",
+        "description": "Original signed commit and source blobs as text, plus readable tree entries. Git verifies every object identity offline; unrelated history is not included."
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "compatibility-boundaries",
+      "prompt_sha256": "d2d3881617159b2b7dcba7e3d3d1357d97e3d4de4f7a62a762dad9eacc2255a2",
+      "assertions": [
+        {
+          "file": "01-old-version-stop.md",
+          "sha256": "44b0be499891ee8d34631a2f176ea2bb450c4372b1469f215f971af31273bf5f"
+        },
+        {
+          "file": "02-unparseable-stop.md",
+          "sha256": "399dd831f883012e3b043f7bd70dac5d5d487157234517fee87079492a23d51b"
+        },
+        {
+          "file": "03-minimum-summary-fields.md",
+          "sha256": "ebae91199df71e351037d7941fb7ff6e4538a93f02e07f8436ea6dc91ca35fed"
+        },
+        {
+          "file": "04-current-path-context.md",
+          "sha256": "3f0b90e2f34d9856c75cbd95a3b4bc1c53e4de935f24578bfc23fb9cdbbe5f01"
+        },
+        {
+          "file": "05-mcp-no-fabrication.md",
+          "sha256": "525823abc8e67a6fceb1d0f3c36b738162f9fa7d00ff56b15868421da4e2ba43"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "compatibility-boundaries/candidate/response.md",
+          "grading": "compatibility-boundaries/candidate/grading.json",
+          "provenance": "compatibility-boundaries/candidate/provenance.json",
+          "artifacts": {
+            "compatibility-boundaries/candidate/response.md": "2d87de492367dcbe17ce70b848c3dc663f36f5b0c79080b704c91c20b1b71dd7",
+            "compatibility-boundaries/candidate/grading.json": "29fc90ddda09eac02c5710f525e8a8ede3a33efcd951a1260f3e05d9b7826ddf",
+            "compatibility-boundaries/candidate/provenance.json": "927fab1b5d385b989ad6dff4d270dccb7ba5301c200348faca34bc44a4c92d82"
+          }
+        },
+        "baseline": {
+          "response": "compatibility-boundaries/baseline/response.md",
+          "grading": "compatibility-boundaries/baseline/grading.json",
+          "provenance": "compatibility-boundaries/baseline/provenance.json",
+          "artifacts": {
+            "compatibility-boundaries/baseline/response.md": "b70b2eb236650f5681fff0772362e8bf3297b92efd5f6296d8c66efad8a582d1",
+            "compatibility-boundaries/baseline/grading.json": "b46b80cccd1e7bc7d643a412b5321729ac3cdfccdc3cd016dfc15126c6db73a7",
+            "compatibility-boundaries/baseline/provenance.json": "e82707e303edc1b28edb3e41c9dd912c3b1bf7237ba6ce24d537c7c557d3977c"
+          }
+        }
+      },
+      "case_sha256": "c172b17fe1c3fc06064d207027c8828341e2d6e8333121f309fda2fa5f4848f0"
+    },
+    {
+      "name": "fallback-invocation",
+      "prompt_sha256": "04698d6eda5fab3dca5e8b167e37a36d2c400857f7b6e54366bfae741a77d45d",
+      "assertions": [
+        {
+          "file": "01-resolved-invocation.md",
+          "sha256": "1bd6837d958d51e7acb09388eb1f5693e56cc340a216753997c90a88f804cb26"
+        },
+        {
+          "file": "02-pending-auto-evidence.md",
+          "sha256": "3430fcf5e16f5107c37bd7681e383974689a3e08e94bea2854899b01d166c927"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "fallback-invocation/candidate/response.md",
+          "grading": "fallback-invocation/candidate/grading.json",
+          "provenance": "fallback-invocation/candidate/provenance.json",
+          "artifacts": {
+            "fallback-invocation/candidate/response.md": "3c64014a4d683580a1cabc180629501ab886461fd8cbac8aba905d059e7d5e29",
+            "fallback-invocation/candidate/grading.json": "b55ed3eaac84f934b2ed6cbad0d05f3e3d9c1c575b40ca4ec224d0601fa5bcb6",
+            "fallback-invocation/candidate/provenance.json": "c84179e94ec32011b34188e85838fa07b36f1343722c539b37740ae7bce3f7a5"
+          }
+        },
+        "baseline": {
+          "response": "fallback-invocation/baseline/response.md",
+          "grading": "fallback-invocation/baseline/grading.json",
+          "provenance": "fallback-invocation/baseline/provenance.json",
+          "artifacts": {
+            "fallback-invocation/baseline/response.md": "cd7aad28a1407cf7ddbe6af191f6fb4bc4fca32ab08b0cdf7aaedb97ac13dae2",
+            "fallback-invocation/baseline/grading.json": "5a865705d5cc86cfe4a8016cbb8e86ec5022107c60b71cb03c9c09ca80958daf",
+            "fallback-invocation/baseline/provenance.json": "3b7b30646f56497f629186c9bfc78be772cbb1a99470e126a9a0a6ef2f259643"
+          }
+        }
+      },
+      "case_sha256": "5e276667fd16a184130d0f8060ea11522d125aced722fd8cea5571e1ade67779"
+    },
+    {
+      "name": "followup-and-finding-state",
+      "prompt_sha256": "aa1c5605edfe4a3a40f5227266d71517ffe04cb80ece82a1e24715ba50402927",
+      "assertions": [
+        {
+          "file": "01-honest-mixed-context.md",
+          "sha256": "495a9216ffa26ab1a6a760814931b4b96dab4253f1f9f42dbc3fb76819c23e62"
+        },
+        {
+          "file": "02-backlog-not-ready.md",
+          "sha256": "be47e4fecea93ed87befb8dbddf111b1776621dd5fb46ef20f4639815c3e081e"
+        },
+        {
+          "file": "03-no-unauthorized-dismissal.md",
+          "sha256": "9b99c5a5b76d8e41c44174f4273995e8a98dc61267a971caf753d492d89765ef"
+        },
+        {
+          "file": "04-semantic-helper-fix.md",
+          "sha256": "325c338e3d0b2e86d32fba327d33e51d2178bdc431055bba57cf675006500550"
+        },
+        {
+          "file": "05-quote-not-proof.md",
+          "sha256": "8ea68fd13ed7686339ff89336d43218598a595866b9df0370e16f0a089f55787"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "followup-and-finding-state/candidate/response.md",
+          "grading": "followup-and-finding-state/candidate/grading.json",
+          "provenance": "followup-and-finding-state/candidate/provenance.json",
+          "artifacts": {
+            "followup-and-finding-state/candidate/response.md": "8926b5f12fbbe50e78e6011d354cc39125fb1a56cde415bc92cae67f74078a53",
+            "followup-and-finding-state/candidate/grading.json": "995a85e03d0b0b327b6dd9569effe76b08b8572b413fe01b6d5ef4134adb8565",
+            "followup-and-finding-state/candidate/provenance.json": "47d6f7b299412463f637d165d2fe9126b240f8f46cdad9461c066ff03261edf4"
+          }
+        },
+        "baseline": {
+          "response": "followup-and-finding-state/baseline/response.md",
+          "grading": "followup-and-finding-state/baseline/grading.json",
+          "provenance": "followup-and-finding-state/baseline/provenance.json",
+          "artifacts": {
+            "followup-and-finding-state/baseline/response.md": "41b1b5ee0f1e677467693cfdd3427845de32b396460f8837bbcc5ce4effaed35",
+            "followup-and-finding-state/baseline/grading.json": "a545de77305acf85f18fdb20173a658b996d415d003de328a6969db8b0db3280",
+            "followup-and-finding-state/baseline/provenance.json": "6ecf5357c9da9f1b0ea53d30e3477c9e9b0afb28983886c19a9b66a7dec64812"
+          }
+        }
+      },
+      "case_sha256": "f1225b1f7bbba5dae6e64759afd3517879f8d34267dbf5ba3caa6d2915624871"
+    },
+    {
+      "name": "mcp-local-triage",
+      "prompt_sha256": "f2e2b7158db9dc97a270fb8935b06873130b3d7c8e0a77f5510effb398b0c496",
+      "assertions": [
+        {
+          "file": "01-metadata-key.md",
+          "sha256": "f843bbc9198fab144a11b03b5043e03998e344f0cb7907e24ef4d0661b860e9f"
+        },
+        {
+          "file": "02-no-unsafe-fallback.md",
+          "sha256": "675b31255735476b9efc06d6eb100818e325afcb68640b21d1dc7f7d52bd0c50"
+        },
+        {
+          "file": "03-honest-prior-outcomes.md",
+          "sha256": "99d13d3530fb6143d2bc73f563a0842397e6648c59f47e37860fc1c0304c5ebd"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "mcp-local-triage/candidate/response.md",
+          "grading": "mcp-local-triage/candidate/grading.json",
+          "provenance": "mcp-local-triage/candidate/provenance.json",
+          "artifacts": {
+            "mcp-local-triage/candidate/response.md": "13fcd183f7bc9b795121ef9b879555a49d946be51aaedbc642fca10f2f6b0868",
+            "mcp-local-triage/candidate/grading.json": "df5321592e1f06c9e2ee8f643b80661f7f7d19d3ec654bc2751a1e83d45105f8",
+            "mcp-local-triage/candidate/provenance.json": "82d98912bb9f1172a791c52ef2bab461bfda27d7e9e0c20de6e815c70b22f99d"
+          }
+        },
+        "baseline": {
+          "response": "mcp-local-triage/baseline/response.md",
+          "grading": "mcp-local-triage/baseline/grading.json",
+          "provenance": "mcp-local-triage/baseline/provenance.json",
+          "artifacts": {
+            "mcp-local-triage/baseline/response.md": "9831e748e2ee577a3cc74262cee3c2fb364d545d7d5a14b34bb184f7fdc69193",
+            "mcp-local-triage/baseline/grading.json": "128d2f10bb851034b97d83bf0e6847ef0e22ceb7b39bf664e72800673d91ea07",
+            "mcp-local-triage/baseline/provenance.json": "89d450a2ef48d1e9160fe34930345a7d4282c70af027057243337cab28913c1c"
+          }
+        }
+      },
+      "case_sha256": "6de835d90706e124f5ff8db9b3459f6d2771348306165fd3c5c617a7e23c26bf"
+    },
+    {
+      "name": "milestone-and-final-scope",
+      "prompt_sha256": "15bb4998b0cbb6e588d4b2563c45cdbfc0de74ad67790c4355f6e056f8c36fe3",
+      "assertions": [
+        {
+          "file": "01-default-auto.md",
+          "sha256": "4c0230be857773a983419687f22fba1da178d2f72523075b1ca13392ad4b1b84"
+        },
+        {
+          "file": "02-clean-final-scope.md",
+          "sha256": "9b672a849b08f402f688a6ae4ff241f99fc5b59a2b173e22cd5ea66fbcb88ecf"
+        },
+        {
+          "file": "03-reuse-completed.md",
+          "sha256": "d358cd925b19614f7fdffb65f76823896cd23cd0f8a40fa93ac4381e8b38da4c"
+        },
+        {
+          "file": "04-no-trivial-run.md",
+          "sha256": "a53aec04bae05851a28dc1ffa8f937364ac72b65462ed4c71fa6e6239ed3b8a7"
+        },
+        {
+          "file": "05-report-only.md",
+          "sha256": "b2330057d2da34d7322390cfcde74cb66fe0c13208fb070b00c6ef428e6c96cc"
+        },
+        {
+          "file": "06-light-to-final.md",
+          "sha256": "84319217b6d26054c049236f423da6e33a0558fe4dbc60dd7f2db1a9a48326ff"
+        },
+        {
+          "file": "07-explicit-fresh.md",
+          "sha256": "57fb0f4d2aa1ec1e83380c0e628d1198a3922eded461ce08058c83c8dcef4f45"
+        },
+        {
+          "file": "08-no-fabricated-test-pass.md",
+          "sha256": "d585869382a69dc48dc5a2c98cfa61b4eedd55c769abf749478bb52eb6611068"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "milestone-and-final-scope/candidate/response.md",
+          "grading": "milestone-and-final-scope/candidate/grading.json",
+          "provenance": "milestone-and-final-scope/candidate/provenance.json",
+          "artifacts": {
+            "milestone-and-final-scope/candidate/response.md": "17a962d5a9f0467df575f736dd7fd635e55564c10ffbdb0c5081e016ade206c5",
+            "milestone-and-final-scope/candidate/grading.json": "97c9e949d8785e015b37625e154aee65f3312ea3f403441642066c7ef3ce64ea",
+            "milestone-and-final-scope/candidate/provenance.json": "d0e9bfd622f7295f4476ad4e78af93670c9efa4fae6123d7a2771182b5111a1e"
+          }
+        },
+        "baseline": {
+          "response": "milestone-and-final-scope/baseline/response.md",
+          "grading": "milestone-and-final-scope/baseline/grading.json",
+          "provenance": "milestone-and-final-scope/baseline/provenance.json",
+          "artifacts": {
+            "milestone-and-final-scope/baseline/response.md": "90a007133bd8c0dc81047b70e202c9113674d7fa91ff90dd7d73bf67139c6776",
+            "milestone-and-final-scope/baseline/grading.json": "8ccc2bb030a77b0e16e406b42beed953991952650fe93617ffb7f122a962c94b",
+            "milestone-and-final-scope/baseline/provenance.json": "255e5f3d2f4bb89b10e8bb1f86299756bbabcdabf2965b589f914a876b1fbd34"
+          }
+        }
+      },
+      "case_sha256": "e82ff751b5c08187469157855aab61f7831af6bfb248329e7010fb38a9b15ca0"
+    },
+    {
+      "name": "recovery-and-readiness",
+      "prompt_sha256": "ef8e96e2e4d2c25eb4d1703c3e790a5efeae3f6c4801f9e9be938cc988ac89cb",
+      "assertions": [
+        {
+          "file": "01-collect-accepted.md",
+          "sha256": "50023d55438e2b5fd9f47cd1e923037937998a9e6a07287472b7fd4552222a21"
+        },
+        {
+          "file": "02-exact-recovery.md",
+          "sha256": "12bcc3561e1760cd3d099cffff8de79fe3bd7c03d53ddb878200b01bb950a14c"
+        },
+        {
+          "file": "03-separate-storage.md",
+          "sha256": "a1de6b35e055cade112ca441f436ec99a8d55d3b5d15443eac621f936713b532"
+        },
+        {
+          "file": "04-unknown-old-coverage.md",
+          "sha256": "ee1a2641c904dd961e1ce579744a459db7a356fc7a30aea8fd94cfbab3895fe3"
+        },
+        {
+          "file": "05-entitlement-stop.md",
+          "sha256": "c8f8446a4890f8122841345e28db8f692ea8db4df325cc0f21e52082953a4690"
+        },
+        {
+          "file": "06-budget-across-resume.md",
+          "sha256": "c89379e7f83124a78445503fcef5e4d0182133ca7ebb37a0645336c64a40ac02"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "recovery-and-readiness/candidate/response.md",
+          "grading": "recovery-and-readiness/candidate/grading.json",
+          "provenance": "recovery-and-readiness/candidate/provenance.json",
+          "artifacts": {
+            "recovery-and-readiness/candidate/response.md": "74a1f2fd1e12d4538eb13b8c67946b8b4a454af8430e4e088e0bc923e0459b12",
+            "recovery-and-readiness/candidate/grading.json": "b33b9bba6002752164ac20992faed9573d35881ff616e772cd5317d204af693c",
+            "recovery-and-readiness/candidate/provenance.json": "bd56c43c4caf9a17d5ddeeca6dfba880bf4f6e23c17475afeb580042f1f8a97f"
+          }
+        },
+        "baseline": {
+          "response": "recovery-and-readiness/baseline/response.md",
+          "grading": "recovery-and-readiness/baseline/grading.json",
+          "provenance": "recovery-and-readiness/baseline/provenance.json",
+          "artifacts": {
+            "recovery-and-readiness/baseline/response.md": "9d4dfb466697a8c4808cbef08e4778bd3687bf0bb8abe97517f7118959d75ba4",
+            "recovery-and-readiness/baseline/grading.json": "d776ab34769f0b8d0b1454e35f0e3dc964f4cc48704df8dd69fdc487ccbf6266",
+            "recovery-and-readiness/baseline/provenance.json": "2fbea42ad9d5d7f3eaa5d9e1d42588900124e8fc8be80c59cd6982e61a241f23"
+          }
+        }
+      },
+      "case_sha256": "c8962e6a2f35ecd5f67ea086851c1959d3889ba1e3a5631fd7c74e9eb9968b5d"
+    },
+    {
+      "name": "recovery-policy-guards",
+      "prompt_sha256": "fc047108124248dfa7f1b85af3c71dc83a904a7db55181dc958c0cd730e9244a",
+      "assertions": [
+        {
+          "file": "01-check-before-every-updater.md",
+          "sha256": "7960be697eece426916a11f8c5153d49dfd05056b53250ec9d992301d5c0944b"
+        },
+        {
+          "file": "02-safe-missing-install.md",
+          "sha256": "0f5abafdf8ad36f67d7429edff6fd08d6aca1bd66257d2da2c2161637070b242"
+        },
+        {
+          "file": "03-user-retry-authority.md",
+          "sha256": "f5ea6e5a2942fb598aed0e271396d6b02c33987178eed7cf0fbed63874eff78e"
+        }
+      ],
+      "runs": {
+        "candidate": {
+          "response": "recovery-policy-guards/candidate/response.md",
+          "grading": "recovery-policy-guards/candidate/grading.json",
+          "provenance": "recovery-policy-guards/candidate/provenance.json",
+          "artifacts": {
+            "recovery-policy-guards/candidate/response.md": "732317f4f197eab90c016e21afef1a371a3899b0a5173b3d43aceabc192f8a5f",
+            "recovery-policy-guards/candidate/grading.json": "54bbce160c676b86a1fc659c3fcb0311fb9444385ef34beb982d057484561fc7",
+            "recovery-policy-guards/candidate/provenance.json": "51e3e9f8c5e30142815e2e1d8f4227f4f8b31f9956e91ba902af9e660fd15aed"
+          }
+        },
+        "baseline": {
+          "response": "recovery-policy-guards/baseline/response.md",
+          "grading": "recovery-policy-guards/baseline/grading.json",
+          "provenance": "recovery-policy-guards/baseline/provenance.json",
+          "artifacts": {
+            "recovery-policy-guards/baseline/response.md": "6d4d317a9922f14b4fea747806ec9c7af1cbfce96d23e40a589db34522315361",
+            "recovery-policy-guards/baseline/grading.json": "a665723066d924e710272ead0deb6d4a1c072f2270aafc11763fde7af5f1b545",
+            "recovery-policy-guards/baseline/provenance.json": "94fa1565b413a9a752f1533290ba7434ec8d028cd6522af5681e0b9f64a5d945"
+          }
+        }
+      },
+      "case_sha256": "9384383358856d640f51809f2edb4830a66a04a271c2882738a76506cb4ec30c"
+    }
+  ],
+  "scores": {
+    "candidate": {
+      "passed": 32,
+      "total": 32
+    },
+    "baseline": {
+      "passed": 32,
+      "total": 32
+    }
+  },
+  "status": "passed",
+  "adjudication": {
+    "reason": "The original anonymous fallback grades treated omitted effort flags as unknown. The same grader reassessed against actual CLI help documenting no flag=auto, without rerunning or changing either answer.",
+    "original_assertion_totals": {
+      "candidate": "31/32",
+      "baseline": "31/32"
+    },
+    "artifacts": {
+      "adjudication/baseline-original-grading.json": "e1d8fe008de266b6c01e68f3856cb3f65bc0c62c74c58a41600d0c03fb74e816",
+      "adjudication/candidate-original-grading.json": "238c25b1f3ff029bb1d64983efb63a1634581a0d003a6af260c9effaada6a091",
+      "adjudication/qodo-review-auto-help-evidence.txt": "436db2735276b25d7c27c4261a91c20eb4a1f905cc7809e53913560c1b83df16"
+    }
+  },
+  "pre_correction": {
+    "source_fingerprints": {
+      "SKILL.md": "494e7ddae3f06a1a7f83c90e2c1c4ad8d5651d50c24ddd65f23f2d90816582dd",
+      "references/cli-execution.md": "2415c565714cf1f91b3b86f706db56388fb8229921eba4d4156d0d0d4093ec2c",
+      "references/connected-progress.md": "c573822aad7295d026d8382ab07fa6c3ff984d72ff14ecfb9834825a5a5762f9",
+      "references/context-delivery.md": "27fbda3f1aecc79ace66a8a498a59e353d6dbe8f9815851c0058106dd2a512e1",
+      "references/finding-results.md": "58e312d749db73ae3811e73ceb07a2eac30e34d78531b6af280d7e762c12503d",
+      "references/local-triage.md": "70f786a5bd8d88a3b6be52f4a0bc1e4bee033349d6225bec95bdc1da99d6628c",
+      "references/mcp-review.md": "515aec12ec37f630a27170c16236d066efc51ac666e299e13f5bd3f6b6bd4c68",
+      "references/review-turn-context.md": "0a5762a5ab03fdf1a3d78debc47519699e64aabf973fe0c177fa39b7353b9af9",
+      "references/skill-updates.md": "79ba59edb2c73d32cadf0cf29048409c060f82f5efc217ee41bcbaeaa46b026a",
+      "references/windows-launcher.md": "3b05b5282668a30e664e104b0eb2d1fb4a36e22f567f56c661fa8ad3de4f74f4",
+      "references/windows-shells.md": "b7580d7b1e81bf81308bcdf1f010848814b462c0f3f83baf13da0b13ef780246"
+    },
+    "response": "pre-correction/response.md",
+    "grading": "pre-correction/grading.json",
+    "reason": "Both earlier versions left a supplied exact base as an unbound symbolic variable; failure retained, not relabeled."
+  },
+  "limitations": [
+    "Native agents read the selected instructions directly; this does not test natural Skill activation or the standard Claude evaluator runtime.",
+    "Operational commands are synthetic proposals; no live Qodo review, installer, Git mutation or finding-status write occurred in these cases.",
+    "Final-answer grading received no Skill snapshots; some extra protocol claims remain unverifiable from fixtures. See claims and eval_feedback.",
+    "One run per configuration/case is not a reliability, causal uplift or cost/latency claim.",
+    "Metrics and read-tool counts are runtime-reported, not an OS filesystem confinement audit.",
+    "Only final answers and safe metadata from these current-task children were retained; host-specific temporary paths were explicitly normalized.",
+    "Default CI checks artifact/source freshness and judgments; it does not execute a model. The standard evaluator is separately opt-in and has only been staged/validated here."
+  ],
+  "integrity_correction": "Case YAML hashes were verified against both original staged iteration-7 inputs. Readable Git objects bind baseline hashes to the original immutable source without a new model execution. The earlier binary archive was excluded from review input and is replaced by this explicit text representation."
+}

@@ -1,0 +1,77 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "B.md:3–34 selects MCP with omitted depth for auto, reproduces the exact retained request_id and params, and preserves the complete scope, base, stream_id and all session_context fields. It explicitly says there is no separate idempotency_key and “Do not recollect or modify the snapshot.” Line 36 avoids replay after acceptance; line 63 recognizes collector eligibility and fetchable-base gates."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "B.md:36–59 proposes two-second polling of the retained operation, both result calls with unchanged extended:true, and checking isError on every response. It requires joining in byte-offset order and verifying length and digest before parsing. Lines 65–79 identify both offsets, null final cursor, 148 bytes, two chunks and the exact supplied digest, then report complete local assessment with no outstanding findings while withholding CI, approval, release and deployment readiness."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "B.md:83–87 blocks submission explicitly, identifies premature enumeration, unknown paths and unverified base fetchability, and withholds both assessment and complete coverage. It requires a tested collector and prohibits an ad hoc diff, another checkout or unauthorized installation."
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:91–97 identifies advertised 7d7c… versus calculated 6d7c…, prohibits interpreting empty findings or claiming coverage or readiness, and permits at most one collection-only recovery from the retained operation. It starts without a cursor, follows returned cursors with unchanged extended:true, repeats validation, stops if unsuccessful and states “No new review submission.”"
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "B.md:101–105 explicitly rejects advertised 149 bytes versus measured 148 despite the matching digest. It prohibits parsing for conclusions, silently correcting metadata or reporting zero findings as valid. Only the previously described single collection-only recovery using the existing operation is permitted, with no new submission."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The eligible artifact reports complete finding inventory and assessed coverage, without introduced, still-open, resolved or dismissed findings.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:71–77 matches the joined artifact in prompt.md:69–74. This is verification against supplied hypothetical evidence, not an executed result retrieval."
+    },
+    {
+      "claim": "Reviewer consumption and checkpoint persistence or reusability are not evidenced by the artifact.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:79 appropriately withholds these conclusions. The supplied artifact in prompt.md:69–72 contains no consumption or checkpoint-persistence evidence."
+    },
+    {
+      "claim": "Collection recovery should use a 15-second delay if no retry delay is returned.",
+      "type": "process",
+      "verified": false,
+      "evidence": "B.md:95 supplies this fallback, but the permitted documents do not establish it. Without the applicable Skill recovery policy, this timing claim remains unsupported rather than demonstrably false."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Include the applicable recovery-policy excerpt to make the asserted 15-second fallback verifiable. Bounded recovery is checked by the rubric, but its additional timing rule is not supported by the supplied grading evidence."
+      },
+      {
+        "assertion": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+        "reason": "B.md:77 additionally declares the snapshot “ready locally on the supplied evidence.” Specify the standard for local readiness so that this conclusion can be evaluated independently of complete assessment and the expressly forbidden higher-level readiness claims."
+      }
+    ],
+    "overall": "All five assertions are supported as proposals. Constant extended:true is consistent with the supplied schema; no supplied rule requires false. The evidence cannot establish actual execution, service behavior, checker execution or independently run tests."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1671d29bffe2UJMzZoLzyDRYd",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e98e643a001kXkfEZ0yaozAox",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

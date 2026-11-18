@@ -1,0 +1,82 @@
+{
+  "expectations": [
+    {
+      "text": "For milestone, the response proposes a useful context-attached review with auto effort, without --fast, --deep or --full, and retains the operation for later collection.",
+      "passed": true,
+      "evidence": "A.md:11-27 proposes the checkpoint, attaches context and explicitly selects auto without those flags; A.md:138-144 retains and polls each operation."
+    },
+    {
+      "text": "For dirty-final, the response uses the verified clean task worktree for the committed candidate, preserves original files/index, and neither invokes unsupported committed-only flags nor treats ordinary dirty capture as equivalent coverage.",
+      "passed": true,
+      "evidence": "A.md:33-41 selects the verified clean worktree, rejects dirty capture and preserves original files/index without unsupported flags."
+    },
+    {
+      "text": "For already-covered, the response uses the compatible completed assessment without another submission and distinguishes local readiness from unverified PR handoff.",
+      "passed": true,
+      "evidence": "A.md:60-62 explicitly forbids another submission and reports only local readiness, withholding hosted-review, CI and merge conclusions."
+    },
+    {
+      "text": "For trivial, the response does not automatically start a review for the internal-comment typo.",
+      "passed": true,
+      "evidence": "A.md:66 says, 'Do not launch a review for the internal-comment typo.'"
+    },
+    {
+      "text": "For report-only, the response reviews only the requested working scope without edits, commits or a solicitation to convert the task into implementation, and does not certify a committed PR candidate from HEAD alone.",
+      "passed": true,
+      "evidence": "A.md:70-83 limits collection to the requested working scope and disclaims committed-candidate certification; A.md:90 prohibits fixes, dismissals and implementation solicitation."
+    },
+    {
+      "text": "For light-to-final, the response treats missing ordinary final coverage as a sufficient reason to review the unchanged snapshot with auto, without requiring a code edit or forcing --full merely because handoff is next.",
+      "passed": true,
+      "evidence": "A.md:92-102 proposes ordinary auto final review because coverage is missing despite unchanged code, without effort flags or forced --full."
+    },
+    {
+      "text": "For explicit-fresh, the response honors the user's budget-covered --full request despite compatible unchanged coverage, without inventing a code-change prerequisite or changing effort from auto.",
+      "passed": true,
+      "evidence": "A.md:118-131 honors the within-budget request, submits --full and explicitly keeps effort auto despite unchanged compatible coverage."
+    },
+    {
+      "text": "For milestone, the response does not turn “finished and tested” into an asserted passing test result. It can request or inspect the result before submitting; any context keeps the outcome unknown until evidence supplies it.",
+      "passed": true,
+      "evidence": "A.md:22 states that commands/results were not supplied and 'passing tests are not established.'"
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Omitting effort flags selects auto; --full requests freshness rather than deeper effort.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:17,124 agrees with qodo-auto-help.txt:19-26,62-64."
+    },
+    {
+      "claim": "The Engine determines continuation or fallback for light-to-final.",
+      "type": "process",
+      "verified": false,
+      "evidence": "A.md:114 proposes this behavior, but neither the prompt nor supplied CLI help establishes these Engine semantics. Unverified, not contradicted."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Retention is asserted only for milestone. Add a cross-case assertion requiring collection of every submitted operation without resubmission and withholding readiness for incomplete inventory. A.md:136-146 addresses this currently unscored behavior."
+      }
+    ],
+    "overall": "All eight assertions pass as proposals. No material invented task facts found; Engine continuation/fallback semantics remain unsupported by the supplied evidence. Execution success is not established or inferred."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fbbffeS7YOv55UcbVCOL",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea77a8460012HZhDxySmpRLtZ",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

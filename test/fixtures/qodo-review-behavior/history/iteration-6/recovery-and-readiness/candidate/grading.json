@@ -1,0 +1,61 @@
+{
+  "expectations": [
+    {
+      "text": "For accepted, the response respects the 20-second delay and collects op-accepted, optionally with --extended, without a fresh assessment or replacing the accepted snapshot with current branch/context.",
+      "passed": true,
+      "evidence": "A.md:5 'Wait the requested **20 seconds**'; :8 'qodo review status op-accepted --extended --json'; :11 'Do not restart it'; :13 'retains its original snapshot and context'."
+    },
+    {
+      "text": "For uncertain, the response uses the supplied --async --retry-submission recovery command and original retained request without adding new input/context options or starting a fresh review.",
+      "passed": true,
+      "evidence": "A.md:22 'qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111'; :25 'Do not append new base, path, context or effort options'; :27 'rather than issuing a fresh submission'."
+    },
+    {
+      "text": "For storage-gap, the response distinguishes complete assessment and settled findings from failed checkpoint persistence and unverified PR handoff, does not claim the journey finished, and does not automatically buy a new full review.",
+      "passed": true,
+      "evidence": "A.md:33 'not all local-to-Git work is finished'; :35 'complete coverage and inventory, settled required findings'; :44 'Do not buy another assessment solely to remove the persistence warning'; :46 storage and handoff 'are not established'."
+    },
+    {
+      "text": "For older-result, the response refuses to certify full final coverage from missing metadata and zero findings, leaving inventory, persistence and reusable coverage unknown.",
+      "passed": true,
+      "evidence": "A.md:50 'Stop short of certifying full final coverage'; :52 'coverage completeness, inventory completeness and persistence are all **unknown**'; :54 'Do not invent a handle'."
+    },
+    {
+      "text": "For entitlement, the response preserves both supplied message and hint verbatim and stops without retrying, reauthentication or a deployment/account switch.",
+      "passed": true,
+      "evidence": "A.md:64 'Review access is not enabled for this organization.'; :66 'Ask your administrator to enroll the organization.'; :68 'Stop' and 'Do not retry ... log in again, switch accounts/deployments'."
+    },
+    {
+      "text": "For budget, the response counts two assessments rather than polls or extended collection, preserves the exhausted budget across resume, stops with F-BLOCK outstanding, and does not call the work ready.",
+      "passed": true,
+      "evidence": "A.md:74 'Do not start a third assessment'; :76 polls and retrieval 'not additional assessments' and resume 'does not reset' budget; :78 'Preserve F-BLOCK’s action-required status'; :82 'work is not ready'."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "The supplied storage-gap scenario establishes local readiness but not successful checkpoint storage or PR handoff.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:35–46 separates assessment readiness from persistence and handoff, consistent with prompt.md:22–25. This verifies the scenario interpretation, not actual service outcomes."
+    }
+  ],
+  "eval_feedback": {
+    "overall": "All six assertions pass as proposal checks; no execution, recovery success, storage, or handoff was verified. The assertions do not check the conditional --full guidance at A.md:56, whose support is not established by the fixture."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1742bdbfffeAByDpVYc5sPZDc",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8bdac8b001FY7OE50y65g1Kb",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "A.md:2,10,22: each call uses '\"/opt/qodo tools/bin/qodo\"'; no installation or PATH changes proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "A.md:11-16: exact base/context and checked extraction of '.operation_id'; A.md:19: 'Auto effort is selected by omitting depth flags'; A.md:25: collection only after extraction, with completion/findings/coverage unverified."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Passing unit tests are supplied evidence, not newly executed validation.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:19: 'Supplied evidence confirms ... passing unit tests'; prompt.md:16-17: 'Relevant unit tests explicitly passed.'"
+    }
+  ],
+  "eval_feedback": {
+    "overall": "Both assertions pass for the proposal. Execution remains untested: CLI auto defaults, the .operation_id response schema, jq availability and successful collection cannot be independently verified from these files."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e1742bdbfffds3eNS5ZG0X6N7j",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e8bdabab001yjrZOUc2XplzKv",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

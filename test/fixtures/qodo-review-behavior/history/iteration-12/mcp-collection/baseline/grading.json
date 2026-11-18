@@ -1,0 +1,77 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "A.md:5-16 specifies auto by omission, mcp-cart-r1 and the exact supplied JSON object, preserving context and scope; prohibits recollection, idempotency_key and CLI setup. A.md:18 correctly avoids another start after confirmed acceptance."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "A.md:18-41 specifies two-second polling, isError checks, both result calls, contiguous offsets, terminal cursor and integrity checks before interpretation. A.md:47-55 identifies offsets 0/90, 148 joined bytes and complete empty findings, while withholding CI, approval, release and deployment readiness."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "A.md:57-63 blocks submission because enumeration, paths and base fetchability are unestablished; withholds completed assessment and readiness. It proposes qualifying collection rather than an improvised diff and prohibits silent scope narrowing, checkout substitution and installation."
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:69 identifies advertised 7d7c… versus measured 6d7c…. A.md:74-78 prohibits interpreting findings or certifying coverage/readiness, limits recovery to one collection using the original operation and forbids a new submission."
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:70 rejects 149 versus 148 despite the matching digest. A.md:74-78 withholds assessment certification and permits only one collection recovery on the retained operation, with no new submission."
+    },
+    {
+      "text": "For wrong-operation, the response rejects the pages because their operation_id differs from the retained accepted operation, despite valid self-consistent bytes, and neither reports an assessment of the retained submission nor switches handles; any permitted recovery keeps the original operation without a new review submission.",
+      "passed": true,
+      "evidence": "A.md:71 rejects the other operation despite internally valid bytes. A.md:74 prohibits relabeling another operation or certifying assessment; A.md:76-78 keeps 41c730de-840d-4b87-a95e-165b8b94f56a for one recovery and forbids resubmission."
+    },
+    {
+      "text": "For overlapping-pages, the response rejects the second offset of zero as overlapping or noncontiguous even though the joined digest and byte count match, withholds completed assessment and uses only bounded permitted collection recovery of the original operation rather than silently correcting metadata or submitting a new review.",
+      "passed": true,
+      "evidence": "A.md:72 rejects offset 0 instead of 90 despite passing joined-byte checks. A.md:74-78 prohibits offset/metadata repair and assessment certification, retaining the original operation for one collection recovery without a new review."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Qodo’s completed assessment reports that focused tests passed and no live service was tested.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:49-53 attributes these facts to Qodo’s assessment. They are supplied session-context notes in prompt.md:40, not fields in the result artifact at prompt.md:65-74. The facts are supported; their attribution to the assessment is not."
+    },
+    {
+      "claim": "The eligible result supports a complete, finding-free local assessment of the supplied snapshot.",
+      "type": "quality",
+      "verified": true,
+      "evidence": "A.md:47-55 matches the supplied complete finding-state/coverage flags and verified snapshot association in prompt.md:65-75, and explicitly limits readiness."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Add an evidence-provenance assertion: A.md:49-53 misattributes supplied test-context facts to the result artifact, while passing every existing assertion."
+      }
+    ],
+    "overall": "All seven proposal assertions pass. Test-result attribution is a material unsupported claim. Execution and Skill-dependent recovery permission are not independently verified by these allowed inputs."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e160b45cefferzSRWWDaiqRShG",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9f5b20e001MUKQpmrq4AR0Iu",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

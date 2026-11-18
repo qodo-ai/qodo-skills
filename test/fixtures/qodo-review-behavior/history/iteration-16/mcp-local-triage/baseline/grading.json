@@ -1,0 +1,63 @@
+{
+  "expectations": [
+    {
+      "text": "For metadata-only, the proposed pr-review-dismiss call preserves F-A/F-B, L-ORIGINAL, the authorized reason/explanation and one retained metadata key through _meta[\"io.qodo/idempotency-key\"]. It reads each synchronous result and verifies stored outcomes. Uncertain-response recovery uses the exact original request/key, without inventing an operation handle, polling call, schema argument, CLI fallback or successful write.",
+      "passed": true,
+      "evidence": "B.md:7-20 defines one retained unique key and supplies the exact authorized arguments and metadata location. B.md:24-33 rejects unsupported arguments and polling, retains the response, requires exact same-key recovery and per-finding readback, and distinguishes confirmed saves from other outcomes without claiming execution."
+    },
+    {
+      "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
+      "passed": true,
+      "evidence": "B.md:37-41 blocks replay-unsafe writes, rejects invented arguments and unavailable CLI substitution, requires supported capability before submission, and states that both dismissals remain unperformed."
+    },
+    {
+      "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
+      "passed": true,
+      "evidence": "B.md:45-50 preserves F-A's deferred reason and exact explanation and reports F-B's unsuccessful conflict. B.md:52-54 rejects overwriting, claiming the new reason was saved, treating conflict as dismissal or claiming a clean review; no replacement assessment is proposed."
+    },
+    {
+      "text": "For saved-sync-pending, the response reports F-C's dismissal as stored and synchronization as incomplete. It explains that a completed same-key MCP replay cannot retry synchronization. The separately authorized new attempt preserves F-C, its local-review identity, reason and explanation, uses a new retained transport key, retains the original receipt, and verifies the new operation's outcome without claiming convergence in advance.",
+      "passed": true,
+      "evidence": "B.md:58-60 distinguishes verified storage from incomplete synchronization and explains completed-replay deduplication. B.md:62-69 preserves F-C/L-CURRENT, false_positive and the exact retained explanation with a fresh metadata key. B.md:71 retains both requests, distinct keys and receipts, requires result/readback verification and affirmative synchronization evidence, and limits the attempt."
+    },
+    {
+      "text": "For uncertain-write, the response collects the original operation or replays the exact original request with its retained key. It does not rotate the key, start another mutation, change the decision, or claim storage or synchronization without a terminal result and readback.",
+      "passed": true,
+      "evidence": "B.md:75-79 declares the outcome unknown, collects the original operation or exactly replays its retained request/key, preserves arguments and metadata, prohibits parallel attempts and rejects key rotation. B.md:81 requires terminal-outcome inspection and stored-state readback before success claims and covering authorization for any later synchronization attempt."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "In saved-sync-pending, the requested dismissal is verified as saved while synchronization remains incomplete.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:58 matches the supplied status contract and confirmed readback in prompt.md:11-12 and prompt.md:37-40; this describes the synthetic case, not an executed proposal."
+    },
+    {
+      "claim": "Rotating the key during uncertain-response recovery could invoke the handler again.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "B.md:79 follows the same-key deduplication and new-invocation behavior supplied in prompt.md:13-16."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "No material unsupported claims or substantive rubric gaps identified. These verdicts assess proposals only; they do not establish actual execution or Skill/reference use."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15890fbcffennsyU6Wp2K0yzF",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea778f3c0011XtKAQdPYVgwQb",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "A.md:4, A.md:12 and A.md:31 use the exact quoted invocation for the version probe, review submission and status collection respectively. No installation or PATH change is proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "A.md:12-15 supplies the exact base and context path without either depth flag; A.md:24 explicitly identifies this as auto, consistent with qodo-auto-help.txt:62. A.md:20-21 extracts a nonempty string from the submission response and exits on extraction failure; A.md:28-31 makes collection conditional on successful submission and extraction. A.md:24 and A.md:34-36 leave acceptance, the operation ID, results, coverage and completion pending."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Version 2.3.1, verified identity and supported flags are supplied evidence.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:7 accurately restates prompt.md:11-14; it does not claim a new probe was executed."
+    },
+    {
+      "claim": "Unit tests passed, but review completion and readiness are not established.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:36 distinguishes supplied test evidence from pending review evidence. This matches prompt.md:16-18 and prompt.md:22."
+    },
+    {
+      "claim": "Status exit code 2 means collection is not yet complete.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:34 treats exit 2 as requiring another collection of the same ID, consistent with qodo-auto-help.txt:35-36 and qodo-auto-help.txt:68."
+    },
+    {
+      "claim": "The async JSON response exposes the operation ID as a top-level .operation_id string.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:20-21 implicitly assumes this response schema. Neither prompt.md nor qodo-auto-help.txt specifies the JSON field name. The assumption is unverified, not demonstrated incorrect."
+    },
+    {
+      "claim": "A running status response supplies a polling delay.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:34 refers to 'the returned delay.' The supplied help establishes exit 2 for an unfinished review but does not establish a returned delay or its format."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The assertions do not validate the assumed .operation_id JSON schema at A.md:20-21. Supply a verified response fixture and check extraction against it; conditional collection alone does not establish that the parser matches the CLI response."
+      },
+      {
+        "reason": "A.md:24 acknowledges the jq dependency, but A.md:12-21 submits before checking availability. If jq is unavailable, submission could succeed before extraction fails. Consider checking dependency readiness before submission without requiring command execution in this proposal-only task."
+      }
+    ],
+    "overall": "Both exact assertions pass. Parser interoperability and dependency readiness remain outside the rubric; no operational success was demonstrated or required."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e56ffdD83fhSJzDtqk3v",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e8dff2001hk5C7E5sL33tFe",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

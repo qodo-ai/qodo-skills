@@ -1,0 +1,73 @@
+{
+  "expectations": [
+    {
+      "text": "For metadata-only, the proposed MCP dismissal preserves original F-A/F-B and L-ORIGINAL, the authorized reason/explanation, and one retained stable key through _meta[\"io.qodo/idempotency-key\"], without inventing a schema argument, CLI invocation, successful write or response/recovery contract beyond the supplied facts; it calls for per-finding stored-outcome verification.",
+      "passed": false,
+      "evidence": "A.md:9-22 preserves the required arguments and retained metadata key, and A.md:24 requires per-finding readback. However, A.md:24 assumes a 'returned operation receipt,' and A.md:26 proposes recovering the original operation. Case 1 supplies keyed replay but does not establish an operation receipt or original-operation collection capability. The prohibition on inventing a response/recovery contract is therefore not satisfied."
+    },
+    {
+      "text": "For no-replay-transport, the response stops the status write and reports the missing replay-safe capability, without omitting protection, inventing metadata support, installing tooling, switching accounts/deployments or claiming a dismissal occurred.",
+      "passed": true,
+      "evidence": "A.md:30 explicitly says 'Do not submit the write.' A.md:32 identifies the missing replay-safe capability, prohibits invented arguments and unprotected requests, and states that both dismissals remain unperformed. It does not propose installing tooling or switching accounts/deployments."
+    },
+    {
+      "text": "For prior-outcomes, the response preserves F-A's original deferred rationale and F-B's conflict, does not claim the requested false_positive reason was stored or the review is clean, and does not manufacture a new write or assessment to clear those outcomes.",
+      "passed": true,
+      "evidence": "A.md:38 preserves F-A's deferred reason and exact migration explanation, explicitly saying the replacement was not saved. A.md:39 preserves F-B's conflict. A.md:41 rejects a clean-review claim and further overwrite/retry without additional authority and evidence."
+    },
+    {
+      "text": "For saved-sync-pending, the response reports F-C's dismissal as stored and synchronization as incomplete. It explains that a completed same-key MCP replay cannot retry synchronization. The separately authorized new attempt preserves F-C, its local-review identity, reason and explanation, uses a new retained transport key, retains the original receipt, and verifies the new operation's outcome without claiming convergence in advance.",
+      "passed": true,
+      "evidence": "A.md:45 distinguishes verified storage from incomplete synchronization; A.md:47 explains that completed same-key replay only returns the cached result. A.md:49-55 preserves F-C, L-CURRENT, false_positive and the exact retained explanation while specifying a new retained metadata key. A.md:57 retains both requests/keys/receipts, requires collection and readback, and makes synchronization claims conditional on the new outcome."
+    },
+    {
+      "text": "For uncertain-write, the response collects the original operation or replays the exact original request with its retained key. It does not rotate the key, start another mutation, change the decision, or claim storage or synchronization without a terminal result and readback.",
+      "passed": true,
+      "evidence": "A.md:61 labels the outcome unknown rather than failed. A.md:63 requires collecting the original operation or replaying the exact original request with its original key, followed by terminal-result inspection and readback. A.md:65 explicitly rejects a new key and distinguishes recovery from authorization for a separate synchronization attempt."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "total": 5,
+    "pass_rate": 0.8
+  },
+  "claims": [
+    {
+      "claim": "The metadata-only interaction provides an operation receipt and supports recovering the original operation.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:24-26 presupposes these capabilities. The supplied metadata-only facts establish replay-key transport and completed same-key replay, not receipt issuance or original-operation collection. This is unsupported, not proven impossible."
+    },
+    {
+      "claim": "Replaying a completed operation with the same key does not retry synchronization.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:47 matches the supplied transport rule: completed same-key replay returns the original result without invoking the handler."
+    },
+    {
+      "claim": "The MCP dismissal tool is named pr-review-dismiss.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:9 uses this tool name. The permitted evidence supplies the accepted business arguments but no trusted MCP tool-name listing, so the name cannot be independently verified within this grading scope."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Provide a minimal trusted MCP tool listing if request executability is an intended grading target. The allowed artifacts establish argument and replay semantics but cannot validate the proposed tool name."
+      }
+    ],
+    "overall": "The assertions meaningfully distinguish stored decisions, synchronization retries and uncertain-write recovery. The first assertion correctly catches the unsupported receipt/recovery assumption despite an otherwise correct payload."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16187e4bffelv7ol8gHx8cj1i",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9e89670001V2MdAzRZBDGNhP",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

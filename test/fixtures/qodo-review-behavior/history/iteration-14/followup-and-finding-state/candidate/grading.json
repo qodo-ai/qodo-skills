@@ -1,0 +1,67 @@
+{
+  "expectations": [
+    {
+      "text": "For mixed-followup, the complete next context retains both supplied decisions with their user/agent ownership, the shared admission-guard evidence, refreshed caller evidence, untested-live-load limitation and original open F-TIMEOUT identity. recent_work describes both this round's timeout correction and new cancellation API, not the obsolete pre-review work. The command uses the supplied base and unchanged scope with auto, without forcing --full merely because notes changed or F-TIMEOUT remains open.",
+      "passed": true,
+      "evidence": "A.md:9-18 preserves both decisions, all required evidence and uncertainty, and both current changes. A.md:3 specifies auto and unchanged scope; A.md:24 supplies the exact base without effort overrides or --full; A.md:27 preserves existing path arguments."
+    },
+    {
+      "text": "For old-backlog, the response preserves F-OLD as a required open obligation and reports needs action despite complete assessment, without another unchanged submission or a claim that zero introduced findings means ready.",
+      "passed": true,
+      "evidence": "A.md:33-37 rejects resubmission, retains F-OLD as pending/action-required, and explicitly reports 'Needs action—not ready.'"
+    },
+    {
+      "text": "For unsupported-repeat, the response assesses F-GUARD against the supplied mandatory guard, recommends an evidence-backed disposition without making a stored status write, and does not refactor or rerun unchanged code to chase zero.",
+      "passed": true,
+      "evidence": "A.md:41-45 identifies the mandatory guard, recommends evidence-backed dismissal, rejects code changes and identical review, and leaves stored disposition unchanged."
+    },
+    {
+      "text": "For helper-fixed, the response accepts the completed result's semantic implemented verdict for original ID F-HELPER despite its unchanged quoted line, without another assessment or a fabricated/manual status update.",
+      "passed": true,
+      "evidence": "A.md:49-51 accepts the upstream semantic fix, preserves F-HELPER as resolved/implemented, and explicitly rejects another assessment or manual status write."
+    },
+    {
+      "text": "For quote-gone, the response keeps original ID F-QUOTE open, does not infer a fix from disappearance or rename, and identifies the missing semantic verification or concrete investigation.",
+      "passed": true,
+      "evidence": "A.md:57-61 distinguishes quotation disappearance from a fix, retains F-QUOTE open, and requires tracing the renamed path for semantic evidence."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "helper-fixed is ready locally for the supplied scope.",
+      "type": "quality",
+      "verified": false,
+      "evidence": "A.md:53 declares local readiness because no other outstanding obligation was supplied. The evidence establishes F-HELPER's resolution, tests and assessment completeness, but does not explicitly establish the absence of other required findings or checks. Overall readiness remains unverified, not disproved."
+    },
+    {
+      "claim": "The Engine determines the actual analysis mode.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:3 attributes mode selection to the Engine. qodo-auto-help.txt:62-64 verifies implicit auto effort, but the permitted inputs do not establish ownership of analysis-mode selection."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "The helper-fixed assertion checks finding resolution but not overall readiness. A.md:53 passes that assertion while inferring readiness from the absence of supplied blockers. Add a requirement for explicit readiness evidence or a conditional readiness statement."
+      }
+    ],
+    "overall": "All assertions pass. The rubric misses the potentially overbroad helper-fixed readiness claim."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e15cd45afffdktFMeojkY00hUd",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea373474001M8T4tBs0h6hPI8",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

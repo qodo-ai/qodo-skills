@@ -1,0 +1,74 @@
+{
+  "expectations": [
+    {
+      "text": "For eligible, the proposed MCP start uses the tested collector's retained params, complete scope, exact fetchable base, valid stream ID and intact decisions/notes/recent_work with auto effort; uncertain admission reuses mcp-cart-r1 and the identical params rather than adding an idempotency_key, gathering another snapshot or taking a CLI detour.",
+      "passed": true,
+      "evidence": "B.md:7-38 uses MCP without CLI preflight, omits depth for auto, reproduces the retained request/context and prohibits idempotency_key or snapshot/context changes. B.md:82 accepts the complete collector and fetchable-base evidence."
+    },
+    {
+      "text": "For eligible, the response checks isError, polls the retained operation at the advertised interval, follows both result pages through next_cursor=null, joins them in offset order and verifies the reported SHA-256 and 148-byte count before interpreting the JSON; it can report complete local assessment with no findings, but not CI, approval or delivery readiness.",
+      "passed": true,
+      "evidence": "B.md:40-74 specifies advertised-interval polling, isError checks, both pages with unchanged extended, cursor termination, contiguous offsets and 148-byte/SHA-256 checks before interpretation. B.md:84-106 reports the complete empty assessment while excluding CI, approval and delivery clearance."
+    },
+    {
+      "text": "For incomplete-collector, the response treats unknown enumeration/scope and unverified base fetchability as missing collector eligibility, withholds submission and completed full-scope coverage, and neither constructs an ad hoc diff, substitutes a checkout nor installs tooling without authority.",
+      "passed": true,
+      "evidence": "B.md:110-114 blocks submission, assessment, coverage and readiness because enumeration/paths/base fetchability are unestablished; prohibits ad hoc diff, narrower scope, substitute checkout and installation."
+    },
+    {
+      "text": "For bad-digest, the response identifies the advertised-versus-calculated digest mismatch, does not interpret or certify the artifact as a completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": false,
+      "evidence": "B.md:120 correctly identifies and rejects the mismatch. B.md:125-129 proposes bounded original-operation recovery, but its eligibility and 15-second fallback are not established by the named inputs; the permitted-recovery condition is unproven."
+    },
+    {
+      "text": "For bad-byte-count, the response rejects 149 advertised bytes versus 148 measured bytes even though the digest matches, withholds completed or clean assessment, and retains the original operation for only bounded permitted collection recovery without a new review submission.",
+      "passed": false,
+      "evidence": "B.md:1 and B.md:121 correctly block interpretation/readiness for 149 versus 148 despite matching digest. B.md:125-129 proposes recovery without establishing the Skill permission required by the prompt."
+    },
+    {
+      "text": "For wrong-operation, the response rejects the pages because their operation_id differs from the retained accepted operation, despite valid self-consistent bytes, and neither reports an assessment of the retained submission nor switches handles; any permitted recovery keeps the original operation without a new review submission.",
+      "passed": false,
+      "evidence": "B.md:122 correctly rejects the foreign operation and prohibits following it. B.md:125-129 keeps the original handle and forbids submission, but permission to recover this identity failure remains unverified."
+    },
+    {
+      "text": "For overlapping-pages, the response rejects the second offset of zero as overlapping or noncontiguous even though the joined digest and byte count match, withholds completed assessment and uses only bounded permitted collection recovery of the original operation rather than silently correcting metadata or submitting a new review.",
+      "passed": false,
+      "evidence": "B.md:1 and B.md:123 reject offset 0 versus 90 despite valid joined bytes and prohibit repair/reordering. B.md:125-129 bounds recovery but does not establish that the Skill permits recovery for this failure."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 4,
+    "total": 7,
+    "pass_rate": 0.42857142857142855
+  },
+  "claims": [
+    {
+      "claim": "Each invalid-result continuation permits collection recovery from the first page, with a 15-second fallback delay.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "B.md:125 proposes this recovery and attributes the fallback to the Skill. The prompt makes recovery conditional on Skill permission; neither it nor the common help supplies that permission or delay. Unverified, not proven forbidden."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Provide the actual recovery-gate rule and delay as anonymous grading evidence. B.md:125's word 'permitted' cannot itself prove authorization; the four failures reflect missing proof, not verified policy violations."
+      },
+      {
+        "reason": "Split artifact rejection, original-operation retention, retry eligibility and retry bounds into separate assertions. B.md:120-123 satisfies the rejection checks, but the composite assertions obscure that when recovery permission is unverified."
+      }
+    ],
+    "overall": "Submission, eligible collection and incomplete-collector handling pass. All four invalid artifacts are correctly rejected; their composite assertions fail only because proposed recovery permission is unproven."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e157dd03cffdGmTZ60Jad02f8r",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1ea83088e0011XPu3Uv8lfimjx",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}

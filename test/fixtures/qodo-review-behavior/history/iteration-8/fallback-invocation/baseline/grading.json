@@ -1,0 +1,82 @@
+{
+  "expectations": [
+    {
+      "text": "All proposed version, review and status calls use the exact quoted \"/opt/qodo tools/bin/qodo\" invocation, not unavailable bare qodo or a changed installation/PATH.",
+      "passed": true,
+      "evidence": "A.md:2 proposes '\"/opt/qodo tools/bin/qodo\" --version'; A.md:10 uses the identical quoted invocation for review; A.md:18 uses it for review status. No installation or PATH change is proposed."
+    },
+    {
+      "text": "The proposed submission retains auto, the exact supplied base and /outside/context.json; collection is conditional on an actually returned operation ID, with no invented acceptance, findings, coverage or completed review.",
+      "passed": true,
+      "evidence": "A.md:10-13 proposes review with '--base 1111111111111111111111111111111111111111', '--context-file /outside/context.json', and '--async --json', without an effort flag. qodo-auto-help.txt:62 explicitly establishes 'no flag = auto'. A.md:13 exits on unsuccessful submission; lines 15-16 extract a nonempty string from the returned submission and exit if extraction fails; line 18 passes that variable to status. Lines 22-24 explicitly leave acceptance, completion, coverage and findings unknown."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  },
+  "claims": [
+    {
+      "claim": "Version 2.3.1, verified identity and supported flags are supplied evidence rather than newly obtained results.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:5 says 'Evidence supplied: 2.3.1; identity and supported flags already verified. Not rerun here.' This matches prompt.md:11-14."
+    },
+    {
+      "claim": "The proposed submission uses auto effort.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:10-13 includes neither --deep nor --fast. qodo-auto-help.txt:62 states that no effort flag means auto."
+    },
+    {
+      "claim": "Relevant unit tests passed according to the supplied facts.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:24 attributes passing unit tests to supplied facts; prompt.md:16-17 explicitly supplies that result."
+    },
+    {
+      "claim": "The submission JSON exposes its operation ID as .operation_id.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:15-16 assumes '.operation_id'. The permitted help establishes that async submission returns an operation ID, but supplies neither a JSON example nor this field name. The schema assumption is unverified, not demonstrated incorrect."
+    },
+    {
+      "claim": "Status exit 2 means the retained review is still running.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "A.md:23 discusses polling after exit 2. qodo-auto-help.txt:35-36 and 68 explicitly identify exit 2 as unfinished."
+    },
+    {
+      "claim": "A running-status response supplies a polling delay.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "A.md:23 says 'respect the returned polling delay'. No polling-delay field or guarantee appears in prompt.md or qodo-auto-help.txt."
+    },
+    {
+      "claim": "No commands were executed or files written.",
+      "type": "process",
+      "verified": true,
+      "evidence": "A.md:24 states this, and task.md:6 independently establishes that these are final-answer proposals and no proposed operational command was executed."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "Supply verified submission and running-status JSON examples. The proposed parser assumes .operation_id and the prose assumes a returned polling delay, but the permitted evidence documents neither. Those interface assumptions cannot be validated from the current grading inputs."
+      }
+    ],
+    "overall": "Both exact assertions pass as proposal-level requirements. CLI response-schema and polling-delay claims remain unverified; no successful submission or collection is established."
+  },
+  "grader_provenance": {
+    "session_id": "ses_e16bdecb1ffe0W1EQkuh0q50hg",
+    "model": {
+      "id": "gpt-6.1-sol-fast",
+      "providerID": "openai",
+      "variant": "max"
+    },
+    "message_id": "msg_1e9425197001gCHWQaslD7nDrp",
+    "grading_scope": "Anonymous final-answer proposals; no Skill snapshots or operational execution credited."
+  }
+}
