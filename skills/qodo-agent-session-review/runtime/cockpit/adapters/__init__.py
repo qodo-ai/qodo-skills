@@ -58,6 +58,10 @@ def collect_findings(pr: dict, cfg: dict) -> list[dict]:
         for f in (qodo_findings(pr, cfg) if name == "qodo_comments" else mod.collect(pr, cfg)):
             if f["id"] not in seen:
                 seen.add(f["id"]); out.append(f)
+    # Prefer a managed local finding to an ID-only import of the same finding.
+    managed = {f["qodo_id"] for f in out if f.get("qodo_id") and isinstance(f.get("local"), dict)
+               and f["local"].get("origin") == "managed"}
+    out = [f for f in out if not (f.get("details_unavailable") and f.get("qodo_id") in managed)]
     # one record: a local finding Qodo carried into the PR review is that finding, not a second one
     by_qodo = {f["qodo_id"]: f for f in out if f.get("qodo_id") and f.get("source") != "qodo-local"}
     for f in [f for f in out if f.get("source") == "qodo-local" and f.get("qodo_id") in by_qodo]:

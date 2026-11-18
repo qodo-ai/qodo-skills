@@ -8,6 +8,7 @@ const KIT = (() => {
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
     .replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const findingBody = (f) => `${md(f.body || "")}${f.why ? `<p class="muted" style="margin:8px 0 0"><b>Agent:</b> ${md(f.why)}</p>` : ""}${f.url ? `<p style="margin:8px 0 0"><a href="${esc(f.url)}" target="_blank" rel="noopener">Open in ${esc(f.scanner ? f.scanner.name : "Qodo")} ↗</a></p>` : ""}`;
   const cases = {};
   document.querySelectorAll("script.case-data").forEach((el) => { cases[el.dataset.case] = JSON.parse(el.textContent); });
   const caseIds = Object.keys(cases);
@@ -26,12 +27,12 @@ const KIT = (() => {
   const openFindings = (c) => allFindings(c).filter((f) => !f.status || f.status === "open").sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5));
   /* a local finding: what the author's own `qodo review` found before the PR, its status as that review left it */
   const localTag = (f) => {
+    if (f.details_unavailable) return ` <span class="local">· Finding ID: <code>${esc(f.qodo_id)}</code></span>`;
     if (f.status === 'detected_after_merge') return ` <span class="local" title="No fix was verified">· detected after merge</span>`;
-    const l = f.local;
+    const l = f.local, when = l?.at ? ` on ${String(l.at).slice(0, 10)}` : "";
     if (l?.origin === 'managed') return ` <span class="local" title="${esc(`Qodo records this finding from local_skill before the PR${l.at ? ' on '+String(l.at).slice(0,10) : ''}. This origin does not establish a completed PR review.`)}">· before the PR</span>`;
     if (!l && f.review_source && f.review_source !== 'git_pr') return ` <span class="local">${esc(f.review_source === 'unknown' ? '· review origin unknown' : '· review source: '+f.review_source)}</span>`;
     if (!l) return "";
-    const when = l.at ? ` on ${String(l.at).slice(0, 10)}` : "";
     if (f.source !== "qodo-local") return ` <span class="local" title="${esc(`The author's local review${when} found this too, and left it ${l.status || "open"}${l.reason ? `: ${l.reason}` : ""}`)}">· also found before the PR</span>`;
     const open = !f.status || f.status === "open";
     const t = `Found by the author's local qodo review${when}, before the PR.${open ? " Open at that review; a fix or dismissal since then isn't shown yet." : f.status === "dismissed" ? ` The author dismissed it${l.reason ? `: ${l.reason}` : ""}.` : f.status === "resolved" ? " A later local review confirmed the fix." : ""}${l.line ? ` At line ${l.line} then; the code has moved since.` : ""}`;
@@ -493,6 +494,6 @@ const KIT = (() => {
     } catch (_) {}
   };
   const settle = () => Promise.all([...inflight]);   // wait for the events still on their way (Make memories reads them)
-  return { settle, esc, md, cases, caseIds, pick, short, repoShort, base, TIERS, TIER_NAME, minutes, totals, allFindings, openFindings, localTag, localDone, isConvention, freshBar, codeHtml, mermaid, mermaidBox, mermaidReset, store, sevRank,
+  return { settle, esc, md, cases, caseIds, pick, short, repoShort, base, TIERS, TIER_NAME, minutes, totals, allFindings, openFindings, localTag, localDone, findingBody, isConvention, freshBar, codeHtml, mermaid, mermaidBox, mermaidReset, store, sevRank,
            host, served, recipes, RECIPES, ACTIVE, send, noteEvent, undoNote, navHtml, liveBanner, publishHtml, freshHtml };
 })();

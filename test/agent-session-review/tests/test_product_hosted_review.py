@@ -26,7 +26,7 @@ class ProductHostedReviewTests(unittest.TestCase):
                ('RIGHT','absent.py',1,False),('RIGHT','a.py',-1,False),('RIGHT','a.py',True,False),('RIGHT',['a.py'],1,False)]
         for side,path,line,current in cases:
             with self.subTest(side=side,path=path,line=line):
-                raw={'id':'f','title':'Concern','location':{'file_path':path,'start_line':line,'side':side}}
+                raw={'id':'f','title':'Concern','git_sha':HEAD,'location':{'file_path':path,'start_line':line,'side':side}}
                 finding=qodo_local.to_finding(pr,{'local_review_id':'r','commit':HEAD},raw,None)
                 self.assertEqual(finding['current_anchor'],current)
                 self.assertEqual(finding.get('path'),path if current else None)
