@@ -32,21 +32,15 @@ system works. Review a code change itself with `qodo review` and the pull-reques
 
 ## Why the verdict is not optional
 
-Record a verdict on every concern, as soon as you have acted on it. The system depends on it:
+Record a verdict on each concern as soon as you have acted on it. The system depends on it:
 
-- **The next review starts from your verdicts.** A concern you answered is not raised again. A
-  concern you left unanswered comes back, and you pay for the same round twice.
-- **Your "addressed" is checked.** The next review of the plan judges every concern marked
-  addressed against the plan as it is then. If the plan still has the problem, the concern is
-  open again, and its recommendation says what is still missing. Mark addressed only what you
-  changed, and say what changed in the note.
-- **A dismissal is kept.** A concern dismissed with a reason is never raised again, in any
-  wording. That is how a decision stays decided.
-- **It keeps the plan and the code aligned.** A plan and code that drift apart are found late, at
-  the pull request, where they are far more expensive to fix. The verdicts are the record of what
-  was flagged at plan time and what was done about it.
-
-A review whose concerns were never answered is unfinished work.
+- **The next review starts from your verdicts**, and a concern left unanswered is raised again.
+- **An "addressed" is checked** by the next review against the plan as it is then. If the plan
+  still has the problem, the concern is open again and its recommendation says what is still
+  missing. Mark addressed only what you changed, and say what changed in the note.
+- **A dismissal is kept**: a dismissed concern is never raised again, in any wording.
+- **It keeps the plan and the code aligned.** A plan and code that drift apart are found at the
+  pull request, where they are far more expensive to fix.
 
 ## Prerequisites
 
@@ -167,12 +161,13 @@ session context to the authenticated Qodo deployment. Before you submit:
 A new plan:
 
 ```sh
-qodo plan-review --document implementation_plan:plan.md --repo <owner/name> --json
+qodo plan-review --document implementation_plan:plan.md --json
 ```
 
 - `--document <kind>:<path>` is repeatable; the main plan goes first.
-- `--repo <owner/name>` names the repository the plan is about, optionally `<owner/name>@<ref>`.
-  Without it the CLI takes the repository of the working directory's `origin`. The reviewer reads
+- Without `--repo` the CLI takes the repository of the working directory's `origin`, with its
+  git host. Pass `--repo <owner/name>`, optionally `<owner/name>@<ref>`, only when the plan is
+  about another repository. The reviewer reads
   the repository from the git provider, not from your checkout: a ref must exist there, and
   unpushed work is not seen.
 - `--context-file <path>` adds the session's decisions and notes when you have them: a JSON
@@ -214,15 +209,13 @@ The rules are the same whether or not a person is following the session. Do not 
 - **You record every verdict you can stand behind**, as `decided_by: agent`, with a note:
   `addressed` and `outdated` (your reports; the next review checks every "addressed"), and
   `dismissed` with a reason. Your dismissal is visible as yours, and a person can change it.
-- **Three kinds of concern are not yours to dismiss:**
-  1. the recommendation asks for a decision about what should be built (intent, scope, product
-     behaviour) that neither the request nor the plan settles;
+- **Three kinds of concern are not yours to dismiss.** Address them by changing the plan, or
+  leave them open:
+  1. a decision about what should be built (intent, scope, product behaviour) that neither the
+     request nor the plan settles. If you make the choice, write it into the plan, so the next
+     review and the developer see it;
   2. a concern rated `high` that you cannot disprove in the code;
-  3. a concern whose "addressed" came back open twice.
-
-  For these, either make the choice, write it into the plan and record `addressed` (the next
-  review checks it), or leave the concern open. A dismissal is never raised again, so it needs
-  someone's decision.
+  3. a concern whose "addressed" came back open twice. Do not try a third time: leave it open.
 - **Report what waits for a decision.** List every concern you left open in your report, with the
   quoted passage, the concern and your view. That is where a person finds it, now or later.
 - **A person's decision is recorded as theirs.** When someone decides a concern, in the session
@@ -235,7 +228,7 @@ The rules are the same whether or not a person is following the session. Do not 
 
 The host's own approval prompt for a write still applies; this skill does not replace it.
 
-### 6. Record a verdict on every concern
+### 6. Record your verdicts
 
 ```sh
 qodo plan-review-tools set-status --idempotency-key <a key of your own> --args-file verdicts.json --json
@@ -288,7 +281,7 @@ The answer has `latest_version` and `concerns`. Each entry holds the concern its
 After you changed the plan:
 
 ```sh
-qodo plan-review --plan-id <plan_id> --document implementation_plan:plan.md --repo <owner/name> --json
+qodo plan-review --plan-id <plan_id> --document implementation_plan:plan.md --json
 ```
 
 The answer lists the concerns open now: new ones, ones still open, and any "addressed" the review

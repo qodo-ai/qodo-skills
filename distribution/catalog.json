@@ -97,7 +97,7 @@
       "managed": false,
       "providerListed": false,
       "antigravity": {
-        "description": "Review an implementation plan with Qodo before coding, act on each concern and record verdicts once approved. Install only when requested.",
+        "description": "Review an implementation plan with Qodo before coding, act on each concern and record a verdict on it in Qodo. Install only when requested.",
         "suggestedPrompts": [
           "Review this implementation plan with Qodo Plan Review before I start coding."
         ]
@@ -179,7 +179,7 @@
       "version": "1.0.0",
       "recommended": false,
       "displayName": "Qodo Plan Review",
-      "shortDescription": "Review a plan before coding and answer every concern.",
+      "shortDescription": "Review a plan before coding and record what you did with each concern.",
       "defaultPrompt": "Use $qodo-plan-review to review this plan with Qodo before I implement it."
     }
   ]
