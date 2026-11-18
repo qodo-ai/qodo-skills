@@ -219,8 +219,10 @@ You do it yourself. Do not ask for permission per concern or per plan.
 
   Show them the quoted passage, the concern and your view. Record what they decide as
   `decided_by: human`.
-- **With no developer in the session** (an autonomous run), decide those yourself, record them as
-  `decided_by: agent`, and list them in your report as decided without a person.
+- **With no developer in the session** (an autonomous run), do not dismiss a concern of those
+  three kinds: a dismissal is never raised again, and nobody decided. Either make the choice,
+  write it into the plan and record `addressed` (the next review checks it), or leave the concern
+  open. List these concerns in your report as waiting for a person.
 - **One at a time.** Write each verdict when its concern is settled. A concern that waits for a
   decision never delays the verdicts of the others, and never gets a placeholder.
 - **Nobody acted.** Do not invent a verdict for a concern you did not act on. It stays open; say
@@ -339,8 +341,8 @@ confidence. For each concern say what you verified in the code, what you changed
 because of it, the verdict and who decided. Credit Qodo for the concerns it raised and keep your
 own verification and changes identifiable as yours.
 
-Say plainly what was written to Qodo. List the concerns you decided without a person, and every
-concern that is still open with the decision it is waiting for. If the answer carries the `repository_not_read`
+Say plainly what was written to Qodo. List every concern that is still open with the decision it
+is waiting for, and mark the ones that wait for a person. If the answer carries the `repository_not_read`
 warning, say that the review read the plan text only: do not claim the plan was checked against
 the code. Zero open concerns means this version of the plan has no open concern; it is not an
 approval of the plan or of the code. Use plain prose without branded headings.
