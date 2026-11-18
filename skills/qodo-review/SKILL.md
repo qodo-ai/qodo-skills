@@ -4,7 +4,7 @@ description: Review local changes with Qodo after coherent substantive work and 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.15"
+  version: "1.10.16"
   recommended: "true"
   package: "qodo"
   distribution: "skills-sh"
@@ -47,7 +47,7 @@ qodo --version
 If compatible, verify identity unless a successful check still covers this execution context:
 
 ```sh
-qodo read whoami --json --skill qodo-review --skill-version 1.10.15 --distribution skills-sh
+qodo read whoami --json --skill qodo-review --skill-version 1.10.16 --distribution skills-sh
 ```
 
 An old or unparseable version stops authenticated calls.
