@@ -17,6 +17,7 @@ plugins remain owned by their host.
 | `qodo` | Yes | setup, codebase wisdom, local review, PR review resolver |
 | `qodo-standards` | No | rules discovery and standards administration |
 | `qodo-agent-session-review` | No | interactive PR/work-package review, local notes/marks, refresh/resume and export |
+| `qodo-plan-review` | No | plan review before implementation, with a verdict recorded on each concern |
 
 Qodo Standards and Agent Session Review are separate opt-in packages. Updating core never installs either.
 Agent Session Review requires Python 3.9+ and Qodo CLI2+, keeps state outside installed resources, and does
