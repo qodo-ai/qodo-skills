@@ -92,3 +92,47 @@ jobs:
           RELEASE_CATALOG: release-source/distribution/marketplaces.json
           SOURCE_CATALOG: distribution/marketplaces.json
         run: node scripts/verify-marketplace-visibility.mjs
+
+      # Announce once, on the transition to visible: the 15-minute schedule
+      # re-verifies the same target forever, so only post when the most recent
+      # earlier run that checked this provider+tag did not pass. Manual
+      # inspections of an explicit tag (no shipping run) never announce.
+      # Best-effort: Slack must never fail verification.
+      - name: 'slack: announce the listing is live'
+        if: success() && matrix.shippingRun
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PROVIDER: ${{ matrix.provider }}
+          RELEASE_TAG: ${{ matrix.tag }}
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WEBHOOK:-}" ]; then
+            echo "::warning::SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL not set - skipping the announcement"
+            exit 0
+          fi
+          JOB_NAME="Verify ${PROVIDER} (${RELEASE_TAG})"
+          previous=''
+          for id in $(gh api "repos/${REPO}/actions/workflows/verify-marketplace-visibility.yml/runs?status=completed&per_page=30" \
+                        --jq ".workflow_runs[] | select(.id != ${RUN_ID}) | .id"); do
+            previous="$(gh api "repos/${REPO}/actions/runs/${id}/jobs?per_page=100" |
+              jq -r --arg n "$JOB_NAME" '[.jobs[] | select(.name == $n and (.conclusion == "success" or .conclusion == "failure"))][0].conclusion // empty')"
+            [ -z "$previous" ] || break
+          done
+          if [ "$previous" = 'success' ]; then
+            echo "${JOB_NAME} was already visible in an earlier run - nothing to announce."
+            exit 0
+          fi
+          case "$PROVIDER" in
+            claude) NAME='Claude Code marketplace' ;;
+            kiro) NAME='Kiro Powers directory' ;;
+            *) NAME="${PROVIDER} marketplace" ;;
+          esac
+          jq -n --arg t "🛒 ${NAME} now serves qodo-skills ${RELEASE_TAG} · <${RUN_URL}|verification>" '{text: $t}' > "${RUNNER_TEMP}/slack.json"
+          curl -sS --fail-with-body --max-time 30 \
+            -X POST -H 'Content-type: application/json' \
+            --data @"${RUNNER_TEMP}/slack.json" "$WEBHOOK"

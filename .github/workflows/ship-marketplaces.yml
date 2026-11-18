@@ -238,6 +238,36 @@ jobs:
             echo 'Shipping success does not attest that the provider catalog has updated.'
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  # Nudge #agentic-toolbox-ops once if a provider handoff approval sits
+  # unclicked for 15 minutes. Codex is excluded on purpose: its gate waits on
+  # an external portal review, not on a reviewer click. Exits as soon as the
+  # gates resolve. Best-effort: it can never fail or block shipping.
+  approval-reminder:
+    needs: [plan, verify-provider-environment]
+    if: needs.plan.outputs.has_verifiable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - name: 'slack: remind if a marketplace approval is pending'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ENVIRONMENTS: marketplace-claude marketplace-kiro
+          SUBJECT: qodo-skills ${{ inputs.release_tag }} marketplace handoff
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
+        run: .github/scripts/pending-approval-reminder.sh
+
   codex-gate:
     needs: [plan, prepare]
     if: needs.plan.outputs.codex == 'true'
