@@ -70,9 +70,10 @@ notify() {
   jq -n --arg s "$SUBJECT" --arg m "$minutes" --arg e "$envs" --arg a "$approvers" --arg u "$RUN_URL" '{
     text: "⏳ \($s) has been waiting \($m)+ min for approval (\($e)) · approvers: \($a) · <\($u)|review deployment>"
   }' > "$payload"
+  # Called from an `if`, so errexit is off here: fail explicitly.
   curl -sS --fail-with-body --max-time 30 \
     -X POST -H 'Content-type: application/json' \
-    --data @"$payload" "$WEBHOOK"
+    --data @"$payload" "$WEBHOOK" || return 1
   echo
   echo "Reminder sent for: ${envs}"
 }
@@ -97,8 +98,12 @@ while :; do
       | [ to_entries[] | select(.key as $k | $pending | index($k))
           | select(.value.notified | not) | select($now - .value.first >= $after) | .key ]' <<<"$state")"
     if [ "$(jq length <<<"$due")" -gt 0 ]; then
-      notify "$gates" "$due"
-      state="$(jq --argjson due "$due" 'reduce $due[] as $e (.; .[$e].notified = true)' <<<"$state")"
+      # A failed post leaves the gates un-notified, so the next poll retries.
+      if notify "$gates" "$due"; then
+        state="$(jq --argjson due "$due" 'reduce $due[] as $e (.; .[$e].notified = true)' <<<"$state")"
+      else
+        echo "::warning::Slack post failed; retrying on the next poll"
+      fi
     fi
     awaiting="$(jq --argjson gates "$gates" '
       [ $gates[].environment.name as $n | select((.[$n].notified // false) | not) ] | length' <<<"$state")"
