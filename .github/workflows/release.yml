@@ -167,6 +167,7 @@ jobs:
             "${RUNNER_TEMP}/qodo-release-notes.md"
 
       - name: Publish the immutable tag and GitHub release
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
           QODO_ENTERPRISE_RELEASE_DIR: ${{ runner.temp }}/qodo-enterprise-release
@@ -185,6 +186,7 @@ jobs:
         env:
           TAG: ${{ steps.release-source.outputs.tag }}
           STATUS: ${{ job.status }}
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
           GH_TOKEN: ${{ github.token }}
           ACTOR: ${{ github.actor }}
           REPO: ${{ github.repository }}
@@ -199,10 +201,14 @@ jobs:
           fi
           if [ "$STATUS" = 'success' ]; then
             TEXT="📦 qodo-skills ${TAG} released · <${SERVER_URL}/${REPO}/releases/tag/${TAG}|release notes> · by ${ACTOR}"
-          elif [ -n "${TAG:-}" ] && [ "$(timeout 30 gh release view "$TAG" --repo "$REPO" --json isDraft --jq '.isDraft' 2>/dev/null || true)" = false ]; then
-            # A check after publication failed, but the release is already public
-            # (a draft is not, so it falls through to the not-completed message).
-            TEXT="⚠️ qodo-skills ${TAG} is published, but post-publish checks failed · <${RUN_URL}|view the run>"
+          elif [ "$PUBLISH_OUTCOME" = 'failure' ] && [ -n "${TAG:-}" ]; then
+            # This run reached publication; say whether the release went public.
+            IS_DRAFT="$(timeout 30 gh release view "$TAG" --repo "$REPO" --json isDraft --jq '.isDraft' 2>/dev/null || true)"
+            case "$IS_DRAFT" in
+              false) TEXT="⚠️ qodo-skills ${TAG} is published, but post-publish checks failed · <${RUN_URL}|view the run>" ;;
+              true) TEXT="⛔ qodo-skills ${TAG} release did NOT complete (left as a draft) · <${RUN_URL}|view the run>" ;;
+              *) TEXT="⛔ qodo-skills ${TAG} publication failed; could not confirm whether it is public · <${RUN_URL}|view the run>" ;;
+            esac
           else
             TEXT="⛔ qodo-skills ${TAG:-(version unresolved)} release did NOT complete (${STATUS}) · <${RUN_URL}|view the run>"
           fi
