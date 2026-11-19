@@ -14,6 +14,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Nudge #agentic-toolbox-ops once if the skills-release approval sits
+  # unclicked for 15 minutes. Runs beside `release` and exits as soon as the
+  # gate resolves. Best-effort: it can never fail or block the release.
+  approval-reminder:
+    if: >-
+      github.repository == 'qodo-ai/qodo-skills' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - name: 'slack: remind if release approval is pending'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ENVIRONMENTS: skills-release
+          SUBJECT: qodo-skills release
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
+        run: .github/scripts/pending-approval-reminder.sh
+
   release:
     if: >-
       github.repository == 'qodo-ai/qodo-skills' &&
@@ -72,6 +101,7 @@ jobs:
             fi
           fi
           echo "commit=${RELEASE_COMMIT}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
 
       - name: Install locked validation dependencies
         run: npm ci
@@ -137,6 +167,7 @@ jobs:
             "${RUNNER_TEMP}/qodo-release-notes.md"
 
       - name: Publish the immutable tag and GitHub release
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
           QODO_ENTERPRISE_RELEASE_DIR: ${{ runner.temp }}/qodo-enterprise-release
@@ -145,3 +176,43 @@ jobs:
           QODO_RELEASE_SOURCE_DIR: ${{ runner.temp }}/qodo-release-source
           QODO_RELEASE_INDEX_DIR: ${{ runner.temp }}/qodo-release-index
         run: scripts/publish-release.sh
+
+      # Short announcement to #agentic-toolbox-ops. `always()` so a failure
+      # after approval is reported rather than silent. Best-effort: Slack must
+      # never red-X a release that published.
+      - name: 'slack: announce the release'
+        if: always()
+        continue-on-error: true
+        env:
+          TAG: ${{ steps.release-source.outputs.tag }}
+          STATUS: ${{ job.status }}
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${WEBHOOK:-}" ]; then
+            echo "::warning::SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL not set - skipping the announcement"
+            exit 0
+          fi
+          if [ "$STATUS" = 'success' ]; then
+            TEXT="📦 qodo-skills ${TAG} released · <${SERVER_URL}/${REPO}/releases/tag/${TAG}|release notes> · by ${ACTOR}"
+          elif [ "$PUBLISH_OUTCOME" = 'failure' ] && [ -n "${TAG:-}" ]; then
+            # This run reached publication; say whether the release went public.
+            IS_DRAFT="$(timeout 30 gh release view "$TAG" --repo "$REPO" --json isDraft --jq '.isDraft' 2>/dev/null || true)"
+            case "$IS_DRAFT" in
+              false) TEXT="⚠️ qodo-skills ${TAG} is published, but post-publish checks failed · <${RUN_URL}|view the run>" ;;
+              true) TEXT="⛔ qodo-skills ${TAG} release did NOT complete (left as a draft) · <${RUN_URL}|view the run>" ;;
+              *) TEXT="⛔ qodo-skills ${TAG} publication failed; could not confirm whether it is public · <${RUN_URL}|view the run>" ;;
+            esac
+          else
+            TEXT="⛔ qodo-skills ${TAG:-(version unresolved)} release did NOT complete (${STATUS}) · <${RUN_URL}|view the run>"
+          fi
+          jq -n --arg t "$TEXT" '{text: $t}' > "${RUNNER_TEMP}/slack.json"
+          curl -sS --fail-with-body --max-time 30 \
+            -X POST -H 'Content-type: application/json' \
+            --data @"${RUNNER_TEMP}/slack.json" "$WEBHOOK"
