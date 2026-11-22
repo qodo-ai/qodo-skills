@@ -240,10 +240,18 @@ jobs:
           WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
         run: |
           set -euo pipefail
-          # The latest rejection of this run's skills-release gate, as "login<TAB>comment".
-          REJECTION="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/approvals" --jq '
-            [ .[] | select(.state == "rejected" and any(.environments[]; .name == "skills-release")) ]
-            | last | select(. != null) | [.user.login, (.comment // "")] | @tsv')"
+          # A rejected gate stops the release job before any step runs. A job
+          # that ran steps was approved in this attempt, even if an earlier
+          # attempt was rejected, and announced its own result.
+          STEPS="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
+            --jq '[.jobs[] | select(.name == "release") | .steps[]?] | length')"
+          REJECTION=''
+          if [ "$STEPS" -eq 0 ]; then
+            # The latest rejection of this run's skills-release gate, as "login<TAB>comment".
+            REJECTION="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/approvals" --jq '
+              [ .[] | select(.state == "rejected" and any(.environments[]; .name == "skills-release")) ]
+              | last | select(. != null) | [.user.login, (.comment // "")] | @tsv')"
+          fi
           if [ -z "$REJECTION" ]; then
             echo "The release was not rejected; nothing to announce."
           elif [ -z "${WEBHOOK:-}" ]; then
