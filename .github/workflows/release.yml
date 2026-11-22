@@ -217,3 +217,44 @@ jobs:
               -X POST -H 'Content-type: application/json' \
               --data @"${RUNNER_TEMP}/slack.json" "$WEBHOOK"
           fi
+
+  # Tell #agentic-toolbox-ops when a reviewer rejects the skills-release
+  # approval, so nobody re-runs or re-approves it without checking why. A
+  # failure after approval is announced by the release job itself, so this
+  # posts only for a rejection. Best-effort: it can never fail the release.
+  announce-rejection:
+    needs: release
+    if: failure() && github.repository == 'qodo-ai/qodo-skills'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      actions: read
+    steps:
+      - name: 'slack: announce a rejected release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
+        run: |
+          set -euo pipefail
+          # The latest rejection of this run's skills-release gate, as "login<TAB>comment".
+          REJECTION="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/approvals" --jq '
+            [ .[] | select(.state == "rejected" and any(.environments[]; .name == "skills-release")) ]
+            | last | select(. != null) | [.user.login, (.comment // "")] | @tsv')"
+          if [ -z "$REJECTION" ]; then
+            echo "The release was not rejected; nothing to announce."
+          elif [ -z "${WEBHOOK:-}" ]; then
+            echo "::warning::SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL not set - skipping the rejection notice"
+          else
+            IFS=$'\t' read -r WHO WHY <<<"$REJECTION"
+            # Slack treats &, < and > as markup; escape the free-text comment.
+            WHY="$(printf '%s' "$WHY" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
+            TEXT="🚫 qodo-skills release rejected by ${WHO}${WHY:+: “${WHY}”} · check with them before re-running or re-approving · <${RUN_URL}|view the run>"
+            jq -n --arg t "$TEXT" '{text: $t}' > "${RUNNER_TEMP}/slack.json"
+            curl -sS --fail-with-body --max-time 30 \
+              -X POST -H 'Content-type: application/json' \
+              --data @"${RUNNER_TEMP}/slack.json" "$WEBHOOK"
+          fi
