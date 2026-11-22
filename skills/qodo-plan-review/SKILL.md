@@ -115,8 +115,10 @@ failures retain their error and stop this workflow.
 **Command and tools.** These are not authentication failures:
 
 - `qodo plan-review --help` reports an unknown command: this CLI release does not have Plan
-  Review. Say that a newer CLI is needed and stop; the version gate above still decides how an
-  update is offered.
+  Review, which arrived in CLI 2.5.0. Say that CLI 2.5.0 or newer is needed. Offer the update the
+  way the version gate above offers one (the same origin checks and the same approval), make one
+  approved attempt, then rerun `qodo --version` and `qodo plan-review --help`. If the command is
+  still unknown, or the update is declined, stop.
 - `plan-review-tools` is unknown after identity succeeds: refresh the catalog once with
   `qodo tools --refresh` and check again. If it is still absent, the workspace does not expose the
   Plan Review tools; report that capability boundary instead of repeating login or refresh.
