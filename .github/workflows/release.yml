@@ -195,11 +195,10 @@ jobs:
           WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
         run: |
           set -euo pipefail
+          TEXT=''
           if [ -z "${WEBHOOK:-}" ]; then
             echo "::warning::SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL not set - skipping the announcement"
-            exit 0
-          fi
-          if [ "$STATUS" = 'success' ]; then
+          elif [ "$STATUS" = 'success' ]; then
             TEXT="📦 qodo-skills ${TAG} released · <${SERVER_URL}/${REPO}/releases/tag/${TAG}|release notes> · by ${ACTOR}"
           elif [ "$PUBLISH_OUTCOME" = 'failure' ] && [ -n "${TAG:-}" ]; then
             # This run reached publication; say whether the release went public.
@@ -212,7 +211,9 @@ jobs:
           else
             TEXT="⛔ qodo-skills ${TAG:-(version unresolved)} release did NOT complete (${STATUS}) · <${RUN_URL}|view the run>"
           fi
-          jq -n --arg t "$TEXT" '{text: $t}' > "${RUNNER_TEMP}/slack.json"
-          curl -sS --fail-with-body --max-time 30 \
-            -X POST -H 'Content-type: application/json' \
-            --data @"${RUNNER_TEMP}/slack.json" "$WEBHOOK"
+          if [ -n "$TEXT" ]; then
+            jq -n --arg t "$TEXT" '{text: $t}' > "${RUNNER_TEMP}/slack.json"
+            curl -sS --fail-with-body --max-time 30 \
+              -X POST -H 'Content-type: application/json' \
+              --data @"${RUNNER_TEMP}/slack.json" "$WEBHOOK"
+          fi
