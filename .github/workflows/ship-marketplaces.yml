@@ -241,13 +241,13 @@ jobs:
   # Nudge #agentic-toolbox-ops once if a provider handoff approval sits
   # unclicked for 15 minutes. Codex is excluded on purpose: its gate waits on
   # an external portal review, not on a reviewer click. Exits as soon as the
-  # gates resolve. Best-effort: it can never fail or block shipping.
+  # gates resolve. Best-effort: no shipping job needs it, and a reminder
+  # failure is downgraded to a warning so it never marks the run red.
   approval-reminder:
     needs: [plan, verify-provider-environment]
     if: needs.plan.outputs.has_verifiable == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    continue-on-error: true
     permissions:
       actions: read
       contents: read
@@ -266,7 +266,9 @@ jobs:
           ENVIRONMENTS: marketplace-claude marketplace-kiro
           SUBJECT: qodo-skills ${{ inputs.release_tag }} marketplace handoff
           WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
-        run: .github/scripts/pending-approval-reminder.sh
+        run: |
+          .github/scripts/pending-approval-reminder.sh ||
+            echo "::warning::pending-approval reminder failed; shipping is unaffected"
 
   codex-gate:
     needs: [plan, prepare]

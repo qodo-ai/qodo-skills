@@ -204,7 +204,7 @@ jobs:
             # This run reached publication; say whether the release went public.
             IS_DRAFT="$(timeout 30 gh release view "$TAG" --repo "$REPO" --json isDraft --jq '.isDraft' 2>/dev/null || true)"
             case "$IS_DRAFT" in
-              false) TEXT="⚠️ qodo-skills ${TAG} is published, but post-publish checks failed · <${RUN_URL}|view the run>" ;;
+              false) TEXT="⚠️ qodo-skills ${TAG} is public, but this release run failed · <${RUN_URL}|view the run>" ;;
               true) TEXT="⛔ qodo-skills ${TAG} release did NOT complete (left as a draft) · <${RUN_URL}|view the run>" ;;
               *) TEXT="⛔ qodo-skills ${TAG} publication failed; could not confirm whether it is public · <${RUN_URL}|view the run>" ;;
             esac
