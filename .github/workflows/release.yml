@@ -236,6 +236,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WEBHOOK: ${{ secrets.SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL }}
         run: |
@@ -243,24 +244,38 @@ jobs:
           # A rejected gate stops the release job before any step runs. A job
           # that ran steps was approved in this attempt, even if an earlier
           # attempt was rejected, and announced its own result.
-          STEPS="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
-            --jq '[.jobs[] | select(.name == "release") | .steps[]?] | length')"
-          REJECTION=''
-          if [ "$STEPS" -eq 0 ]; then
-            # The latest rejection of this run's skills-release gate, as "login<TAB>comment".
-            REJECTION="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/approvals" --jq '
-              [ .[] | select(.state == "rejected" and any(.environments[]; .name == "skills-release")) ]
-              | last | select(. != null) | [.user.login, (.comment // "")] | @tsv')"
+          if ! STEPS="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
+            --jq '[.jobs[] | select(.name == "release") | .steps[]?] | length')"; then
+            echo "::warning::could not read the release job; no rejection notice sent"
+            STEPS=1
           fi
-          if [ -z "$REJECTION" ]; then
+          TEXT=''
+          if [ "$STEPS" -eq 0 ]; then
+            # The approvals history has no timestamps or attempt numbers, so a
+            # rejecter is named only when nobody approved any attempt of this
+            # run; otherwise the notice cannot tell which decision was last.
+            if DECISIONS="$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/approvals" --jq '
+              [ .[] | select(any(.environments[]; .name == "skills-release")) ]
+              | if length == 0 then ""
+                elif any(.[]; .state == "approved") then "ambiguous"
+                else map("\(.user.login)\(if (.comment // "") != "" then ": “\(.comment)”" else "" end)") | unique | join("; ")
+                end')"; then
+              # Slack treats &, < and > as markup; escape the free-text comments.
+              DECISIONS="$(printf '%s' "$DECISIONS" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
+              if [ "$DECISIONS" = 'ambiguous' ]; then
+                TEXT="🚫 qodo-skills release attempt ${RUN_ATTEMPT} was rejected or failed before starting · check the run before re-running or re-approving · <${RUN_URL}|view the run>"
+              elif [ -n "$DECISIONS" ]; then
+                TEXT="🚫 qodo-skills release rejected by ${DECISIONS} · check with them before re-running or re-approving · <${RUN_URL}|view the run>"
+              fi
+            else
+              echo "::warning::could not read this run's approvals; no rejection notice sent"
+            fi
+          fi
+          if [ -z "$TEXT" ]; then
             echo "The release was not rejected; nothing to announce."
           elif [ -z "${WEBHOOK:-}" ]; then
             echo "::warning::SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL not set - skipping the rejection notice"
           else
-            IFS=$'\t' read -r WHO WHY <<<"$REJECTION"
-            # Slack treats &, < and > as markup; escape the free-text comment.
-            WHY="$(printf '%s' "$WHY" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
-            TEXT="🚫 qodo-skills release rejected by ${WHO}${WHY:+: “${WHY}”} · check with them before re-running or re-approving · <${RUN_URL}|view the run>"
             jq -n --arg t "$TEXT" '{text: $t}' > "${RUNNER_TEMP}/slack.json"
             curl -sS --fail-with-body --max-time 30 \
               -X POST -H 'Content-type: application/json' \
