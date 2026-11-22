@@ -45,7 +45,8 @@ Record a verdict on each concern as soon as you have acted on it. The system dep
 ## Prerequisites
 
 - Qodo CLI **2.0.0 or newer** that also has the `plan-review` command: `qodo plan-review --help`
-  must succeed. An older 2.x CLI passes the version gate and lacks the command.
+  must succeed. The command arrived in CLI 2.5.0; an older 2.x CLI passes the version gate and
+  lacks it.
 - An authenticated connection to the intended deployment and workspace.
 - Plan Review is enabled for the workspace. It is a closed preview: the review, the read tool
   and the write tool are enabled separately.
