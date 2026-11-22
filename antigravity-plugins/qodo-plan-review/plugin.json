@@ -1,0 +1,26 @@
+{
+  "name": "qodo-plan-review",
+  "displayName": "Qodo Plan Review",
+  "version": "2.4.0",
+  "description": "Review an implementation plan with Qodo before coding, act on each concern and record a verdict on it in Qodo. Install only when requested.",
+  "logo": "assets/qodo.png",
+  "suggestedPrompts": [
+    "Review this implementation plan with Qodo Plan Review before I start coding."
+  ],
+  "category": "Developer Tools",
+  "keywords": [
+    "qodo",
+    "code-review",
+    "code-intelligence",
+    "standards",
+    "coding-agents"
+  ],
+  "author": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "homepage": "https://www.qodo.ai",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT"
+}
