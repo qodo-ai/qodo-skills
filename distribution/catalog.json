@@ -89,6 +89,24 @@
         "qodo-agent-session-review"
       ],
       "compatibilityAliases": {}
+    },
+    {
+      "name": "qodo-plan-review",
+      "displayName": "Qodo Plan Review",
+      "description": "Optional Plan Review workflow: review a plan before implementation and record a verdict on each concern.",
+      "managed": false,
+      "providerListed": false,
+      "antigravity": {
+        "description": "Review an implementation plan with Qodo before coding, act on each concern and record a verdict on it in Qodo. Install only when requested.",
+        "suggestedPrompts": [
+          "Review this implementation plan with Qodo Plan Review before I start coding."
+        ]
+      },
+      "default": false,
+      "skills": [
+        "qodo-plan-review"
+      ],
+      "compatibilityAliases": {}
     }
   ],
   "skills": [
@@ -155,6 +173,14 @@
       "displayName": "Agent Session Review",
       "shortDescription": "Review PR work packages in an interactive browser.",
       "defaultPrompt": "Use $qodo-agent-session-review to review these PRs together in the interactive browser."
+    },
+    {
+      "name": "qodo-plan-review",
+      "version": "1.0.0",
+      "recommended": false,
+      "displayName": "Qodo Plan Review",
+      "shortDescription": "Review a plan before coding and record what you did with each concern.",
+      "defaultPrompt": "Use $qodo-plan-review to review this plan with Qodo before I implement it."
     }
   ]
 }
