@@ -268,7 +268,7 @@ jobs:
               if [ "$DECISIONS" = 'ambiguous' ]; then
                 TEXT="🚫 qodo-skills release attempt ${RUN_ATTEMPT} was rejected or failed before starting · check the run before re-running or re-approving · <${RUN_URL}|view the run>"
               elif [ -n "$DECISIONS" ]; then
-                TEXT="🚫 qodo-skills release attempt ${RUN_ATTEMPT} rejected · rejections on this run: ${DECISIONS} · check before re-running or re-approving · <${RUN_URL}|view the run>"
+                TEXT="🚫 qodo-skills release attempt ${RUN_ATTEMPT} did not start · rejections on this run: ${DECISIONS} · check before re-running or re-approving · <${RUN_URL}|view the run>"
               fi
             else
               echo "::warning::could not read this run's approvals; no rejection notice sent"
