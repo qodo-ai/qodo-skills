@@ -133,11 +133,20 @@ There is no `--standard` flag. `--fast` and `--deep` are mutually exclusive.
 
 ### 2. Capture the intended scope
 
-Select the actual target branch, normally `origin/main`.
-Fetch that target when reviewing current remote history.
+Check installed help for `--target`. If advertised, omit both `--base` and
+`--target` for automatic selection. For `child → parent → main`, the CLI discovers
+`parent`, compares from its merge base with `child`, and retains the branch name
+for PR linking. Do not replace that selection with a bare SHA. If the user specifies
+a target, or discovery reports several targets, use `--target <branch>` with the
+selected origin branch. Ask rather than guessing between candidates.
+Fetch the intended target when reviewing current remote history. Without a verified
+target, disclose the unlinked fallback; if the user requested a particular stack layer,
+resolve its target before submitting. Honor a user-requested exact `--base` literally.
+
+On older CLIs without `--target`, resolve the actual target first, compute
+`git merge-base HEAD <target-ref>` and pass that SHA as `--base` on every submission.
+This preserves the requested diff but may omit the comparison branch needed for PR linking.
 If deliberately offline or pinned, disclose the use of locally fetched history.
-Compute `git merge-base HEAD <target-ref>` and pass that SHA as `--base` on every submission.
-An explicit `--base` is exact. Honor a user-requested exact comparison.
 Use a known base SHA literally or explicitly bind its shell variable to that SHA; do not leave an unresolved placeholder.
 If the common ancestor or remote base is unavailable, stop instead of substituting the target tip.
 Review authority does not authorize pushing the base.
