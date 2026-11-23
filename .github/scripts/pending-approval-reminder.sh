@@ -74,8 +74,12 @@ notify() {
   envs="$(jq -r 'join(", ")' <<<"$due")"
   approvers="$(jq -r --argjson due "$due" '[.[] | select(.environment.name as $n | $due | index($n)) | .reviewers[].reviewer | (.login // .slug // .name)] | unique | join(", ")' <<<"$gates")"
   payload="${RUNNER_TEMP:-/tmp}/pending-approval.json"
-  jq -n --arg s "$SUBJECT" --arg m "$minutes" --arg e "$envs" --arg a "$approvers" --arg u "$RUN_URL" '{
-    text: "⏳ \($s) has been waiting \($m)+ min for approval (\($e)) · approvers: \($a) · <\($u)|review deployment>"
+  # Slack reads &, < and > as markup (<!channel> pings everyone); SUBJECT can
+  # carry a dispatch input, so escape the free text.
+  jq -n --arg s "$SUBJECT" --arg m "$minutes" --arg e "$envs" --arg a "$approvers" --arg u "$RUN_URL" '
+    def esc: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;");
+    {
+    text: "⏳ \($s | esc) has been waiting \($m)+ min for approval (\($e | esc)) · approvers: \($a | esc) · <\($u)|review deployment>"
   }' > "$payload"
   # Called from an `if`, so errexit is off here: fail explicitly.
   curl -sS --fail-with-body --max-time 30 \
