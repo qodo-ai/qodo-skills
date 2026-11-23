@@ -17,13 +17,9 @@ Use it only with a tested local collector that:
 - Verifies that the comparison base is fetchable.
 - Retains the submitted snapshot and context.
 
-Resolve the target before collecting the diff. For an open `child → parent` PR,
-collect from `git merge-base HEAD refs/remotes/origin/parent`, send that commit as
-`base_sha`, and send `parent` as `comparison_branch` when the live schema supports
-it. A SHA does not identify a target branch. Respect an explicit target and ask
-when several open PR targets match the same source repository and branch. If no
-target can be verified, omit the comparison branch rather than claiming `main`
-as a linking destination. Disclose any unavailable target-identity capability.
+Apply the [canonical scope rules](../SKILL.md#2-capture-the-intended-scope).
+Send the collected diff's exact commit as `base_sha`. Send the verified target name
+as `comparison_branch` when supported; otherwise omit the field and disclose the limitation.
 
 An ad hoc `git diff` is not equivalent coverage.
 Without a suitable collector, report that MCP-only local review cannot safely cover this worktree.
