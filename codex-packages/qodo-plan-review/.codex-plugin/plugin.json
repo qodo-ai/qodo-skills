@@ -1,0 +1,41 @@
+{
+  "name": "qodo-plan-review",
+  "version": "2.4.0",
+  "description": "Optional Plan Review workflow: review a plan before implementation and record a verdict on each concern.",
+  "author": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "homepage": "https://www.qodo.ai",
+  "repository": "https://github.com/qodo-ai/qodo-skills",
+  "license": "MIT",
+  "keywords": [
+    "qodo",
+    "code-review",
+    "code-intelligence",
+    "standards",
+    "coding-agents"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Qodo Plan Review",
+    "shortDescription": "Qodo Plan Review",
+    "defaultPrompt": [
+      "Use $qodo-plan-review to review this plan with Qodo before I implement it."
+    ],
+    "longDescription": "Optional Plan Review workflow: review a plan before implementation and record a verdict on each concern.",
+    "developerName": "Qodo",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Qodo Plan Review"
+    ],
+    "websiteURL": "https://www.qodo.ai",
+    "supportURL": "https://help.qodo.ai/hc/en-us/requests/new",
+    "privacyPolicyURL": "https://www.qodo.ai/privacy-policy/",
+    "termsOfServiceURL": "https://www.qodo.ai/terms/",
+    "brandColor": "#6D4AFF",
+    "composerIcon": "./assets/qodo.png",
+    "logo": "./assets/qodo.png"
+  }
+}
