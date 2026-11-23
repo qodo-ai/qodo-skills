@@ -200,9 +200,10 @@ jobs:
             echo "::warning::SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL not set - skipping the announcement"
           elif [ "$STATUS" = 'success' ]; then
             TEXT="📦 qodo-skills ${TAG} released · <${SERVER_URL}/${REPO}/releases/tag/${TAG}|release notes> · by ${ACTOR}"
-          elif { [ "$PUBLISH_OUTCOME" = 'failure' ] || [ "$PUBLISH_OUTCOME" = 'cancelled' ]; } && [ -n "${TAG:-}" ]; then
-            # This run reached publication (and may have been cancelled
-            # mid-way); say whether the release went public.
+          elif [ "$PUBLISH_OUTCOME" != 'skipped' ] && [ -n "${PUBLISH_OUTCOME:-}" ] && [ -n "${TAG:-}" ]; then
+            # This run reached publication but did not finish (it failed or
+            # was cancelled, possibly after publishing); say whether the
+            # release went public.
             IS_DRAFT="$(timeout 30 gh release view "$TAG" --repo "$REPO" --json isDraft --jq '.isDraft' 2>/dev/null || true)"
             case "$IS_DRAFT" in
               false) TEXT="⚠️ qodo-skills ${TAG} is public, but this release run failed · <${RUN_URL}|view the run>" ;;
@@ -266,7 +267,7 @@ jobs:
               if [ "$DECISIONS" = 'ambiguous' ]; then
                 TEXT="🚫 qodo-skills release attempt ${RUN_ATTEMPT} was rejected or failed before starting · check the run before re-running or re-approving · <${RUN_URL}|view the run>"
               elif [ -n "$DECISIONS" ]; then
-                TEXT="🚫 qodo-skills release rejected by ${DECISIONS} · check with them before re-running or re-approving · <${RUN_URL}|view the run>"
+                TEXT="🚫 qodo-skills release attempt ${RUN_ATTEMPT} rejected · rejections on this run: ${DECISIONS} · check before re-running or re-approving · <${RUN_URL}|view the run>"
               fi
             else
               echo "::warning::could not read this run's approvals; no rejection notice sent"
