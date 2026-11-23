@@ -200,8 +200,9 @@ jobs:
             echo "::warning::SLACK_WEBHOOK_AGENTIC_TOOLBOX_OPS_URL not set - skipping the announcement"
           elif [ "$STATUS" = 'success' ]; then
             TEXT="📦 qodo-skills ${TAG} released · <${SERVER_URL}/${REPO}/releases/tag/${TAG}|release notes> · by ${ACTOR}"
-          elif [ "$PUBLISH_OUTCOME" = 'failure' ] && [ -n "${TAG:-}" ]; then
-            # This run reached publication; say whether the release went public.
+          elif { [ "$PUBLISH_OUTCOME" = 'failure' ] || [ "$PUBLISH_OUTCOME" = 'cancelled' ]; } && [ -n "${TAG:-}" ]; then
+            # This run reached publication (and may have been cancelled
+            # mid-way); say whether the release went public.
             IS_DRAFT="$(timeout 30 gh release view "$TAG" --repo "$REPO" --json isDraft --jq '.isDraft' 2>/dev/null || true)"
             case "$IS_DRAFT" in
               false) TEXT="⚠️ qodo-skills ${TAG} is public, but this release run failed · <${RUN_URL}|view the run>" ;;
