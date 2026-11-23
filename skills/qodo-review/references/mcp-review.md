@@ -17,10 +17,8 @@ Use it only with a tested local collector that:
 - Verifies that the comparison base is fetchable.
 - Retains the submitted snapshot and context.
 
-Apply the [canonical scope rules](../SKILL.md#2-capture-the-intended-scope).
-Send the commit the diff starts from as `base_sha`; `commit_sha` is the checked-out HEAD.
-Inspect the live `start-pre-pr-review` input schema. Include `comparison_branch` only
-if advertised and the target is verified. Otherwise omit it and disclose the linking limitation.
+Apply the [canonical scope and field mapping](../SKILL.md#2-capture-the-intended-scope)
+to the live `start-pre-pr-review` schema.
 
 An ad hoc `git diff` is not equivalent coverage.
 Without a suitable collector, report that MCP-only local review cannot safely cover this worktree.
