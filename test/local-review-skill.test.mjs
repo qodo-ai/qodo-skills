@@ -149,7 +149,7 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     assert.equal(staged.manifest.source_commit, fixture.head);
     assert.equal(staged.manifest.fixture_source_commit, fixture.head);
     assert.equal(staged.manifest.cases.length, 8);
-    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 42);
+    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 43);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
     assert.ok(!staged.args.includes('--allow-real-servers') && !staged.args.includes('--trust-plugin'));
     assert.ok(!staged.args.includes('--json'), 'Machine mode must not suppress a first-run trust prompt');
