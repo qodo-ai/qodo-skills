@@ -47,6 +47,9 @@ snapshots. Canonical `skills/` on main can contain unreleased changes. Consumers
 read canonical main directly see those source changes earlier.
 
 The release PR also generates `antigravity-plugins/qodo` and `antigravity-plugins/qodo-standards`.
+It builds the GitHub Copilot marketplace in `.github/plugin/marketplace.json` and its packages
+in `copilot-plugins/`. Submit the published tag and SHA through the
+[Awesome Copilot external plugin intake](copilot.md#submit-to-awesome-copilot).
 These are manual native-plugin distributions available in the tagged source tree/archive, not
 new marketplace submission targets or enterprise schema-v1 projections. Package-only adapter
 changes receive a package patch without skill-version changes. Keep generated directories out

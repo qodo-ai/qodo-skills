@@ -187,7 +187,8 @@ function kiroReadPermissionProfile() {
 }
 
 function generatedPackageFiles(value, adapterSet = 'claude') {
-  const host = { claude: 'claude-code', codex: 'codex', kiro: 'kiro', antigravity: 'antigravity' }[adapterSet];
+  const host = { claude: 'claude-code', codex: 'codex', kiro: 'kiro', antigravity: 'antigravity',
+    copilot: 'github-copilot' }[adapterSet];
   if (!host) throw new Error(`Unknown adapter set: ${adapterSet}`);
   const files = new Map([
     ['plugin.json', `${JSON.stringify(pluginManifest(value, adapterSet), null, 2)}\n`],
@@ -226,6 +227,19 @@ function generatedPackageFiles(value, adapterSet = 'claude') {
       '',
       `Install and update: ${pkg.repository}/blob/v${pkg.version}/docs/antigravity.md`,
       `Source release: ${pkg.repository}/releases/tag/v${pkg.version}`,
+      '',
+    ].join('\n'));
+  } else if (adapterSet === 'copilot') {
+    files.set('LICENSE', readFileSync(join(root, 'LICENSE'), 'utf8'));
+    files.set('README.md', [
+      `# ${value.displayName} for GitHub Copilot`,
+      '',
+      value.description,
+      '',
+      `Install Qodo CLI ${catalog.runtime.minimumCliVersion} or newer and invoke the qodo-setup skill.`,
+      'Copilot manages this plugin. Install Qodo Standards separately if you need it.',
+      '',
+      `Installation and support: ${pkg.repository}/blob/main/docs/copilot.md`,
       '',
     ].join('\n'));
   } else if (adapterSet === 'kiro') {
@@ -372,6 +386,26 @@ for (const value of catalog.installPackages) {
   }
 }
 syncGeneratedDirectory('antigravity-plugins', antigravityFiles);
+
+const copilotFiles = new Map();
+const copilotListings = providerPackages(catalog).map((value) => {
+  for (const [path, content] of generatedPackageFiles(value, 'copilot')) {
+    copilotFiles.set(`${value.name}/${path}`, content);
+  }
+  return {
+    name: value.name,
+    source: `./copilot-plugins/${value.name}`,
+    description: value.description,
+    version: pkg.version,
+  };
+});
+syncGeneratedDirectory('copilot-plugins', copilotFiles);
+writeJson('.github/plugin/marketplace.json', {
+  name: 'qodo-copilot',
+  owner: author,
+  metadata: { description: pkg.description, version: pkg.version },
+  plugins: copilotListings,
+});
 
 // Preserve core/Standards paths; additional optional Powers have their own atomic roots.
 for (const value of catalog.installPackages) {

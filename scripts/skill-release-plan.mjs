@@ -8,7 +8,7 @@ export { git, catalogAt, releaseBaseline } from './release-baseline.mjs';
 
 export const readJson = (root, path) => JSON.parse(readFileSync(join(root, path), 'utf8'));
 
-const generated = /^(?:\.agents\/plugins\/|\.claude-plugin\/|\.codex-plugin\/|antigravity-plugins\/|codex-packages\/|kiro-power(?:-[a-z0-9-]+)?\/|packages\/|plugin\.json$|gemini-extension\.json$|distribution\/qodo-(?:skills-index|cli-managed-bundle)\.json(?:\.sha256)?$|skills\/[^/]+\/agents\/openai\.yaml$)/;
+const generated = /^(?:\.agents\/plugins\/|\.claude-plugin\/|\.codex-plugin\/|antigravity-plugins\/|codex-packages\/|copilot-plugins\/|\.github\/plugin\/|kiro-power(?:-[a-z0-9-]+)?\/|packages\/|plugin\.json$|gemini-extension\.json$|distribution\/qodo-(?:skills-index|cli-managed-bundle)\.json(?:\.sha256)?$|skills\/[^/]+\/agents\/openai\.yaml$)/;
 const packaging = [
   /^\.github\/workflows\/ship-marketplaces\.yml$/,
   /^distribution\//,
