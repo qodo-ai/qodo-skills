@@ -32,12 +32,19 @@
 #   REMIND_AFTER_SECONDS  - how long a gate may wait before the reminder. Default 900.
 #   POLL_INTERVAL_SECONDS - default 30.
 #   MAX_API_FAILURES      - consecutive GitHub API failures before giving up. Default 10.
+#   STARTUP_GRACE_SECONDS - keep polling at least this long before deciding no gate
+#                           will open: the gated job starts alongside this sidecar
+#                           and may not be visible yet. Default 120.
+#   MAX_WATCH_SECONDS     - stop watching (success) after this long, so a gate left
+#                           pending never runs into the job timeout. Default 3300.
 set -euo pipefail
 
 : "${GH_TOKEN:?}" "${REPO:?}" "${RUN_ID:?}" "${RUN_URL:?}" "${ENVIRONMENTS:?}" "${SUBJECT:?}"
 REMIND_AFTER_SECONDS="${REMIND_AFTER_SECONDS:-900}"
 POLL_INTERVAL_SECONDS="${POLL_INTERVAL_SECONDS:-30}"
 MAX_API_FAILURES="${MAX_API_FAILURES:-10}"
+STARTUP_GRACE_SECONDS="${STARTUP_GRACE_SECONDS:-120}"
+MAX_WATCH_SECONDS="${MAX_WATCH_SECONDS:-3300}"
 
 if [ -z "${WEBHOOK:-}" ]; then
   echo "::warning::Slack webhook not set - skipping the pending-approval reminder"
@@ -112,7 +119,10 @@ while :; do
     unseen="$(jq --arg envs "$ENVIRONMENTS" '
       ($envs | split(" ") | map(select(. != ""))) as $watched
       | [ $watched[] as $e | select(has($e) | not) ] | length' <<<"$state")"
-    if [ "$awaiting" -eq 0 ] && { [ "$unstarted" -eq 0 ] || [ "$unseen" -eq 0 ]; }; then
+    # Before any gate was seen, a quiet run may just be one whose gated job is
+    # not visible yet, so wait out the startup grace first.
+    if [ "$awaiting" -eq 0 ] && { [ "$unstarted" -eq 0 ] || [ "$unseen" -eq 0 ]; } &&
+      { [ "$(jq length <<<"$state")" -gt 0 ] || [ "$SECONDS" -ge "$STARTUP_GRACE_SECONDS" ]; }; then
       echo "No gate left to remind about - done."
       exit 0
     fi
@@ -123,6 +133,10 @@ while :; do
       echo "::warning::GitHub API unavailable - giving up on the pending-approval reminder"
       exit 0
     fi
+  fi
+  if [ "$SECONDS" -ge "$MAX_WATCH_SECONDS" ]; then
+    echo "::warning::still watching after ${MAX_WATCH_SECONDS}s - stopping the pending-approval reminder"
+    exit 0
   fi
   sleep "$POLL_INTERVAL_SECONDS"
 done
