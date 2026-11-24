@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inputPath } from '../../scripts/eval-review-skill.mjs';
-import { assertFixtureProvenance, assertGrade, assertGraderIdentity, assertRunIdentity, assertRunPaths, evaluatedReleaseStamps } from './review-evaluation-fixtures.mjs';
+import { assertFixtureProvenance, assertGrade, assertGraderIdentity, assertRunIdentity, assertRunPaths, evaluatedReleaseStamps, validEvaluationSession } from './review-evaluation-fixtures.mjs';
 import { assertArtifactArchive, assertHistoryArchives, hashEvidence as sha256 } from './review-evidence-archives.mjs';
 import { assertEvidenceScopes } from './review-evidence-scopes.mjs';
 
@@ -76,6 +76,16 @@ export function assertCurrentEvidence(root, { skill, version, references, text }
   assertBaselineSnapshot(evidenceRoot, manifest.snapshots.baseline);
   assert.deepEqual(assertHistoryArchives(evidenceRoot, manifest),
     { 6: 40, 7: 96, 8: 104, 9: 74, 10: 121, 11: 122, 12: 148, 13: 207, 14: 147, 15: 219, 16: 147 });
+  // Iteration 17 was already sealed as a full scope; reuse its immutable archive in place.
+  const previous = manifest.history.iteration_17;
+  assert.equal(previous.sha256, '0f123a71e383fd68d90d46e4ff960b0d1d974a06305a252525652fbdf355aa18');
+  assert.equal(assertArtifactArchive(evidenceRoot, previous, 'scopes/iteration-17-full', 'iteration17'), 147);
+  const unsuccessful = manifest.history.iteration_18;
+  assert.equal(unsuccessful.sha256, '5b50d285e8d20dd5fa01f75c515cdedd1ee98d3815e022c6c611cf74d73a5126');
+  assert.equal(assertArtifactArchive(evidenceRoot, unsuccessful, 'history/iteration-18', 'iteration18'), 130);
+  const revised = manifest.history.iteration_19;
+  assert.equal(revised.sha256, '4811aa268c4064cbbad1d6d7289d988dd13596acc682f327f60effb335c09be8');
+  assert.equal(assertArtifactArchive(evidenceRoot, revised, 'history/iteration-19', 'iteration19'), 130);
   for (const artifactMap of [manifest.adjudication?.artifacts, manifest.grading_evidence?.artifacts]) {
     for (const [path, hash] of Object.entries(artifactMap ?? {}))
       assert.equal(sha256(fixtureFile(evidenceRoot, path)), hash, path);
@@ -128,22 +138,31 @@ export function assertCurrentEvidence(root, { skill, version, references, text }
       const response = fixtureFile(evidenceRoot, run.response);
       const grade = JSON.parse(fixtureFile(evidenceRoot, run.grading));
       const provenance = JSON.parse(fixtureFile(evidenceRoot, run.provenance));
+      if (configuration === 'baseline' && record.fixture_commits_by_configuration) {
+        const prior = join(evidenceRoot, 'history/iteration-18');
+        assert.deepEqual(response, fixtureFile(prior, run.response), 'Reused baseline answer changed');
+        assert.deepEqual(provenance, JSON.parse(fixtureFile(prior, run.provenance)),
+          'Reused baseline execution provenance changed');
+      }
       const passed = assertGrade(grade, assertions, configuration === 'candidate', {
         response: response.toString('utf8'), label: record.anonymous_grading_labels[item.name][configuration],
       });
       assertRunIdentity(provenance, item.name, record.configuration_labels[configuration]);
-      assertFixtureProvenance(provenance, record);
+      // A reused baseline can have identical fixture bytes from an earlier commit.
+      // Keep that execution's actual revision rather than relabelling it as a new run.
+      const fixtureCommit = record.fixture_commits_by_configuration?.[configuration] ?? record.fixture_source_commit;
+      assertFixtureProvenance(provenance, { ...record, fixture_source_commit: fixtureCommit });
       assert.deepEqual(provenance.fixture_fingerprints, record.fixture_fingerprints);
       assert.equal(provenance.source_commit, manifest.snapshots[configuration].source_commit);
       assert.deepEqual(provenance.fingerprints, manifest.snapshots[configuration].fingerprints);
       assert.equal(provenance.response_sha256, sha256(response));
-      assert.match(provenance.session_id, /^ses_[a-zA-Z0-9]+$/);
+      assert.ok(validEvaluationSession(provenance.session_id, provenance.harness), 'Missing or malformed evaluation session');
       assertGraderIdentity(grade);
       scores[configuration].passed += passed;
       scores[configuration].total += assertions.length;
     }
   }
-  assert.equal(assertionCount, 42);
-  assert.equal(scores.candidate.passed, 42);
+  assert.equal(assertionCount, 43);
+  assert.equal(scores.candidate.passed, assertionCount);
   assert.deepEqual(manifest.scores, scores);
 }

@@ -1,111 +1,88 @@
-No commands were executed, services called, or files written. All commands below are proposals; `qodo` denotes the trusted, resolved installed invocation.
+I loaded qodo-review and its CLI, session-context, MCP and finding-results references. I made no commands, service calls, installs or writes. The commands and context below are proposals only, for these synthetic fixtures.
 
-### 1. `old-1-6` — compatibility blocked
+---
 
-**Next allowed action:** Report the blocker and request explicit authorization before any runtime change.
+### 1. `old-1-6` — **Stopped: version too old**
 
-Version **1.6.0** is below the **2.0.0** minimum. Advertised review API v2, cached catalogs and credentials do not override that executable requirement.
+- **Gate:** 1.6.0 is below the 2.0.0 minimum. That blocks `whoami`, login, reviews and managed tools. The deployment advertising API v2 doesn't change this, and neither does a cached catalog or credential. Only the executable's own version counts.
+- **Next allowed action:** Stop and ask you to approve one update route. `QODO_UPDATE_BASE_URL` is absent, so the override doesn't stop this.
+- **Proposed if you approve one route:**
+  - Ordinary updater: run `qodo update --help`, then its advertised check. Only run `qodo update` if that check offers a newer compatible 2.x target.
+  - Or the verified legacy same-origin route: its own check, then `qodo update --channel latest-2`. This only works for a verified 1.x-to-stable-2.x route. It does not approve any other major version.
+  - In either case, make one attempt, then probe `qodo --version` again.
+- **Unverified:** whether any updater offers a compatible 2.x target. Whether the executable supports review API v2. If the check fails, offers no update or offers an incompatible target, everything stops and I won't switch routes.
 
-Do not run identity, login, managed-tool or review calls. No update is authorized. The absent update-source override removes one blocker but does not grant update permission.
+### 2. `unparseable` — **Stopped: version can't be parsed**
 
-**Unverified:** An approved recovery route, a successfully checked newer compatible 2.x target, and compatibility after any authorized update. Preserve the existing deployment and update policy.
+- **Gate:** "custom build" can't be parsed, so authenticated calls stop just as in case 1. No authentication problem was reported, so login isn't justified.
+- **Next allowed action:** Report the blocker. The only local check allowed is whether the override is set, without printing its value: `[ -n "${QODO_UPDATE_BASE_URL+x}" ] && echo set || echo unset`. If it's set, stop for you.
+- **Recovery route:** An unparseable runtime needs the separately authorized installer route. That requires your approval plus an installer and checksum supplied by Qodo or your organization. You have neither, so the case is blocked. I won't invent a checksum, pipe an installer into a shell or switch deployments.
+- **Unverified:** the actual version, whether review API v2 is supported, and identity.
 
-### 2. `unparseable` — compatibility unknown
+### 3. `floor-2-0-summary` — **Next action: submit the first review**
 
-**Next allowed action:** Report that `"custom build"` cannot establish compatibility. Before recovery, establish only whether `QODO_UPDATE_BASE_URL` is set—never disclose its value. If set, stop for the user.
+- **Gate:** 2.0.0 meets the minimum, and API v2 and identity are verified for this invocation. Help offers `summary` rather than `notes`, so the same narrative goes into `summary`. `decisions` and `recent_work` are kept word for word.
+- **Proposed context:** a UTF-8 file without a BOM, kept outside the repository and the reviewed diff:
+  ```json
+  {
+    "decisions": ["The user selected cooperative cancellation without breaking existing callers."],
+    "recent_work": ["Corrected the timeout guard.", "Added cancellation API behavior."],
+    "summary": "src/jobs/worker.ts:runJob enforces admission. Cancellation tests passed; live load was not tested."
+  }
+  ```
+- **Proposed command:** auto effort, so no `--fast` or `--deep`:
+  ```sh
+  qodo review --base 1111111111111111111111111111111111111111 --context-file "$CTX" --async --json
+  ```
+  After that, poll `qodo review status <operation_id> --json` for the same operation. Keep the operation ID, base, commit/tree, scope and context.
+- **Unverified:** whether the operation is accepted and completes, and what the findings are. Coverage and omissions are unknown. So is context delivery: older clients can cap a field at about 4,000 characters, so check `meta.context` for inline/summarized/truncated. "Live load was not tested" stays stated as unknown.
 
-Do not attempt identity, login, catalog refresh or review. Nothing indicates an authentication problem.
+### 4. `current-2-3-1-paths` — **Next action: follow-up review on the same paths**
 
-An unparseable runtime requires a separately authorized, Qodo/organization-supplied checksum-pinned installer route. Neither approval nor a verified artifact/checksum exists, so no installation command is appropriate.
+- **Reason for another review:** there are changed commits waiting to be reviewed.
+- **Gate:** 2.3.1, API v2 and identity are all verified. Help accepts `notes`. Before submitting, I'd also confirm in offline `qodo review --help` that `--async`, `--json` and path arguments are supported. If async isn't, use the connected flow and keep auto effort.
+- **Proposed context:** the same accepted context as case 3, with `"notes"` instead of `"summary"`.
+- **Proposed command:**
+  ```sh
+  qodo review --base 1111111111111111111111111111111111111111 --context-file "$CTX" --async --json src/jobs/ test/jobs/
+  ```
+  - Same base, same two paths and auto effort.
+  - No `--full`: the earlier review was complete, and changed notes alone don't justify a full rerun.
+  - Whether the result is `full`, `incremental` or `reused` is decided by the review engine.
+- **Unverified:**
+  - The engine's actual `meta.analysis.mode`, and any fallback reason.
+  - The result and coverage.
+  - This is a path-limited checkpoint. It doesn't certify files outside `src/jobs/` and `test/jobs/`, and any other intended paths must be included before a PR handoff.
 
-**Unverified:** The executable version, compatibility, override presence and an authorized installation route.
+### 5. `mcp-no-collector` — **Blocked: can't cover this worktree**
 
-### 3. `floor-2-0-summary` — eligible for first submission
+- **Gate:** MCP can't read this worktree. Its pre-PR review needs a tested local collector that:
+  - applies the CLI's safety exclusions,
+  - reports omitted files,
+  - checks that the base can be fetched,
+  - keeps the submitted snapshot.
 
-Exactly **2.0.0** meets the executable floor; API v2 and identity are verified. Use the advertised older `summary` field without losing context.
+  None exists, so an MCP-only review can't safely cover this worktree.
+- **Next allowed action:** Report the coverage blocker. There's no command to propose. I won't use an ad hoc `git diff`, an unrelated or fetched repository, or an install.
+- **Ways forward, both needing your decision:** provide a tested collector for this scope, or authorize a CLI install through a checksum-pinned installer.
+- **Unverified:** everything about the review itself.
 
-Proposed context, prepared outside the reviewed diff as UTF-8 without a BOM:
+### 6. `cli-identity-gap` — **No, you can't claim the identity check passed**
 
-```json
-{
-  "decisions": [
-    "The user selected cooperative cancellation without breaking existing callers."
-  ],
-  "summary": "src/jobs/worker.ts:runJob enforces admission. Cancellation tests passed; live load was not tested.",
-  "recent_work": [
-    "Corrected the timeout guard.",
-    "Added cancellation API behavior."
-  ]
-}
-```
+- **What's known:**
+  - The status request was made for `OP-REQUESTED`.
+  - The completed response reports complete coverage and inventory, and no findings.
+  - `meta.run.snapshot` matches the intended base, commit and tree.
+- **The gap:**
+  - The response doesn't return a transport operation ID to compare with `OP-REQUESTED`.
+  - `REVIEW-RESULT` is a review-run ID, which is a different kind of ID, so it can't stand in for the operation ID.
+  - The renderer says it doesn't compare the two.
 
-After preparing that file at the proposed temporary path:
-
-```sh
-qodo review \
-  --base 1111111111111111111111111111111111111111 \
-  --context-file "${TMPDIR:?}/floor-2-0-summary.json" \
-  --async --json
-```
-
-Omitting `--fast` and `--deep` selects auto effort. Retain the returned operation ID and collect that operation; acceptance is not completion.
-
-**Unverified:** Review completion, collected scope/omissions, complete coverage and inventory, findings, and context delivery. Live load remains untested.
-
-### 4. `current-2-3-1-paths` — scoped continuation
-
-**Next allowed action:** Confirm any submission flags not already verified using offline `qodo review --help`, then submit the changed work once. New code provides the reason for another assessment.
-
-Preserve this context outside the reviewed diff:
-
-```json
-{
-  "decisions": [
-    "The user selected cooperative cancellation without breaking existing callers."
-  ],
-  "notes": "src/jobs/worker.ts:runJob enforces admission. Cancellation tests passed; live load was not tested.",
-  "recent_work": [
-    "Corrected the timeout guard.",
-    "Added cancellation API behavior."
-  ]
-}
-```
-
-Proposed submission, once the displayed options are confirmed:
-
-```sh
-qodo review \
-  --base 1111111111111111111111111111111111111111 \
-  --context-file "${TMPDIR:?}/current-2-3-1-paths.json" \
-  --async --json \
-  src/jobs/ test/jobs/
-```
-
-Keep the same base, explicit paths and auto effort. Do **not** add `--full` because notes changed. Preserve both recent-work entries; this includes added behavior, not just a fix.
-
-**Unverified:** Whether the Engine selects full, incremental or reused assessment; actual coverage, context delivery and findings. Report its returned decision rather than promising reuse. This remains path-limited coverage, not repository-wide certification.
-
-### 5. `mcp-no-collector` — worktree coverage blocked
-
-**Next allowed action:** Report that MCP-only local review cannot safely cover this worktree without a tested collector.
-
-Do not submit `start-pre-pr-review`, invent prepared input, substitute an ad hoc diff or fetch another checkout. The server schema cannot read the local worktree. Installation is not authorized.
-
-**Missing prerequisites:** A tested collector providing the intended scope, safety exclusions, omission reporting, a fetchable base, and retained snapshot/context. No worktree review has been completed.
-
-### 6. `cli-identity-gap` — operation binding unverified
-
-**No—you cannot claim the operation-response identity check passed.**
-
-Known evidence:
-
-- Collection requested **`OP-REQUESTED`**.
-- The returned assessment reports complete coverage and inventory with no findings.
-- Its snapshot matches the intended base, commit and tree.
-- Its review-run ID is **`REVIEW-RESULT`**.
-
-The response exposes no transport operation ID, and the trusted renderer explicitly does not compare that hidden ID with the requested one. `REVIEW-RESULT` is a different kind of identifier; it cannot substitute for `OP-REQUESTED`. Snapshot agreement does not prove transport-operation identity.
-
-**Next allowed action:** Retain and report the existing evidence and this verification gap. No runtime change, invented read API or new submission is justified.
-
-The identity check is **unverified**, not proven failed. A completed matching-snapshot assessment is available, but fully verified attribution to the accepted operation—and overall readiness—cannot be claimed from this evidence alone.
+  So the check wasn't performed: it neither passed nor failed. The snapshot match shows the result covers the intended code. It doesn't prove this response belongs to that specific operation; another run on the same snapshot would look the same.
+- **What you can say:** "Completed assessment of the intended snapshot (base/commit/tree matched), complete coverage and inventory, no findings. The operation-response identity was not verified because the response has no operation ID."
+- **What you can't say:**
+  - "Identity verified."
+  - "Clean." Zero findings alone doesn't establish that.
+  - "Ready locally", unless the relevant checks passed and no earlier findings are still open. Neither was provided.
+- **Next allowed action:** Report it with the gap disclosed. Don't resubmit, change the runtime or use another read API.
+- **Also unverified:** warnings and `review_agent_comment`, since they weren't provided.

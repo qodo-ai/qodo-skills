@@ -1,106 +1,80 @@
-Proposals only; no commands executed, files written or services called. Below, `qodo` means the trusted installed invocation, never a repository-local launcher.
+I loaded the qodo-review skill and read its references on CLI execution, session context, MCP review and finding results. I ran nothing: no version probes, no service calls, no installs and no repository writes. Everything below comes from your fixture facts and the skill's rules.
 
-### 1. `old-1-6`
+---
 
-**Blocked:** 1.6.0 is below the required CLI 2.0.0 floor. Review API v2 does not override that requirement.
+### 1. `old-1-6` — **Blocked: incompatible runtime**
 
-Stop before identity, login, review or managed-tool calls. The update-source override is already known absent. Obtain authorization for one recovery route that preserves the recorded origin and update policy.
+- **Next allowed action:** Stop. Version 1.6.0 is below the 2.0.0 minimum, so identity checks, login, reviews and managed tools are all off. A cached catalog or credential doesn't change that, so `qodo read whoami` is not allowed either.
+- **What I need from you:** Pick one update route and approve it. The update-source override (`QODO_UPDATE_BASE_URL`) is absent, so nothing stops you choosing a route.
+- **Proposed commands, only after you approve a route** (same installed executable, same origin, existing version holds kept):
+  ```sh
+  qodo update --help                 # offline: find the advertised check
+  qodo update <advertised-check>     # must offer a newer compatible 2.x target
+  qodo update                        # or: qodo update --channel latest-2, but only if the verified legacy 1.x→2.x same-origin route is the one you choose
+  qodo --version                     # probe again
+  ```
+  If the check fails, finds no update or offers an incompatible target, I stop before any change and don't switch routes. Only one attempt is allowed.
+- **Still unverified:** whether an updater check would offer a compatible 2.x target. The deployment advertising review API v2 doesn't show that this executable supports it.
 
-For an approved updater route, inspect its supported check first. Proceed only if that check successfully offers a newer compatible 2.x target. Do not automatically select `latest-2`, change deployment or install anything. After one approved runtime attempt, repeat the unadorned version probe.
+### 2. `unparseable` — **Blocked: incompatible runtime**
 
-**Unverified:** eligible update route/target, replacement runtime compatibility, identity and review coverage.
+- **Next allowed action:** Stop. "custom build" can't be parsed as a version, so no authenticated calls are allowed. You haven't reported an authentication problem, so login is not justified either.
+- **Only permitted local check:** whether the override is set, without printing its value: `[ -n "${QODO_UPDATE_BASE_URL+x}" ] && echo set || echo unset`. If it's set, I stop and ask you.
+- **Recovery route:** An unparseable runtime can't use the updater. The only route is a checksum-pinned installer supplied by Qodo or your organisation, plus your separate approval. You have neither. I won't invent a checksum or pipe an installer into a shell.
+- **Still unverified:** the version, the installer artifact and checksum, and approval to update.
 
-### 2. `unparseable`
+### 3. `floor-2-0-summary` — **Ready to submit: first review**
 
-**Blocked:** `"custom build"` does not establish compatibility. It is not evidence of missing credentials; do not attempt login.
+- **Next allowed action:** Submit one async review at auto effort (no `--fast` or `--deep` flag) against the verified exact base. No `--target` is advertised and an exact `--base` is given, so there is no target discovery. The review won't be linked to a PR, and I'd say so in the report.
+- **Proposed context file**, kept outside the repository (for example `$TMPDIR/qodo-ctx.json`), UTF-8 without a BOM. Help advertises `summary` rather than `notes`, so only that field's name changes. The text and the other two fields are kept word for word:
+  ```json
+  {
+    "decisions": ["The user selected cooperative cancellation without breaking existing callers."],
+    "recent_work": ["Corrected the timeout guard.", "Added cancellation API behavior."],
+    "summary": "src/jobs/worker.ts:runJob enforces admission. Cancellation tests passed; live load was not tested."
+  }
+  ```
+- **Proposed commands:**
+  ```sh
+  qodo review --base 1111111111111111111111111111111111111111 --context-file "$CTX" --async --json
+  qodo review status "<operation_id>" --json   # exit 2 means poll again after retry_after (default 15s)
+  ```
+  I'd keep the operation ID, base, commit/tree, scope and context.
+- **Still unverified:**
+  - Whether the worktree contains unrelated edits that ordinary capture would pick up.
+  - How the context is delivered (`meta.context.*`).
+  - Coverage and completeness of the finding list.
+  - Whether the returned operation and snapshot match the submission.
 
-The next permitted local diagnostic is checking **only whether** `QODO_UPDATE_BASE_URL` is set, without displaying its value. If set, stop for the user.
+### 4. `current-2-3-1-paths` — **Ready to submit: follow-up review**
 
-An unparseable runtime requires the separately authorized, Qodo/organization-supplied checksum-pinned installer route. Neither approval nor a verified checksum exists, so propose no installation or updater execution.
+- **Next allowed action:** One follow-up with the same base, the same two paths and auto effort. No `--full`: changed notes and the previous complete review are not reasons for it, and nothing invalidated reuse. Whether evidence is reused (full, incremental or reused) is the Engine's decision.
+- **Proposed context:** the same three values as case 3, but with the field named `notes`, since this help accepts it.
+- **Proposed command:**
+  ```sh
+  qodo review src/jobs/ test/jobs/ --base 1111111111111111111111111111111111111111 --context-file "$CTX" --async --json
+  ```
+- **Still unverified:**
+  - You only told me help accepts `notes`, `decisions` and `recent_work`. I'd confirm `--base`, `--async` and `--json` with offline `qodo review --help` first, and use the exact-base fallback if needed.
+  - The Engine's actual analysis mode and any fallback reason.
+  - Exclusions or omissions within the two paths.
+  - The path limit means this doesn't count as final full-change coverage before a PR.
 
-**Unverified:** override presence, executable version, approved installer provenance/checksum and review compatibility.
+### 5. `mcp-no-collector` — **Blocked: no safe way to collect the worktree**
 
-### 3. `floor-2-0-summary`
+- **Next allowed action:** Report that a review over MCP alone can't safely cover this worktree. The `start-pre-pr-review` tool can't read the worktree, and there's no tested collector that applies the safety exclusions, reports omissions and confirms the base can be fetched.
+- **Not proposed:** an ad hoc `git diff` (it doesn't give equivalent coverage), a substitute checkout or remote fetch, or installing the CLI.
+- **Ways forward, your choice:** provide a tested collector for this scope, or separately approve installing the CLI through a checksum-pinned installer from Qodo or your organisation.
+- **Still unverified:** everything. No review has happened.
 
-**Allowed:** exactly 2.0.0 meets the floor; API v2 and identity are already verified. No redundant identity check is needed.
+### 6. `cli-identity-gap` — **Assessment complete, identity check unverified**
 
-Reason for submission: the coherent tested slice awaits its first review.
+**No, you can't claim the operation-response identity check passed.** It wasn't performed, so record it as *unavailable / unverified*.
 
-Proposed context—rename only the narrative field to the advertised `summary`:
-
-```json
-{
-  "decisions": [
-    "The user selected cooperative cancellation without breaking existing callers."
-  ],
-  "summary": "src/jobs/worker.ts:runJob enforces admission. Cancellation tests passed; live load was not tested.",
-  "recent_work": [
-    "Corrected the timeout guard.",
-    "Added cancellation API behavior."
-  ]
-}
-```
-
-After preparing this complete UTF-8, BOM-free JSON outside the reviewed worktree and setting `QODO_REVIEW_CONTEXT` to its path:
-
-```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$QODO_REVIEW_CONTEXT" --async --json
-```
-
-Effort is **auto**, with neither `--fast` nor `--deep`.
-
-**Unverified:** submission acceptance, reviewed snapshot/scope, exclusions, context delivery, inventory and coverage. Live load remains untested. Retain any accepted operation ID and collect that operation rather than submitting again.
-
-### 4. `current-2-3-1-paths`
-
-**Allowed:** submit a continuation because new code awaits review. Preserve the exact base, explicit paths and auto effort.
-
-Proposed context:
-
-```json
-{
-  "decisions": [
-    "The user selected cooperative cancellation without breaking existing callers."
-  ],
-  "notes": "src/jobs/worker.ts:runJob enforces admission. Cancellation tests passed; live load was not tested.",
-  "recent_work": [
-    "Corrected the timeout guard.",
-    "Added cancellation API behavior."
-  ]
-}
-```
-
-After preparing this case’s external context file and setting `QODO_REVIEW_CONTEXT` accordingly:
-
-```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$QODO_REVIEW_CONTEXT" --async --json src/jobs/ test/jobs/
-```
-
-Do **not** add `--full` merely because notes changed. Do not describe this as fixes-only: it includes new cancellation API behavior. The Engine decides continuation eligibility and reports actual `full`, `incremental` or `reused` behavior; reuse is not guaranteed.
-
-**Unverified:** acceptance, actual analysis mode/fallback, context delivery and coverage of the new snapshot. Any resulting coverage remains limited to the two requested paths.
-
-### 5. `mcp-no-collector`
-
-**Review blocked:** the MCP schema accepts prepared inputs; it cannot collect this worktree itself.
-
-Do not submit an ad hoc `git diff`, substitute another checkout or remotely fetched repository, or install the CLI without authorization. MCP does not require CLI version or identity probes.
-
-The next step is obtaining suitable prepared input from a tested collector that preserves intended scope, safety exclusions, omitted-file reporting, a fetchable base, and retained snapshot/context.
-
-**Unverified:** all local collection and review coverage. Schema availability alone establishes none of it.
-
-### 6. `cli-identity-gap`
-
-**No—the operation-response identity check cannot be claimed passed.**
-
-Known evidence:
-
-- The retained requested operation is `OP-REQUESTED`.
-- Qodo’s returned result reports complete coverage and inventory, with no findings.
-- The returned snapshot matches the intended base, commit and tree.
-- `REVIEW-RESULT` is a review-run ID, not a returned transport operation ID.
-
-The returned transport operation ID is absent, and the renderer does not compare it internally. Consequently, the operation-response identity comparison is **unavailable/unverified**. Matching snapshot metadata does not establish that separate check.
-
-Retain the handle and result, and report the gap explicitly. Do not substitute either known ID for the missing returned ID, change runtimes, invent another read API or submit again. This is missing verification evidence—not proof of a mismatch, and not grounds for an unqualified clean/ready claim.
+- **Known evidence:**
+  - The status was collected for the retained handle `OP-REQUESTED` and completed.
+  - Coverage and the finding list are both reported complete, with no findings.
+  - `meta.run.snapshot` matches the intended base, commit and tree.
+- **The gap:** the response returns no transport operation ID, and the renderer contract says it doesn't compare one against the requested handle. `REVIEW-RESULT` is a review-run ID, not a substitute for it. The requested handle can't stand in either, and a matching snapshot doesn't prove the operation check.
+- **Next allowed action:** Report the result as a completed assessment with zero findings, and list the operation-identity comparison as an open gap. Don't call it "clean" or "fully identity-verified." No runtime change, invented read API or resubmission.
+- **Still unverified:** that the returned response belongs to `OP-REQUESTED`.

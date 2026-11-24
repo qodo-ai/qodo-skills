@@ -1,64 +1,77 @@
-Commands below are **proposals only**; nothing was executed.
+I applied the qodo-review workflow to each synthetic case. I didn't run any commands, call any service or change any files. The commands below are what I would run next.
 
-### 1. `accepted` — collect the existing operation
+## 1. `accepted`: still running
 
-After the requested **20-second delay**:
-
+**Next step:** Wait the 20 seconds the server asked for, then check the same operation:
 ```sh
-qodo review status op-accepted --extended --json
+qodo review status op-accepted --json
 ```
+- If it says it's still working, wait for its new `retry_after` delay and check again.
+- Once it completes, get more stored detail with `qodo review status op-accepted --extended --json`. This only shows more of the saved result. It doesn't start a new review or cost more review effort.
+- Don't submit a new review to check progress or to get more detail.
 
-If still working, respect the next polling delay and keep using `op-accepted`. `--extended` retrieves stored detail; it does not rerun or deepen the review.
+**Claims you can safely make:**
+- Operation `op-accepted` was accepted and is still in progress. There is no assessment or findings yet.
+- When it finishes, the result covers the snapshot and context you sent at submission. It doesn't cover your current branch or edited context.
+- If you want your current work reviewed, that's a separate submission later with refreshed context. It doesn't replace collecting this result.
 
-Verify returned identities and snapshot metadata against the original submission; disclose unavailable checks. Branch/context changes do not modify that submission.
+## 2. `uncertain`: no confirmation the submission was accepted
 
-**Safe claim:** Qodo accepted the review and it remains pending. It does not yet establish completion, readiness, or coverage of your changed checkout.
-
-### 2. `uncertain` — recover the original submission
-
-Use the exact returned recovery command:
-
+**Next step:** Run the recovery command the CLI returned, exactly as given:
 ```sh
 qodo review --async --retry-submission qodo-cli-review-11111111-1111-4111-8111-111111111111
 ```
+- Don't add options, don't collect your changed checkout and don't send the new context.
+- If it returns an operation ID, save it alongside the recovery ID and check it with `review status`.
 
-Do not append new base, scope, context or effort options, or collect a replacement snapshot. Recovery must use the retained original request despite checkout changes. If it returns an operation ID, collect that operation.
+**Claims you can safely make:**
+- We don't know whether the submission was accepted, and there's no operation ID yet.
+- The recovery uses the original saved request. Any result covers the original snapshot, not your current checkout or context.
+- There are no findings to report.
 
-**Safe claim:** Acceptance is currently unknown. Neither successful admission nor completed review is established.
+## 3. `storage-gap`: not everything is finished
 
-### 3. `storage-gap` — ready locally, not finished end to end
+**Answer:** No. The local review is complete, but not all of the work from local code to Git is done.
 
-**Safe claim:** The current intended snapshot is **ready locally**: assessment, coverage and inventory are complete, required findings are settled, and tests passed.
+**Next step:** Stop reviewing. A failed checkpoint save is not a reason for another review. Next, check the PR handoff: compare the code, base and scope you intend to ship against this completed coverage. Pushing or opening a PR needs your separate approval.
 
-But **no**, all local-to-Git work cannot be called finished:
+**Claims you can safely make:**
+- **Ready locally:** the current intended snapshot has a completed assessment with complete coverage and inventory, no required open findings, and passing tests.
+- The reusable checkpoint was **not** saved, so you can't claim saved or reusable coverage. A later follow-up may not be able to build on this run.
+- The PR handoff is unverified. CI, merge and deploy are separate gates.
 
-- Saving the reusable checkpoint failed; successful persistence and reusable coverage are not established.
-- PR handoff remains unverified; local readiness does not establish hosted review or handoff success.
+## 4. `older-result`: I can't certify full final coverage
 
-Use only a supported persistence-recovery mechanism if one is provided. Otherwise report the gap. Do not rerun an already sufficient assessment merely to chase storage success, or invent a recovery command.
+**Stopping reason:** Coverage, inventory completeness and persistence are all **unknown**. Missing metadata doesn't prove completion, and an older result can't certify newer work.
 
-### 4. `older-result` — certification blocked
+**Next step:** Stop. Certifying would need a new assessment of the current intended snapshot (default effort, with `--full` because the previous coverage is unverified). You didn't ask for new review effort, so that needs your approval first.
 
-**Safe claim:** “The older completed result reported no findings.”
+**Claims you can safely make:**
+- An older review completed and reported no findings for the snapshot it reviewed.
+- Nothing more: not full coverage, not a complete inventory, not saved results, and not that it applies to the current code. Zero findings alone doesn't make the code clean.
 
-Missing coverage, inventory-completeness and persistence metadata remain **unknown**. Zero findings does not prove full final coverage, successful storage or reusable coverage.
+## 5. `entitlement`: review access isn't enabled
 
-Do not certify. Establish missing final coverage through an authorized assessment if continuing; this is a concrete reason for another assessment, not for increased effort. Do not assume `--extended` can manufacture absent evidence.
-
-### 5. `entitlement` — stop
-
-`closed_preview`:
-
+**Stopping reason:** The error is `closed_preview`:
 > Review access is not enabled for this organization.
+> Hint: Ask your administrator to enroll the organization.
 
-> Ask your administrator to enroll the organization.
+**Next step:** Stop. Don't retry, switch accounts or change deployment. A new run needs your confirmation that the organization has been enrolled.
 
-**Safe claim:** Review is blocked by enrollment. Do not submit again until enrollment is confirmed. Do not switch accounts/deployments, repeat login, strip context or lower effort to bypass it.
+**Claims you can safely make:**
+- The review is blocked by organization access, so no assessment happened.
+- This tells you nothing about the code's quality.
 
-### 6. `budget` — stop new assessments
+## 6. `budget`: stop here
 
-Your explicit **two-assessment budget is exhausted**. Five status polls and one extended retrieval are not additional assessments; resuming in another session does not reset the budget.
+**Answer:** Don't continue reviewing.
 
-**Safe claim:** **Budget reached; needs action.** `F-BLOCK` remains action-required, so readiness is not established.
+**Stopping reason:** You set a budget of two new assessments and both have run. The budget still applies after resuming in a new session. The five status checks and the extended view don't count against it, but they also aren't new evidence.
 
-Do not launch a third assessment or dismiss the blocker. Preserve the outstanding finding and obtain explicit budget extension before another assessment; any fixes still require covering edit authority.
+**Next step:** Stop with the open finding. Another assessment needs you to raise the budget. Fixing F-BLOCK needs your approval to make edits, and you haven't given it.
+
+**Claims you can safely make:**
+- **Budget reached / Needs action:** F-BLOCK is still marked action-required, and there's no newer assessment or approval that settles it.
+- The work isn't ready locally or ready for a PR.
+
+**Your options:** approve a fix for F-BLOCK (then I'd test it and spend one more review only if you raise the budget), or ship knowing F-BLOCK is unresolved.

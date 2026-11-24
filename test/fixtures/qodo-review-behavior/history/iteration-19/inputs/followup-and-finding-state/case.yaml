@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: followup-and-finding-state
+expected_outcome: |
+  Distinguishes a semantic finding resolution from overall readiness while another required finding remains open.
+  Preserves concrete prior decisions, refreshed caller evidence and original finding identity in complete follow-up context.
+  Preserves honest feature/mixed context and incremental eligibility.
+  Separates complete assessment from unresolved obligations.
+  Preserves identities and evidence-based attribution without unauthorized disposition or scope growth.

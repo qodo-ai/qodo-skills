@@ -1,6 +1,21 @@
 # Agent-evaluation results
 
-## Current applicable evidence: full17
+## Current evidence: iteration 20
+
+The candidate (`a491aa4`) and baseline (`6385a42`) scored **43/43 each** on the
+repository's blind final-answer check. Eight judges saw the task, criteria and
+randomly labelled answers, without previous grades or execution traces. The candidate
+answers are fresh; the baseline answers and their provenance are unchanged from
+iteration 18. All 59 fixture hashes match. This comparison does not establish uplift.
+
+The separate Claude plugin trace grades were **42/43 candidate, 41/43 baseline**.
+The candidate trace graders rejected `04-saved-sync-pending`; its final answer
+retains the original receipt and business arguments, uses a new key for the
+authorized sync attempt, and checks the result before claiming convergence.
+Both methods passed the candidate's stacked-target assertion. The interrupted
+candidate attempt was not used. Prior blind comparisons (18 and 19) remain archived.
+
+## Historical evidence: full17
 
 Fresh17 completed16executions/8anonymous graders against candidate/common
 `296350ef828251eb696c14ac6617d28fc7c440c2` and baseline
@@ -12,8 +27,8 @@ Seven groups pass all assertions for both versions (35/35each). MCP collection
 passes7/7candidate and3/7baseline: the candidate rejects invalid artifacts and
 stops without an applicable recovery permission; the baseline proposes recovery.
 All147capture artifacts retain original responses, judgments, full input maps,
-provenance, timing and anonymous labels. The current manifest selects this one
-full scope. The standard benchmark/static viewer17 retains16as previous.
+provenance, timing and anonymous labels. Iteration 17 selected this single
+scope; its benchmark compares it with iteration 16.
 
 The grader lacks a neutral Skill-policy excerpt; its recovery-permission judgments
 and composite-assertion interpretation differ across16/17. Preserve both originals.
