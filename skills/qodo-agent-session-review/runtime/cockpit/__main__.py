@@ -71,8 +71,11 @@ def main(argv=None):
     r = sub.add_parser("review"); r.add_argument("refs", nargs="*"); r.add_argument("--repo")
     r.add_argument("--demo", action="store_true"); r.add_argument("--port", type=int)
     r.add_argument("--no-open", action="store_true"); r.add_argument("--collect-only", action="store_true")
+    r.add_argument("--new", action="store_true", help="collect a separate work package even when a saved one shares these PRs")
+    r.add_argument("--into", metavar="SESSION", help="change that saved package's scope to exactly these PRs (adding and removing PRs) and refresh it")
     r.add_argument("--style", choices=style_names(), help=STYLE_HELP)
 
+    sub.add_parser("packages", help="the saved work packages as JSON (id, title, PRs, created), newest first")
     s = sub.add_parser("serve"); s.add_argument("--session"); s.add_argument("--port", type=int); s.add_argument("--no-open", action="store_true")
     s.add_argument("--style", choices=style_names(), help=STYLE_HELP)
 
@@ -141,12 +144,41 @@ def main(argv=None):
         if a.demo:
             session, sdir = collect_demo()
         elif a.refs:
-            session, sdir = collect(a.refs, a.repo)
+            from .collect import existing_sessions, refresh
+            from .adapters.managed import BudgetExceeded
+            if a.new and a.into:
+                sys.exit("Use --new or --into, not both.")
+            sdir, similar = (_session_dir(a.into), []) if a.into else (None, []) if a.new else existing_sessions(a.refs, a.repo)
+            if similar and not sdir:   # the same outcome, perhaps: the user decides the scope before anything is collected
+                print("Similar work packages already exist. Nothing was collected; ask the user which they want:")
+                for s in similar[:5]:
+                    more = [f"has {len(s['held'])}: {', '.join(s['held'])}" if s["held"] else "asked for some of these but holds none yet"]
+                    more += [f"lacks: {', '.join(s['missing'])}"] if s["missing"] else []
+                    more += [f"also has: {', '.join(s['extra'])}"] if s["extra"] else []
+                    print(f"  {s['id']}  {s['title']}  ({'; '.join(more)})")
+                print("Then rerun with --into <id> to make that package exactly these PRs (adds the missing ones, drops the extra ones; notes, marks and enrichment stay), or --new for a separate package.")
+                sys.exit(3)
+            if sdir:   # the same PRs again, or a package the user chose to rescope: update it in place rather than duplicate it
+                print(f"Updating work package {sdir.name} with these PRs" + (" (new scope)." if a.into else " instead of creating a duplicate (--new collects a separate one)."))
+                for s in similar:
+                    print(f"Note: work package {s['id']} ({s['title']}) also holds {len(s['held'])} of these PRs.")
+                try:
+                    done = refresh(sdir, refs=a.refs if a.into else None, default_repo=a.repo)
+                except BudgetExceeded as e:   # the saved package is rolled back untouched rather than overwritten with part of the evidence
+                    sys.exit(f"{e}. Work package {sdir.name} was left as it was; retry, or use --new to collect what fits into a separate package.")
+                session = done["session"]; (sdir.parent / "latest").write_text(session)
+                for w in done.get("warnings") or []:
+                    print(f"warning: {w}")
+            else:
+                session, sdir = collect(a.refs, a.repo)
         else:
             sys.exit("Give PR refs or --demo.")
         print(f"Collected session {session} -> {sdir / 'review-data.json'}")
         if not a.collect_only:
             serve(sdir, a.port, not a.no_open, a.style)
+    elif a.cmd == "packages":
+        from .server import list_sessions
+        print(json.dumps([{k: s[k] for k in ("id", "title", "prs", "created")} for s in list_sessions() if not (s["demo"] or s["dummy"])], indent=2, ensure_ascii=False))
     elif a.cmd == "serve":
         from .server import serve
         sdir = _session_dir(a.session)

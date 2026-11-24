@@ -9,7 +9,10 @@ against `<session-review> <command> --help` for the bundled snapshot.
 | Resume browser | `<session-review> serve --session <id> [--style package]` |
 | Save a reviewer note | `<session-review> note --session <id> --pr owner/repo#12 'text'` |
 | Save a local mark | `<session-review> mark --session <id> --pr owner/repo#12 '👍'` |
-| Refresh source, retaining local events | `<session-review> refresh --session <id>` |
+| Refresh source, retaining local events | `<session-review> refresh --session <id>` (or rerun `review` with the same PRs) |
+| List saved packages (id, title, PRs) | `<session-review> packages` |
+| Change a package's scope to these PRs | `<session-review> review <PR refs...> --collect-only --into <id>` |
+| Separate package for overlapping PRs | `<session-review> review <PR refs...> --collect-only --new` |
 | Export locally | `<session-review> export --session <id> --out /chosen/review.html` |
 | Locate data/config | `<session-review> home` |
 
@@ -18,7 +21,8 @@ Development Track Notes. Never add `--post` or promise provider synchronization.
 accept/dismiss stances do not mutate Qodo review records. Use qodo-review-resolver when the user
 explicitly asks to change stored dispositions, subject to its separate gates.
 
-Refresh recollects evidence and reapplies saved enrichment. Check changed source HEADs, warnings,
+Refresh recollects evidence and reapplies saved enrichment; decisions whose cited lines moved
+come back as "stale after refresh" warnings to revise with `enrich`, not a failed refresh. Check changed source HEADs, warnings,
 review completeness and stale line citations before presenting readiness. A saved session is a
 snapshot, not proof the PR has stayed unchanged. Preserve notes and custom style/config files.
 
