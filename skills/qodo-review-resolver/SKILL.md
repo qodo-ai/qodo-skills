@@ -401,6 +401,10 @@ qodo pr-review-session dismiss --finding-ids <id>,<id> --reason <reason> --expla
 - **`--reason`** (required): `false_positive` (the finding is wrong) · `intentional` (the code is
   deliberate and correct) · `deferred` (real, but out of scope for this PR) · `rejected` (understood
   and declined). Always add `--explanation` — a reviewer reads it later without your context.
+  If the caller omits a reason, use `rejected` and a short explanation such as "Finding
+  deliberately dismissed by the caller." This applies to CLI and MCP tool calls. Never send
+  `thread_resolved`, `design_changed`, or `rule_changed`; those are system-only. A deliberate
+  dismissal must never be sent without a reason, or the next push may re-judge it as a resolved thread.
 - **Read `results` per finding, don't assume the call succeeded as a whole.** It is a 200 even when
   individual ids fail: `not_found` (wrong id or wrong workspace) and `conflict` (already closed, or
   not linked to a PR) are terminal — don't retry them. `reconciled: false` means the DB change
