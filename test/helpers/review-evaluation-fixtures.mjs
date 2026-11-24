@@ -25,10 +25,16 @@ export function assertFixtureProvenance(provenance, manifest) {
   assert.deepEqual(provenance.fixture_fingerprints, inputs, 'Recorded fixture inputs differ from current evidence');
 }
 
+export function validEvaluationSession(id, harness) {
+  if (typeof id !== 'string' || !id || id !== id.trim()) return false;
+  // Preserve native session identifiers rather than translating Claude UUIDs to OpenCode IDs.
+  if (harness === 'claude-code') return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id);
+  return harness === undefined && /^ses_[a-zA-Z0-9]+$/.test(id);
+}
+
 export function assertGraderIdentity(grade) {
   const sessionId = grade?.grader_provenance?.session_id;
-  assert.ok(typeof sessionId === 'string' && /^ses_[a-zA-Z0-9]+$/.test(sessionId)
-    && sessionId.trim() === sessionId, 'Grader session ID is missing or malformed');
+  assert.ok(validEvaluationSession(sessionId, grade?.grader_provenance?.harness), 'Grader session ID is missing or malformed');
 }
 
 export function assertGrade(grade, assertions, candidate = false, { response, label = 'response' } = {}) {

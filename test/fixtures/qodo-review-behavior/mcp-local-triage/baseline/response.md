@@ -1,71 +1,67 @@
-**Proposals only. No commands, calls, writes, or finding-state changes were performed.**
+I read the qodo-review skill and its `local-triage.md` reference, and checked the relevant parts of `mcp-review.md` and `cli-execution.md`. Everything below is a proposal only. I didn't run, call or write anything.
 
-### 1. `metadata-only`
+---
 
-F-A and F-B share the original review, reason, and explanation, so propose one batch:
+### 1. `metadata-only`: proposed keyed dismissal
 
+**Checks before sending:** You explicitly authorized this. F-A and F-B have the same `local_review_id`, reason and explanation, so they can go in one batch. Current code and tests support the explanation. The schema has no `idempotency_key` argument, so the key goes only in the documented metadata field. No key is added to the arguments.
+
+**Proposed request (sent once):**
 ```json
 {
-  "method": "tools/call",
-  "params": {
-    "name": "pr-review-dismiss",
-    "arguments": {
-      "finding_ids": ["F-A", "F-B"],
-      "local_review_id": "L-ORIGINAL",
-      "reason": "false_positive",
-      "explanation": "The mandatory caller guard rejects this input."
-    },
-    "_meta": {
-      "io.qodo/idempotency-key": "6e964130-65c4-49ea-8d3e-9f66fef28f5b"
-    }
-  }
+  "tool": "pr-review-dismiss",
+  "arguments": {
+    "finding_ids": ["F-A", "F-B"],
+    "local_review_id": "L-ORIGINAL",
+    "reason": "false_positive",
+    "explanation": "The mandatory caller guard rejects this input."
+  },
+  "_meta": { "io.qodo/idempotency-key": "<KEY-1: one unique value, created once for this batch>" }
 }
 ```
 
-The key is request metadata, **not** an unsupported tool argument. Retain the exact request, key, and returned receipt/result.
+**Keeping the key:** Save KEY-1 and the exact arguments in task state before sending. This call returns no operation handle, so the saved request is the only way to recover. If the response is lost, resend exactly this request: same arguments, same `_meta` key. Don't create a new key, change the arguments or split the batch.
 
-- If the response is lost, replay the exact request with the **same key**. This synchronous tool has no operation handle to poll.
-- Inspect errors and each finding’s returned outcome.
-- Read back both stored dispositions through the supported read capability. Verify their original IDs, review association, reason, and explanation.
-- Report prior decisions, conflicts, and synchronization status separately. Without readback, do not claim verified storage.
+**Checking the outcome:** Read each finding's result separately. It counts as success only if the result is `status: dismissed`, the stored reason is `false_positive` and the stored explanation matches. Then read back the stored state for both findings. Report `reconciled` separately: `false` means the dismissal is saved but downstream sync isn't finished. `already_dismissed` with different stored values, `conflict` and `not_found` are not successes. A dismissal doesn't count as review coverage, and it doesn't settle any other finding.
 
-### 2. `no-replay-transport`
+### 2. `no-replay-transport`: blocked, nothing sent
 
-**Dismissal is blocked by missing replay-safe write capability.**
+**Next action:** Report that this host has no way to send a replay key. The schema has no key argument, the host can't send `_meta`, and there's no trusted CLI. I won't send an unprotected write, and I won't invent a key field.
 
-Do not submit an unprotected write or invent an `idempotency_key` argument. The next step is to obtain a trusted host/tool path that supports replay protection.
+**What remains undone:** F-A and F-B are still not dismissed in stored state. Your authorization and the supporting evidence still apply, but deciding to dismiss in conversation doesn't create a stored dismissal. To continue, you'd need one of these:
+- a host that supports `_meta["io.qodo/idempotency-key"]`
+- a server schema that advertises `idempotency_key`
+- a trusted CLI
 
-Neither requested dismissal has been submitted or saved by this proposed action. Authorization and supporting evidence do not remove the transport requirement.
+### 3. `prior-outcomes`: neither requested dismissal was saved
 
-### 3. `prior-outcomes`
+- **F-A:** Nothing new was saved. The earlier dismissal stays as it was: reason `deferred`, explanation "Awaiting a separate migration." I can't claim the requested `false_positive` reason or the new explanation. The finding is dismissed, but under the old decision.
+- **F-B:** `conflict` means it was not dismissed. Nothing succeeded for F-B.
+- **Claims:** Neither the new reason nor a clean review can be claimed. The overall status is **Needs action**. Changing F-A's reason would need a capability and authority that weren't given. F-B needs investigation: if the review reference is stale, run a new review and reassess before acting. Replaying the request wouldn't help either way. The same key returns the same result, and a new call can't override a stored decision.
 
-- **F-A:** The existing dismissal remains `deferred`, with explanation **“Awaiting a separate migration.”** Readback verified that prior decision; it did not establish a new `false_positive` dismissal.
-- **F-B:** `conflict`; no successful requested update was verified.
+### 4. `saved-sync-pending`: decision saved, sync still pending
 
-Neither requested new disposition succeeded. Do not overwrite the prior decision, automatically repeat the batch, or start another assessment on these facts alone. **Neither the new reason nor a clean review can be claimed.**
+**What happened:** The dismissal of F-C is saved, and readback confirms the requested `false_positive` reason and explanation are stored. Only downstream sync is unfinished (`reconciled: false`). This isn't a failed write, and the decision shouldn't change.
 
-### 4. `saved-sync-pending`
+**Key handling:** Don't resend the original key to retry sync. That operation already completed, so the transport would return the stored result without running the handler again. Downstream sync wouldn't be attempted. Keep the original request, key and receipt as the record of that write.
 
-**F-C’s requested dismissal was saved and verified. Only downstream synchronization remains incomplete.**
+**Proposed single sync attempt:** Send the same business arguments with **one new key**. This is justified only because a new handler run is needed to retry sync. The endpoint keeps the stored decision and retries sync.
+```json
+{
+  "tool": "pr-review-dismiss",
+  "arguments": {
+    "finding_ids": ["F-C"],
+    "local_review_id": "L-CURRENT",
+    "reason": "false_positive",
+    "explanation": "<the identical stored explanation>"
+  },
+  "_meta": { "io.qodo/idempotency-key": "<KEY-SYNC-1: new, saved before sending>" }
+}
+```
+If this response is lost, resend only KEY-SYNC-1 exactly as it was. Expect `already_dismissed` with matching stored values, then check `reconciled` and read back again. If it's still `false`, stop and report sync as pending, because you allowed only one attempt.
 
-The original operation completed. Replaying its original key would return the cached result without invoking the synchronization handler again.
+### 5. `uncertain-write`: recover using the original request
 
-For the **one authorized new synchronization attempt**, propose:
+**Next action:** First, use the saved receipt to fetch the original operation's result. If that can't return a final result, resend the exact saved request with the **original key**. If the original write did go through, the transport returns its result instead of running it again. Then read back F-C's stored state and check the reason, explanation and `reconciled`.
 
-- Tool: `pr-review-dismiss`.
-- Business arguments: exactly the retained original arguments—F-C, `L-CURRENT`, `false_positive`, and the exact retained authorized explanation.
-- Metadata: `_meta["io.qodo/idempotency-key"]` set to a **fresh, distinct key**, retained for this synchronization attempt.
-
-Preserve the original request/key/receipt alongside the new attempt’s request/key/receipt. This is a synchronization retry, not authorization to change the stored decision.
-
-Inspect the new outcome and read back the disposition and synchronization status. If its response becomes uncertain, recover using **that attempt’s same key**. If synchronization remains incomplete, report it; do not initiate further new attempts automatically.
-
-### 5. `uncertain-write`
-
-**The dismissal outcome is unknown.**
-
-First collect the existing operation using its retained receipt. If replay is needed, send the **exact retained original request with its original key**.
-
-A new key is **not justified**: there is no terminal result or readback establishing what happened, so a fresh invocation is not yet an authorized synchronization retry.
-
-After recovery, inspect the terminal result and read back stored state. Until then, claim neither successful dismissal nor confirmed failure.
+**A new key isn't justified.** We don't know yet whether the write happened. A new key would start a second handler run instead of recovering the first one. A new key only becomes relevant afterwards, if a confirmed `dismissed` result with `reconciled: false` calls for the separately authorized sync attempt in case 4.
