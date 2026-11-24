@@ -83,3 +83,9 @@ the SHA-256 in its distribution's version.json before installing it under QODO_H
 
 Return to the canonical [runtime compatibility recovery gate](../SKILL.md#runtime-compatibility-recovery).
 The verified installation procedure above supplies installer mechanics when that gate selects it.
+
+## Cached discovery
+
+If refresh succeeds but omits the needed capability, run `<qodo> tools --json` once in a
+new process using the same provenance flags. This reads the freshly written catalog.
+Require the needed capability before reporting readiness.

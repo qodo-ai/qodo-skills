@@ -4,7 +4,7 @@ description: Discover, configure, and manage Qodo Review Standards using managed
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.9"
+  version: "1.0.10"
   recommended: "false"
   package: "qodo-standards"
   distribution: "kiro-power"
@@ -104,7 +104,7 @@ PowerShell: save each `--args` JSON object below as UTF-8 without a BOM; use `--
 
 ```
 qodo --version                                                      # compatibility probe — run this FIRST
-qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.9 --distribution kiro-power --host kiro
+qodo read whoami --json --skill qodo-manage-standards --skill-version 1.0.10 --distribution kiro-power --host kiro
 qodo read rules metadata --json                                       # categories/severities before creating
 qodo rules create --name "..." --category "..." --severity warning --content "..." --good-examples "..." --bad-examples "..." --scopes "/owner/repo/" --json
 qodo rules update --rule-id 123 --severity error --json               # only the fields to change
