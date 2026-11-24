@@ -1,6 +1,6 @@
 {
   "name": "qodo-plan-review",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Optional Plan Review workflow: review a plan before implementation and record a verdict on each concern.",
   "author": {
     "name": "Qodo",

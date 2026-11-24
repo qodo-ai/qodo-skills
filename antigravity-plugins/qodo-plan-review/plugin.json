@@ -1,7 +1,7 @@
 {
   "name": "qodo-plan-review",
   "displayName": "Qodo Plan Review",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Review an implementation plan with Qodo before coding, act on each concern and record a verdict on it in Qodo. Install only when requested.",
   "logo": "assets/qodo.png",
   "suggestedPrompts": [
