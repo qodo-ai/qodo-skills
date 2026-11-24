@@ -1,4 +1,14 @@
-# Manual enterprise skill updates
+# Manual skill updates
+
+Identify the installed package and its lifecycle owner. For marketplace installations,
+use the host's update action for that exact plugin and marketplace. Follow the matching
+`QODO_NOTICE` guidance when available. Show the exact action, reuse covering authorization
+or ask once, and start a new host session after the update succeeds.
+
+For other installations, follow the recorded owner's update procedure. Continue with
+the enterprise procedure only after verifying enterprise ownership.
+
+## Manual enterprise skill updates
 
 Keep commands and approvals in this conversation; do not hand off to a terminal.
 

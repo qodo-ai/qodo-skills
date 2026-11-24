@@ -105,7 +105,7 @@ test('all Antigravity workflows and supporting files match their canonical sourc
 
 test('Antigravity generation detects and repairs missing, changed, and obsolete files deterministically', (t) => {
   const root = temporary(t);
-  for (const path of ['scripts', 'distribution', 'skills']) {
+  for (const path of ['scripts', 'distribution', 'skills', 'LICENSE']) {
     cpSync(join(source, path), join(root, path), { recursive: true });
   }
   const generate = () => execFileSync(process.execPath, ['scripts/sync-adapters.mjs'], { cwd: root });

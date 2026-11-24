@@ -58,7 +58,8 @@ Only after identity succeeds run:
 <qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.14 --distribution skills-sh
 ```
 
-Require task capability. On failure report signed in but tools unavailable, exact error and that retry; do not log in again. Reuse verified context with host approvals.
+If refresh succeeds but omits the task capability, follow [cached discovery](references/runtime.md#cached-discovery).
+Require capability. On failure report signed in, the error and retry; do not log in again. Reuse context with host approvals.
 
 ## Configuration
 

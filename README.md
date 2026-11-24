@@ -62,6 +62,9 @@ containing `antigravity-plugins/`; Qodo Standards remains a separate opt-in plug
 [Antigravity installation and acceptance](docs/antigravity.md) for Marketplace status, CLI versus
 IDE setup, release availability, and the native smoke-test gate.
 
+For GitHub Copilot, see [Qodo for Copilot](docs/copilot.md) for CLI and VS Code installation
+from the Qodo marketplace once a release includes `copilot-plugins/`.
+
 For a compatible local agent without an official Qodo listing, use skills.sh. One command can
 target multiple agents:
 

@@ -329,13 +329,13 @@ function archiveFiles(archive) {
 
 test('unlisted beta packages stay out of repository marketplace indexes', (t) => {
   const generated = temp(t);
-  for (const path of ['scripts', 'distribution', 'skills', 'node_modules', 'package.json']) {
+  for (const path of ['scripts', 'distribution', 'skills', 'node_modules', 'package.json', 'LICENSE']) {
     cpSync(join(root, path), join(generated, path), { recursive: true });
   }
   execFileSync(process.execPath, [join(generated, 'scripts/sync-adapters.mjs')], { cwd: generated, stdio: 'pipe' });
   const catalog = JSON.parse(readFileSync(join(root, 'distribution/catalog.json')));
   const listed = catalog.installPackages.filter((pkg) => pkg.providerListed !== false).map((pkg) => pkg.name).sort();
-  for (const path of ['.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json']) {
+  for (const path of ['.agents/plugins/marketplace.json', '.claude-plugin/marketplace.json', '.github/plugin/marketplace.json']) {
     const marketplace = JSON.parse(readFileSync(join(generated, path)));
     assert.deepEqual(marketplace.plugins.map((plugin) => plugin.name).sort(), listed, path);
     assert(!marketplace.plugins.some((plugin) => plugin.name === 'qodo-agent-session-review'), path);
