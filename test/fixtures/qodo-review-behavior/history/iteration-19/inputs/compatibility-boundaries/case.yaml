@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: compatibility-boundaries
+expected_outcome: |
+  Reports missing CLI operation-response identity evidence without inventing a check or runtime change.
+  Stops unsupported or unparseable executables before protected calls.
+  Accepts the minimum supported version, preserves summary-only context and explicit current-client scope.
+  Refuses fabricated MCP worktree coverage without installing or substituting a collector.

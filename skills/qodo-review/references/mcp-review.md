@@ -38,7 +38,14 @@ Retain the same `request_id` and exact arguments after an uncertain start.
 This is the start tool's logical-action retry key. Do not invent a separate `idempotency_key` argument.
 Poll `get-managed-agent-operation` at its advertised interval.
 Check every status/result receipt's `operation_id` against the retained operation.
-Fetch all `get-managed-agent-result` chunks, following each `next_cursor` once until null.
+Call `get-managed-agent-result` without a cursor for the first page. After each valid page:
+
+| Returned `next_cursor` | Next action |
+|---|---|
+| A new cursor | Pass it unchanged on the next call, even if the advertised number of chunks has arrived. |
+| Explicit `null` | Record the end marker and verify the assembled result. |
+| Missing or repeated cursor | Reject incomplete or cyclic pagination. |
+
 Keep the initial `extended` value or omission unchanged across pages; change only the cursor.
 Require stable `encoding`, `sha256`, `total_bytes` and `total_chunks` across pages.
 Require contiguous `offset_bytes` starting at zero, with no gap, overlap or cursor cycle.
