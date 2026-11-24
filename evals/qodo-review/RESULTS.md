@@ -27,8 +27,8 @@ Seven groups pass all assertions for both versions (35/35each). MCP collection
 passes7/7candidate and3/7baseline: the candidate rejects invalid artifacts and
 stops without an applicable recovery permission; the baseline proposes recovery.
 All147capture artifacts retain original responses, judgments, full input maps,
-provenance, timing and anonymous labels. The current manifest selects this one
-full scope. The standard benchmark/static viewer17 retains16as previous.
+provenance, timing and anonymous labels. Iteration 17 selected this single
+scope; its benchmark compares it with iteration 16.
 
 The grader lacks a neutral Skill-policy excerpt; its recovery-permission judgments
 and composite-assertion interpretation differ across16/17. Preserve both originals.
