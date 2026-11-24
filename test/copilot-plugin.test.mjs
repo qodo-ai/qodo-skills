@@ -38,3 +38,11 @@ test('Copilot lists separate core and Standards packages with matching versions'
     }
   }
 });
+
+test('Copilot Standards packages marketplace guidance ahead of the verified enterprise procedure', () => {
+  const guidance = read('copilot-plugins/qodo-standards/skills/qodo-get-rules/references/skill-updates.md');
+  const [ownerGuidance, enterprise] = guidance.split('\n## Manual enterprise skill updates\n');
+  assert.match(ownerGuidance, /use the host's update action for that exact plugin and marketplace/);
+  assert.match(ownerGuidance, /the enterprise procedure only after verifying enterprise ownership/);
+  assert.match(enterprise, /agents update --enterprise --dry-run --json/);
+});
