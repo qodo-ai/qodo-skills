@@ -92,8 +92,8 @@ they do not select different authority, compatibility or recovery policy.
   Keep a connected client alive; reap its child before parsing. Progress is not a result.
   Retain the final envelope even after nonzero exit and before deleting only this invocation's temporary files.
 - **MCP:** require the tested collector, safety exclusions, omission report and fetchable base above.
-  Preserve request identity after uncertain admission; collect and verify every result chunk before interpreting it.
-  Keep result-view arguments unchanged while following pagination cursors.
+  Preserve request identity after uncertain admission. Check `isError` on every receipt and result page.
+  Keep result-view arguments unchanged; follow cursors until `next_cursor: null`. Verify the joined bytes before parsing.
   Never invent an unsupported collector mode, retry-key field or substitute checkout.
 - **Finding-status writes:** fixing code does not authorize a dismissal. An authorized local dismissal uses original
   finding IDs and their actual local-review IDs, grouped by review, reason and explanation.
@@ -193,7 +193,7 @@ Report unavailable or shortened delivery. A stored link or preparation receipt d
 
 Use `--async --json` when available so the review survives process exit.
 Keep at most one automatic checkpoint active per task.
-Continue useful independent work and collect its result at natural pauses within retention.
+Collect its result at natural pauses within retention.
 For connected progress, read [connected progress](references/connected-progress.md).
 Keep the process alive. Never combine `--async` with `--progress`.
 
@@ -275,14 +275,14 @@ Name that reason before submitting.
 Stop when the same concern repeats without actionable progress.
 Do not re-fix guarded code, suppress a blocker or buy unchanged reviews to chase zero.
 There is no default numerical round cap. Apply an explicit user budget across resumes.
-Status polls and result retrieval are not additional assessments.
+Polls and retrieval do not count. At the limit, stop with open findings; do not continue fixes without edit authority.
 
 | Outcome | Report |
 |---|---|
 | Ready locally | Current intended code/scope has completed assessment, required findings are settled and relevant checks passed. |
 | Needs action | Required findings or human decisions remain, even if the assessment completed with no new findings. |
 | Review blocked | Required assessment, inventory or verification could not complete. Preserve the reason and recovery handle. |
-| Budget reached | The user's explicit review budget ended. Preserve blockers and missing coverage. |
+| Budget reached | Stop. Report unresolved blockers and missing coverage. |
 
 A resolved finding alone does not establish overall readiness; check the full inventory for other required obligations.
 Report finding/checkpoint persistence and local-to-PR handoff separately from assessment and local readiness.
