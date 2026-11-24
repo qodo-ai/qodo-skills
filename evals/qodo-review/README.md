@@ -17,7 +17,7 @@ The staging command puts these folders in the temporary plugin's `evals/`.
 ## Run
 
 `npm run eval:qodo-review -- --output-parent <directory-outside-the-repo>` stages
-the committed HEAD Skill, all eight committed cases and their graders as a minimal plugin.
+the committed HEAD Skill, all committed cases and their graders as a minimal plugin.
 It prints the exact `claude plugin eval` command and the staging directory.
 The full instruction/fixture fingerprint manifest is written to that directory's `manifest.json`.
 Staging does not run a model. Add `--run` only to opt into billed evaluation on
@@ -87,7 +87,9 @@ assumption is preserved as historical evidence, not accepted as transport qualif
 `mcp-collection` adds seven assertions for eligible submission, complete chunk
 verification, ineligible collection, wrong digest/byte count, a foreign operation
 and overlapping pages. The CLI identity-gap case adds one assertion that missing
-response identity is reported, not invented. The wrapper stages eight groups and42assertions.
+response identity is reported, not invented. `pr-ready-handoff` tests the ready/draft decision
+with open local findings and the current-head evidence required for a hosted clean claim.
+The wrapper stages nine groups and 44 assertions.
 
 ## Recorded evidence and CI
 

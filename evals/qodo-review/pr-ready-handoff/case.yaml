@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: pr-ready-handoff
+expected_outcome: |
+  Holds a ready PR when an original local finding remains open. Uses delegated dismissal authority only for supported dispositions.
+  Distinguishes an exact local clean result from verified hosted cleanliness.

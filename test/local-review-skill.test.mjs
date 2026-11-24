@@ -128,7 +128,7 @@ test('context compatibility and authority boundaries survive the rewrite', () =>
   assert.match(text, /finding\/checkpoint persistence and local-to-PR handoff separately/);
   for (const group of ['compatibility-boundaries', 'followup-and-finding-state',
     'milestone-and-final-scope', 'recovery-and-readiness', 'fallback-invocation', 'recovery-policy-guards',
-    'mcp-local-triage']) {
+    'mcp-local-triage', 'pr-ready-handoff']) {
     const prompt = readFileSync(join(root, 'evals/qodo-review', group, 'prompt.md'), 'utf8');
     assert.match(prompt, /allowed_tools: \[Read, Glob, Grep, Skill\]/);
     assert.doesNotMatch(prompt.split('---', 3)[1], /\b(?:Write|Edit|Bash)\b/);
@@ -148,8 +148,9 @@ test('opt-in behavior evaluation stages the actual instructions and every versio
     assert.equal(staged.manifest.source_kind, 'immutable Git commit');
     assert.equal(staged.manifest.source_commit, fixture.head);
     assert.equal(staged.manifest.fixture_source_commit, fixture.head);
-    assert.equal(staged.manifest.cases.length, 8);
-    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 42);
+    assert.equal(staged.manifest.cases.length, 9);
+    assert.equal(staged.manifest.assertions['pr-ready-handoff'], 2);
+    assert.equal(Object.values(staged.manifest.assertions).reduce((sum, count) => sum + count, 0), 44);
     assert.ok(staged.args.includes('--no-publish') && staged.args.includes('--no-scaffold'));
     assert.ok(!staged.args.includes('--allow-real-servers') && !staged.args.includes('--trust-plugin'));
     assert.ok(!staged.args.includes('--json'), 'Machine mode must not suppress a first-run trust prompt');

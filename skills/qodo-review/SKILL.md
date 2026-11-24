@@ -247,7 +247,8 @@ Your recommendation does not grant authority.
 Keep uncertain and out-of-scope findings visible.
 Do not expand the task with optional refactors merely to reduce the finding count.
 Fix authority does not authorize stored dismissals, pushes or unrelated changes.
-For explicitly authorized finding-status writes, read [local triage](references/local-triage.md) and verify each stored outcome.
+If the user delegates dismissal decisions for this review, use [local triage](references/local-triage.md)
+for each unsupported finding in scope. Give the code evidence and verify Qodo stored the dismissal on the original ID.
 A conversational skip is not a stored dismissal. Do not manually mark a fix merely because the quote disappeared.
 
 After authorized fixes, run relevant checks and review changed work when useful.
@@ -279,10 +280,15 @@ A resolved finding alone does not establish overall readiness; check the full in
 Report finding/checkpoint persistence and local-to-PR handoff separately from assessment and local readiness.
 Do not claim successful storage or reusable coverage without evidence.
 Before a PR/update, compare intended code, base and scope with completed final coverage and reconcile outstanding checkpoint results.
-Remove temporary path restrictions. A light checkpoint alone is not ordinary final coverage.
+Before opening or marking a PR ready, require complete local coverage and inventory for the exact candidate,
+passing relevant checks, and no open or unverified findings, including `still_open` from earlier rounds.
+Listing a finding in the PR description does not settle it. If the gate fails, keep the PR in draft
+when PR creation is authorized, or report the blocker. Review the changed candidate after fixes.
 For authorized notes maintenance, use `qodo-review-notes` to publish notes for the actual HEAD and bind the PR.
 Notes publication and matching HEAD do not prove finding handoff.
-Verify hosted review separately through `qodo-review-resolver` before a hosted Qodo-clean claim.
+After a clean local result, report “local review clean; hosted review pending” if the hosted run is pending.
+Call the PR Qodo-clean only when `qodo-review-resolver` verifies a complete hosted review of the current
+PR head with no open findings. If the result is missing, stale or incomplete, report that state.
 CI, merge, release, deployment and customer acceptance remain separate gates.
 
 ## Handle a skill update notice
