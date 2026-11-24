@@ -53,13 +53,13 @@ Illustrative POSIX commands, after preflight and writing context:
 command -v jq >/dev/null 2>&1 || { printf '%s\n' 'This async recipe requires jq; use the connected flow if unavailable.' >&2; exit 1; }
 QODO_REVIEW_CONTEXT="${QODO_REVIEW_CONTEXT:-.qodo/session-context.json}"
 [ -f "$QODO_REVIEW_CONTEXT" ] || { printf '%s\n' "Write review context to $QODO_REVIEW_CONTEXT or set its path." >&2; exit 1; }
-QODO_REVIEW_BASE="$(git merge-base HEAD origin/main)" || { printf '%s\n' 'Cannot resolve the intended merge base.' >&2; exit 1; }
-if ! submission="$(qodo review --base "$QODO_REVIEW_BASE" --context-file "$QODO_REVIEW_CONTEXT" --async --json)"; then printf '%s\n' "$submission" >&2; exit 1; fi
+if ! submission="$(qodo review --context-file "$QODO_REVIEW_CONTEXT" --async --json)"; then printf '%s\n' "$submission" >&2; exit 1; fi
 if ! id="$(printf '%s\n' "$submission" | jq -er '.operation_id | select(type == "string" and length > 0)')"; then printf '%s\n' "$submission" >&2; exit 1; fi
 qodo review status "$id" --json
 ```
 
-Substitute the actual target branch.
+This example assumes installed help advertises `--target`. For a selected parent,
+add `--target <branch>`. On older clients, apply the main Skill's exact-base fallback.
 For a chosen light checkpoint, add `--fast`; for justified thorough review, add `--deep`.
 Do not change effort because async is unavailable. Use the connected fallback instead.
 

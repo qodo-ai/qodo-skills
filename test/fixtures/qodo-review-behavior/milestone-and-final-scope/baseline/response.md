@@ -1,155 +1,105 @@
-These are proposals only; I would not run a review here. Compatibility, identity and flag discovery are already satisfied.
+I loaded the qodo-review skill and nothing was run. Each command below uses `qodo` to stand for the installed invocation you already resolved. `BASE` means the merge-base SHA `1111111111111111111111111111111111111111`. I'd write each context file outside the reviewed tree, for example `$TMPDIR/qodo-ctx-<case>.json`, so it never ends up in the diff or a commit.
 
-For the commands below:
-- `qodo` means the verified installed invocation.
-- `CONTEXT_DIR` would identify a unique directory outside all reviewed worktrees. Each context file would contain the proposed JSON below.
-- Every submission uses the verified merge-base literally.
+---
 
-### 1. `milestone`
+### 1. `milestone`: submit one auto checkpoint in the background, keep working
 
-**Submit one auto-effort checkpoint now**, then continue the independent integration work. This is a useful, tested implementation slice—not an every-edit review. No reason justifies forcing fast or deep.
-
-Scope: the task changes in the clean task worktree, without invented path restrictions.
+**Reason to review:** you finished and tested a coherent slice, and its findings can still shape the integration work left to do.
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/milestone.json" --async --json
+qodo review --base 1111111111111111111111111111111111111111 \
+  --context-file "$TMPDIR/qodo-ctx-milestone.json" --async --json
 ```
 
-Context:
+- **Effort:** auto. I'd leave out `--fast` and `--deep` because you asked for neither.
+- **Scope:** no path limits. The worktree is clean, so ordinary capture is exactly the task commit.
+- **Context:**
+  - `decisions`: the API design choices, each with who made it (you or me) and the reason, if known.
+  - `notes`: requirements, guards and their file locations, callers that didn't change, and the exact checks run with their results. "Tested" alone isn't recorded as "tests passed"; any result I don't have is marked unknown.
+  - `recent_work`: "First review: implemented the API slice …"
+- **Afterwards:** save the `operation_id` and keep doing the integration work. At a natural pause, collect the result with `qodo review status <id> --json`. Exit 2 means it's still running; I'd wait the returned `retry_after` and check again. I wouldn't submit a second review while this one is active.
 
-```json
-{
-  "decisions": [],
-  "notes": "A coherent API implementation slice is complete and has been tested. Test commands and outcomes were not supplied, so passing tests are not established. Independent integration work remains. No implementation-specific requirements, guards or design rationale were supplied.",
-  "recent_work": [
-    "Implemented the coherent API slice now awaiting its first review."
-  ]
-}
-```
+### 2. `dirty-final`: review the verified clean task-only worktree
 
-Retain the accepted operation and submitted snapshot. Collect its result at a natural pause; if integration work changes the code meanwhile, reassess findings against current code. This checkpoint does not automatically cover subsequent work.
-
-### 2. `dirty-final`
-
-**Review from the available, verified task-only clean worktree at the intended commit.** Ordinary capture in the original worktree would include unrelated changes, even after a task-only commit.
-
-Preserve the original files and index completely: no staging, stashing, resetting or committing. Do not invent an unsupported committed-only flag.
-
-Scope: the entire committed candidate relative to the verified base, with no temporary path restrictions.
-
-Run from that clean worktree:
+Ordinary capture in your main worktree would pull in the unrelated staged and unstaged edits and the scratch file. I'd leave that worktree and its index alone: no stash, reset or commit.
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/dirty-final.json" --async --json
+cd /path/to/verified-clean-worktree          # at the intended commit
+git merge-base HEAD origin/main              # confirm it equals 1111…1111
+qodo review --base 1111111111111111111111111111111111111111 \
+  --context-file "$TMPDIR/qodo-ctx-dirty-final.json" --async --json
 ```
 
-Context:
+- **Effort:** auto, full intended path scope.
+- **Context:** the same three fields. `notes` would say the review ran in an isolated clean checkout of commit `<sha>`, and that unrelated local edits were left out on purpose.
+- **Checking coverage:** the result's commit and tree should match the intended commit. I'd also check for exclusions or omissions before treating it as covering the PR candidate.
 
-```json
-{
-  "decisions": [
-    "The user requested final review of the committed PR candidate and preservation of all original working files and the index.",
-    "The coding agent selected the verified task-only clean worktree because ordinary capture in the original worktree includes unrelated changes and committed-only collection is unavailable."
-  ],
-  "notes": "Review the full committed candidate from the isolated clean worktree. Unrelated staged edits, unrelated unstaged work and private untracked scratch content remain outside this collection. Test outcomes and implementation-specific requirements were not supplied.",
-  "recent_work": [
-    "The committed PR candidate is awaiting final assessment; its implementation details were not supplied."
-  ]
-}
-```
+### 3. `already-covered`: no new review
 
-Use ordinary auto effort—not deep or `--full` merely because this is final review. Verify returned coverage matches the intended candidate before claiming it was assessed.
+There's no concrete reason to run another: nothing changed, there's no new evidence, and you didn't ask for a fresh assessment. I'd report **Ready locally**. The completed auto assessment covers the exact commit, tree, base, scope and policy; required findings are settled; and tests passed. I'd report two things separately: whether findings and checkpoints were stored, and the local-to-PR handoff. A hosted "Qodo-clean" claim would still need a separate check with `qodo-review-resolver`. CI and merge are their own gates.
 
-### 3. `already-covered`
+### 4. `trivial`: no review
 
-**Hand over the work without another assessment.** The exact snapshot, base, full scope and relevant policy already have complete compatible auto coverage; required findings are settled and tests passed.
+A comment typo with no behavior change doesn't warrant a review on its own. I'd keep working and mention the fix in `recent_work` on the next meaningful submission.
 
-Reuse the completed assessment and its existing reference. No new submission or context file is needed.
-
-Outcome: **Ready locally.** This does not independently establish hosted review cleanliness, successful finding handoff, CI or merge readiness.
-
-### 4. `trivial`
-
-**Continue the task without a review.** An internal-comment typo with no behavior change does not warrant an automatic checkpoint.
-
-No review command or review context is needed.
-
-### 5. `report-only`
-
-**Review the requested safe working scope without editing or committing.** Do not isolate away the requested uncommitted code or turn this into PR preparation.
+### 5. `report-only`: review the working scope, no edits or commits
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/report-only.json" --async --json
+qodo review --base 1111111111111111111111111111111111111111 \
+  --context-file "$TMPDIR/qodo-ctx-report.json" --json
 ```
 
-Context:
+- **Scope:** ordinary capture, which covers uncommitted changes and eligible untracked files. That's what you asked for. I'd create no commits.
+- **Context file:** it stays outside the repository, so I don't touch `.qodo/` or the ignore files.
+- **Effort:** auto.
+- **Afterwards:** I'd assess each finding against the code and then stop. No fixes, no stored dismissals, and no offer to switch to implementation.
 
-```json
-{
-  "decisions": [
-    "The user requested report-only review of uncommitted code, without edits or commits."
-  ],
-  "notes": "Assess the requested working scope, which is safe to collect. PR preparation is not requested. Implementation requirements, design decisions and test outcomes were not supplied.",
-  "recent_work": [
-    "The requested uncommitted changes await their first review; their behavior was not described in the supplied evidence."
-  ]
-}
-```
+### 6. `light-to-final`: yes, one auto final review
 
-Assess and report the findings, then stop. Do not edit, commit, store dismissals or solicit permission to convert this report-only task into implementation.
-
-### 6. `light-to-final`
-
-**Proceed with an ordinary auto final assessment.** The concrete reason is missing ordinary final coverage: an unchanged fast checkpoint alone is insufficient.
-
-Keep the same verified base and full intended scope. Remove `--fast`; do not add `--deep` or automatically force `--full`.
+**Reason to review:** a `--fast` checkpoint doesn't count as ordinary final coverage, and you're about to hand off.
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/light-to-final.json" --async --json
+qodo review --base 1111111111111111111111111111111111111111 \
+  --context-file "$TMPDIR/qodo-ctx-final.json" --json      # or --async --json, then poll
 ```
 
-Context:
+- **Effort and scope:** auto, with `--fast` dropped. Same base and the same full scope as the checkpoint.
+- **No `--full`:** the earlier checkpoint completed, and you didn't ask for a fresh run. I'd let the service decide whether to report `full`, `incremental` or `reused`, and pass on what it reports.
+- **Context:** `recent_work` would say no code changed since the `--fast` checkpoint and that this run upgrades it to ordinary final coverage. Open findings from the checkpoint stay listed as backlog, not as new findings.
 
-```json
-{
-  "decisions": [
-    "The user requested ordinary final review before handoff."
-  ],
-  "notes": "A purposeful fast checkpoint completed for this full intended snapshot. No code or evidence changed afterward. There is no completed auto final assessment, and the review budget is not exhausted. Test outcomes were not supplied.",
-  "recent_work": []
-}
-```
+### 7. `explicit-fresh`: honor `--full`
 
-Let the Engine determine continuation eligibility. Inspect the actual effort, analysis mode and coverage; do not claim that reused light evidence establishes ordinary final coverage without supporting results.
-
-### 7. `explicit-fresh`
-
-**Honor the explicit fresh-assessment request using `--full`.** This is justified despite unchanged code because the user specifically requested it within budget.
-
-Keep the existing base and full scope. `--full` requests fresh assessment, not deep effort.
+**Reason to review:** you explicitly asked for a fresh assessment, and it's within your budget.
 
 ```sh
-qodo review --base 1111111111111111111111111111111111111111 --context-file "$CONTEXT_DIR/explicit-fresh.json" --full --async --json
+qodo review --base 1111111111111111111111111111111111111111 --full \
+  --context-file "$TMPDIR/qodo-ctx-fresh.json" --json
 ```
 
-Context:
+- **Effort and scope:** auto, same base and full scope.
+- **Context:** `recent_work` would say no code changed and you requested a fresh assessment.
+- **Budget:** this run counts against your review budget.
+- **Results:** findings marked `introduced` are reported separately from earlier settled ones.
 
-```json
-{
-  "decisions": [
-    "The user explicitly requested a fresh assessment with --full within the available review budget."
-  ],
-  "notes": "The unchanged current snapshot already has complete compatible auto coverage and settled findings. This submission honors the explicit fresh-assessment request. No new evidence or test outcomes were supplied.",
-  "recent_work": []
-}
-```
+### 8. `stacked`: review only the child layer
 
-### Collecting any submitted review
-
-Retain the returned operation ID with its base, scope, snapshot and submitted context. Collect that operation rather than submitting again:
+**Diff base:** the child's fork point on the fetched parent, not the parent tip and not `main`.
 
 ```sh
-qodo review status "$operation_id" --extended --json
+git fetch origin parent
+CHILD_BASE="$(git merge-base HEAD origin/parent)"   # old fork point, because parent advanced
 ```
 
-Respect returned polling delays. Acceptance is not completion. Read warnings, reviewer commentary, complete inventory, coverage and context-delivery metadata. Separate introduced and still-open findings from resolved and dismissed findings, and report any missing evidence. Review authority alone does not authorize edits, commits, dismissals, pushes or PR creation.
+- **Why the fork point:** using the advanced parent tip would show the parent's new commits as reverted changes. Using `main` would pull in the whole parent layer.
+- **Checks before submitting:** `CHILD_BASE` must still be reachable on the remote parent's history. If the parent was rebased or force-pushed and the old fork point is gone from the remote, I'd stop rather than substitute the tip.
+- **No rebasing:** I wouldn't rebase the child onto the new parent tip or push anything.
+
+**Target identity:** I'd first read `qodo review --help` to confirm what `--target` means on that version.
+
+- **One open same-repository PR:** its base branch is the target. I'd confirm it really is `parent`, not `main`, and then run:
+  ```sh
+  qodo review --base "$CHILD_BASE" --target <that PR's base branch, as help specifies> \
+    --context-file "$TMPDIR/qodo-ctx-child.json" --async --json
+  ```
+  `notes` would describe the stack (child → parent → main) and say the review covers only the child layer.
+- **CLI reports two possible targets:** I'd stop before submitting. I'd show you both candidates and ask which one this child layer should be reviewed against. I wouldn't pick one myself or default to `main`. Once you choose, `--base` stays `CHILD_BASE` and `--target` names the branch you chose.

@@ -39,3 +39,8 @@ is verified and its merge-base SHA is 1111111111111111111111111111111111111111.
 7. `explicit-fresh`: The current snapshot already has complete compatible auto
    coverage and settled findings. I explicitly request a fresh assessment with
    --full. Nothing changed, and the request is within my review budget.
+8. `stacked`: On a newer CLI whose help also advertises `--target`, I want a review
+   of the child layer in `child → parent → main`. The fetched parent has advanced
+   since the child diverged. First assume the child has one open same-repository
+   PR; then assume the CLI reports two possible targets. Explain the command,
+   diff base, target identity, and what you do if the target is ambiguous.

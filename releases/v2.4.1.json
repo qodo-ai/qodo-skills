@@ -1,0 +1,16 @@
+{
+  "version": "2.4.1",
+  "summary": "Update Qodo skills and marketplace packages.\n- Merge pull request #183 from qodo-ai/automation/skills-release\n- ci: post skills release results and approval reminders to #agentic-toolbox-ops (#180)\n- Review stacked changes against their actual PR target (#185)",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-review",
+      "version": "1.10.17",
+      "change": "patch"
+    }
+  ]
+}

@@ -1,7 +1,11 @@
 # Local-review Skill behavior checks
 
 These synthetic cases test coding-agent decisions, not reviewer quality or live integration.
-Current full17qualifies candidate296350e:42/42candidate and38/42baseline, one fresh
+Iteration 20 qualifies `a491aa4` on the anonymous final-answer check: 43/43 for both
+candidate and baseline. The separate plugin trace grades were 42/43 and 41/43.
+See [results](RESULTS.md) for the difference and the scope of baseline reuse.
+
+Historical full17 qualified candidate296350e:42/42candidate and38/42baseline, one fresh
 execution per case/configuration and eight anonymous graders. Its147artifacts
 retain all original judgments and full58input maps. No causal uplift is claimed.
 Original16is archived unchanged:39/42candidate and42/42baseline, with three
@@ -87,7 +91,8 @@ assumption is preserved as historical evidence, not accepted as transport qualif
 `mcp-collection` adds seven assertions for eligible submission, complete chunk
 verification, ineligible collection, wrong digest/byte count, a foreign operation
 and overlapping pages. The CLI identity-gap case adds one assertion that missing
-response identity is reported, not invented. The wrapper stages eight groups and42assertions.
+response identity is reported, not invented. The wrapper stages eight groups and 43 assertions,
+including a stacked-target scenario in `milestone-and-final-scope`.
 
 ## Recorded evidence and CI
 

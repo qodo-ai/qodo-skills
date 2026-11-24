@@ -1,6 +1,10 @@
 # Recorded qodo-review behavior evaluation
 
-Current full17selects one fresh8case/42assertion comparison:
+The current manifest selects `scopes/iteration-20-full`. It retains both sets of
+answers, original per-assertion plugin votes, and a separate anonymous final-answer
+grade for each case. See `evals/qodo-review/RESULTS.md` for scores and limitations.
+
+Historical full17 selected one fresh8case/42assertion comparison:
 42/42candidate296350e,38/42baseline6385a42. Its147artifacts retain every original
 answer, grade, complete58input map, provenance, timing and anonymous label.
 All fixture bytes match16; only the canonical recovery-permission clarification

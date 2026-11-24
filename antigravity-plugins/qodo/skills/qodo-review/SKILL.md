@@ -4,7 +4,7 @@ description: Review local changes with Qodo after coherent substantive work and 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.10.16"
+  version: "1.10.17"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -48,7 +48,7 @@ qodo --version
 If compatible, verify identity unless a successful check still covers this execution context:
 
 ```sh
-qodo read whoami --json --skill qodo-review --skill-version 1.10.16 --distribution marketplace --host antigravity
+qodo read whoami --json --skill qodo-review --skill-version 1.10.17 --distribution marketplace --host antigravity
 ```
 
 An old or unparseable version stops authenticated calls.
@@ -93,8 +93,9 @@ they do not select different authority, compatibility or recovery policy.
   Keep a connected client alive; reap its child before parsing. Progress is not a result.
   Retain the final envelope even after nonzero exit and before deleting only this invocation's temporary files.
 - **MCP:** require the tested collector, safety exclusions, omission report and fetchable base above.
-  Preserve request identity after uncertain admission; collect and verify every result chunk before interpreting it.
-  Keep result-view arguments unchanged while following pagination cursors.
+  Preserve request identity after uncertain admission. Check `isError` on every receipt and result page.
+  Keep result-view arguments unchanged. Chunk count is not an end marker.
+  Report the final `next_cursor: null`, verified byte count and digest before claiming complete collection.
   Never invent an unsupported collector mode, retry-key field or substitute checkout.
 - **Finding-status writes:** fixing code does not authorize a dismissal. An authorized local dismissal uses original
   finding IDs and their actual local-review IDs, grouped by review, reason and explanation.
@@ -134,11 +135,20 @@ There is no `--standard` flag. `--fast` and `--deep` are mutually exclusive.
 
 ### 2. Capture the intended scope
 
-Select the actual target branch, normally `origin/main`.
-Fetch that target when reviewing current remote history.
-If deliberately offline or pinned, disclose the use of locally fetched history.
-Compute `git merge-base HEAD <target-ref>` and pass that SHA as `--base` on every submission.
-An explicit `--base` is exact. Honor a user-requested exact comparison.
+An exact `--base` skips target selection. Otherwise use the explicit target or the
+unique open PR target for the source repository and branch.
+For `child → parent → main`, compare from the merge base with `parent` and retain `parent`
+for PR linking. A SHA does not identify a branch. Without a verified target, disclose the
+unlinked fallback; resolve a specifically requested stack layer before submitting.
+Fetch the target for current remote history. If installed help advertises `--target`,
+omit both flags for discovery or pass `--target <branch>` for a chosen target.
+Check the reported target; on ambiguity ask the user before retrying.
+MCP: send the diff base as `base_sha` and HEAD as `commit_sha`. Send `comparison_branch`
+only for a verified target when the live input schema advertises it.
+
+On older CLIs without `--target`, resolve the actual target first, compute
+`git merge-base HEAD <target-ref>` and pass that SHA as `--base` on every submission.
+This may prevent PR linking. Disclose offline or pinned history.
 Use a known base SHA literally or explicitly bind its shell variable to that SHA; do not leave an unresolved placeholder.
 If the common ancestor or remote base is unavailable, stop instead of substituting the target tip.
 Review authority does not authorize pushing the base.
@@ -185,14 +195,13 @@ Report unavailable or shortened delivery. A stored link or preparation receipt d
 
 Use `--async --json` when available so the review survives process exit.
 Keep at most one automatic checkpoint active per task.
-Continue useful independent work and collect its result at natural pauses within retention.
+Collect its result at natural pauses within retention.
 For connected progress, read [connected progress](references/connected-progress.md).
 Keep the process alive. Never combine `--async` with `--progress`.
 
 An accepted operation is not a completed assessment.
 Poll the existing operation ID. Do not submit a new review to check progress or obtain more detail.
-Validate returned identities and artifact integrity before interpreting a result.
-Report any unavailable identity check as unverified; do not invent evidence or certify that check.
+Validate returned identities and artifact integrity. Report any unavailable identity check as unverified.
 Reject mismatched operation/snapshot associations and incomplete or noncontiguous result pages.
 If acceptance is uncertain, use the CLI's returned recovery command and retained original request.
 Do not gather a different worktree snapshot for that recovery.
@@ -267,14 +276,14 @@ Name that reason before submitting.
 Stop when the same concern repeats without actionable progress.
 Do not re-fix guarded code, suppress a blocker or buy unchanged reviews to chase zero.
 There is no default numerical round cap. Apply an explicit user budget across resumes.
-Status polls and result retrieval are not additional assessments.
+Polls and retrieval do not count. At the limit, stop with open findings; do not continue fixes without edit authority.
 
 | Outcome | Report |
 |---|---|
 | Ready locally | Current intended code/scope has completed assessment, required findings are settled and relevant checks passed. |
 | Needs action | Required findings or human decisions remain, even if the assessment completed with no new findings. |
 | Review blocked | Required assessment, inventory or verification could not complete. Preserve the reason and recovery handle. |
-| Budget reached | The user's explicit review budget ended. Preserve blockers and missing coverage. |
+| Budget reached | Stop. Report unresolved blockers and missing coverage. |
 
 A resolved finding alone does not establish overall readiness; check the full inventory for other required obligations.
 Report finding/checkpoint persistence and local-to-PR handoff separately from assessment and local readiness.
