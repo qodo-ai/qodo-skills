@@ -1,0 +1,26 @@
+{
+  "name": "qodo-copilot",
+  "owner": {
+    "name": "Qodo",
+    "email": "support@qodo.ai",
+    "url": "https://www.qodo.ai"
+  },
+  "metadata": {
+    "description": "Qodo code intelligence, review, and organizational standards for local coding agents.",
+    "version": "2.4.2"
+  },
+  "plugins": [
+    {
+      "name": "qodo",
+      "source": "./copilot-plugins/qodo",
+      "description": "Qodo setup, code intelligence, and review workflows.",
+      "version": "2.4.2"
+    },
+    {
+      "name": "qodo-standards",
+      "source": "./copilot-plugins/qodo-standards",
+      "description": "Optional Qodo standards discovery and review rules/skills administration workflows.",
+      "version": "2.4.2"
+    }
+  ]
+}

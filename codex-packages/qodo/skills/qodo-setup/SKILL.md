@@ -4,7 +4,7 @@ description: Set up Qodo in a coding agent — install the CLI, sign in, and ver
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.14"
+  version: "1.0.15"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -49,17 +49,18 @@ For unparseable version/no supported updater, use the checksum-pinned installer 
 Run:
 
 ```sh
-<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.14 --distribution marketplace --host codex
+<qodo> read whoami --json --skill qodo-setup --skill-version 1.0.15 --distribution marketplace --host codex
 ```
 
 Reuse success. Read [authentication.md](references/authentication.md) before login on failure; preserve deployment, never fall back to Cloud. Wait/recheck identity; stop on denial/cancellation. Diagnostic approval is not blanket authority.
 Only after identity succeeds run:
 
 ```sh
-<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.14 --distribution marketplace --host codex
+<qodo> tools --refresh --json --skill qodo-setup --skill-version 1.0.15 --distribution marketplace --host codex
 ```
 
-Require task capability. On failure report signed in but tools unavailable, exact error and that retry; do not log in again. Reuse verified context with host approvals.
+If refresh succeeds but omits the task capability, follow [cached discovery](references/runtime.md#cached-discovery).
+Require capability. On failure report signed in, the error and retry; do not log in again. Reuse context with host approvals.
 
 ## Configuration
 

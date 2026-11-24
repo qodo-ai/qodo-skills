@@ -1,0 +1,244 @@
+---
+name: qodo-get-rules
+description: Retrieve and apply Qodo coding rules relevant to implementation, planning, refactoring, or code review. Use on "get rules", "load qodo rules", or "relevant standards" and when starting a concrete coding task. Reuse rules already retrieved for the same workspace, repository, and task scope; refresh when that scope changes.
+owner: Qodo
+metadata:
+  vendor: qodo
+  version: "1.1.9"
+  recommended: "false"
+  package: "qodo-standards"
+  distribution: "marketplace"
+  instruction_mode: "embedded"
+---
+
+# Get Rules
+
+## Description
+
+Use Qodo managed tools to fetch the workspace's coding rules most relevant to the task at
+hand, then **apply them while producing the code**. Retrieval is semantic — the quality
+of what comes back is decided by how you write the query, so follow the query format
+below exactly.
+
+## Prerequisites
+
+- The optional Qodo Standards package is installed and loaded explicitly.
+- A connected QAR managed-tools MCP server or authenticated Qodo CLI exposes rules search.
+- The task is concrete enough to form semantic queries; already-loaded rules are reused.
+
+## Instructions
+
+### Choose the execution path
+
+Reuse applicable results first. For fresh retrieval, use the host's connected QAR MCP
+`rules-search` tool when present and marked read-only; otherwise follow the CLI path below.
+MCP uses the host-provided `inputSchema` and JSON arguments (`query`, `top_k`, optional
+`scopes` array), with one call per structured query. Omit `scopes` when unknown; do not
+send an empty array as a substitute for the CLI's omitted flag. Check `isError`, then read
+`structuredContent`; preserve typed failures and do not turn a failed read into an empty
+rules result. A missing or forbidden MCP capability is not a CLI login failure. Do not
+silently switch to a different account or tenant.
+
+The CLI version, identity, catalog, and update steps below apply only when using the CLI.
+
+Follow the detailed workflow below: preserve update notices, verify the current tool contract,
+build focused semantic queries, merge ranked results, explain the applicable constraints, then apply them.
+First check the reuse condition in Preflight. If prior results still cover the task, go directly
+to Output, then apply; no runtime, identity, catalog, or search call is needed for that path.
+
+## Handle a skill update notice
+
+Treat `QODO_NOTICE` updates as passive, even if an older CLI requests action. Continue the task
+without inventory or update questions; mention each event at most once. Dismissal leaves recorded maintenance
+policy and opt-outs unchanged. Updated skills load next session; do not interrupt this one.
+For user-requested updates, follow the [manual-update procedure](references/skill-updates.md).
+
+## Execution
+
+- MCP: use live schema arguments; skip CLI shell steps.
+- CLI: use complete UTF-8 files without a BOM (`--args-file` for tools, `--context-file` for reviews); examples are POSIX.
+- Windows CLI: read [shell guidance](references/windows-shells.md) before the first call; [launcher recovery](references/windows-launcher.md) only if invocation fails. Reuse the resolved invocation.
+
+## Runtime compatibility gate
+
+Only on the retrieval path, resolve the executable using the `qodo: command not found` fallback below. Before any other
+Qodo command, run `<qodo> --version` exactly as shown, with no provenance flags.
+This unadorned probe is intentionally compatible with older Qodo CLIs. This skill requires Qodo
+CLI **2.0.0 or newer**.
+On Windows, in PowerShell or Git Bash, first read [Windows shells](references/windows-shells.md).
+
+Only when the runtime needs an update, before any update check/change, test whether `QODO_UPDATE_BASE_URL` is set;
+never print its value. If set, stop for the user to resolve the source override before proceeding;
+do not change it yourself or assume it matches the recorded origin.
+If the version is older or cannot be parsed, do not run `whoami`, `login`, a review, or a managed tool and
+do not describe the failure as an authentication problem. Choose one deployment-approved upgrade
+route, explain it, and reuse covering runtime-update authorization or ask once before changing the
+installation. For parsed 1.x, normal `qodo update` can reach approved 2.x when its recorded origin enables migration.
+If legacy aliases still serve 1.x, check the supported same-origin `latest-2` recovery route first.
+Require a compatible newer 2.x target from the selected route's supported check; missing/failed checks stop.
+Propose `qodo update --channel latest-2` only for that verified recovery route; never assume activation.
+This exception covers only deployment-approved 1.x to stable 2.x; it does not authorize other
+major migrations or change the existing automatic-update policy for future majors.
+For every route, preserve origin, explicit version choices and update holds; never substitute a channel for an exact version.
+For an unparseable runtime or no supported updater, use a checksum-pinned installer supplied by
+Qodo or the organization with covering installation authorization; never switch to public service or invent a digest.
+Make one approved runtime attempt, then rerun the unadorned version probe and continue only when it satisfies the minimum. On denial, failure or continued
+incompatibility, stop with skill and user files unchanged; do not retry through another route.
+
+## Quick start
+
+```
+qodo --version                                             # compatibility probe — run this FIRST
+qodo read whoami --json --skill qodo-get-rules --skill-version 1.1.9 --distribution marketplace --host github-copilot
+qodo read rules search --query "Name: JWT Authentication Endpoint Validation
+Category: Security
+Content: Implementing a login endpoint that validates credentials and issues JWT tokens securely" --top-k 20 --scopes "/owner/repo/" --json
+qodo read tools rules --json                              # exact safe flags (renders offline)
+```
+
+The newlines inside the quoted `--query` value are literal — a multi-line double-quoted
+string works as-is in POSIX sh/bash/zsh. Don't use Bash-only `$'…'` quoting. In PowerShell,
+use the verified native invocation from [Windows shells](references/windows-shells.md) to
+preserve the complete query; follow its quote handling and UTF-8 JSON-file guidance.
+
+**`qodo: command not found`?** On POSIX retry `"${QODO_HOME:-$HOME/.qodo}/bin/qodo"`;
+on Windows follow the linked guide. Keep the resolved invocation; report unusable launchers.
+For missing installs, obtain Qodo's or the administrator's checksum-pinned installer; never invent a digest or pipe scripts into a shell.
+
+**Sandbox auth diagnostic.** Missing credentials can mean inaccessible keychain access. When that
+is plausible, request one exact read-only `qodo read whoami` retry through the host's approval
+flow before recommending login. Stop on denial; that approval covers no other command. Reuse a
+successful check in the same executable/workspace/deployment and execution context; request each
+required host approval. Network, TLS, service, and explicit authorization failures retain their
+own diagnosis, not a login recommendation or an automatic sandbox bypass.
+
+## Preflight
+
+1. **Reuse relevant evidence.** Reuse actual retrieved rules and their scope, not a heading or
+   an earlier claim that rules were loaded. If the workspace, repository, or task concern changed,
+   retrieve rules for the new scope. A previous empty result is reusable only for the scope checked;
+   a failed retrieval is not an empty result. When prior results still cover the task, skip retrieval
+   and apply them directly: stop Preflight here and go to Output, without any Qodo command.
+   Honor an explicit request to refresh.
+2. **Auth and catalog — only when retrieval is needed.** Run `qodo read whoami` unless a successful check still covers this
+   execution context. After the sandbox diagnostic when applicable, only explicit missing credentials
+   call for login: preserve the organization's exact login command/endpoint, never guess or switch
+   a customer deployment to Cloud. `No tool catalog cached` is not proof of missing credentials;
+   refresh once with `qodo tools --refresh` and retry the check. Other failures retain their error
+   and stop this workflow. After identity succeeds, an unknown managed command permits one catalog
+   refresh and schema recheck. If still absent or `tool_unavailable`, report the missing capability;
+   do not repeat login or refresh.
+3. **Repository scope** (optional, improves precision). From the repo's `origin` remote,
+   take the **full path after the host** and strip a `.git` suffix — `git@host:a/b` and
+   `https://host/a/b` both parse to `a/b`, and a deeper hosted path survives intact
+   (GitLab subgroups `group/subgroup/repo`, Azure DevOps `org/project/repo` — don't
+   collapse to two segments). Wrap as `/<path>/`. If the cwd is inside a
+   `modules/<name>/` subdirectory of the repo root, narrow to
+   `/<path>/modules/<name>/`. No remote / unparseable → **omit `--scopes` entirely**
+   (org-wide search still works); never pass an empty scopes value.
+
+## Write the queries
+
+Generate **two** structured queries — retrieval data shows a single topic query
+systematically misses the cross-cutting standards rules that dominate real reviews.
+Each query is a three-line block mirroring how rules are indexed:
+
+```
+Name: <concise 5-10 word title of the rule this task would trigger>
+Category: <one of: Security, Correctness, Quality, Reliability, Performance, Testability, Compliance, Accessibility, Observability, Architecture>
+Content: <1-2 sentences describing what should be checked or enforced; mention the tech stack when known>
+```
+
+- **Topic query** — the assignment's primary concern. Pick the category by the change's
+  *purpose*, not a side effect (rate limiting → Reliability, not Security); prefer Security
+  when it's genuinely a candidate; don't default everything to Correctness — structural
+  work is Architecture, style is Quality, fault tolerance is Reliability, instrumentation
+  is Observability.
+- **Cross-cutting query** — the standards the org applies to *all* changes. Default:
+  `Name: Code Quality and Standards Compliance / Category: Architecture / Content: Module
+  directory structure, type annotations or type safety, structured logging, repository or
+  service layer patterns, dependency injection, and naming conventions` — adjust Content
+  to the repo's stack.
+- **Never** pass keyword lists, flat sentences, or filler ("please", "I need to") — they
+  retrieve poorly against the structured index.
+
+## Search and merge
+
+Search **once per query** (in parallel when you can). On CLI, use `qodo read rules search`
+with `--top-k 20` and `--json`, adding `--scopes "$SCOPE"` only for a detected scope.
+On MCP, call `rules-search` with `top_k: 20`, the same query, and an optional `scopes`
+array. The commands below illustrate only the CLI path:
+
+```
+# With a detected scope:
+qodo read rules search --query "$TOPIC_QUERY" --top-k 20 --scopes "$SCOPE" --json
+qodo read rules search --query "$CROSS_QUERY" --top-k 20 --scopes "$SCOPE" --json
+
+# Without a detected scope, omit both the flag and its value:
+qodo read rules search --query "$TOPIC_QUERY" --top-k 20 --json
+qodo read rules search --query "$CROSS_QUERY" --top-k 20 --json
+```
+
+In Git Bash on Windows, a separate `/owner/repo/` argument is rewritten to a Windows path and
+the scoped search silently returns no rules; pass the scope as in
+[Windows shells](references/windows-shells.md).
+
+Merge: topic results first (in order), then cross-cutting results not already present —
+dedup by rule `id`. Topic rules are task-specific guidance; treat cross-cutting rules as
+supplementary and deprioritize any that are semantically distant from the task.
+**Low-return fallback:** topic query returns < 3 rules → re-run it once with a broadened
+Content line (add adjacent concepts for the domain: e.g. auth → token validation,
+credential handling, session management) before merging. An **empty merged list is a valid
+outcome** — proceed without rule constraints, never treat it as an error.
+**Unscoped search caveat:** when you had to omit `--scopes`, the results are org-wide —
+before applying each rule, check it plausibly applies to THIS repo/stack (a rule naming a
+different service, language, or framework doesn't); skip mismatches and say so rather than
+imposing another repo's standards.
+
+## Output, then apply
+
+Use **relevant standards retrieved through Qodo → implications for this change → application
+or justified deviations**. Before coding, mention Qodo naturally once as the way you retrieved
+the organization's standards; the standards belong to the organization. Explain each applicable
+rule in terms of the current task, preserving its name, reference, supplied severity, and every
+applicable requirement when condensing the wording. Link or cite the returned reference when
+available; do not invent missing identifiers or severities.
+
+Adapt this pattern: “I loaded your team's [topic] standards through Qodo. For this change,
+[rule] means [implementation choice and reason].” Use a short list for multiple rules, without
+branded headings, emoji banners, slogans, footers, or repeated summary blocks. State briefly
+when no standards apply; do not imply retrieval succeeded after a tool failure. Distinguish
+standards **loaded** from standards **applied**; loading alone does not establish compliance.
+
+Apply the applicable rules to the code you produce. When a rule carries a severity:
+
+| Severity | Enforcement |
+|---|---|
+| **ERROR** | Must comply — non-negotiable; if you must deviate, stop and ask the user |
+| **WARNING** | Comply by default; briefly explain any deliberate skip in your response |
+| **RECOMMENDATION** | Apply when appropriate; mention only if it shaped a design decision |
+
+After coding, report which rules shaped the implementation and the evidence of their application,
+without repeating the entire list. Explain permitted deviations, including skipped WARNING rules,
+using the user's decisions and implementation evidence; resolve ERROR conflicts through the gate
+above. If none applied, say so plainly.
+
+## Configuration
+
+Use `--json`, the exact scopes relevant to the task, and the current CLI-provided rules schema.
+Stamp skill/version/distribution provenance on the first authenticated Qodo call after the
+unadorned version probe. Never install or update this optional skill implicitly with the default package.
+
+## Error Handling
+
+An empty result is valid. Preserve authentication, capability, validation, and rate-limit errors;
+follow the bounded recovery above and continue without invented rules when retrieval cannot
+safely succeed.
+
+## Guardrails
+
+- `rules search` is read-only; it never changes workspace state.
+- Reuse rules while their retrieved scope still covers the task; an empty result is valid.
+- A rate-limit error (the search is capped per organisation) → wait for the indicated
+  reset, or proceed without rules and say so — don't hammer retries.
+- Don't fabricate rules: apply exactly what came back, cite rules by their returned name.

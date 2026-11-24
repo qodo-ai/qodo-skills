@@ -1,0 +1,41 @@
+{
+  "version": "2.4.2",
+  "summary": "Update Qodo skills and marketplace packages.\n- Merge pull request #186 from qodo-ai/automation/skills-release\n- Merge pull request #184 from qodo-ai/codex/copilot-plugin",
+  "package": {
+    "change": "patch"
+  },
+  "runtimeProtocolVersion": 2,
+  "minimumCliVersion": "2.0.0",
+  "skills": [
+    {
+      "name": "qodo-setup",
+      "version": "1.0.15",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-codebase-wisdom",
+      "version": "1.1.9",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-get-rules",
+      "version": "1.1.9",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-manage-standards",
+      "version": "1.0.10",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-resolver",
+      "version": "1.4.11",
+      "change": "patch"
+    },
+    {
+      "name": "qodo-review-notes",
+      "version": "1.0.5",
+      "change": "patch"
+    }
+  ]
+}

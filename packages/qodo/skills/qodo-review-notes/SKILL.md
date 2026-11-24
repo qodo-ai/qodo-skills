@@ -4,7 +4,7 @@ description: Preserve reasoning for independent review of plans and PRs through 
 owner: Qodo
 metadata:
   vendor: qodo
-  version: "1.0.4"
+  version: "1.0.5"
   recommended: "true"
   package: "qodo"
   distribution: "marketplace"
@@ -91,7 +91,7 @@ When using the CLI, check `qodo --version` before discovering its live notes com
 
 ```sh
 qodo --version
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.4 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.5 --distribution marketplace --host claude-code
 qodo read tools review-notes --json
 qodo tools help review-notes --json
 ```
@@ -308,8 +308,8 @@ tools may add a server prefix. Do not construct provider URLs, handle API keys o
 Run `qodo --version` without provenance flags, then use:
 
 ```sh
-qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.4 --distribution marketplace --host claude-code
-qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.4 --distribution marketplace --host claude-code
+qodo read whoami --json --skill qodo-review-notes --skill-version 1.0.5 --distribution marketplace --host claude-code
+qodo read tools review-notes --json --skill qodo-review-notes --skill-version 1.0.5 --distribution marketplace --host claude-code
 qodo tools help review-notes --json
 ```
 
@@ -430,7 +430,17 @@ All wire names start `review-notes-`. For publication use `record_id` and `revis
 `notes_id` and positive `pr_number`. Query by PR requires `provider`, `provider_host`, `target_repo_ref`
 and `pr_number`; combined reads also require `current_head_sha`. These are identities, not prose searches.
 
-## Manual enterprise skill updates
+## Manual skill updates
+
+Identify the installed package and its lifecycle owner. For marketplace installations,
+use the host's update action for that exact plugin and marketplace. Follow the matching
+`QODO_NOTICE` guidance when available. Show the exact action, reuse covering authorization
+or ask once, and start a new host session after the update succeeds.
+
+For other installations, follow the recorded owner's update procedure. Continue with
+the enterprise procedure only after verifying enterprise ownership.
+
+### Manual enterprise skill updates
 
 Keep commands and approvals in this conversation; do not hand off to a terminal.
 
@@ -444,7 +454,7 @@ Explain the recorded scope and reuse covering authorization or ask once. For an 
 
 Never widen approval, change owners or add optional packages. Report persistent failures once without bypassing checks. Loaded instructions may be older than installed files.
 
-### Runtime recovery
+#### Runtime recovery
 
 Stop if a runtime upgrade was already attempted. Reuse the version and source preflight above,
 including the presence-only `QODO_UPDATE_BASE_URL` check. If the version is unparseable or the
