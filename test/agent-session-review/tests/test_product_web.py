@@ -45,7 +45,7 @@ class ProductWebTests(unittest.TestCase):
         package=(util.ROOT/'app/styles/package.js').read_text();kit=(util.ROOT/'app/styles/kit.js').read_text();app=(util.ROOT/'app/app.js').read_text()
         code=kit[kit.index('  const esc ='):kit.index('  const cases =')]
         code+=kit[kit.index('  const localTag ='):kit.index('  /* a rule, convention')]
-        code+='const KIT={localTag,localDone:()=>"",isConvention:()=>false};'
+        code+='const KIT={localTag,findingBody,localDone:()=>"",isConvention:()=>false};'
         code+=package[package.index('function pkTable('):package.index('document.addEventListener("click"',package.index('function pkTable('))]
         code+=package[package.index('function bPrs('):package.index('/* ---------- header actions:')]
         code+=package[package.index('function vFindings('):package.index('/* ---------- notes:')]

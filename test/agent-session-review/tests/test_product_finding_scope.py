@@ -107,18 +107,72 @@ class ProductFindingScopeTests(unittest.TestCase):
         context['LIVE'][p['key']]={**ok,'readiness_complete':True,'unresolved':None}
         self.assertNotIn('unresolved comments not checked',self.node(setup+code+';result=bVerdict();',context))   # product reads report no unresolved conversations, so that threshold doesn't apply
 
+    def test_verdict_counts_unknown_without_matching_a_specific_severity(self):
+        source=(util.ROOT/'app/styles/package.js').read_text()
+        code=source[source.index('function productCiUnknown('):source.index('\n',source.index('function productCiUnknown('))]
+        code+=source[source.index('const vdLink ='):source.index('function crumb()')]
+        setup='const esc=String,strip=String,prs=()=>[p];KIT.openFindings=KIT.allFindings=()=>p.findings;'
+        setup+='const store={get:()=>rules,set(){}},document={addEventListener(){},querySelector:()=>null,getElementById:()=>null};'
+        p={'key':'org/repo#1','findings':[{'severity':'unknown'}],'product_evidence':{'qodo_complete':True}}
+        rules={'ci':False,'conflicts':False,'review':False,'comments':False}
+        live={p['key']:{'state':'OPEN','readiness_complete':True}}
+        for product in (True,False):
+            for selected,blocked in (([],False),(['low'],False),(['high','medium'],False),(['high','medium','low'],True)):
+                with self.subTest(product=product,selected=selected):
+                    context={'p':p,'C':{'product':product},'LIVE':live,'rules':{**rules,'sev':selected},
+                             'VDICON':{'ok':'','no':'','unknown':''},'KIT':{}}
+                    html=self.node(setup+code+';result=bVerdict();',context)
+                    self.assertIn('<b>Not ready to merge</b>' if blocked else '<b>Ready to merge</b>',html)
+                    self.assertIn('>1 unknown</span>',html)
+                    self.assertNotIn('>1 low</span>',html)
+                    self.assertEqual('vd-s unknown off' in html,bool(selected) and not blocked)
+                    self.assertEqual('1 open finding to resolve' in html,blocked)
+
+    def test_onepage_keeps_unknown_findings_outside_the_lower_severity_disclosure(self):
+        source=(util.ROOT/'app/styles/onepage.html').read_text()
+        code=source[source.index('function prPage('):source.index('function reviewMd(')]
+        setup="""const esc=String,md=String,strip=String,pl=(n,w)=>n+' '+w+(n===1?'':'s'),shortPr=String;
+ const isOpen=f=>!f.status||f.status==='open',KIT={localTag:()=>'',localDone:()=>''},S={verdict:{}},ADDS={},sevRank={};
+ const prQuestions=()=>[],checksOf=()=>({}),testsOf=()=>({names:[],files:[]}),door=()=>({}),blast=()=>({text:''}),notesOf=()=>[];
+ const C={prs:[p]},ORDER=[p],story=[],BRIEF=null;"""
+        unknown={'id':'u','title':'Local finding details unavailable','severity':'unknown'}
+        low={'id':'l','title':'Known low finding','severity':'low'}
+        high={'id':'h','title':'Known high finding','severity':'high'}
+        for known_high,grouped in ((False,False),(True,False),(True,True)):
+            with self.subTest(known_high=known_high,grouped=grouped):
+                p={'key':'org/repo#1','title':'PR','files':[],'findings':[unknown,low]+([high] if known_high else []),
+                   'story':[{'kind':'findings','ids':['u']}] if grouped else []}
+                result=self.node(setup+code+';result={pr:prPage(p),overview:overviewPage()};',{'p':p})
+                visible,folded=result['pr'].split('<details class="rest">',1)
+                self.assertIn(unknown['title'],visible)
+                self.assertNotIn(unknown['title'],folded)
+                self.assertIn(low['title'],folded)
+                self.assertEqual(result['pr'].count(unknown['title']),1)
+                self.assertIn('1 unknown',result['overview'])
+                self.assertNotIn('2 lower',result['overview'])
+
     def render(self,p):
         package=(util.ROOT/'app/styles/package.js').read_text();app=(util.ROOT/'app/app.js').read_text()
+        kit=(util.ROOT/'app/styles/kit.js').read_text()
+        focus=(util.ROOT/'app/styles/focus.html').read_text()
         code=package[package.index('const findingOnCurrentCode ='):package.index('\n',package.index('const findingOnCurrentCode ='))]+'\n'
         code+=package[package.index('function vFindings('):package.index('/* ---------- notes:')]
+        code+='const focusFindings=(()=>{'+focus[focus.index('function vFindings('):focus.index('/* ---------- notes:')]+ 'return vFindings;})();'
         code+=package[package.index('function unitsOf('):package.index('const UNITS =')]
+        code+=app[app.index('function collapseRule('):app.index('function priority(')]
+        code+=app[app.index('function localPill('):app.index('function sevPill(')]
         code+=app[app.index('function findingView('):app.index('function sortedFindings(')]
         setup="""const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c])),md=esc,mdi=esc,isOpen=f=>!f.status||f.status==='open',srcName=()=> 'Qodo',shortPr=String,scansHtml=()=>'',productEvidenceUnknown=()=>false;
-const anchors=[],noteHtml=(id,anchor)=>{anchors.push(anchor);return '';};KIT.localTag=()=> 'before the PR';KIT.localDone=()=>'';KIT.isConvention=()=>false;const prs=()=>C.prs;
-const collapseRule=()=>null,sevPill=()=>'',localPill=()=>'',markbar=()=>'',notes=()=>[],noteView=()=>'',DST={};
-"""
+ const anchors=[],noteHtml=(id,anchor)=>{anchors.push(anchor);return '';};KIT.localDone=()=>'';KIT.isConvention=()=>false;const prs=()=>C.prs;
+ const PF=()=>({prio:new Set(),quiet:[{category:'general',path:'**'}]}),globRx=()=>/.*/;
+ const rules=()=>[{action:'collapse',category:'general',text:'quiet general findings'}],sevPill=()=>'',markbar=()=>'',notes=()=>[],noteView=()=>'',DST={};
+ """
+        setup+=kit[kit.index('  const findingBody ='):kit.index('  const cases =')]
+        setup+=kit[kit.index('  const localTag ='):kit.index('  /* a rule, convention')]
+        setup+=focus[focus.index('const quieted ='):focus.index('\n',focus.index('const quieted ='))]+'\n'
+        setup+='KIT.findingBody=findingBody;KIT.localTag=localTag;\n'
         context={'C':{'product':True,'prs':[p]},'S':{'open':{},'showCollapsed':{}},'EXPAND':False,'sevRank':{},'KIT':{}}
-        return self.node(setup+code+';result={primary:vFindings(),anchors,app:findingView(C.prs[0].findings[0],C.prs[0],null),unitFindings:unitsOf(C.prs[0]).flatMap(u=>u.findings).map(f=>f.id)};',context)
+        return self.node(setup+code+';result={primary:vFindings(),focus:focusFindings(),anchors,app:findingView(C.prs[0].findings[0],C.prs[0],null),unitFindings:unitsOf(C.prs[0]).flatMap(u=>u.findings).map(f=>f.id)};',context)
 
     def test_original_prepr_location_is_preserved_without_unverified_current_anchor(self):
         cases=[('old', 'a'*40,'RIGHT',False),('removed',HEAD,'LEFT',False),('unknown-commit',None,'RIGHT',False),('unknown-side',HEAD,None,False),('current',HEAD,'RIGHT',True)]

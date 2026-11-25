@@ -473,7 +473,7 @@ function toolStatus(list) {
   });
   return Object.values(tools).filter((t) => t.ran || t.open || t.unreviewed.length).sort((a, b) => (a.name === "Qodo" ? -1 : b.name === "Qodo" ? 1 : a.name.localeCompare(b.name)));
 }
-const SEVS = ["critical", "high", "medium", "low"], chipOf = (tone, text) => `<span class="rchip ${tone}">${esc(text)}</span>`;
+const SEVS = ["critical", "high", "medium", "low", "unknown"], chipOf = (tone, text) => `<span class="rchip ${tone}">${esc(text)}</span>`;
 function issuesState(list) {
   const open = list.flatMap((p) => p.findings.filter(isOpen).map((f) => ({ ...f, prk: p.key }))).sort((a, b) => SEVS.indexOf(a.severity || "low") - SEVS.indexOf(b.severity || "low"));
   const checks = list.flatMap((p) => (p.checks || []).map((c) => ({ p, c, s: String(c.state || c.conclusion || "").toUpperCase() })));
@@ -490,14 +490,14 @@ function bIssues() {
   const Q = issuesState(prs()), worst = SEVS.find((k) => Q.open.some((f) => (f.severity || "low") === k)), clean = Q.tools.filter((t) => !t.open && !t.failed && !t.unreviewed.length && !t.unknown).map((t) => t.name);
   const nd = (st) => DECS.filter((d) => d.status === st);
   const and = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
-  const s1 = Q.unknown && !Q.open.length ? "Review evidence is incomplete; no clean verdict is available." : Q.open.length ? `${pl1(Q.open.length, "open finding")}, the worst ${worst}${clean.length ? `; ${and(clean)} found nothing open` : ""}.` : `No open findings${clean.length ? ` from ${and(clean)}` : ""}.`;
+  const s1 = Q.unknown && !Q.open.length ? "Review evidence is incomplete; no clean verdict is available." : Q.open.length ? `${pl1(Q.open.length, "open finding")}${worst === "unknown" ? ", severity unknown" : `, the worst known ${worst}`}${clean.length ? `; ${and(clean)} found nothing open` : ""}.` : `No open findings${clean.length ? ` from ${and(clean)}` : ""}.`;
   const s2 = Q.ciUnknown ? "CI status is unknown; source evidence is incomplete." : Q.ran.length ? (Q.bad.length ? `${pl1(Q.bad.length, "CI check")} failed.` : Q.pend ? `CI is still running: ${Q.ok.length} of ${Q.ran.length} passed so far.` : `CI passed ${Q.ok.length} of ${Q.ran.length} checks.`) : prs().some((p) => p.product) ? "No CI checks were reported." : "No CI checks ran.";
   const tparts = [Q.added && `${pl1(Q.added, "test")} ${Q.added === 1 ? "was" : "were"} added`, Q.weak.length && `${pl1(Q.weak.length, "test")} lost assertions`, Q.untested.length && `${pl1(Q.untested.length, "changed file")} ${Q.untested.length === 1 ? "has" : "have"} no test that calls ${Q.untested.length === 1 ? "it" : "them"}`].filter(Boolean);
   const s3 = tparts.length ? `${and(tparts).replace(/^./, (c) => c.toUpperCase())}.` : "";
   const s4 = DECS.length ? `The coding agent decided ${pl1(nd("unplanned").length, "thing")} on its own and did ${nd("changed").length} differently from the plan; ${nd("planned").length} went as planned.` : "";
   const summary = `<p class="bkick top">Summary</p><p class="bsum">${esc([s1, s2, s3, s4].filter(Boolean).join(" "))}</p>`;
   // findings, the tools that looked, CI and tests: each its own container
-  const fRows = Q.open.map((f) => `<li>${chipOf(f.severity === "critical" || f.severity === "high" ? "high" : f.severity === "medium" ? "medium" : "low", f.severity || "low")}<span><b>${md(f.title)}</b><span class="muted">${esc(srcName(f))} · ${esc(f.path || "")}${f.line ? ":" + f.line : ""}${prs().length > 1 ? " · " + esc(shortPr(f.prk)) : ""}</span></span><button class="oklink" data-fsrc="${esc(srcName(f))}">Open →</button></li>`).join("");
+  const fRows = Q.open.map((f) => `<li>${chipOf(f.severity === "critical" || f.severity === "high" ? "high" : f.severity === "medium" ? "medium" : f.severity === "unknown" ? "unk" : "low", f.severity || "low")}<span><b>${md(f.title)}</b><span class="muted">${esc(srcName(f))} · ${esc(f.path || "")}${f.line ? ":" + f.line : ""}${prs().length > 1 ? " · " + esc(shortPr(f.prk)) : ""}</span></span><button class="oklink" data-fsrc="${esc(srcName(f))}">Open →</button></li>`).join("");
   const tRows = Q.tools.map((t) => { const w = SEVS.find((k) => t.sev[k]);
     const st = t.failed ? chipOf("high", "Failed") : t.open ? chipOf(w === "critical" || w === "high" ? "high" : "medium", `${t.open} open`) : t.unknown ? chipOf("unk", "Unknown") : t.unreviewed.length && !t.ran ? chipOf("unk", "Didn't run") : chipOf("low", "Clean");
     return `<li>${st}<span><b>${esc(t.name)}</b>${t.unreviewed.length ? `<span class="muted">no review on ${esc(t.unreviewed.join(", "))}</span>` : ""}</span>${t.open ? `<button class="oklink" data-fsrc="${esc(t.name)}">Show →</button>` : ""}</li>`; }).join("");
@@ -1973,15 +1973,15 @@ function vFindings() {
   let h = sc + only;
   const conv = open.filter(KIT.isConvention), bugs = open.filter((f) => !KIT.isConvention(f));
   const fnd = (f, withSev) => { const id = "f:" + f.id;
-      const original = C.product && (f.current_anchor === false || (f.local?.origin === "managed" && !f.local.current_anchor)) ? f.source_location || f.local?.source_location || {path:f.path,line:f.line,side:f.side,git_sha:f.git_sha || f.local?.commit} : null;
+       const original = !f.details_unavailable && C.product && (f.current_anchor === false || (f.local?.origin === "managed" && !f.local.current_anchor)) ? f.source_location || f.local?.source_location || {path:f.path,line:f.line,side:f.side,git_sha:f.git_sha || f.local?.commit} : null;
       const location = original ? `Original source: ${original.path || "path unknown"}${original.line ? ":" + original.line : ""} · ${original.side || "side unknown"} · ${original.git_sha ? original.git_sha.slice(0, 7) : "revision unknown"}` : `${f.path || ""}${f.line ? ":" + f.line : ""}`;
-      const anchor = original ? {pr:f.prk,label:f.title} : {pr:f.prk,path:f.path,line:f.line,side:C.product && String(f.side || "").toUpperCase() === "LEFT" ? "old" : "new",label:f.title};
+       const anchor = original || f.details_unavailable ? {pr:f.prk,label:f.title} : {pr:f.prk,path:f.path,line:f.line,side:C.product && String(f.side || "").toUpperCase() === "LEFT" ? "old" : "new",label:f.title};
       return `<details class="fnd" data-open="${esc(id)}"${(S.open[id] ?? EXPAND) ? " open" : ""}><summary><span class="muted" style="font:12px var(--f-mono);padding-top:3px">${esc(f.scanner ? f.scanner.name : f.source === "agent" ? "agent" : "qodo")}${KIT.localTag(f)}</span><b style="font-weight:600">${withSev ? `<span class="sev ${esc(f.severity)}">${esc(f.severity)}</span> ` : ""}${md(f.title)}</b>${f.stance ? `<span class="stance ${esc(f.stance)}">agent: ${esc(f.stance)}</span>` : "<span></span>"}<span class="p">${C.prs.length > 1 ? esc(shortPr(f.prk)) + " · " : ""}${esc(location)}</span></summary>
-        <div class="body">${md(f.body || "")}${f.why ? `<p class="muted" style="margin:8px 0 0"><b>Agent:</b> ${md(f.why)}</p>` : ""}${f.url ? `<p style="margin:8px 0 0"><a href="${esc(f.url)}" target="_blank" rel="noopener">Open in ${esc(f.scanner ? f.scanner.name : "Qodo")} ↗</a></p>` : ""}
+         <div class="body">${KIT.findingBody(f)}
         ${noteHtml(id, anchor)}</div></details>`; };
-  ["critical", "high", "medium", "low", "info"].forEach((sv) => {
+  ["critical", "high", "medium", "low", "info", "unknown"].forEach((sv) => {
     const g = bugs.filter((f) => (f.severity || "info") === sv); if (!g.length) return;
-    h += `<section class="tier"><h3><span class="sev ${sv}">${sv}</span> <span class="n">${g.length}</span></h3>${g.map((f) => fnd(f)).join("")}</section>`;
+    h += `<section class="tier"><h3><span class="sev ${sv}">${sv === "unknown" ? "unknown severity" : sv}</span> <span class="n">${g.length}</span></h3>${g.map((f) => fnd(f)).join("")}</section>`;
   });
   // rules and conventions read differently from bugs: their own section, never folded, high ones first
   if (conv.length) h += `<section class="tier conv"><h3>Rules and conventions <span class="n">${conv.length}</span></h3><p class="muted" style="margin:0 0 8px;font-size:14px">Your team's standards and style, apart from the bugs above.</p>${conv.sort((a, b) => (sevRank[a.severity] ?? 5) - (sevRank[b.severity] ?? 5)).map((f) => fnd(f, true)).join("")}</section>`;
@@ -2392,7 +2392,7 @@ const awaitingReview = (p) => { const L = LIVE[p.key];
   return L.review_decision ? L.review_decision !== "APPROVED" : !(L.approved_head || []).length || (L.changes_requested || []).length > 0; };   // no review decision (reviews not required): a human approval of the current head, with no change still requested
 const VRKEY = "cockpit:verdict-rules", VRDEF = { sev: ["high", "medium", "low"], ci: true, conflicts: true, review: true, comments: true };
 let VR = Object.assign({}, VRDEF, store.get(VRKEY, {}) || {});   // the merge thresholds: what must be true for Ready to merge
-const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low"].includes(s) ? s : "low"; };   // Qodo's five severities in the widget's three; none counts as Low
+const vrSev = (f) => { const s = ({ critical: "high", info: "low" })[f.severity] || f.severity; return ["high", "medium", "low", "unknown"].includes(s) ? s : "low"; };
 const vrBlocks = (f) => VR.sev.length === 3 || VR.sev.includes(vrSev(f));   // All: every open finding, whatever its severity
 function bVerdict() {   // the bottom line: does the package meet every merge threshold, then the numbers behind it; Merge Risk has its own widget and no say here
   const ps = prs(), fs = KIT.openFindings({ ...C, prs: ps }), P = !!C.product;
@@ -2412,10 +2412,10 @@ function bVerdict() {   // the bottom line: does the package meet every merge th
   const unmet = [VR.sev.length && (bf.length || !fdKnown), VR.ci && (ci.length || wt.length || !ciKnown || nc.length), VR.conflicts && (cf.length || !cfKnown), VR.review && (aw.length || !rvKnown), VC && (cm || ps.some((p) => vdN(p) == null))].filter(Boolean).length;
   const blk = [sh.length && `${pr(sh.length)} merged or closed`, dr.length && `${pr(dr.length)} still a draft`, stGap && "PR states not checked yet", unmet && `${unmet} of ${on} merge threshold${on === 1 ? "" : "s"} not met`].filter(Boolean);   // drafts and closed PRs block whatever the thresholds
   const st = why.length ? ["no", "Not ready to merge", blk.join(" · ")] : ["ok", "Ready to merge", "Every merge threshold is met."];   // the cards below say which; the full list is on hover
-  const sev = ["high", "medium", "low"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
+  const sev = ["high", "medium", "low", "unknown"].map((k) => [k, fs.filter((f) => vrSev(f) === k).length]).filter(([, n]) => n), offT = ` title="Not a merge threshold: change it in Customize › Verdict settings"`;
   return `<div class="vd ${st[0]}"><div class="vd-st"${why.length ? ` title="${esc(why.join(" · "))}"` : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${VDICON[st[0]]}</svg><div><b>${st[1]}</b><span>${esc(st[2])}</span></div></div>
     <div class="vd-t${VR.sev.length ? "" : " off"}"${VR.sev.length ? "" : offT}><span class="vd-k">Open findings</span><b class="vd-n${bf.length ? " block" : " none"}">${fs.length}${vdOf(KIT.allFindings({ ...C, prs: ps }).length)}</b>
-      <span class="vd-sev">${fdKnown ? "" : `<span class="vd-s">coverage unknown</span>`}${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${VR.sev.length && !VR.sev.includes(k) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
+      <span class="vd-sev">${fdKnown ? "" : `<span class="vd-s">coverage unknown</span>`}${sev.length ? sev.map(([k, n]) => `<span class="vd-s ${k}${VR.sev.length && !vrBlocks({severity:k}) ? " off" : ""}">${n} ${k}</span>`).join("") : `<span class="vd-s none">none open</span>`}</span></div>
     ${vdPrs("PRs failing CI", ci, ciKnown, ps.length, "high", "/checks", !VR.ci, P)}
     ${vdPrs("PRs with merge conflicts", cf, cfKnown, ps.length, "high", "", !VR.conflicts)}
     ${vdPrs("PRs awaiting human review", aw, rvKnown, ps.length, "medium", "", !VR.review, P)}
